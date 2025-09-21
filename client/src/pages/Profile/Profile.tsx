@@ -1,0 +1,1 @@
+import React from 'react'; import { Typography, Box } from '@mui/material'; const Profile: React.FC = () => { return ( <Box> <Typography variant="h4" fontWeight="bold">Profile</Typography> <Typography variant="body1" sx={{ mt: 2 }}>User profile and settings - Coming soon!</Typography> </Box> ) }; export default Profile

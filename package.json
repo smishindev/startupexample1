@@ -1,0 +1,30 @@
+{
+  "name": "mishin-learn-platform",
+  "version": "1.0.0",
+  "description": "Smart Learning Platform with AI Tutoring and Progress Analytics",
+  "author": "Mishin",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
+    "dev:client": "cd client && npm run dev",
+    "dev:server": "cd server && npm run dev",
+    "build": "npm run build:client && npm run build:server",
+    "build:client": "cd client && npm run build",
+    "build:server": "cd server && npm run build",
+    "install:all": "npm install && cd client && npm install && cd ../server && npm install",
+    "start": "cd server && npm start",
+    "clean": "rimraf client/dist server/dist"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "rimraf": "^5.0.5"
+  },
+  "workspaces": [
+    "client",
+    "server",
+    "shared"
+  ]
+}

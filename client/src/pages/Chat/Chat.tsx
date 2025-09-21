@@ -1,0 +1,1 @@
+import React from 'react'; import { Typography, Box } from '@mui/material'; const Chat: React.FC = () => { return ( <Box> <Typography variant="h4" fontWeight="bold">Chat</Typography> <Typography variant="body1" sx={{ mt: 2 }}>Real-time chat and collaboration - Coming soon!</Typography> </Box> ) }; export default Chat

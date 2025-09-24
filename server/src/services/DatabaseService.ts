@@ -7,12 +7,17 @@ export class DatabaseService {
 
   private constructor() {
     this.config = {
-      server: process.env.DB_SERVER || 'SergeyM\\SQLEXPRESS',
+      server: process.env.DB_SERVER || 'localhost',
+      port: parseInt(process.env.DB_PORT || '61299'),
       database: process.env.DB_DATABASE || 'startUp1',
+      user: process.env.DB_USER,
+      password: process.env.DB_PASSWORD,
       options: {
         encrypt: false,
         trustServerCertificate: true,
-        trustedConnection: true,
+        enableArithAbort: true,
+        connectionTimeout: 30000,
+        requestTimeout: 30000,
       },
       pool: {
         max: 10,
@@ -35,13 +40,27 @@ export class DatabaseService {
       console.log('✅ Connected to SQL Server successfully');
     } catch (error) {
       console.error('❌ Failed to connect to SQL Server:', error);
-      throw error;
+      // Don't throw error, let the application continue
+      this.pool = null;
+    }
+  }
+
+  public async healthCheck(): Promise<{ isConnected: boolean; error?: string }> {
+    try {
+      if (!this.pool) {
+        return { isConnected: false, error: 'No connection pool' };
+      }
+      
+      await this.pool.request().query('SELECT 1 as health');
+      return { isConnected: true };
+    } catch (error) {
+      return { isConnected: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
   }
 
   public async query<T = any>(queryText: string, params?: Record<string, any>): Promise<T[]> {
     if (!this.pool) {
-      throw new Error('Database not initialized');
+      throw new Error('Database not connected. Please check database configuration.');
     }
 
     try {
@@ -64,7 +83,7 @@ export class DatabaseService {
 
   public async execute(queryText: string, params?: Record<string, any>): Promise<sql.IResult<any>> {
     if (!this.pool) {
-      throw new Error('Database not initialized');
+      throw new Error('Database not connected. Please check database configuration.');
     }
 
     try {

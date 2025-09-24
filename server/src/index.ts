@@ -78,12 +78,19 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.set('io', io);
 
 // Health check endpoint
-app.get('/health', (req, res) => {
+app.get('/health', async (req, res) => {
+  const db = DatabaseService.getInstance();
+  const dbHealth = await db.healthCheck();
+  
   res.json({ 
     status: 'OK', 
     timestamp: new Date().toISOString(),
     version: '1.0.0',
-    environment: process.env.NODE_ENV || 'development'
+    environment: process.env.NODE_ENV || 'development',
+    database: {
+      connected: dbHealth.isConnected,
+      error: dbHealth.error || null
+    }
   });
 });
 
@@ -140,14 +147,21 @@ process.on('SIGINT', async () => {
 // Start server
 const startServer = async () => {
   try {
-    // Initialize database connection
-    await DatabaseService.getInstance().initialize();
-    logger.info('Database connected successfully');
+    // Try to initialize database connection
+    try {
+      await DatabaseService.getInstance().initialize();
+      logger.info('✅ Database connected successfully');
+    } catch (dbError) {
+      logger.error('❌ Database connection failed, but server will continue:', dbError);
+      logger.warn('⚠️  Database-dependent features will not be available until connection is restored');
+    }
 
+    // Start HTTP server regardless of database status
     server.listen(PORT, () => {
       logger.info(`🚀 Mishin Learn Server running on http://localhost:${PORT}`);
       logger.info(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
       logger.info(`🔗 CORS enabled for: ${process.env.CORS_ORIGIN || 'http://localhost:5173'}`);
+      logger.info(`💡 Health check available at: http://localhost:${PORT}/health`);
     });
   } catch (error) {
     logger.error('Failed to start server:', error);

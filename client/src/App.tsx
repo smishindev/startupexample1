@@ -1,72 +1,63 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
-import { Box } from '@mui/material'
-
-// Layout Components (will create these)
-import Layout from './components/Layout/Layout'
-import PublicLayout from './components/Layout/PublicLayout'
+import { useEffect } from 'react';
+import { Routes, Route, Navigate, BrowserRouter } from 'react-router-dom';
+import { Box } from '@mui/material';
 
 // Auth Components
-import Login from './pages/Auth/Login'
-import Register from './pages/Auth/Register'
+import { LoginForm } from './components/Auth/LoginForm';
+import { RegisterForm } from './components/Auth/RegisterForm';
+import { ProtectedRoute } from './components/Auth/ProtectedRoute';
 
 // Main Pages
-import Dashboard from './pages/Dashboard/Dashboard'
-import Courses from './pages/Courses/Courses'
-import CourseDetail from './pages/Courses/CourseDetail'
-import Lesson from './pages/Lessons/Lesson'
-import Profile from './pages/Profile/Profile'
-import Analytics from './pages/Analytics/Analytics'
-import Tutoring from './pages/Tutoring/Tutoring'
-import Chat from './pages/Chat/Chat'
-
-// Landing Page
-import LandingPage from './pages/Landing/LandingPage'
-
-// Protected Route Component
-import ProtectedRoute from './components/Auth/ProtectedRoute'
+import { Dashboard } from './components/Dashboard';
+import LandingPage from './pages/Landing/LandingPage';
 
 // Hooks
-import { useAuthStore } from './store/authStore'
+import { useAuthStore } from './stores/authStore';
 
 function App() {
-  const { isAuthenticated } = useAuthStore()
+  const { isAuthenticated, token, refreshToken } = useAuthStore();
+
+  // Auto-refresh token on app load
+  useEffect(() => {
+    if (token && !isAuthenticated) {
+      refreshToken();
+    }
+  }, [token, isAuthenticated, refreshToken]);
 
   return (
     <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
       <Routes>
         {/* Public Routes */}
-        <Route path="/" element={<PublicLayout />}>
-          <Route index element={<LandingPage />} />
-          <Route path="login" element={<Login />} />
-          <Route path="register" element={<Register />} />
-        </Route>
+        <Route path="/" element={<LandingPage />} />
+        <Route 
+          path="/login" 
+          element={
+            isAuthenticated ? <Navigate to="/dashboard" replace /> : <LoginForm />
+          } 
+        />
+        <Route 
+          path="/register" 
+          element={
+            isAuthenticated ? <Navigate to="/dashboard" replace /> : <RegisterForm />
+          } 
+        />
 
         {/* Protected Routes */}
         <Route
-          path="/app"
+          path="/dashboard"
           element={
             <ProtectedRoute>
-              <Layout />
+              <Dashboard />
             </ProtectedRoute>
           }
-        >
-          <Route index element={<Navigate to="/app/dashboard" replace />} />
-          <Route path="dashboard" element={<Dashboard />} />
-          <Route path="courses" element={<Courses />} />
-          <Route path="courses/:id" element={<CourseDetail />} />
-          <Route path="lessons/:id" element={<Lesson />} />
-          <Route path="profile" element={<Profile />} />
-          <Route path="analytics" element={<Analytics />} />
-          <Route path="tutoring" element={<Tutoring />} />
-          <Route path="chat" element={<Chat />} />
-        </Route>
+        />
 
         {/* Fallback redirect */}
         <Route
           path="*"
           element={
             isAuthenticated ? (
-              <Navigate to="/app/dashboard" replace />
+              <Navigate to="/dashboard" replace />
             ) : (
               <Navigate to="/" replace />
             )
@@ -74,7 +65,16 @@ function App() {
         />
       </Routes>
     </Box>
-  )
+  );
 }
 
-export default App
+// Main App wrapper with Router
+function AppWrapper() {
+  return (
+    <BrowserRouter>
+      <App />
+    </BrowserRouter>
+  );
+}
+
+export default AppWrapper;

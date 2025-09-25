@@ -29,7 +29,7 @@ import {
   Settings as SettingsIcon,
 } from '@mui/icons-material'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { useAuthStore } from '../../store/authStore'
+import { useAuthStore } from '../../stores/authStore'
 
 const DRAWER_WIDTH = 280
 

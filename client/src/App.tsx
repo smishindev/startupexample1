@@ -8,7 +8,8 @@ import { RegisterForm } from './components/Auth/RegisterForm';
 import { ProtectedRoute } from './components/Auth/ProtectedRoute';
 
 // Main Pages
-import { Dashboard } from './components/Dashboard';
+import { DashboardLayout } from './components/Layout/DashboardLayout';
+import { CoursesPage } from './pages/Courses/CoursesPage';
 import LandingPage from './pages/Landing/LandingPage';
 
 // Hooks
@@ -47,7 +48,16 @@ function App() {
           path="/dashboard"
           element={
             <ProtectedRoute>
-              <Dashboard />
+              <DashboardLayout />
+            </ProtectedRoute>
+          }
+        />
+        
+        <Route
+          path="/courses"
+          element={
+            <ProtectedRoute>
+              <CoursesPage />
             </ProtectedRoute>
           }
         />

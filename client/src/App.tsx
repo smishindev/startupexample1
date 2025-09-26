@@ -10,6 +10,8 @@ import { ProtectedRoute } from './components/Auth/ProtectedRoute';
 // Main Pages
 import { DashboardLayout } from './components/Layout/DashboardLayout';
 import { CoursesPage } from './pages/Courses/CoursesPage';
+import { CourseDetailPage } from './pages/Course/CourseDetailPage';
+import { LessonDetailPage } from './pages/Course/LessonDetailPage';
 import LandingPage from './pages/Landing/LandingPage';
 
 // Hooks
@@ -58,6 +60,24 @@ function App() {
           element={
             <ProtectedRoute>
               <CoursesPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/courses/:courseId"
+          element={
+            <ProtectedRoute>
+              <CourseDetailPage />
+            </ProtectedRoute>
+          }
+        />
+        
+        <Route
+          path="/courses/:courseId/lessons/:lessonId"
+          element={
+            <ProtectedRoute>
+              <LessonDetailPage />
             </ProtectedRoute>
           }
         />

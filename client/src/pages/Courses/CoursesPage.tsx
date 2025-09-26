@@ -17,6 +17,7 @@ import {
   Button,
 } from '@mui/material';
 import { Search, FilterList } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
 import { Header } from '../../components/Navigation/Header';
 import { CourseCard, Course } from '../../components/Course/CourseCard';
 
@@ -33,6 +34,7 @@ const TabPanel: React.FC<TabPanelProps> = ({ children, value, index }) => (
 );
 
 export const CoursesPage: React.FC = () => {
+  const navigate = useNavigate();
   const [tabValue, setTabValue] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
@@ -190,8 +192,7 @@ export const CoursesPage: React.FC = () => {
   };
 
   const handleCourseClick = (courseId: string) => {
-    console.log('Opening course:', courseId);
-    // Handle course navigation
+    navigate(`/courses/${courseId}`);
   };
 
   const filteredCourses = allCourses.filter(course => {

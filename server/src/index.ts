@@ -7,6 +7,10 @@ import rateLimit from 'express-rate-limit';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import dotenv from 'dotenv';
+import path from 'path';
+
+// Load environment variables
+dotenv.config({ path: path.join(__dirname, '..', '.env') });
 
 import { errorHandler } from './middleware/errorHandler';
 import { authRoutes } from './routes/auth';
@@ -21,9 +25,6 @@ import { uploadRoutes } from './routes/upload';
 import { DatabaseService } from './services/DatabaseService';
 import { setupSocketHandlers } from './sockets';
 import { logger } from './utils/logger';
-
-// Load environment variables
-dotenv.config();
 
 const app = express();
 const server = createServer(app);

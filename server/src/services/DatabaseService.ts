@@ -36,12 +36,21 @@ export class DatabaseService {
 
   public async initialize(): Promise<void> {
     try {
-      this.pool = await sql.connect(this.config);
-      console.log('✅ Connected to SQL Server successfully');
+      console.log('🔄 Connecting to SQL Server...');
+      this.pool = new sql.ConnectionPool(this.config);
+      await this.pool.connect();
+      console.log('✅ Database connected successfully');
     } catch (error) {
       console.error('❌ Failed to connect to SQL Server:', error);
-      // Don't throw error, let the application continue
       this.pool = null;
+      throw error; // Throw error to indicate initialization failure
+    }
+  }
+
+  public async ensureConnection(): Promise<void> {
+    if (!this.pool || !this.pool.connected) {
+      console.log('🔄 Reconnecting to database...');
+      await this.initialize();
     }
   }
 
@@ -59,11 +68,13 @@ export class DatabaseService {
   }
 
   public async query<T = any>(queryText: string, params?: Record<string, any>): Promise<T[]> {
-    if (!this.pool) {
-      throw new Error('Database not connected. Please check database configuration.');
-    }
-
     try {
+      await this.ensureConnection();
+      
+      if (!this.pool) {
+        throw new Error('Database not connected. Please check database configuration.');
+      }
+
       const request = this.pool.request();
       
       // Add parameters if provided

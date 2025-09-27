@@ -14,6 +14,7 @@ import { CourseDetailPage } from './pages/Course/CourseDetailPage';
 import { LessonDetailPage } from './pages/Course/LessonDetailPage';
 import { InstructorDashboard } from './pages/Instructor/InstructorDashboard';
 import { CourseCreationForm } from './pages/Instructor/CourseCreationForm';
+import { CourseEditPage } from './pages/Instructor/CourseEditPage';
 import LandingPage from './pages/Landing/LandingPage';
 
 // Hooks
@@ -86,6 +87,11 @@ function App() {
 
         {/* Instructor Routes */}
         <Route
+          path="/instructor"
+          element={<Navigate to="/instructor/dashboard" replace />}
+        />
+        
+        <Route
           path="/instructor/dashboard"
           element={
             <ProtectedRoute>
@@ -99,6 +105,15 @@ function App() {
           element={
             <ProtectedRoute>
               <CourseCreationForm />
+            </ProtectedRoute>
+          }
+        />
+        
+        <Route
+          path="/instructor/courses/:courseId/edit"
+          element={
+            <ProtectedRoute>
+              <CourseEditPage />
             </ProtectedRoute>
           }
         />

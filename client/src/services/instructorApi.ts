@@ -32,6 +32,16 @@ api.interceptors.response.use(
       url: error.config?.url,
       method: error.config?.method
     });
+    
+    // Handle token expiration
+    if (error.response?.status === 401) {
+      // Token expired or invalid - clear auth data and redirect
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      useAuthStore.getState().logout();
+      window.location.href = '/login';
+    }
+    
     return Promise.reject(error);
   }
 );

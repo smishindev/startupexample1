@@ -113,6 +113,7 @@ export const Header: React.FC<HeaderProps> = () => {
   const navigationItems = [
     { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
     { text: 'Courses', icon: <BookIcon />, path: '/courses' },
+    { text: 'Instructor', icon: <SchoolIcon />, path: '/instructor/dashboard' },
     { text: 'Analytics', icon: <AnalyticsIcon />, path: '/analytics' },
   ];
 

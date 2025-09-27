@@ -12,6 +12,8 @@ import { DashboardLayout } from './components/Layout/DashboardLayout';
 import { CoursesPage } from './pages/Courses/CoursesPage';
 import { CourseDetailPage } from './pages/Course/CourseDetailPage';
 import { LessonDetailPage } from './pages/Course/LessonDetailPage';
+import { InstructorDashboard } from './pages/Instructor/InstructorDashboard';
+import { CourseCreationForm } from './pages/Instructor/CourseCreationForm';
 import LandingPage from './pages/Landing/LandingPage';
 
 // Hooks
@@ -78,6 +80,25 @@ function App() {
           element={
             <ProtectedRoute>
               <LessonDetailPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Instructor Routes */}
+        <Route
+          path="/instructor/dashboard"
+          element={
+            <ProtectedRoute>
+              <InstructorDashboard />
+            </ProtectedRoute>
+          }
+        />
+        
+        <Route
+          path="/instructor/courses/create"
+          element={
+            <ProtectedRoute>
+              <CourseCreationForm />
             </ProtectedRoute>
           }
         />

@@ -78,8 +78,8 @@ export const LessonEditor: React.FC<LessonEditorProps> = ({
       // Editing existing lesson
       setTitle(lesson.title);
       setDescription(lesson.description);
-      setDuration(lesson.duration);
-      setIsRequired(lesson.isRequired);
+      setDuration(lesson.duration || 0);
+      setIsRequired(lesson.isRequired || true);
       setContent(lesson.content);
     } else if (open) {
       // Creating new lesson

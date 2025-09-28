@@ -5,6 +5,7 @@ USE [startUp1]
 GO
 
 -- Drop tables if they exist (for fresh setup)
+IF OBJECT_ID('dbo.FileUploads', 'U') IS NOT NULL DROP TABLE dbo.FileUploads;
 IF OBJECT_ID('dbo.TutoringMessages', 'U') IS NOT NULL DROP TABLE dbo.TutoringMessages;
 IF OBJECT_ID('dbo.TutoringSessions', 'U') IS NOT NULL DROP TABLE dbo.TutoringSessions;
 IF OBJECT_ID('dbo.ChatMessages', 'U') IS NOT NULL DROP TABLE dbo.ChatMessages;
@@ -245,6 +246,23 @@ CREATE TABLE dbo.TutoringMessages (
     Timestamp DATETIME2 NOT NULL DEFAULT GETUTCDATE()
 );
 
+-- File Uploads Table
+CREATE TABLE dbo.FileUploads (
+    Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    UserId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id),
+    CourseId UNIQUEIDENTIFIER NULL FOREIGN KEY REFERENCES dbo.Courses(Id) ON DELETE NO ACTION,
+    LessonId UNIQUEIDENTIFIER NULL FOREIGN KEY REFERENCES dbo.Lessons(Id) ON DELETE NO ACTION,
+    OriginalName NVARCHAR(255) NOT NULL,
+    Filename NVARCHAR(255) NOT NULL,
+    MimeType NVARCHAR(100) NOT NULL,
+    Size BIGINT NOT NULL,
+    FileType NVARCHAR(20) NOT NULL CHECK (FileType IN ('video', 'image', 'document')),
+    Url NVARCHAR(500) NOT NULL,
+    ThumbnailUrl NVARCHAR(500) NULL,
+    Metadata NVARCHAR(MAX) NULL, -- JSON object for file metadata
+    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE()
+);
+
 -- Create Indexes for Performance
 CREATE INDEX IX_Users_Email ON dbo.Users(Email);
 CREATE INDEX IX_Users_Username ON dbo.Users(Username);
@@ -272,6 +290,12 @@ CREATE INDEX IX_ChatMessages_CreatedAt ON dbo.ChatMessages(CreatedAt);
 
 CREATE INDEX IX_TutoringMessages_SessionId ON dbo.TutoringMessages(SessionId);
 CREATE INDEX IX_TutoringMessages_Timestamp ON dbo.TutoringMessages(Timestamp);
+
+CREATE INDEX IX_FileUploads_UserId ON dbo.FileUploads(UserId);
+CREATE INDEX IX_FileUploads_CourseId ON dbo.FileUploads(CourseId);
+CREATE INDEX IX_FileUploads_LessonId ON dbo.FileUploads(LessonId);
+CREATE INDEX IX_FileUploads_FileType ON dbo.FileUploads(FileType);
+CREATE INDEX IX_FileUploads_CreatedAt ON dbo.FileUploads(CreatedAt);
 
 -- Insert Sample Data
 INSERT INTO dbo.Users (Id, Email, Username, FirstName, LastName, PasswordHash, Role, IsActive, EmailVerified, CreatedAt, UpdatedAt)

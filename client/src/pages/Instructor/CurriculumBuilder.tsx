@@ -154,7 +154,7 @@ export const CurriculumBuilder: React.FC<CurriculumBuilderProps> = ({
   };
 
   const getTotalDuration = () => {
-    return lessons.reduce((total, lesson) => total + lesson.duration, 0);
+    return lessons.reduce((total, lesson) => total + (lesson.duration || 0), 0);
   };
 
   const formatDuration = (minutes: number) => {
@@ -291,10 +291,10 @@ export const CurriculumBuilder: React.FC<CurriculumBuilderProps> = ({
                             variant="outlined"
                           />
                         )}
-                        {lesson.duration > 0 && (
+                        {(lesson.duration || 0) > 0 && (
                           <Chip
                             icon={<TimeIcon />}
-                            label={formatDuration(lesson.duration)}
+                            label={formatDuration(lesson.duration || 0)}
                             size="small"
                             variant="outlined"
                           />

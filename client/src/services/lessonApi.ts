@@ -31,8 +31,12 @@ api.interceptors.response.use(
 );
 
 export interface LessonContent {
+  id?: string;
   type: 'video' | 'text' | 'quiz';
-  data: any;
+  data?: any;
+  url?: string;
+  fileId?: string;
+  orderIndex?: number;
 }
 
 export interface Lesson {
@@ -42,11 +46,12 @@ export interface Lesson {
   description: string;
   content: LessonContent[];
   orderIndex: number;
-  duration: number; // in minutes
-  isRequired: boolean;
-  prerequisites: string[];
-  createdAt: string;
-  updatedAt: string;
+  duration?: number; // in minutes
+  isRequired?: boolean;
+  isPublished?: boolean;
+  prerequisites?: string[];
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface CreateLessonRequest {

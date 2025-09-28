@@ -15,7 +15,11 @@ import { LessonDetailPage } from './pages/Course/LessonDetailPage';
 import { InstructorDashboard } from './pages/Instructor/InstructorDashboard';
 import { CourseCreationForm } from './pages/Instructor/CourseCreationForm';
 import { CourseEditPage } from './pages/Instructor/CourseEditPage';
+import { LessonManagementPage } from './pages/Instructor/LessonManagementPage';
 import LandingPage from './pages/Landing/LandingPage';
+
+// Demo Components
+import { ContentUploadDemo } from './components/Demo/ContentUploadDemo';
 
 // Hooks
 import { useAuthStore } from './stores/authStore';
@@ -116,6 +120,21 @@ function App() {
               <CourseEditPage />
             </ProtectedRoute>
           }
+        />
+        
+        <Route
+          path="/instructor/courses/:courseId/lessons"
+          element={
+            <ProtectedRoute>
+              <LessonManagementPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Demo Route */}
+        <Route
+          path="/demo/upload"
+          element={<ContentUploadDemo />}
         />
 
         {/* Fallback redirect */}

@@ -1,5 +1,5 @@
 import express from 'express';
-import { authenticateToken, AuthRequest } from '../middleware/auth';
+import { authenticateToken, authorize, AuthRequest } from '../middleware/auth';
 import { DatabaseService } from '../services/DatabaseService';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -7,7 +7,7 @@ const router = express.Router();
 const db = DatabaseService.getInstance();
 
 // Get instructor dashboard stats
-router.get('/stats', authenticateToken, async (req: AuthRequest, res) => {
+router.get('/stats', authenticateToken, authorize(['instructor', 'admin']), async (req: AuthRequest, res) => {
   try {
     const userId = req.user!.userId;
     
@@ -15,8 +15,8 @@ router.get('/stats', authenticateToken, async (req: AuthRequest, res) => {
     const courseStats = await db.query(`
       SELECT 
         COUNT(*) as totalCourses,
-        SUM(CASE WHEN status = 'published' THEN 1 ELSE 0 END) as publishedCourses,
-        SUM(CASE WHEN status = 'draft' THEN 1 ELSE 0 END) as draftCourses,
+        SUM(CASE WHEN IsPublished = 1 THEN 1 ELSE 0 END) as publishedCourses,
+        SUM(CASE WHEN IsPublished = 0 THEN 1 ELSE 0 END) as draftCourses,
         AVG(CAST(Rating as FLOAT)) as avgRating,
         SUM(Price * EnrollmentCount) as totalRevenue
       FROM Courses 
@@ -53,7 +53,7 @@ router.get('/stats', authenticateToken, async (req: AuthRequest, res) => {
 });
 
 // Get instructor's courses
-router.get('/courses', authenticateToken, async (req: AuthRequest, res) => {
+router.get('/courses', authenticateToken, authorize(['instructor', 'admin']), async (req: AuthRequest, res) => {
   try {
     const userId = req.user!.userId;
     const { status } = req.query;
@@ -64,7 +64,7 @@ router.get('/courses', authenticateToken, async (req: AuthRequest, res) => {
         c.Title as title,
         c.Description as description,
         c.Thumbnail as thumbnail,
-        c.status,
+        c.IsPublished as isPublished,
         c.Price as price,
         c.Rating as rating,
         c.EnrollmentCount as students,
@@ -72,7 +72,7 @@ router.get('/courses', authenticateToken, async (req: AuthRequest, res) => {
         c.UpdatedAt as updatedAt,
         COUNT(l.Id) as lessons,
         CASE 
-          WHEN c.status = 'published' THEN c.Price * c.EnrollmentCount
+          WHEN c.IsPublished = 1 THEN c.Price * c.EnrollmentCount
           ELSE 0
         END as revenue
       FROM Courses c
@@ -83,12 +83,14 @@ router.get('/courses', authenticateToken, async (req: AuthRequest, res) => {
     const params: any = { instructorId: userId };
 
     if (status) {
-      query += ` AND c.status = @status`;
-      params.status = status;
+      // Convert string status to boolean for IsPublished  
+      const isPublished = status === 'published' ? 1 : 0;
+      query += ` AND c.IsPublished = @isPublished`;
+      params.isPublished = isPublished;
     }
 
     query += `
-      GROUP BY c.Id, c.Title, c.Description, c.Thumbnail, c.status, c.Price, 
+      GROUP BY c.Id, c.Title, c.Description, c.Thumbnail, c.IsPublished, c.Price, 
                c.Rating, c.EnrollmentCount, c.CreatedAt, c.UpdatedAt
       ORDER BY c.UpdatedAt DESC
     `;
@@ -97,7 +99,8 @@ router.get('/courses', authenticateToken, async (req: AuthRequest, res) => {
 
     const courses = result.map((course: any) => ({
       ...course,
-      progress: course.status === 'draft' ? Math.floor(Math.random() * 100) : 100,
+      status: course.isPublished ? 'published' : 'draft', // Convert boolean to string for frontend
+      progress: !course.isPublished ? Math.floor(Math.random() * 100) : 100,
       lastUpdated: course.updatedAt
     }));
 
@@ -109,7 +112,7 @@ router.get('/courses', authenticateToken, async (req: AuthRequest, res) => {
 });
 
 // Create new course
-router.post('/courses', authenticateToken, async (req: AuthRequest, res) => {
+router.post('/courses', authenticateToken, authorize(['instructor', 'admin']), async (req: AuthRequest, res) => {
   try {
     const userId = req.user!.userId;
     const {
@@ -164,12 +167,12 @@ router.post('/courses', authenticateToken, async (req: AuthRequest, res) => {
     await db.query(`
       INSERT INTO Courses (
         Id, Title, Description, Category, Level, Price, 
-        InstructorId, status, 
+        InstructorId, IsPublished, 
         Tags, Prerequisites, LearningOutcomes, CreatedAt, UpdatedAt
       )
       VALUES (
         @id, @title, @description, @category, @level, @price,
-        @instructorId, @status,
+        @instructorId, @isPublished,
         @tags, @requirements, @whatYouWillLearn, GETDATE(), GETDATE()
       )
     `, {
@@ -180,7 +183,7 @@ router.post('/courses', authenticateToken, async (req: AuthRequest, res) => {
       level: level || 'beginner',
       price: price || 0,
       instructorId: userId,
-      status: 'draft',
+      isPublished: 0, // Start as draft (unpublished)
       tags: JSON.stringify(tags || []),
       requirements: JSON.stringify(requirements || []),
       whatYouWillLearn: JSON.stringify(whatYouWillLearn || [])
@@ -189,7 +192,7 @@ router.post('/courses', authenticateToken, async (req: AuthRequest, res) => {
     res.status(201).json({ 
       id: courseId, 
       message: 'Course created successfully',
-      status: 'draft'
+      status: 'draft' // Return string status for frontend compatibility
     });
   } catch (error) {
     console.error('Failed to create course:', error);
@@ -198,14 +201,14 @@ router.post('/courses', authenticateToken, async (req: AuthRequest, res) => {
 });
 
 // Publish course (update status from draft to published)
-router.post('/courses/:id/publish', authenticateToken, async (req: AuthRequest, res) => {
+router.post('/courses/:id/publish', authenticateToken, authorize(['instructor', 'admin']), async (req: AuthRequest, res) => {
   try {
     const userId = req.user!.userId;
     const courseId = req.params.id;
 
     // Verify the course exists and belongs to this instructor
     const course = await db.query(`
-      SELECT Id, status FROM Courses 
+      SELECT Id, IsPublished FROM Courses 
       WHERE Id = @courseId AND InstructorId = @instructorId
     `, { courseId, instructorId: userId });
 
@@ -216,7 +219,7 @@ router.post('/courses/:id/publish', authenticateToken, async (req: AuthRequest, 
     // Update the course status to published
     await db.query(`
       UPDATE Courses 
-      SET status = 'published', UpdatedAt = GETDATE()
+      SET IsPublished = 1, UpdatedAt = GETDATE()
       WHERE Id = @courseId AND InstructorId = @instructorId
     `, { courseId, instructorId: userId });
 

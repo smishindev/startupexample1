@@ -29,8 +29,12 @@ export interface Lesson {
 // GET /lessons/:courseId - Get all lessons for a course
 router.get('/:courseId', authenticateToken, async (req: Request, res: Response) => {
   try {
+    console.log(`[LESSONS] Starting lessons request for courseId: ${req.params.courseId}`);
     const { courseId } = req.params;
     const userId = (req as any).user.userId;
+    const userRole = (req as any).user.role;
+
+    console.log(`[LESSON API] Request to get lessons for courseId: ${courseId}, userId: ${userId}, userRole: ${userRole}`);
 
     // Verify user owns the course or is enrolled
     const courseCheck = await db.query(
@@ -41,7 +45,11 @@ router.get('/:courseId', authenticateToken, async (req: Request, res: Response) 
       { courseId, userId }
     );
 
+    console.log(`[LESSON API] Course check result:`, courseCheck);
+    console.log(`[LESSON API] User ${userId} role ${userRole} trying to access course ${courseId}`);
+
     if (!courseCheck.length) {
+      console.log(`[LESSON API] Access denied - course not found or user not authorized`);
       return res.status(403).json({ error: 'Access denied to course lessons' });
     }
 

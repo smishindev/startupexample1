@@ -22,6 +22,7 @@ import { analyticsRoutes } from './routes/analytics';
 import { tutoringRoutes } from './routes/tutoring';
 import { chatRoutes } from './routes/chat';
 import { uploadRoutes } from './routes/upload';
+import { adminRoutes } from './routes/admin';
 import instructorRoutes from './routes/instructor';
 import { DatabaseService } from './services/DatabaseService';
 import { setupSocketHandlers } from './sockets';
@@ -109,6 +110,7 @@ app.use('/api/analytics', analyticsRoutes);
 app.use('/api/tutoring', tutoringRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/admin', adminRoutes);
 app.use('/api/instructor', instructorRoutes);
 
 // Serve static files

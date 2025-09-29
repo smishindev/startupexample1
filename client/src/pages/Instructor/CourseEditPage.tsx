@@ -62,10 +62,22 @@ export const CourseEditPage: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
+      
+      console.log('🔍 [CourseEditPage] Loading course with ID:', courseId);
+      
       const courses = await instructorApi.getCourses();
-      const foundCourse = courses.find(c => c.id === courseId);
+      console.log('📚 [CourseEditPage] All courses:', courses.map(c => ({ id: c.id, title: c.title })));
+      
+      // Debug logging
+      console.log('🔎 [CourseEditPage] Looking for courseId:', courseId);
+      console.log('🔎 [CourseEditPage] Available course IDs:', courses.map(c => c.id));
+      
+      // Case-insensitive comparison for GUID
+      const foundCourse = courses.find(c => c.id.toLowerCase() === courseId.toLowerCase());
+      console.log('✅ [CourseEditPage] Found course:', foundCourse ? foundCourse.title : 'NOT FOUND');
       
       if (!foundCourse) {
+        console.error('❌ [CourseEditPage] Course not found, redirecting to dashboard');
         setError('Course not found');
         return;
       }

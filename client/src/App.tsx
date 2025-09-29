@@ -98,7 +98,7 @@ function App() {
         <Route
           path="/instructor/dashboard"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute requireRole="instructor">
               <InstructorDashboard />
             </ProtectedRoute>
           }
@@ -107,7 +107,7 @@ function App() {
         <Route
           path="/instructor/courses/create"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute requireRole="instructor">
               <CourseCreationForm />
             </ProtectedRoute>
           }
@@ -116,7 +116,7 @@ function App() {
         <Route
           path="/instructor/courses/:courseId/edit"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute requireRole="instructor">
               <CourseEditPage />
             </ProtectedRoute>
           }
@@ -125,7 +125,7 @@ function App() {
         <Route
           path="/instructor/courses/:courseId/lessons"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute requireRole="instructor">
               <LessonManagementPage />
             </ProtectedRoute>
           }

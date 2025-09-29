@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { useAuthStore } from '../stores/authStore';
 
 const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3001';
 
@@ -9,7 +10,9 @@ const api = axios.create({
 
 // Add auth token to all requests
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
+  // Get token from auth store (same as instructor API)
+  const token = useAuthStore.getState().token;
+  console.log('[LESSON API] Token check:', token ? `Bearer ${token.substring(0, 20)}...` : 'NO TOKEN');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }

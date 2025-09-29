@@ -43,6 +43,8 @@ export const authenticateToken = async (
       process.env.JWT_SECRET || 'fallback-secret-key'
     ) as TokenPayload;
 
+    console.log(`[AUTH] JWT decoded - userId: ${decoded.userId}, email: ${decoded.email}, role: ${decoded.role}`);
+
     // Optional: Verify user still exists and is active
     const db = DatabaseService.getInstance();
     try {
@@ -51,7 +53,13 @@ export const authenticateToken = async (
         { userId: decoded.userId }
       );
 
+      console.log(`[AUTH] Database lookup for userId: ${decoded.userId}, found ${users.length} users`);
+      if (users.length > 0) {
+        console.log(`[AUTH] User found with role: ${users[0].Role}`);
+      }
+
       if (users.length === 0) {
+        console.log(`[AUTH] User not found or inactive for userId: ${decoded.userId}`);
         res.status(401).json({
           success: false,
           error: {
@@ -62,12 +70,14 @@ export const authenticateToken = async (
         return;
       }
 
-      // Add user info to request object
+      // Add user info to request object (use role from database, not token)
       req.user = {
         userId: decoded.userId,
         email: decoded.email,
-        role: decoded.role
+        role: users[0].Role  // Use current role from database
       };
+
+      console.log(`[AUTH] Authentication successful for user: ${decoded.email}, role: ${users[0].Role}`);
 
       next();
     } catch (dbError) {

@@ -220,18 +220,23 @@ router.put('/:id', authenticateToken, async (req: Request, res: Response) => {
     } = req.body;
     const userId = (req as any).user.userId;
 
-    // Verify user owns the course
-    const courseCheck = await db.query(
-      `SELECT l.Id FROM dbo.Lessons l
+    // Verify user owns the course and get current lesson data
+    const lessonCheck = await db.query(
+      `SELECT l.Id, l.OrderIndex, l.CourseId, l.CreatedAt FROM dbo.Lessons l
        INNER JOIN dbo.Courses c ON l.CourseId = c.Id
        WHERE l.Id = @id AND c.InstructorId = @userId`,
       { id, userId }
     );
 
-    if (!courseCheck.length) {
+    if (!lessonCheck.length) {
       return res.status(403).json({ error: 'Access denied - not course instructor' });
     }
 
+    const currentLesson = lessonCheck[0];
+    
+    // Use provided orderIndex or keep the current one
+    const finalOrderIndex = orderIndex !== undefined ? orderIndex : currentLesson.OrderIndex;
+    
     const now = new Date().toISOString();
 
     await db.execute(
@@ -243,7 +248,7 @@ router.put('/:id', authenticateToken, async (req: Request, res: Response) => {
         title,
         description,
         contentJson: JSON.stringify(content),
-        orderIndex,
+        orderIndex: finalOrderIndex,
         duration,
         isRequired,
         prerequisites: JSON.stringify(prerequisites),
@@ -254,15 +259,15 @@ router.put('/:id', authenticateToken, async (req: Request, res: Response) => {
 
     const lesson: Lesson = {
       id,
-      courseId: req.body.courseId,
+      courseId: currentLesson.CourseId,
       title,
       description,
       content,
-      orderIndex,
+      orderIndex: finalOrderIndex,
       duration,
       isRequired,
       prerequisites,
-      createdAt: req.body.createdAt,
+      createdAt: currentLesson.CreatedAt,
       updatedAt: now
     };
 

@@ -32,7 +32,9 @@ import {
   Quiz as QuizIcon,
   MoreVert as MoreVertIcon,
   AccessTime as TimeIcon,
-  CheckCircle as RequiredIcon
+  CheckCircle as RequiredIcon,
+  KeyboardArrowUp as ArrowUpIcon,
+  KeyboardArrowDown as ArrowDownIcon
 } from '@mui/icons-material';
 import { Lesson, lessonApi } from '../../services/lessonApi';
 import { LessonEditor } from './LessonEditor';
@@ -153,6 +155,56 @@ export const CurriculumBuilder: React.FC<CurriculumBuilderProps> = ({
     setMenuLessonId(null);
   };
 
+  const handleMoveUp = async (index: number) => {
+    if (index === 0) return; // Already at top
+    
+    try {
+      // Swap lessons in local array
+      const newLessons = [...lessons];
+      [newLessons[index - 1], newLessons[index]] = [newLessons[index], newLessons[index - 1]];
+      
+      // Update order indices and create lesson IDs array
+      const lessonIds = newLessons.map(lesson => lesson.id);
+      
+      // Call reorder API
+      await lessonApi.reorderLessons({
+        courseId,
+        lessonIds
+      });
+      
+      // Update local state
+      setLessons(newLessons);
+    } catch (err: any) {
+      console.error('Error moving lesson up:', err);
+      setError('Failed to reorder lessons');
+    }
+  };
+
+  const handleMoveDown = async (index: number) => {
+    if (index === lessons.length - 1) return; // Already at bottom
+    
+    try {
+      // Swap lessons in local array
+      const newLessons = [...lessons];
+      [newLessons[index], newLessons[index + 1]] = [newLessons[index + 1], newLessons[index]];
+      
+      // Update order indices and create lesson IDs array
+      const lessonIds = newLessons.map(lesson => lesson.id);
+      
+      // Call reorder API
+      await lessonApi.reorderLessons({
+        courseId,
+        lessonIds
+      });
+      
+      // Update local state
+      setLessons(newLessons);
+    } catch (err: any) {
+      console.error('Error moving lesson down:', err);
+      setError('Failed to reorder lessons');
+    }
+  };
+
   const getTotalDuration = () => {
     return lessons.reduce((total, lesson) => total + (lesson.duration || 0), 0);
   };
@@ -254,6 +306,31 @@ export const CurriculumBuilder: React.FC<CurriculumBuilderProps> = ({
                             <RequiredIcon color="primary" fontSize="small" />
                           </Tooltip>
                         )}
+                        
+                        {/* Reorder buttons */}
+                        <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                          <Tooltip title="Move up">
+                            <IconButton
+                              size="small"
+                              onClick={() => handleMoveUp(index)}
+                              disabled={index === 0}
+                              sx={{ p: 0.5 }}
+                            >
+                              <ArrowUpIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Move down">
+                            <IconButton
+                              size="small"
+                              onClick={() => handleMoveDown(index)}
+                              disabled={index === lessons.length - 1}
+                              sx={{ p: 0.5 }}
+                            >
+                              <ArrowDownIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        </Box>
+                        
                         <IconButton
                           size="small"
                           onClick={(e) => handleMenuClick(e, lesson.id)}

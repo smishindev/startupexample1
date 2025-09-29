@@ -54,9 +54,8 @@ const fileTypeConfig = {
 // Configure multer for file uploads
 const storage = multer.diskStorage({
   destination: async (req, file, cb) => {
-    const fileType = req.body.fileType || 'document';
-    const config = fileTypeConfig[fileType as keyof typeof fileTypeConfig];
-    const dest = path.join(UPLOAD_DIR, config?.subfolder || 'documents');
+    // Default to videos folder, actual type validation happens in the route handler
+    const dest = path.join(UPLOAD_DIR, 'videos');
     
     try {
       await fs.access(dest);
@@ -74,20 +73,8 @@ const storage = multer.diskStorage({
   }
 });
 
-const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
-  const fileType = req.body.fileType || 'document';
-  const config = fileTypeConfig[fileType as keyof typeof fileTypeConfig];
-  
-  if (config && config.allowedMimes.includes(file.mimetype)) {
-    cb(null, true);
-  } else {
-    cb(new Error(`Invalid file type. Allowed types: ${config?.allowedMimes.join(', ')}`));
-  }
-};
-
 const upload = multer({
   storage,
-  fileFilter,
   limits: {
     fileSize: Math.max(...Object.values(fileTypeConfig).map(c => c.maxSize))
   }
@@ -117,6 +104,13 @@ router.post('/', authenticateToken, upload.single('file'), async (req: Request, 
     const { fileType, courseId, lessonId, description } = req.body;
     const userId = (req as any).user.userId;
 
+    console.log('Upload request:', { 
+      fileType, 
+      filename: file?.originalname, 
+      mimetype: file?.mimetype,
+      size: file?.size 
+    });
+
     if (!file) {
       return res.status(400).json({ error: 'No file uploaded' });
     }
@@ -124,7 +118,18 @@ router.post('/', authenticateToken, upload.single('file'), async (req: Request, 
     // Validate file type configuration
     const config = fileTypeConfig[fileType as keyof typeof fileTypeConfig];
     if (!config) {
+      // Clean up uploaded file if invalid type
+      await fs.unlink(file.path);
       return res.status(400).json({ error: 'Invalid file type specified' });
+    }
+
+    // Validate actual file MIME type against allowed types
+    if (!config.allowedMimes.includes(file.mimetype)) {
+      // Clean up uploaded file if wrong MIME type
+      await fs.unlink(file.path);
+      return res.status(400).json({ 
+        error: `Invalid file type. Expected ${fileType}, but got ${file.mimetype}. Allowed types: ${config.allowedMimes.join(', ')}` 
+      });
     }
 
     if (file.size > config.maxSize) {
@@ -136,6 +141,13 @@ router.post('/', authenticateToken, upload.single('file'), async (req: Request, 
     }
 
     const fileId = uuidv4();
+    
+    // Move file to correct subfolder after validation
+    const correctDestination = path.join(UPLOAD_DIR, config.subfolder);
+    await fs.mkdir(correctDestination, { recursive: true });
+    const newFilePath = path.join(correctDestination, file.filename);
+    await fs.rename(file.path, newFilePath);
+    
     const fileUrl = `/uploads/${config.subfolder}/${file.filename}`;
     let thumbnailUrl: string | undefined;
     let metadata: any = {
@@ -148,14 +160,14 @@ router.post('/', authenticateToken, upload.single('file'), async (req: Request, 
     if (fileType === 'image') {
       try {
         const thumbnailPath = path.join(UPLOAD_DIR, 'thumbnails', `thumb_${file.filename}.webp`);
-        await sharp(file.path)
+        await sharp(newFilePath)
           .resize(300, 300, { fit: 'cover' })
           .webp({ quality: 80 })
           .toFile(thumbnailPath);
         thumbnailUrl = `/uploads/thumbnails/thumb_${file.filename}.webp`;
         
         // Get image dimensions
-        const imageMetadata = await sharp(file.path).metadata();
+        const imageMetadata = await sharp(newFilePath).metadata();
         metadata.dimensions = {
           width: imageMetadata.width,
           height: imageMetadata.height

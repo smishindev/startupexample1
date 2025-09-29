@@ -19,7 +19,8 @@ import {
   Switch,
   FormControlLabel,
   Alert,
-  CircularProgress
+  CircularProgress,
+  Divider
 } from '@mui/material';
 import {
   Delete as DeleteIcon,
@@ -32,6 +33,8 @@ import {
   KeyboardArrowDown as ArrowDownIcon
 } from '@mui/icons-material';
 import { Lesson, LessonContent, lessonApi, createVideoContent, createTextContent } from '../../services/lessonApi';
+import { FileUpload } from '../../components/Upload/FileUpload';
+import { UploadedFile } from '../../services/fileUploadApi';
 
 interface LessonEditorProps {
   open: boolean;
@@ -70,6 +73,9 @@ export const LessonEditor: React.FC<LessonEditorProps> = ({
   const [duration, setDuration] = useState(0);
   const [isRequired, setIsRequired] = useState(true);
   const [content, setContent] = useState<LessonContent[]>([]);
+  
+  // File upload state for each content item
+  const [useFileUpload, setUseFileUpload] = useState<{ [key: number]: boolean }>({});
 
   const steps = ['Basic Information', 'Content', 'Settings'];
 
@@ -203,6 +209,21 @@ export const LessonEditor: React.FC<LessonEditorProps> = ({
     });
   };
 
+  const handleFileUploaded = (index: number, file: UploadedFile) => {
+    updateContent(index, { 
+      url: file.url,
+      fileId: file.id,
+      fileName: file.originalName
+    });
+  };
+
+  const toggleUploadMode = (index: number) => {
+    setUseFileUpload(prev => ({
+      ...prev,
+      [index]: !prev[index]
+    }));
+  };
+
   const renderBasicInfo = () => (
     <Box sx={{ mt: 2 }}>
       <TextField
@@ -319,13 +340,39 @@ export const LessonEditor: React.FC<LessonEditorProps> = ({
               </AccordionSummary>
               <AccordionDetails>
                 {item.type === 'video' && (
-                  <TextField
-                    fullWidth
-                    label="Video URL"
-                    value={item.data.url}
-                    onChange={(e) => updateContent(index, { url: e.target.value })}
-                    placeholder="https://example.com/video.mp4 or YouTube URL"
-                  />
+                  <Box>
+                    <FormControlLabel
+                      control={
+                        <Switch
+                          checked={useFileUpload[index] || false}
+                          onChange={() => toggleUploadMode(index)}
+                        />
+                      }
+                      label="Upload video file instead of using URL"
+                      sx={{ mb: 2 }}
+                    />
+                    
+                    <Divider sx={{ mb: 2 }} />
+                    
+                    {useFileUpload[index] ? (
+                      <FileUpload
+                        fileType="video"
+                        courseId={courseId}
+                        onFileUploaded={(file) => handleFileUploaded(index, file)}
+                        maxFiles={1}
+                        title="Upload Video"
+                        description="Upload a video file for this lesson content"
+                      />
+                    ) : (
+                      <TextField
+                        fullWidth
+                        label="Video URL"
+                        value={item.data.url || ''}
+                        onChange={(e) => updateContent(index, { url: e.target.value })}
+                        placeholder="https://example.com/video.mp4 or YouTube URL"
+                      />
+                    )}
+                  </Box>
                 )}
                 {item.type === 'text' && (
                   <TextField

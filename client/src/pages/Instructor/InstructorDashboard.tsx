@@ -36,6 +36,7 @@ import {
   Drafts as DraftIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
+import { Header } from '../../components/Navigation/Header';
 import { instructorApi, InstructorStats, InstructorCourse } from '../../services/instructorApi';
 import { useAuthStore } from '../../stores/authStore';
 import AuthDebug from '../../components/AuthDebug';
@@ -195,18 +196,20 @@ export const InstructorDashboard: React.FC = () => {
   };
 
   return (
-    <Box sx={{ p: 3 }}>
-      {/* Debug Component - Remove in production */}
-      <AuthDebug />
-      
-      {/* Header */}
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" component="h1" gutterBottom>
-          Instructor Dashboard
-        </Typography>
-        <Typography variant="subtitle1" color="text.secondary">
-          Manage your courses and track your teaching performance
-        </Typography>
+    <>
+      <Header />
+      <Box sx={{ p: 3 }}>
+        {/* Debug Component - Remove in production */}
+        <AuthDebug />
+        
+        {/* Header */}
+        <Box sx={{ mb: 4 }}>
+          <Typography variant="h4" component="h1" gutterBottom>
+            Instructor Dashboard
+          </Typography>
+          <Typography variant="subtitle1" color="text.secondary">
+            Manage your courses and track your teaching performance
+          </Typography>
       </Box>
 
       {/* Stats Overview */}
@@ -522,5 +525,6 @@ export const InstructorDashboard: React.FC = () => {
         </List>
       </Dialog>
     </Box>
+    </>
   );
 };

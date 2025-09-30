@@ -40,6 +40,7 @@ import {
   CheckCircle as CheckCircleIcon,
   Schedule as ScheduleIcon
 } from '@mui/icons-material';
+import { Header } from '../../components/Navigation/Header';
 import { studentsApi, Student, StudentAnalytics, StudentFilters } from '../../services/studentsApi';
 import { instructorApi } from '../../services/instructorApi';
 
@@ -194,10 +195,12 @@ const StudentManagement: React.FC = () => {
   }
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Typography variant="h4" gutterBottom>
-        Student Management
-      </Typography>
+    <>
+      <Header />
+      <Box sx={{ p: 3 }}>
+        <Typography variant="h4" gutterBottom>
+          Student Management
+        </Typography>
 
       {error && (
         <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
@@ -561,6 +564,7 @@ const StudentManagement: React.FC = () => {
         </DialogActions>
       </Dialog>
     </Box>
+    </>
   );
 };
 

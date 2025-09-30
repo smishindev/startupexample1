@@ -39,6 +39,7 @@ import {
   Pie,
   Cell
 } from 'recharts';
+import { Header } from '../../components/Navigation/Header';
 import { analyticsApi, type CourseAnalytics, type DashboardAnalytics } from '../../services/analyticsApi';
 import { instructorApi, type InstructorCourse } from '../../services/instructorApi';
 
@@ -125,15 +126,17 @@ export const CourseAnalyticsDashboard: React.FC = () => {
   }
 
   return (
-    <Box>
-      <Box 
-        display="flex" 
-        justifyContent="space-between" 
-        alignItems="center" 
-        mb={3}
-        flexWrap="wrap"
-        gap={2}
-      >
+    <>
+      <Header />
+      <Box>
+        <Box 
+          display="flex" 
+          justifyContent="space-between" 
+          alignItems="center" 
+          mb={3}
+          flexWrap="wrap"
+          gap={2}
+        >
         <Typography variant="h4" component="h1">
           Course Analytics
         </Typography>
@@ -171,6 +174,7 @@ export const CourseAnalyticsDashboard: React.FC = () => {
         />
       )}
     </Box>
+    </>
   );
 };
 

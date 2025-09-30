@@ -16,6 +16,7 @@ import { InstructorDashboard } from './pages/Instructor/InstructorDashboard';
 import { CourseCreationForm } from './pages/Instructor/CourseCreationForm';
 import { CourseEditPage } from './pages/Instructor/CourseEditPage';
 import { LessonManagementPage } from './pages/Instructor/LessonManagementPage';
+import StudentManagement from './pages/Instructor/StudentManagement';
 import LandingPage from './pages/Landing/LandingPage';
 
 // Demo Components
@@ -127,6 +128,15 @@ function App() {
           element={
             <ProtectedRoute requireRole="instructor">
               <LessonManagementPage />
+            </ProtectedRoute>
+          }
+        />
+        
+        <Route
+          path="/instructor/students"
+          element={
+            <ProtectedRoute requireRole="instructor">
+              <StudentManagement />
             </ProtectedRoute>
           }
         />

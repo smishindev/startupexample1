@@ -24,6 +24,7 @@ import { chatRoutes } from './routes/chat';
 import { uploadRoutes } from './routes/upload';
 import { adminRoutes } from './routes/admin';
 import instructorRoutes from './routes/instructor';
+import studentsRoutes from './routes/students';
 import { DatabaseService } from './services/DatabaseService';
 import { setupSocketHandlers } from './sockets';
 import { logger } from './utils/logger';
@@ -112,6 +113,7 @@ app.use('/api/chat', chatRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/instructor', instructorRoutes);
+app.use('/api/students', studentsRoutes);
 
 // Serve static files
 app.use('/uploads', express.static('uploads'));

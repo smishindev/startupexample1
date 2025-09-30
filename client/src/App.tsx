@@ -17,6 +17,7 @@ import { CourseCreationForm } from './pages/Instructor/CourseCreationForm';
 import { CourseEditPage } from './pages/Instructor/CourseEditPage';
 import { LessonManagementPage } from './pages/Instructor/LessonManagementPage';
 import StudentManagement from './pages/Instructor/StudentManagement';
+import CourseAnalyticsDashboard from './pages/Instructor/CourseAnalyticsDashboard';
 import LandingPage from './pages/Landing/LandingPage';
 
 // Demo Components
@@ -137,6 +138,15 @@ function App() {
           element={
             <ProtectedRoute requireRole="instructor">
               <StudentManagement />
+            </ProtectedRoute>
+          }
+        />
+        
+        <Route
+          path="/instructor/analytics"
+          element={
+            <ProtectedRoute requireRole="instructor">
+              <CourseAnalyticsDashboard />
             </ProtectedRoute>
           }
         />

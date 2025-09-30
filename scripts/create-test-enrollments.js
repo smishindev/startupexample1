@@ -1,3 +1,6 @@
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '..', 'server', '.env') });
+
 const { DatabaseService } = require('../server/dist/services/DatabaseService');
 const { v4: uuidv4 } = require('uuid');
 

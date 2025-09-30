@@ -47,6 +47,7 @@ import {
   Settings,
 } from '@mui/icons-material';
 import { Header } from '../../components/Navigation/Header';
+import { enrollmentApi } from '../../services/enrollmentApi';
 
 interface Lesson {
   id: string;
@@ -245,9 +246,25 @@ export const CourseDetailPage: React.FC = () => {
     fetchCourse();
   }, [courseId]);
 
-  const handleEnroll = () => {
-    console.log('Enrolling in course:', courseId);
-    // Handle enrollment logic
+  const handleEnroll = async () => {
+    if (!courseId || !course) return;
+    
+    try {
+      if (course.isEnrolled) {
+        // Unenroll
+        await enrollmentApi.unenrollFromCourse(courseId);
+        setCourse({ ...course, isEnrolled: false });
+        console.log('Successfully unenrolled from course:', courseId);
+      } else {
+        // Enroll
+        await enrollmentApi.enrollInCourse(courseId);
+        setCourse({ ...course, isEnrolled: true, progress: 0 });
+        console.log('Successfully enrolled in course:', courseId);
+      }
+    } catch (error) {
+      console.error('Failed to update enrollment:', error);
+      // You could add a snackbar/toast notification here
+    }
   };
 
   const handleBookmark = () => {
@@ -637,6 +654,17 @@ export const CourseDetailPage: React.FC = () => {
                     <Share />
                   </IconButton>
                 </Tooltip>
+                {course.isEnrolled && (
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    color="error"
+                    onClick={handleEnroll}
+                    sx={{ ml: 'auto' }}
+                  >
+                    Unenroll
+                  </Button>
+                )}
               </Box>
 
               {/* Course Stats */}

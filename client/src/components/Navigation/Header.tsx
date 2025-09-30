@@ -31,6 +31,8 @@ import {
   Analytics as AnalyticsIcon,
   Settings as SettingsIcon,
   ExitToApp as ExitToAppIcon,
+  PlayCircleOutline as LearningIcon,
+  Timeline as ProgressIcon,
 } from '@mui/icons-material';
 import { styled, alpha } from '@mui/material/styles';
 import { Link, useNavigate } from 'react-router-dom';
@@ -113,6 +115,8 @@ export const Header: React.FC<HeaderProps> = () => {
   const navigationItems = [
     { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
     { text: 'Courses', icon: <BookIcon />, path: '/courses' },
+    { text: 'My Learning', icon: <LearningIcon />, path: '/my-learning' },
+    { text: 'Progress', icon: <ProgressIcon />, path: '/progress' },
     { text: 'Instructor', icon: <SchoolIcon />, path: '/instructor/dashboard' },
     { text: 'Analytics', icon: <AnalyticsIcon />, path: '/instructor/analytics' },
   ];

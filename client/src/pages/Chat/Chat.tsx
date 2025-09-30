@@ -1,1 +1,464 @@
-import React from 'react'; import { Typography, Box } from '@mui/material'; const Chat: React.FC = () => { return ( <Box> <Typography variant="h4" fontWeight="bold">Chat</Typography> <Typography variant="body1" sx={{ mt: 2 }}>Real-time chat and collaboration - Coming soon!</Typography> </Box> ) }; export default Chat
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  Box,
+  Container,
+  Paper,
+  Typography,
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemText,
+  ListItemAvatar,
+  Avatar,
+  TextField,
+  IconButton,
+  Chip,
+  InputAdornment,
+  CircularProgress,
+  Alert,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  Grid
+} from '@mui/material';
+import {
+  Send as SendIcon,
+  Add as AddIcon,
+  Group as GroupIcon,
+  Search as SearchIcon,
+  MoreVert as MoreVertIcon,
+  EmojiEmotions as EmojiIcon
+} from '@mui/icons-material';
+import { formatDistanceToNow } from 'date-fns';
+import { chatApi, ChatRoom, ChatMessage, CreateRoomRequest } from '../../services/chatApi';
+import { socketService, SocketMessage, TypingUser } from '../../services/socketService';
+import { useAuthStore } from '../../stores/authStore';
+
+const Chat: React.FC = () => {
+  const [rooms, setRooms] = useState<ChatRoom[]>([]);
+  const [selectedRoom, setSelectedRoom] = useState<ChatRoom | null>(null);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [newMessage, setNewMessage] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
+  const [createRoomOpen, setCreateRoomOpen] = useState(false);
+  const [newRoomData, setNewRoomData] = useState<CreateRoomRequest>({ name: '' });
+  const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
+  const [error, setError] = useState<string | null>(null);
+  
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  const { user } = useAuthStore();
+
+  // Scroll to bottom of messages
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  // Load chat rooms
+  const loadRooms = async () => {
+    try {
+      const roomsData = await chatApi.getRooms();
+      setRooms(roomsData);
+      if (roomsData.length > 0 && !selectedRoom) {
+        setSelectedRoom(roomsData[0]);
+      }
+    } catch (error) {
+      console.error('Failed to load rooms:', error);
+      setError('Failed to load chat rooms');
+    }
+  };
+
+  // Load messages for selected room
+  const loadMessages = async (roomId: string) => {
+    try {
+      const messagesData = await chatApi.getMessages(roomId);
+      setMessages(messagesData);
+      setTimeout(scrollToBottom, 100);
+    } catch (error) {
+      console.error('Failed to load messages:', error);
+      setError('Failed to load messages');
+    }
+  };
+
+  // Send message
+  const handleSendMessage = async () => {
+    if (!newMessage.trim() || !selectedRoom || sending) return;
+
+    setSending(true);
+    try {
+      // Send via API for persistence
+      await chatApi.sendMessage(selectedRoom.roomId, {
+        content: newMessage.trim()
+      });
+
+      // Also send via socket for real-time delivery
+      socketService.sendMessage(selectedRoom.roomId, newMessage.trim());
+      
+      setNewMessage('');
+      socketService.stopTyping(selectedRoom.roomId);
+    } catch (error) {
+      console.error('Failed to send message:', error);
+      setError('Failed to send message');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  // Handle typing indicators
+  const handleTyping = () => {
+    if (!selectedRoom) return;
+
+    socketService.startTyping(selectedRoom.roomId);
+    
+    // Clear existing timeout
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+    
+    // Set new timeout to stop typing
+    typingTimeoutRef.current = setTimeout(() => {
+      socketService.stopTyping(selectedRoom.roomId);
+    }, 1000);
+  };
+
+  // Create new room
+  const handleCreateRoom = async () => {
+    try {
+      await chatApi.createRoom(newRoomData);
+      setCreateRoomOpen(false);
+      setNewRoomData({ name: '' });
+      await loadRooms();
+    } catch (error) {
+      console.error('Failed to create room:', error);
+      setError('Failed to create room');
+    }
+  };
+
+  // Initialize component
+  useEffect(() => {
+    const initializeChat = async () => {
+      try {
+        // Connect to socket
+        await socketService.connect();
+        
+        // Load rooms
+        await loadRooms();
+        
+        // Set up socket event listeners
+        socketService.onMessage((message: SocketMessage) => {
+          setMessages(prev => [...prev, {
+            Id: message.id,
+            Content: message.content,
+            CreatedAt: message.createdAt,
+            MessageType: message.messageType,
+            FirstName: message.user.firstName,
+            LastName: message.user.lastName,
+            Email: message.user.email,
+            UserId: message.user.id
+          }]);
+          setTimeout(scrollToBottom, 100);
+        });
+
+        socketService.onUserTyping((user: TypingUser) => {
+          setTypingUsers(prev => new Set([...prev, user.userId]));
+        });
+
+        socketService.onUserStopTyping((data) => {
+          setTypingUsers(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(data.userId);
+            return newSet;
+          });
+        });
+
+        socketService.onError((error) => {
+          setError(error.message);
+        });
+
+      } catch (error) {
+        console.error('Failed to initialize chat:', error);
+        setError('Failed to connect to chat service');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initializeChat();
+
+    return () => {
+      socketService.removeAllListeners();
+      socketService.disconnect();
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Handle room selection
+  useEffect(() => {
+    if (selectedRoom) {
+      // Join the new room
+      socketService.joinRoom(selectedRoom.roomId);
+      loadMessages(selectedRoom.roomId);
+      
+      // Leave previous room when switching (handled automatically by socket.io)
+      return () => {
+        if (selectedRoom) {
+          socketService.leaveRoom(selectedRoom.roomId);
+        }
+      };
+    }
+  }, [selectedRoom]);
+
+  if (loading) {
+    return (
+      <Container maxWidth="lg" sx={{ py: 4, display: 'flex', justifyContent: 'center' }}>
+        <CircularProgress />
+      </Container>
+    );
+  }
+
+  return (
+    <Container maxWidth="lg" sx={{ py: 4 }}>
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
+          {error}
+        </Alert>
+      )}
+      
+      <Paper sx={{ height: '80vh', display: 'flex' }}>
+        {/* Chat Rooms Sidebar */}
+        <Box sx={{ width: 300, borderRight: 1, borderColor: 'divider', display: 'flex', flexDirection: 'column' }}>
+          <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+              <Typography variant="h6">Chat Rooms</Typography>
+              <IconButton size="small" onClick={() => setCreateRoomOpen(true)}>
+                <AddIcon />
+              </IconButton>
+            </Box>
+            <TextField
+              size="small"
+              placeholder="Search rooms..."
+              fullWidth
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon />
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Box>
+          
+          <List sx={{ flex: 1, overflow: 'auto' }}>
+            {rooms.map((room) => (
+              <ListItem key={room.roomId} disablePadding>
+                <ListItemButton
+                  selected={selectedRoom?.roomId === room.roomId}
+                  onClick={() => setSelectedRoom(room)}
+                >
+                  <ListItemAvatar>
+                    <Avatar>
+                      <GroupIcon />
+                    </Avatar>
+                  </ListItemAvatar>
+                  <ListItemText
+                    primary={room.roomName}
+                    secondary={
+                      <Box>
+                        <Typography variant="caption" component="div" noWrap>
+                          {room.lastMessage || 'No messages yet'}
+                        </Typography>
+                        {room.lastMessageTime && (
+                          <Typography variant="caption" color="text.secondary">
+                            {formatDistanceToNow(new Date(room.lastMessageTime), { addSuffix: true })}
+                          </Typography>
+                        )}
+                      </Box>
+                    }
+                  />
+                  <Chip label={room.roomType} size="small" variant="outlined" />
+                </ListItemButton>
+              </ListItem>
+            ))}
+          </List>
+        </Box>
+
+        {/* Chat Area */}
+        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+          {selectedRoom ? (
+            <>
+              {/* Chat Header */}
+              <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Box>
+                    <Typography variant="h6">{selectedRoom.roomName}</Typography>
+                    {selectedRoom.description && (
+                      <Typography variant="body2" color="text.secondary">
+                        {selectedRoom.description}
+                      </Typography>
+                    )}
+                  </Box>
+                  <IconButton>
+                    <MoreVertIcon />
+                  </IconButton>
+                </Box>
+              </Box>
+
+              {/* Messages Area */}
+              <Box sx={{ flex: 1, overflow: 'auto', p: 1 }}>
+                {messages.map((message, index) => {
+                  const isOwnMessage = message.UserId === user?.id;
+                  const showAvatar = index === 0 || messages[index - 1].UserId !== message.UserId;
+                  
+                  return (
+                    <Box
+                      key={message.Id}
+                      sx={{
+                        display: 'flex',
+                        justifyContent: isOwnMessage ? 'flex-end' : 'flex-start',
+                        mb: 1
+                      }}
+                    >
+                      <Box sx={{ display: 'flex', alignItems: 'flex-end', maxWidth: '70%' }}>
+                        {!isOwnMessage && showAvatar && (
+                          <Avatar
+                            sx={{ width: 32, height: 32, mr: 1 }}
+                            src={`https://ui-avatars.com/api/?name=${message.FirstName}+${message.LastName}&background=random`}
+                          >
+                            {message.FirstName?.[0]}
+                          </Avatar>
+                        )}
+                        
+                        <Box>
+                          {!isOwnMessage && showAvatar && (
+                            <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
+                              {message.FirstName} {message.LastName}
+                            </Typography>
+                          )}
+                          
+                          <Paper
+                            sx={{
+                              p: 1.5,
+                              ml: !isOwnMessage && !showAvatar ? 5 : 0,
+                              backgroundColor: isOwnMessage ? 'primary.main' : 'grey.100',
+                              color: isOwnMessage ? 'primary.contrastText' : 'text.primary',
+                            }}
+                          >
+                            <Typography variant="body2">{message.Content}</Typography>
+                            <Typography
+                              variant="caption"
+                              sx={{
+                                display: 'block',
+                                mt: 0.5,
+                                opacity: 0.8
+                              }}
+                            >
+                              {formatDistanceToNow(new Date(message.CreatedAt), { addSuffix: true })}
+                            </Typography>
+                          </Paper>
+                        </Box>
+                      </Box>
+                    </Box>
+                  );
+                })}
+                
+                {/* Typing Indicator */}
+                {typingUsers.size > 0 && (
+                  <Box sx={{ display: 'flex', alignItems: 'center', p: 1 }}>
+                    <Typography variant="caption" color="text.secondary">
+                      Someone is typing...
+                    </Typography>
+                  </Box>
+                )}
+                
+                <div ref={messagesEndRef} />
+              </Box>
+
+              {/* Message Input */}
+              <Box sx={{ p: 2, borderTop: 1, borderColor: 'divider' }}>
+                <TextField
+                  fullWidth
+                  placeholder="Type a message..."
+                  value={newMessage}
+                  onChange={(e) => {
+                    setNewMessage(e.target.value);
+                    handleTyping();
+                  }}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSendMessage();
+                    }
+                  }}
+                  disabled={sending}
+                  InputProps={{
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton edge="end">
+                          <EmojiIcon />
+                        </IconButton>
+                        <IconButton
+                          edge="end"
+                          onClick={handleSendMessage}
+                          disabled={!newMessage.trim() || sending}
+                        >
+                          {sending ? <CircularProgress size={20} /> : <SendIcon />}
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+              </Box>
+            </>
+          ) : (
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+              <Typography variant="h6" color="text.secondary">
+                Select a room to start chatting
+              </Typography>
+            </Box>
+          )}
+        </Box>
+      </Paper>
+
+      {/* Create Room Dialog */}
+      <Dialog open={createRoomOpen} onClose={() => setCreateRoomOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Create New Chat Room</DialogTitle>
+        <DialogContent>
+          <Grid container spacing={2} sx={{ mt: 1 }}>
+            <Grid item xs={12}>
+              <TextField
+                label="Room Name"
+                fullWidth
+                value={newRoomData.name}
+                onChange={(e) => setNewRoomData({ ...newRoomData, name: e.target.value })}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                label="Description (Optional)"
+                fullWidth
+                multiline
+                rows={3}
+                value={newRoomData.description || ''}
+                onChange={(e) => setNewRoomData({ ...newRoomData, description: e.target.value })}
+              />
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setCreateRoomOpen(false)}>Cancel</Button>
+          <Button onClick={handleCreateRoom} variant="contained" disabled={!newRoomData.name.trim()}>
+            Create Room
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Container>
+  );
+};
+
+export default Chat;

@@ -20,6 +20,7 @@ import { Search, FilterList } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { Header } from '../../components/Navigation/Header';
 import { CourseCard, Course } from '../../components/Course/CourseCard';
+import { enrollmentApi } from '../../services/enrollmentApi';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -42,7 +43,7 @@ export const CoursesPage: React.FC = () => {
   const [sortBy, setSortBy] = useState('popular');
 
   // Mock course data
-  const [allCourses] = useState<Course[]>([
+  const [allCourses, setAllCourses] = useState<Course[]>([
     {
       id: '1',
       title: 'Advanced React Development',
@@ -148,7 +149,7 @@ export const CoursesPage: React.FC = () => {
   ]);
 
   // Mock enrolled courses
-  const [enrolledCourses] = useState<Course[]>([
+  const [enrolledCourses, setEnrolledCourses] = useState<Course[]>([
     {
       ...allCourses[0],
       isEnrolled: true,
@@ -176,9 +177,33 @@ export const CoursesPage: React.FC = () => {
     setTabValue(newValue);
   };
 
-  const handleEnroll = (courseId: string) => {
-    console.log('Enrolling in course:', courseId);
-    // Handle course enrollment
+  const handleEnroll = async (courseId: string) => {
+    try {
+      await enrollmentApi.enrollInCourse(courseId);
+      
+      // Update the course in the state to reflect enrollment
+      setAllCourses(prev => prev.map(course => 
+        course.id === courseId 
+          ? { ...course, isEnrolled: true }
+          : course
+      ));
+      
+      // Add to enrolled courses list
+      const courseToEnroll = allCourses.find(c => c.id === courseId);
+      if (courseToEnroll) {
+        setEnrolledCourses(prev => [...prev, {
+          ...courseToEnroll,
+          isEnrolled: true,
+          progress: 0,
+          lastAccessed: 'Just now'
+        }]);
+      }
+      
+      console.log('Successfully enrolled in course:', courseId);
+    } catch (error) {
+      console.error('Failed to enroll in course:', error);
+      // You could add a snackbar/toast notification here
+    }
   };
 
   const handleBookmark = (courseId: string, isBookmarked: boolean) => {

@@ -19,6 +19,8 @@ import { LessonManagementPage } from './pages/Instructor/LessonManagementPage';
 import StudentManagement from './pages/Instructor/StudentManagement';
 import CourseAnalyticsDashboard from './pages/Instructor/CourseAnalyticsDashboard';
 import LandingPage from './pages/Landing/LandingPage';
+import MyLearningPage from './pages/Learning/MyLearningPage';
+import ProgressDashboard from './pages/Progress/ProgressDashboard';
 
 // Demo Components
 import { ContentUploadDemo } from './components/Demo/ContentUploadDemo';
@@ -69,6 +71,24 @@ function App() {
           element={
             <ProtectedRoute>
               <CoursesPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/my-learning"
+          element={
+            <ProtectedRoute>
+              <MyLearningPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/progress"
+          element={
+            <ProtectedRoute>
+              <ProgressDashboard />
             </ProtectedRoute>
           }
         />

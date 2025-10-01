@@ -21,6 +21,7 @@ import CourseAnalyticsDashboard from './pages/Instructor/CourseAnalyticsDashboar
 import LandingPage from './pages/Landing/LandingPage';
 import MyLearningPage from './pages/Learning/MyLearningPage';
 import ProgressDashboard from './pages/Progress/ProgressDashboard';
+import Chat from './pages/Chat/Chat';
 
 // Demo Components
 import { ContentUploadDemo } from './components/Demo/ContentUploadDemo';
@@ -89,6 +90,15 @@ function App() {
           element={
             <ProtectedRoute>
               <ProgressDashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/chat"
+          element={
+            <ProtectedRoute>
+              <Chat />
             </ProtectedRoute>
           }
         />

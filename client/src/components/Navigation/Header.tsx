@@ -33,6 +33,7 @@ import {
   ExitToApp as ExitToAppIcon,
   PlayCircleOutline as LearningIcon,
   Timeline as ProgressIcon,
+  Chat as ChatIcon,
 } from '@mui/icons-material';
 import { styled, alpha } from '@mui/material/styles';
 import { Link, useNavigate } from 'react-router-dom';
@@ -117,6 +118,7 @@ export const Header: React.FC<HeaderProps> = () => {
     { text: 'Courses', icon: <BookIcon />, path: '/courses' },
     { text: user?.role === 'instructor' ? 'My Teaching' : 'My Learning', icon: <LearningIcon />, path: '/my-learning' },
     { text: 'Progress', icon: <ProgressIcon />, path: '/progress' },
+    { text: 'Chat', icon: <ChatIcon />, path: '/chat' },
     { text: 'Instructor', icon: <SchoolIcon />, path: '/instructor/dashboard' },
     { text: 'Analytics', icon: <AnalyticsIcon />, path: '/instructor/analytics' },
   ];

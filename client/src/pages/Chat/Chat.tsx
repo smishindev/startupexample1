@@ -90,16 +90,27 @@ const Chat: React.FC = () => {
 
     setSending(true);
     try {
-      // Send via API for persistence
-      await chatApi.sendMessage(selectedRoom.roomId, {
+      // Send via API for persistence - this will also add the message to our UI
+      const savedMessage = await chatApi.sendMessage(selectedRoom.roomId, {
         content: newMessage.trim()
       });
 
-      // Also send via socket for real-time delivery
+      // Add the message to the UI immediately
+      setMessages(prev => {
+        // Check if message already exists (prevent duplicates)
+        const messageExists = prev.some(msg => msg.Id === savedMessage.Id);
+        if (messageExists) {
+          return prev;
+        }
+        return [...prev, savedMessage];
+      });
+
+      // Send via socket for real-time delivery to OTHER users (not ourselves)
       socketService.sendMessage(selectedRoom.roomId, newMessage.trim());
       
       setNewMessage('');
       socketService.stopTyping(selectedRoom.roomId);
+      setTimeout(scrollToBottom, 100);
     } catch (error) {
       console.error('Failed to send message:', error);
       setError('Failed to send message');
@@ -127,14 +138,30 @@ const Chat: React.FC = () => {
 
   // Create new room
   const handleCreateRoom = async () => {
+    if (!newRoomData.name.trim()) {
+      setError('Please enter a room name');
+      return;
+    }
+
     try {
-      await chatApi.createRoom(newRoomData);
+      console.log('Creating room with data:', newRoomData);
+      const createdRoom = await chatApi.createRoom(newRoomData);
+      console.log('Room created successfully:', createdRoom);
+      
       setCreateRoomOpen(false);
       setNewRoomData({ name: '' });
       await loadRooms();
+      setError(null);
+      
+      // Optionally select the newly created room
+      setSelectedRoom(createdRoom);
     } catch (error) {
       console.error('Failed to create room:', error);
-      setError('Failed to create room');
+      if (error instanceof Error) {
+        setError(`Failed to create room: ${error.message}`);
+      } else {
+        setError('Failed to create room. Please try again.');
+      }
     }
   };
 
@@ -150,16 +177,33 @@ const Chat: React.FC = () => {
         
         // Set up socket event listeners
         socketService.onMessage((message: SocketMessage) => {
-          setMessages(prev => [...prev, {
-            Id: message.id,
-            Content: message.content,
-            CreatedAt: message.createdAt,
-            MessageType: message.messageType,
-            FirstName: message.user.firstName,
-            LastName: message.user.lastName,
-            Email: message.user.email,
-            UserId: message.user.id
-          }]);
+          // Only add message if it's NOT from the current user (we handle our own messages via API response)
+          if (message.user.id === user?.id) {
+            return; // Skip our own messages
+          }
+          
+          // Only add message if it's for the currently selected room
+          setMessages(prev => {
+            // Check if message already exists (prevent duplicates)
+            const messageExists = prev.some(msg => msg.Id === message.id);
+            if (messageExists) {
+              return prev;
+            }
+            
+            // Add the new message
+            const newMessage = {
+              Id: message.id,
+              Content: message.content,
+              CreatedAt: message.createdAt,
+              MessageType: message.messageType,
+              FirstName: message.user.firstName,
+              LastName: message.user.lastName,
+              Email: message.user.email,
+              UserId: message.user.id
+            };
+            
+            return [...prev, newMessage];
+          });
           setTimeout(scrollToBottom, 100);
         });
 
@@ -201,6 +245,9 @@ const Chat: React.FC = () => {
   // Handle room selection
   useEffect(() => {
     if (selectedRoom) {
+      // Clear messages when switching rooms
+      setMessages([]);
+      
       // Join the new room
       socketService.joinRoom(selectedRoom.roomId);
       loadMessages(selectedRoom.roomId);
@@ -269,16 +316,16 @@ const Chat: React.FC = () => {
                   <ListItemText
                     primary={room.roomName}
                     secondary={
-                      <Box>
-                        <Typography variant="caption" component="div" noWrap>
+                      <React.Fragment>
+                        <Typography variant="caption" component="span" display="block" noWrap>
                           {room.lastMessage || 'No messages yet'}
                         </Typography>
                         {room.lastMessageTime && (
-                          <Typography variant="caption" color="text.secondary">
+                          <Typography variant="caption" color="text.secondary" component="span" display="block">
                             {formatDistanceToNow(new Date(room.lastMessageTime), { addSuffix: true })}
                           </Typography>
                         )}
-                      </Box>
+                      </React.Fragment>
                     }
                   />
                   <Chip label={room.roomType} size="small" variant="outlined" />

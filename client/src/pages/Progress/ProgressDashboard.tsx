@@ -219,20 +219,20 @@ const ProgressDashboard: React.FC = () => {
                         <ListItemText
                           primary={activity.courseTitle}
                           secondary={
-                            <Box>
-                              <Typography variant="body2" color="text.secondary">
+                            <Box component="div">
+                              <Typography variant="body2" color="text.secondary" component="span" sx={{ display: 'block' }}>
                                 by {activity.instructorFirstName} {activity.instructorLastName}
                               </Typography>
                               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 1 }}>
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 120 }}>
                                   <LinearProgress
                                     variant="determinate"
-                                    value={activity.OverallProgress}
-                                    color={getProgressColor(activity.OverallProgress) as any}
+                                    value={activity.OverallProgress || 0}
+                                    color={getProgressColor(activity.OverallProgress || 0) as any}
                                     sx={{ width: 60, height: 4 }}
                                   />
-                                  <Typography variant="caption">
-                                    {activity.OverallProgress}%
+                                  <Typography variant="caption" component="span">
+                                    {activity.OverallProgress || 0}%
                                   </Typography>
                                 </Box>
                                 <Chip
@@ -241,12 +241,15 @@ const ProgressDashboard: React.FC = () => {
                                   size="small"
                                   variant="outlined"
                                 />
-                                <Typography variant="caption" color="text.secondary">
+                                <Typography variant="caption" color="text.secondary" component="span">
                                   {activity.LastAccessedAt && formatDistanceToNow(new Date(activity.LastAccessedAt), { addSuffix: true })}
                                 </Typography>
                               </Box>
                             </Box>
                           }
+                          secondaryTypographyProps={{
+                            component: 'div'
+                          }}
                         />
                       </ListItem>
                       {index < progressData.recentActivity.length - 1 && <Divider />}

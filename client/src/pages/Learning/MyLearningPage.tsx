@@ -21,18 +21,23 @@ import {
   TrendingUp,
   School,
   CheckCircle,
-  AccessTime
+  AccessTime,
+  Psychology
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import { Header } from '../../components/Navigation/Header';
 import { enrollmentApi, Enrollment } from '../../services/enrollmentApi';
+import { useAuthStore } from '../../stores/authStore';
 
 const MyLearningPage: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useAuthStore();
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const isInstructor = user?.role === 'instructor';
 
   useEffect(() => {
     loadEnrollments();
@@ -42,9 +47,71 @@ const MyLearningPage: React.FC = () => {
     try {
       const data = await enrollmentApi.getMyEnrollments();
       setEnrollments(data);
+      setError(null); // Clear any previous errors
     } catch (error) {
-      console.error('Failed to load enrollments:', error);
-      setError('Failed to load your enrolled courses');
+      console.error('Failed to load data:', error);
+      setError(isInstructor ? 'Failed to load your courses' : 'Failed to load your enrolled courses');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const createTestData = async () => {
+    try {
+      setLoading(true);
+      
+      // Get fresh auth state
+      const { token, refreshToken, logout } = useAuthStore.getState();
+      
+      if (!token) {
+        setError('Please log in again');
+        return;
+      }
+
+      // Try to create test data
+      let response = await fetch('http://localhost:3001/api/progress/create-test-data', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      // If token expired, try to refresh and retry
+      if (response.status === 401) {
+        console.log('Token expired, trying to refresh...');
+        const refreshed = await refreshToken();
+        
+        if (refreshed) {
+          const newToken = useAuthStore.getState().token;
+          response = await fetch('http://localhost:3001/api/progress/create-test-data', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${newToken}`,
+              'Content-Type': 'application/json'
+            }
+          });
+        } else {
+          // Refresh failed, user needs to log in again
+          logout();
+          setError('Session expired. Please log in again.');
+          return;
+        }
+      }
+      
+      if (response.ok) {
+        const result = await response.json();
+        console.log('Test data created:', result);
+        // Reload enrollments after creating test data
+        await loadEnrollments();
+        setError(null);
+      } else {
+        const errorData = await response.json();
+        setError(`Failed to create test data: ${errorData.error?.message || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Failed to create test data:', error);
+      setError('Failed to create test data');
     } finally {
       setLoading(false);
     }
@@ -86,8 +153,8 @@ const MyLearningPage: React.FC = () => {
       <Header />
       <Container maxWidth="lg" sx={{ py: 4 }}>
         <Typography variant="h4" component="h1" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <School color="primary" />
-          My Learning
+          {isInstructor ? <Psychology color="primary" /> : <School color="primary" />}
+          {isInstructor ? 'My Teaching' : 'My Learning'}
         </Typography>
 
         {error && (
@@ -98,20 +165,33 @@ const MyLearningPage: React.FC = () => {
 
         {enrollments.length === 0 ? (
           <Paper sx={{ p: 6, textAlign: 'center' }}>
-            <School sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+            {isInstructor ? <Psychology sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} /> : <School sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />}
             <Typography variant="h5" gutterBottom color="text.secondary">
-              No enrolled courses yet
+              {isInstructor ? 'No courses created yet' : 'No enrolled courses yet'}
             </Typography>
             <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-              Start your learning journey by enrolling in courses that interest you.
+              {isInstructor 
+                ? 'Start creating courses to share your knowledge with students.'
+                : 'Start your learning journey by enrolling in courses that interest you.'
+              }
             </Typography>
             <Button
               variant="contained"
               size="large"
-              onClick={() => navigate('/courses')}
+              onClick={() => navigate(isInstructor ? '/instructor/courses' : '/courses')}
             >
-              Browse Courses
+              {isInstructor ? 'Create Course' : 'Browse Courses'}
             </Button>
+            {isInstructor && (
+              <Button
+                variant="outlined"
+                size="large"
+                onClick={createTestData}
+                sx={{ ml: 2 }}
+              >
+                Create Test Data
+              </Button>
+            )}
           </Paper>
         ) : (
           <>
@@ -127,7 +207,7 @@ const MyLearningPage: React.FC = () => {
                       <Box>
                         <Typography variant="h6">{enrollments.length}</Typography>
                         <Typography variant="body2" color="text.secondary">
-                          Total Courses
+                          {isInstructor ? 'Courses Created' : 'Total Courses'}
                         </Typography>
                       </Box>
                     </Box>
@@ -147,7 +227,7 @@ const MyLearningPage: React.FC = () => {
                           {enrollments.filter(e => e.Status === 'completed').length}
                         </Typography>
                         <Typography variant="body2" color="text.secondary">
-                          Completed
+                          {isInstructor ? 'Published' : 'Completed'}
                         </Typography>
                       </Box>
                     </Box>

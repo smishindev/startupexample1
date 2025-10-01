@@ -115,7 +115,7 @@ export const Header: React.FC<HeaderProps> = () => {
   const navigationItems = [
     { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
     { text: 'Courses', icon: <BookIcon />, path: '/courses' },
-    { text: 'My Learning', icon: <LearningIcon />, path: '/my-learning' },
+    { text: user?.role === 'instructor' ? 'My Teaching' : 'My Learning', icon: <LearningIcon />, path: '/my-learning' },
     { text: 'Progress', icon: <ProgressIcon />, path: '/progress' },
     { text: 'Instructor', icon: <SchoolIcon />, path: '/instructor/dashboard' },
     { text: 'Analytics', icon: <AnalyticsIcon />, path: '/instructor/analytics' },

@@ -11,34 +11,67 @@ const db = DatabaseService.getInstance();
 router.get('/my-enrollments', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.userId;
+    const userRole = req.user?.role;
 
-    const enrollments = await db.query(`
-      SELECT 
-        e.Id as enrollmentId,
-        e.EnrolledAt,
-        e.Status,
-        e.CompletedAt,
-        c.Id as courseId,
-        c.Title,
-        c.Description,
-        c.Thumbnail,
-        c.Duration,
-        c.Level,
-        c.Price,
-        u.FirstName as instructorFirstName,
-        u.LastName as instructorLastName,
-        up.OverallProgress,
-        up.TimeSpent,
-        up.LastAccessedAt
-      FROM dbo.Enrollments e
-      INNER JOIN dbo.Courses c ON e.CourseId = c.Id
-      INNER JOIN dbo.Users u ON c.InstructorId = u.Id
-      LEFT JOIN dbo.UserProgress up ON e.UserId = up.UserId AND e.CourseId = up.CourseId
-      WHERE e.UserId = @userId
-      ORDER BY e.EnrolledAt DESC
-    `, { userId });
+    if (userRole === 'instructor') {
+      // For instructors, return the courses they teach with student enrollment stats
+      const instructorCourses = await db.query(`
+        SELECT 
+          c.Id as courseId,
+          c.Id as enrollmentId,
+          c.CreatedAt as EnrolledAt,
+          'teaching' as Status,
+          NULL as CompletedAt,
+          c.Title,
+          c.Description,
+          c.Thumbnail,
+          c.Duration,
+          c.Level,
+          c.Price,
+          'You' as instructorFirstName,
+          'are teaching' as instructorLastName,
+          COALESCE(AVG(CAST(up.OverallProgress as FLOAT)), 0) as OverallProgress,
+          COUNT(DISTINCT e.UserId) as TimeSpent,
+          MAX(COALESCE(up.LastAccessedAt, c.UpdatedAt)) as LastAccessedAt
+        FROM dbo.Courses c
+        LEFT JOIN dbo.Enrollments e ON c.Id = e.CourseId AND e.Status = 'active'
+        LEFT JOIN dbo.UserProgress up ON e.UserId = up.UserId AND e.CourseId = up.CourseId
+        WHERE c.InstructorId = @userId AND c.IsPublished = 1
+        GROUP BY c.Id, c.Title, c.Description, c.Thumbnail, c.Duration, c.Level, c.Price, c.CreatedAt, c.UpdatedAt
+        ORDER BY c.CreatedAt DESC
+      `, { userId });
 
-    res.json(enrollments);
+      res.json(instructorCourses);
+    } else {
+      // For students, return their enrollments
+      const enrollments = await db.query(`
+        SELECT 
+          e.Id as enrollmentId,
+          e.EnrolledAt,
+          e.Status,
+          e.CompletedAt,
+          c.Id as courseId,
+          c.Title,
+          c.Description,
+          c.Thumbnail,
+          c.Duration,
+          c.Level,
+          c.Price,
+          u.FirstName as instructorFirstName,
+          u.LastName as instructorLastName,
+          up.OverallProgress,
+          up.TimeSpent,
+          up.LastAccessedAt
+        FROM dbo.Enrollments e
+        INNER JOIN dbo.Courses c ON e.CourseId = c.Id
+        INNER JOIN dbo.Users u ON c.InstructorId = u.Id
+        LEFT JOIN dbo.UserProgress up ON e.UserId = up.UserId AND e.CourseId = up.CourseId
+        WHERE e.UserId = @userId
+        ORDER BY e.EnrolledAt DESC
+      `, { userId });
+
+      res.json(enrollments);
+    }
   } catch (error) {
     console.error('Error fetching enrollments:', error);
     res.status(500).json({ error: 'Failed to fetch enrollments' });

@@ -86,13 +86,21 @@ const Chat: React.FC = () => {
 
   // Send message
   const handleSendMessage = async () => {
-    if (!newMessage.trim() || !selectedRoom || sending) return;
+    if (!newMessage.trim() || !selectedRoom) return;
+    
+    // Prevent double-sending
+    if (sending) return;
+
+    const messageContent = newMessage.trim();
 
     setSending(true);
     try {
-      // Send via API for persistence - this will also add the message to our UI
+      // Clear the input immediately to prevent accidental double-sends
+      setNewMessage('');
+      
+      // Send via API for persistence
       const savedMessage = await chatApi.sendMessage(selectedRoom.roomId, {
-        content: newMessage.trim()
+        content: messageContent
       });
 
       // Add the message to the UI immediately
@@ -105,15 +113,16 @@ const Chat: React.FC = () => {
         return [...prev, savedMessage];
       });
 
-      // Send via socket for real-time delivery to OTHER users (not ourselves)
-      socketService.sendMessage(selectedRoom.roomId, newMessage.trim());
+      // Send via socket for real-time delivery to other users
+      socketService.sendMessage(selectedRoom.roomId, messageContent);
       
-      setNewMessage('');
       socketService.stopTyping(selectedRoom.roomId);
       setTimeout(scrollToBottom, 100);
     } catch (error) {
       console.error('Failed to send message:', error);
       setError('Failed to send message');
+      // Restore the message if sending failed
+      setNewMessage(messageContent);
     } finally {
       setSending(false);
     }

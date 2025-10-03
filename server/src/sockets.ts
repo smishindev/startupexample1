@@ -83,6 +83,8 @@ export const setupSocketHandlers = (io: Server) => {
       roomId: string;
       content: string;
       messageType?: string;
+      messageId?: string;
+      createdAt?: string;
     }) => {
       try {
         // Verify user has access to this room
@@ -102,33 +104,17 @@ export const setupSocketHandlers = (io: Server) => {
           return;
         }
 
-        // Store message in database
-        const messageId = require('uuid').v4();
-        const now = new Date().toISOString();
-
-        await db.execute(`
-          INSERT INTO dbo.ChatMessages (Id, RoomId, UserId, Content, Type, CreatedAt)
-          VALUES (@id, @roomId, @userId, @content, @type, @createdAt)
-        `, {
-          id: messageId,
-          roomId: data.roomId,
-          userId: socket.userId,
-          content: data.content,
-          type: data.messageType || 'text',
-          createdAt: now
-        });
-
         // Get user info for the message
         const userInfo = await db.query(`
           SELECT FirstName, LastName, Email FROM dbo.Users WHERE Id = @userId
         `, { userId: socket.userId });
 
         const messageData = {
-          id: messageId,
+          id: data.messageId || require('uuid').v4(), // Use provided messageId if available
           roomId: data.roomId,
           content: data.content,
           messageType: data.messageType || 'text',
-          createdAt: now,
+          createdAt: data.createdAt || new Date().toISOString(),
           user: {
             id: socket.userId,
             firstName: userInfo[0]?.FirstName,
@@ -137,12 +123,13 @@ export const setupSocketHandlers = (io: Server) => {
           }
         };
 
-        // Broadcast message to all users in the room (including sender)
-        io.to(data.roomId).emit('new-message', messageData);
+        // Broadcast message to OTHER users in the room (exclude sender to prevent double display)
+        socket.to(data.roomId).emit('new-message', messageData);
+        console.log(`Broadcasting message ${messageData.id} to room ${data.roomId} (excluding sender)`);
 
       } catch (error) {
-        console.error('Error sending message:', error);
-        socket.emit('error', { message: 'Failed to send message' });
+        console.error('Error broadcasting message:', error);
+        socket.emit('error', { message: 'Failed to broadcast message' });
       }
     });
 

@@ -84,12 +84,14 @@ class SocketService {
     }
   }
 
-  sendMessage(roomId: string, content: string, messageType = 'text'): void {
+  sendMessage(roomId: string, content: string, messageId?: string, createdAt?: string, messageType = 'text'): void {
     if (this.socket) {
       this.socket.emit('chat-message', {
         roomId,
         content,
-        messageType
+        messageType,
+        messageId,
+        createdAt
       });
     }
   }

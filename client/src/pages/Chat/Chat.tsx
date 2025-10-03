@@ -139,7 +139,7 @@ const Chat: React.FC = () => {
 
       // Send via socket for real-time delivery to other users
       console.log('📡 Sending via socket...');
-      socketService.sendMessage(selectedRoom.roomId, messageContent);
+      socketService.sendMessage(selectedRoom.roomId, messageContent, savedMessage.Id, savedMessage.CreatedAt);
       
       socketService.stopTyping(selectedRoom.roomId);
       setTimeout(scrollToBottom, 100);
@@ -212,8 +212,11 @@ const Chat: React.FC = () => {
         
         // Set up socket event listeners
         socketService.onMessage((message: SocketMessage) => {
+          console.log('🔔 Received socket message:', message);
+          
           // Only add message if it's NOT from the current user (we handle our own messages via API response)
           if (message.user.id === user?.id) {
+            console.log('⏭️ Skipping own message from socket');
             return; // Skip our own messages
           }
           
@@ -222,9 +225,11 @@ const Chat: React.FC = () => {
             // Check if message already exists (prevent duplicates)
             const messageExists = prev.some(msg => msg.Id === message.id);
             if (messageExists) {
+              console.log('⚠️ Message already exists in UI, skipping socket message');
               return prev;
             }
             
+            console.log('➕ Adding socket message from other user to UI');
             // Add the new message
             const newMessage = {
               Id: message.id,

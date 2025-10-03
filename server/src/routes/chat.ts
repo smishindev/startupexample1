@@ -189,35 +189,6 @@ router.post('/rooms/:roomId/messages', authenticateToken, async (req: AuthReques
 
     console.log(`Inserting message with ID ${messageId} into database...`);
 
-    // Check if a similar message was recently sent to prevent duplicates
-    const recentMessages = await db.query(`
-      SELECT COUNT(*) as count FROM dbo.ChatMessages 
-      WHERE RoomId = @roomId AND UserId = @userId AND Content = @content 
-      AND CreatedAt > DATEADD(second, -5, GETUTCDATE())
-    `, { roomId, userId, content });
-
-    if (recentMessages[0]?.count > 0) {
-      console.log(`Duplicate message detected, skipping insertion`);
-      // Return the existing message instead
-      const existingMessage = await db.query(`
-        SELECT TOP 1
-          cm.Id,
-          cm.Content,
-          cm.CreatedAt,
-          cm.Type as MessageType,
-          u.FirstName,
-          u.LastName,
-          u.Email,
-          u.Id as UserId
-        FROM dbo.ChatMessages cm
-        INNER JOIN dbo.Users u ON cm.UserId = u.Id
-        WHERE cm.RoomId = @roomId AND cm.UserId = @userId AND cm.Content = @content 
-        ORDER BY cm.CreatedAt DESC
-      `, { roomId, userId, content });
-      
-      return res.status(201).json(existingMessage[0]);
-    }
-
     await db.execute(`
       INSERT INTO dbo.ChatMessages (Id, RoomId, UserId, Content, Type, CreatedAt)
       VALUES (@id, @roomId, @userId, @content, @type, @createdAt)

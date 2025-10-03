@@ -75,7 +75,18 @@ const Chat: React.FC = () => {
   // Load messages for selected room
   const loadMessages = async (roomId: string) => {
     try {
+      console.log(`📥 Loading messages for room: ${roomId}`);
       const messagesData = await chatApi.getMessages(roomId);
+      console.log(`📋 Loaded ${messagesData.length} messages:`, messagesData.map(m => ({ id: m.Id, content: m.Content, createdAt: m.CreatedAt })));
+      
+      // Check for duplicates in loaded data
+      const duplicates = messagesData.filter((msg, index, arr) => 
+        arr.findIndex(m => m.Content === msg.Content && m.UserId === msg.UserId) !== index
+      );
+      if (duplicates.length > 0) {
+        console.warn(`⚠️ Found ${duplicates.length} duplicate messages in database:`, duplicates);
+      }
+      
       setMessages(messagesData);
       setTimeout(scrollToBottom, 100);
     } catch (error) {
@@ -86,34 +97,48 @@ const Chat: React.FC = () => {
 
   // Send message
   const handleSendMessage = async () => {
-    if (!newMessage.trim() || !selectedRoom) return;
+    console.log(`🚀 handleSendMessage called - sending: ${sending}, newMessage: "${newMessage.trim()}"`);
+    
+    if (!newMessage.trim() || !selectedRoom) {
+      console.log('❌ Aborting - no message or no room');
+      return;
+    }
     
     // Prevent double-sending
-    if (sending) return;
+    if (sending) {
+      console.log('❌ Already sending, preventing duplicate call');
+      return;
+    }
 
     const messageContent = newMessage.trim();
+    console.log(`📤 Starting to send: "${messageContent}"`);
 
     setSending(true);
     try {
       // Clear the input immediately to prevent accidental double-sends
       setNewMessage('');
+      console.log('🔄 Input cleared, calling API...');
       
       // Send via API for persistence
       const savedMessage = await chatApi.sendMessage(selectedRoom.roomId, {
         content: messageContent
       });
+      console.log('✅ API call completed, received:', savedMessage);
 
       // Add the message to the UI immediately
       setMessages(prev => {
         // Check if message already exists (prevent duplicates)
         const messageExists = prev.some(msg => msg.Id === savedMessage.Id);
         if (messageExists) {
+          console.log('⚠️ Message already exists in UI, not adding');
           return prev;
         }
+        console.log('➕ Adding message to UI');
         return [...prev, savedMessage];
       });
 
       // Send via socket for real-time delivery to other users
+      console.log('📡 Sending via socket...');
       socketService.sendMessage(selectedRoom.roomId, messageContent);
       
       socketService.stopTyping(selectedRoom.roomId);
@@ -124,6 +149,7 @@ const Chat: React.FC = () => {
       // Restore the message if sending failed
       setNewMessage(messageContent);
     } finally {
+      console.log('🏁 Setting sending to false');
       setSending(false);
     }
   };

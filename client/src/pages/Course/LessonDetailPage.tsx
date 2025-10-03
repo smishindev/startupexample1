@@ -19,10 +19,6 @@ import {
 } from '@mui/material';
 import {
   ArrowBack,
-  PlayArrow,
-  Pause,
-  VolumeUp,
-  Fullscreen,
   CheckCircle,
   RadioButtonUnchecked,
   Download,
@@ -34,6 +30,8 @@ import {
 } from '@mui/icons-material';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Header } from '../../components/Navigation/Header';
+import { VideoPlayer } from '../../components/Video/VideoPlayer';
+import { VideoProgressTracker } from '../../components/Video/VideoProgressTracker';
 
 interface LessonContent {
   id: string;
@@ -90,9 +88,6 @@ export const LessonDetailPage: React.FC = () => {
   const navigate = useNavigate();
   
   const [lesson, setLesson] = useState<LessonData | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTime] = useState(0);
-  const [duration] = useState(0);
   const [newComment, setNewComment] = useState('');
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -121,7 +116,7 @@ export const LessonDetailPage: React.FC = () => {
               title: 'What are React Hooks?',
               content: 'Introduction video explaining the concept of hooks',
               duration: '5:20',
-              videoUrl: 'https://example.com/video1.mp4',
+              videoUrl: '/uploads/videos/89cd9e8d-a553-448f-8904-cb095b298ac1_Recording_2025-09-29_205021.mp4',
             },
             {
               id: '2',
@@ -215,10 +210,6 @@ export const LessonDetailPage: React.FC = () => {
 
     fetchLesson();
   }, [courseId, lessonId]);
-
-  const handleVideoPlay = () => {
-    setIsPlaying(!isPlaying);
-  };
 
   const handleMarkComplete = () => {
     if (lesson) {
@@ -386,57 +377,26 @@ export const LessonDetailPage: React.FC = () => {
             {lesson.content.map((content) => (
               <Paper key={content.id} sx={{ mb: 3 }}>
                 {content.type === 'video' && (
-                  <Box sx={{ position: 'relative', backgroundColor: '#000', aspectRatio: '16/9' }}>
-                    <Box
-                      sx={{
-                        position: 'absolute',
-                        top: '50%',
-                        left: '50%',
-                        transform: 'translate(-50%, -50%)',
-                        zIndex: 2,
-                      }}
-                    >
-                      <IconButton
-                        size="large"
-                        onClick={handleVideoPlay}
-                        sx={{
-                          backgroundColor: 'rgba(0, 0, 0, 0.6)',
-                          color: 'white',
-                          '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.8)' },
-                        }}
-                      >
-                        {isPlaying ? <Pause sx={{ fontSize: 60 }} /> : <PlayArrow sx={{ fontSize: 60 }} />}
-                      </IconButton>
-                    </Box>
-                    <Box
-                      sx={{
-                        position: 'absolute',
-                        bottom: 0,
-                        left: 0,
-                        right: 0,
-                        background: 'linear-gradient(transparent, rgba(0,0,0,0.7))',
-                        p: 2,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 2,
-                      }}
-                    >
-                      <IconButton size="small" sx={{ color: 'white' }}>
-                        <VolumeUp />
-                      </IconButton>
-                      <LinearProgress
-                        variant="determinate"
-                        value={(currentTime / duration) * 100}
-                        sx={{ flex: 1, height: 4 }}
+                  <VideoProgressTracker
+                    lessonId={lesson.id}
+                    onProgress={(progress) => {
+                      console.log('Video progress:', progress);
+                    }}
+                    onComplete={() => {
+                      console.log('Lesson completed!');
+                      // Optionally navigate to next lesson or show completion dialog
+                    }}
+                  >
+                    {(trackingProps) => (
+                      <VideoPlayer 
+                        src={content.videoUrl || '/api/videos/placeholder.mp4'}
+                        title={content.title || lesson.title}
+                        onProgress={trackingProps.onVideoProgress}
+                        onComplete={trackingProps.onVideoComplete}
+                        onTimeUpdate={trackingProps.onTimeUpdate}
                       />
-                      <Typography variant="body2" sx={{ color: 'white', minWidth: '80px' }}>
-                        {Math.floor(currentTime / 60)}:{String(Math.floor(currentTime % 60)).padStart(2, '0')} / {content.duration}
-                      </Typography>
-                      <IconButton size="small" sx={{ color: 'white' }}>
-                        <Fullscreen />
-                      </IconButton>
-                    </Box>
-                  </Box>
+                    )}
+                  </VideoProgressTracker>
                 )}
 
                 {content.type === 'text' && (

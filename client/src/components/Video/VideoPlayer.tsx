@@ -23,8 +23,9 @@ import {
 interface VideoPlayerProps {
   src: string;
   title: string;
-  onProgress?: (progress: number) => void;
+  onProgress?: (currentTime: number, duration: number, percentWatched: number) => void;
   onComplete?: () => void;
+  onTimeUpdate?: (currentTime: number) => void;
   autoPlay?: boolean;
 }
 
@@ -33,6 +34,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   title,
   onProgress,
   onComplete,
+  onTimeUpdate,
   autoPlay = false,
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -61,7 +63,8 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     const handleTimeUpdate = () => {
       setCurrentTime(video.currentTime);
       const progress = (video.currentTime / video.duration) * 100;
-      onProgress?.(progress);
+      onProgress?.(video.currentTime, video.duration, progress);
+      onTimeUpdate?.(video.currentTime);
     };
 
     const handleEnded = () => {
@@ -78,7 +81,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       video.removeEventListener('timeupdate', handleTimeUpdate);
       video.removeEventListener('ended', handleEnded);
     };
-  }, [onProgress, onComplete]);
+  }, [onProgress, onComplete, onTimeUpdate]);
 
   useEffect(() => {
     const video = videoRef.current;

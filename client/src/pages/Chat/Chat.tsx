@@ -35,6 +35,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { chatApi, ChatRoom, ChatMessage, CreateRoomRequest } from '../../services/chatApi';
 import { socketService, SocketMessage, TypingUser } from '../../services/socketService';
 import { useAuthStore } from '../../stores/authStore';
+import { Header } from '../../components/Navigation/Header';
 
 const Chat: React.FC = () => {
   const [rooms, setRooms] = useState<ChatRoom[]>([]);
@@ -303,21 +304,27 @@ const Chat: React.FC = () => {
 
   if (loading) {
     return (
-      <Container maxWidth="lg" sx={{ py: 4, display: 'flex', justifyContent: 'center' }}>
-        <CircularProgress />
-      </Container>
+      <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+        <Header />
+        <Container maxWidth="lg" sx={{ py: 4, display: 'flex', justifyContent: 'center' }}>
+          <CircularProgress />
+        </Container>
+      </Box>
     );
   }
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
-          {error}
-        </Alert>
-      )}
+    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+      <Header />
       
-      <Paper sx={{ height: '80vh', display: 'flex' }}>
+      <Container maxWidth="lg" sx={{ py: 4 }}>
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
+            {error}
+          </Alert>
+        )}
+        
+        <Paper sx={{ height: '80vh', display: 'flex' }}>
         {/* Chat Rooms Sidebar */}
         <Box sx={{ width: 300, borderRight: 1, borderColor: 'divider', display: 'flex', flexDirection: 'column' }}>
           <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
@@ -545,6 +552,7 @@ const Chat: React.FC = () => {
         </DialogActions>
       </Dialog>
     </Container>
+    </Box>
   );
 };
 

@@ -6,18 +6,22 @@ export class DatabaseService {
   private config: sql.config;
 
   private constructor() {
+    // Check if we should use trusted connection or SQL Server auth
+    const trustedConnection = process.env.DB_TRUSTED_CONNECTION === 'true';
+    
     this.config = {
       server: process.env.DB_SERVER || 'localhost',
       port: parseInt(process.env.DB_PORT || '61299'),
       database: process.env.DB_DATABASE || 'startUp1',
-      user: process.env.DB_USER,
-      password: process.env.DB_PASSWORD,
+      user: process.env.DB_USER || 'mishin_learn_user',
+      password: process.env.DB_PASSWORD || 'MishinLearn2024!',
       options: {
         encrypt: false,
         trustServerCertificate: true,
         enableArithAbort: true,
-        connectionTimeout: 30000,
-        requestTimeout: 30000,
+        connectionTimeout: 60000,
+        requestTimeout: 60000,
+        useUTC: false,
       },
       pool: {
         max: 10,

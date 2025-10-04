@@ -45,6 +45,8 @@ import {
 } from '@mui/icons-material';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { instructorApi, CourseFormData } from '../../services/instructorApi';
+import { FileUpload } from '../../components/Upload/FileUpload';
+import { UploadedFile } from '../../services/fileUploadApi';
 
 interface Lesson {
   id: string;
@@ -53,6 +55,8 @@ interface Lesson {
   type: 'video' | 'text' | 'quiz';
   content?: string;
   videoUrl?: string;
+  videoFile?: UploadedFile;
+  useFileUpload?: boolean;
   duration?: number;
   order: number;
 }
@@ -153,8 +157,24 @@ export const CourseCreationForm: React.FC = () => {
   };
 
   const addLesson = () => {
-    setCurrentLesson({ type: 'video', order: lessons.length + 1 });
+    setCurrentLesson({ type: 'video', order: lessons.length + 1, useFileUpload: true });
     setLessonDialogOpen(true);
+  };
+
+  const handleVideoFileUploaded = (file: UploadedFile) => {
+    setCurrentLesson(prev => ({ 
+      ...prev, 
+      videoFile: file,
+      videoUrl: file.url 
+    }));
+  };
+
+  const handleVideoFileDeleted = () => {
+    setCurrentLesson(prev => ({ 
+      ...prev, 
+      videoFile: undefined,
+      videoUrl: '' 
+    }));
   };
 
   const saveLesson = () => {
@@ -166,6 +186,8 @@ export const CourseCreationForm: React.FC = () => {
         type: currentLesson.type || 'video',
         content: currentLesson.content,
         videoUrl: currentLesson.videoUrl,
+        videoFile: currentLesson.videoFile,
+        useFileUpload: currentLesson.useFileUpload,
         duration: currentLesson.duration,
         order: currentLesson.order || lessons.length + 1
       };
@@ -467,7 +489,25 @@ export const CourseCreationForm: React.FC = () => {
                         </ListItemIcon>
                         <ListItemText
                           primary={lesson.title}
-                          secondary={`${lesson.type.charAt(0).toUpperCase() + lesson.type.slice(1)} - ${lesson.description}`}
+                          secondary={
+                            <Box>
+                              <Typography variant="body2" color="text.secondary">
+                                {lesson.type.charAt(0).toUpperCase() + lesson.type.slice(1)} - {lesson.description}
+                              </Typography>
+                              {lesson.type === 'video' && (
+                                <Typography variant="caption" color="text.secondary">
+                                  {lesson.useFileUpload 
+                                    ? (lesson.videoFile 
+                                        ? `📁 File: ${lesson.videoFile.originalName}`
+                                        : '📁 File upload (no file selected)')
+                                    : (lesson.videoUrl 
+                                        ? `🔗 URL: ${lesson.videoUrl}`
+                                        : '🔗 URL (not specified)')
+                                  }
+                                </Typography>
+                              )}
+                            </Box>
+                          }
                         />
                         {lesson.duration && (
                           <Typography variant="body2" color="text.secondary" sx={{ mr: 2 }}>
@@ -777,15 +817,65 @@ export const CourseCreationForm: React.FC = () => {
               />
             </Grid>
             {currentLesson.type === 'video' && (
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Video URL"
-                  value={currentLesson.videoUrl || ''}
-                  onChange={(e) => setCurrentLesson({...currentLesson, videoUrl: e.target.value})}
-                  placeholder="https://example.com/video.mp4"
-                />
-              </Grid>
+              <>
+                <Grid item xs={12}>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={currentLesson.useFileUpload ?? true}
+                        onChange={(e) => setCurrentLesson({
+                          ...currentLesson, 
+                          useFileUpload: e.target.checked,
+                          videoUrl: '',
+                          videoFile: undefined
+                        })}
+                      />
+                    }
+                    label="Upload video file instead of using URL"
+                  />
+                </Grid>
+                
+                <Grid item xs={12}>
+                  <Divider sx={{ my: 2 }} />
+                </Grid>
+
+                {currentLesson.useFileUpload ? (
+                  <Grid item xs={12}>
+                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                      Upload a video file for this lesson:
+                    </Typography>
+                    <FileUpload
+                      fileType="video"
+                      // Don't pass courseId for draft uploads - it will be null in database
+                      onFileUploaded={handleVideoFileUploaded}
+                      onFileDeleted={handleVideoFileDeleted}
+                      maxFiles={1}
+                      showLibrary={false}
+                      title="Lesson Video"
+                      description="Upload MP4, AVI, MOV files"
+                    />
+                    
+                    {currentLesson.videoFile && (
+                      <Paper sx={{ p: 2, mt: 2, bgcolor: 'success.light', color: 'success.contrastText' }}>
+                        <Typography variant="body2">
+                          ✓ Selected video: {currentLesson.videoFile.originalName}
+                        </Typography>
+                      </Paper>
+                    )}
+                  </Grid>
+                ) : (
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label="Video URL"
+                      value={currentLesson.videoUrl || ''}
+                      onChange={(e) => setCurrentLesson({...currentLesson, videoUrl: e.target.value})}
+                      placeholder="https://example.com/video.mp4"
+                      helperText="Enter a direct link to the video file or streaming URL"
+                    />
+                  </Grid>
+                )}
+              </>
             )}
             {currentLesson.type === 'text' && (
               <Grid item xs={12}>

@@ -4,6 +4,7 @@ import sharp from 'sharp';
 import path from 'path';
 import fs from 'fs/promises';
 import { v4 as uuidv4 } from 'uuid';
+import sql from 'mssql';
 import { authenticateToken } from '../middleware/auth';
 import { DatabaseService } from '../services/DatabaseService';
 
@@ -178,26 +179,46 @@ router.post('/', authenticateToken, upload.single('file'), async (req: Request, 
     }
 
     // Store file information in database
-    await db.execute(
-      `INSERT INTO dbo.FileUploads 
-       (Id, UserId, CourseId, LessonId, OriginalName, Filename, MimeType, Size, FileType, Url, ThumbnailUrl, Metadata, CreatedAt)
-       VALUES (@id, @userId, @courseId, @lessonId, @originalName, @filename, @mimetype, @size, @fileType, @url, @thumbnailUrl, @metadata, @createdAt)`,
-      {
-        id: fileId,
-        userId,
-        courseId: courseId || null,
-        lessonId: lessonId || null,
-        originalName: file.originalname,
-        filename: file.filename,
-        mimetype: file.mimetype,
-        size: file.size,
-        fileType,
-        url: fileUrl,
-        thumbnailUrl: thumbnailUrl || null,
-        metadata: JSON.stringify(metadata),
-        createdAt: new Date().toISOString()
-      }
-    );
+    // Handle courseId and lessonId validation for UUIDs
+    const isValidUUID = (str: string) => {
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      return str && uuidRegex.test(str);
+    };
+
+    const validCourseId = courseId && isValidUUID(courseId) ? courseId : null;
+    const validLessonId = lessonId && isValidUUID(lessonId) ? lessonId : null;
+
+    console.log('Database insert parameters:', {
+      id: fileId,
+      userId: userId,
+      courseId: validCourseId,
+      lessonId: validLessonId,
+      userIdIsValid: isValidUUID(userId),
+      fileIdIsValid: isValidUUID(fileId)
+    });
+
+    // Use the database query method with explicit parameter types
+    const request = await db.getRequest();
+
+    request.input('id', sql.UniqueIdentifier, fileId);
+    request.input('userId', sql.UniqueIdentifier, userId);
+    request.input('courseId', sql.UniqueIdentifier, validCourseId);
+    request.input('lessonId', sql.UniqueIdentifier, validLessonId);
+    request.input('originalName', sql.NVarChar(255), file.originalname);
+    request.input('filename', sql.NVarChar(255), file.filename);
+    request.input('mimetype', sql.NVarChar(100), file.mimetype);
+    request.input('size', sql.BigInt, file.size);
+    request.input('fileType', sql.NVarChar(20), fileType);
+    request.input('url', sql.NVarChar(500), fileUrl);
+    request.input('thumbnailUrl', sql.NVarChar(500), thumbnailUrl);
+    request.input('metadata', sql.NVarChar(sql.MAX), JSON.stringify(metadata));
+    request.input('createdAt', sql.DateTime2, new Date());
+
+    await request.query(`
+      INSERT INTO dbo.FileUploads 
+      (Id, UserId, CourseId, LessonId, OriginalName, Filename, MimeType, Size, FileType, Url, ThumbnailUrl, Metadata, CreatedAt)
+      VALUES (@id, @userId, @courseId, @lessonId, @originalName, @filename, @mimetype, @size, @fileType, @url, @thumbnailUrl, @metadata, @createdAt)
+    `);
 
     const uploadedFile: FileUpload = {
       id: fileId,

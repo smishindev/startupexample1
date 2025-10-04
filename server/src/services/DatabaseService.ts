@@ -96,6 +96,16 @@ export class DatabaseService {
     }
   }
 
+  public async getRequest(): Promise<sql.Request> {
+    await this.ensureConnection();
+    
+    if (!this.pool) {
+      throw new Error('Database not connected. Please check database configuration.');
+    }
+
+    return this.pool.request();
+  }
+
   public async execute(queryText: string, params?: Record<string, any>): Promise<sql.IResult<any>> {
     if (!this.pool) {
       throw new Error('Database not connected. Please check database configuration.');

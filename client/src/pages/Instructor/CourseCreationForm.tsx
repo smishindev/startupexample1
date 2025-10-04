@@ -225,8 +225,28 @@ export const CourseCreationForm: React.FC = () => {
   const saveDraft = async () => {
     setSaving(true);
     try {
+      // Convert frontend lesson format to API format
+      const apiLessons = lessons.map(lesson => ({
+        id: lesson.id,
+        title: lesson.title,
+        description: lesson.description,
+        type: lesson.type,
+        content: lesson.content,
+        videoUrl: lesson.videoUrl,
+        videoFile: lesson.videoFile ? {
+          id: lesson.videoFile.id,
+          url: lesson.videoFile.url,
+          originalName: lesson.videoFile.originalName,
+          mimeType: lesson.videoFile.mimetype
+        } : undefined,
+        useFileUpload: lesson.useFileUpload,
+        duration: lesson.duration,
+        order: lesson.order
+      }));
+
       await instructorApi.createCourse({
         ...courseData,
+        lessons: apiLessons
         // TODO: Handle thumbnail upload separately
       });
       // Navigate back to instructor dashboard
@@ -249,8 +269,28 @@ export const CourseCreationForm: React.FC = () => {
   const publishCourse = async () => {
     setSaving(true);
     try {
+      // Convert frontend lesson format to API format
+      const apiLessons = lessons.map(lesson => ({
+        id: lesson.id,
+        title: lesson.title,
+        description: lesson.description,
+        type: lesson.type,
+        content: lesson.content,
+        videoUrl: lesson.videoUrl,
+        videoFile: lesson.videoFile ? {
+          id: lesson.videoFile.id,
+          url: lesson.videoFile.url,
+          originalName: lesson.videoFile.originalName,
+          mimeType: lesson.videoFile.mimetype
+        } : undefined,
+        useFileUpload: lesson.useFileUpload,
+        duration: lesson.duration,
+        order: lesson.order
+      }));
+
       const result = await instructorApi.createCourse({
         ...courseData,
+        lessons: apiLessons
         // TODO: Handle thumbnail upload separately
       });
       

@@ -74,6 +74,24 @@ export interface InstructorCourse {
   price: number;
 }
 
+export interface CourseLesson {
+  id: string;
+  title: string;
+  description: string;
+  type: 'video' | 'text' | 'quiz';
+  content?: string;
+  videoUrl?: string;
+  videoFile?: {
+    id: string;
+    url: string;
+    originalName: string;
+    mimeType: string;
+  };
+  useFileUpload?: boolean;
+  duration?: number;
+  order: number;
+}
+
 export interface CourseFormData {
   title: string;
   subtitle?: string;
@@ -88,6 +106,7 @@ export interface CourseFormData {
   isPublic?: boolean;
   allowComments?: boolean;
   certificateEnabled?: boolean;
+  lessons?: CourseLesson[];
 }
 
 export const instructorApi = {

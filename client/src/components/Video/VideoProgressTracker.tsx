@@ -24,16 +24,18 @@ export const VideoProgressTracker: React.FC<VideoProgressTrackerProps> = ({
     sessionStartTime: Date.now(),
     lastUpdateTime: Date.now(),
     maxProgressReached: 0,
+    currentPosition: 0, // Current time position in video
   });
 
   const saveProgressThrottled = useRef<NodeJS.Timeout | null>(null);
 
   // Save progress to backend (throttled)
-  const saveProgress = useCallback(async (progressPercentage: number, timeSpent: number) => {
+  const saveProgress = useCallback(async (progressPercentage: number, timeSpent: number, currentPosition: number = 0) => {
     try {
       await progressApi.updateLessonProgress(lessonId, {
         progressPercentage: Math.round(progressPercentage),
         timeSpent: Math.round(timeSpent),
+        notes: `position:${Math.round(currentPosition)}`, // Store current position in notes
       });
       
       progressRef.current.lastSavedProgress = progressPercentage;
@@ -42,7 +44,7 @@ export const VideoProgressTracker: React.FC<VideoProgressTrackerProps> = ({
         onProgress(progressPercentage, timeSpent);
       }
       
-      console.log(`Progress saved: ${progressPercentage.toFixed(1)}%, ${timeSpent}s`);
+      console.log(`Progress saved: ${progressPercentage.toFixed(1)}%, ${timeSpent}s, position: ${currentPosition.toFixed(1)}s`);
     } catch (error) {
       console.error('Failed to save video progress:', error);
     }
@@ -68,9 +70,12 @@ export const VideoProgressTracker: React.FC<VideoProgressTrackerProps> = ({
   }, [lessonId, onComplete]);
 
   // Handle video progress updates
-  const handleVideoProgress = useCallback((_currentTime: number, _duration: number, percentWatched: number) => {
+  const handleVideoProgress = useCallback((currentTime: number, _duration: number, percentWatched: number) => {
     const now = Date.now();
     const timeDelta = (now - progressRef.current.lastUpdateTime) / 1000; // Convert to seconds
+    
+    // Update current position
+    progressRef.current.currentPosition = currentTime;
     
     // Update total time spent (only if video is actually playing)
     if (timeDelta < 5) { // Reasonable threshold to avoid counting paused time
@@ -91,7 +96,7 @@ export const VideoProgressTracker: React.FC<VideoProgressTrackerProps> = ({
       }
       
       saveProgressThrottled.current = setTimeout(() => {
-        saveProgress(progressRef.current.maxProgressReached, progressRef.current.totalTimeSpent);
+        saveProgress(progressRef.current.maxProgressReached, progressRef.current.totalTimeSpent, progressRef.current.currentPosition);
       }, 2000); // 2 second delay
     }
   }, [saveProgress]);
@@ -99,7 +104,7 @@ export const VideoProgressTracker: React.FC<VideoProgressTrackerProps> = ({
   // Handle video completion
   const handleVideoComplete = useCallback(() => {
     // Save final progress
-    saveProgress(100, progressRef.current.totalTimeSpent);
+    saveProgress(100, progressRef.current.totalTimeSpent, progressRef.current.currentPosition);
     
     // Mark lesson as complete after a short delay
     setTimeout(() => {
@@ -125,7 +130,7 @@ export const VideoProgressTracker: React.FC<VideoProgressTrackerProps> = ({
     return () => {
       // Save final progress on unmount
       if (progressRef.current.maxProgressReached > progressRef.current.lastSavedProgress) {
-        saveProgress(progressRef.current.maxProgressReached, progressRef.current.totalTimeSpent);
+        saveProgress(progressRef.current.maxProgressReached, progressRef.current.totalTimeSpent, progressRef.current.currentPosition);
       }
       
       // Clear timeout
@@ -140,7 +145,7 @@ export const VideoProgressTracker: React.FC<VideoProgressTrackerProps> = ({
     const interval = setInterval(() => {
       const progressDiff = progressRef.current.maxProgressReached - progressRef.current.lastSavedProgress;
       if (progressDiff > 0) {
-        saveProgress(progressRef.current.maxProgressReached, progressRef.current.totalTimeSpent);
+        saveProgress(progressRef.current.maxProgressReached, progressRef.current.totalTimeSpent, progressRef.current.currentPosition);
       }
     }, 60000); // Save every minute as backup
 

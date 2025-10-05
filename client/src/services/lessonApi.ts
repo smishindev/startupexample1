@@ -55,6 +55,11 @@ export interface Lesson {
   prerequisites?: string[];
   createdAt?: string;
   updatedAt?: string;
+  // Optional course details (included when fetching single lesson)
+  courseTitle?: string;
+  courseDescription?: string;
+  instructorName?: string;
+  instructorEmail?: string;
 }
 
 export interface CreateLessonRequest {

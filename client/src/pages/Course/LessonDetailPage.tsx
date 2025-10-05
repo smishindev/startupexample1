@@ -32,8 +32,10 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Header } from '../../components/Navigation/Header';
 import { VideoPlayer } from '../../components/Video/VideoPlayer';
 import { VideoProgressTracker } from '../../components/Video/VideoProgressTracker';
+import { lessonApi, Lesson } from '../../services/lessonApi';
+import { progressApi } from '../../services/progressApi';
 
-interface LessonContent {
+interface ExtendedLessonContent {
   id: string;
   type: 'video' | 'text' | 'quiz' | 'assignment';
   title: string;
@@ -60,160 +62,150 @@ interface Comment {
   replies?: Comment[];
 }
 
-interface LessonData {
-  id: string;
-  title: string;
-  description: string;
-  duration: string;
-  content: LessonContent[];
-  completed: boolean;
-  progress: number;
-  courseId: string;
-  courseTitle: string;
-  instructorName: string;
+interface ExtendedLesson extends Lesson {
+  courseTitle?: string;
+  instructorName?: string;
+  completed?: boolean;
+  progress?: number;
   nextLessonId?: string;
   previousLessonId?: string;
-  comments: Comment[];
-  resources: Array<{
+  comments?: Comment[];
+  extendedContent?: ExtendedLessonContent[];
+  resources?: Array<{
     id: string;
     name: string;
     type: string;
     url: string;
     description: string;
   }>;
+  savedPosition?: number; // Saved video position in seconds
 }
+
+// Helper function to get next/previous lesson IDs
+const findAdjacentLessons = (currentLesson: Lesson, allLessons: Lesson[]) => {
+  const sortedLessons = [...allLessons].sort((a, b) => a.orderIndex - b.orderIndex);
+  const currentIndex = sortedLessons.findIndex(l => l.id === currentLesson.id);
+  
+  return {
+    previousLessonId: currentIndex > 0 ? sortedLessons[currentIndex - 1].id : undefined,
+    nextLessonId: currentIndex < sortedLessons.length - 1 ? sortedLessons[currentIndex + 1].id : undefined
+  };
+};
+
+// Helper function to convert API content to display format
+const transformLessonContent = (apiContent: any[]): ExtendedLessonContent[] => {
+  return apiContent.map((content, index) => ({
+    id: content.id || index.toString(),
+    type: content.type,
+    title: content.data?.title || `Content ${index + 1}`,
+    content: content.data?.content || content.data?.html || '',
+    videoUrl: content.data?.url,
+    duration: content.data?.duration
+  }));
+};
+
+// Helper function to extract saved position from notes
+const extractSavedPosition = (notes?: string): number => {
+  if (!notes) return 0;
+  const match = notes.match(/position:(\d+)/);
+  return match ? parseInt(match[1], 10) : 0;
+};
 
 export const LessonDetailPage: React.FC = () => {
   const { courseId, lessonId } = useParams<{ courseId: string; lessonId: string }>();
   const navigate = useNavigate();
   
-  const [lesson, setLesson] = useState<LessonData | null>(null);
+  const [lesson, setLesson] = useState<ExtendedLesson | null>(null);
+  const [allLessons, setAllLessons] = useState<Lesson[]>([]);
+  const [progress, setProgress] = useState<any>(null);
   const [newComment, setNewComment] = useState('');
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Mock lesson data - in real app, this would come from API
+  // Fetch lesson data from real API
   useEffect(() => {
-    const fetchLesson = async () => {
-      // Simulate API call
-      setTimeout(() => {
-        setLesson({
-          id: lessonId || '1',
-          title: 'Introduction to React Hooks',
-          description: 'Learn the fundamentals of React Hooks and how they revolutionize state management in functional components.',
-          duration: '15:30',
-          courseId: courseId || '1',
-          courseTitle: 'Advanced React Development',
-          instructorName: 'Sarah Johnson',
-          completed: false,
-          progress: 35,
-          nextLessonId: '2',
-          previousLessonId: undefined,
-          content: [
-            {
-              id: '1',
-              type: 'video',
-              title: 'What are React Hooks?',
-              content: 'Introduction video explaining the concept of hooks',
-              duration: '5:20',
-              videoUrl: '/uploads/videos/89cd9e8d-a553-448f-8904-cb095b298ac1_Recording_2025-09-29_205021.mp4',
-            },
-            {
-              id: '2',
-              type: 'text',
-              title: 'useState Hook',
-              content: `
-                # The useState Hook
-
-                The \`useState\` hook is one of the most fundamental hooks in React. It allows you to add state to functional components.
-
-                ## Basic Syntax
-                \`\`\`jsx
-                const [state, setState] = useState(initialValue);
-                \`\`\`
-
-                ## Example
-                \`\`\`jsx
-                import React, { useState } from 'react';
-
-                function Counter() {
-                  const [count, setCount] = useState(0);
-
-                  return (
-                    <div>
-                      <p>You clicked {count} times</p>
-                      <button onClick={() => setCount(count + 1)}>
-                        Click me
-                      </button>
-                    </div>
-                  );
-                }
-                \`\`\`
-
-                The hook returns an array with two elements:
-                1. The current state value
-                2. A function to update the state
-              `,
-            },
-            {
-              id: '3',
-              type: 'quiz',
-              title: 'Quick Quiz: useState',
-              content: 'Test your understanding of the useState hook',
-            },
-          ],
-          comments: [
-            {
-              id: '1',
-              user: { name: 'John Doe', avatar: '' },
-              content: 'Great explanation! The examples really helped me understand the concept.',
-              timestamp: '2 hours ago',
-              likes: 5,
-              replies: [
-                {
-                  id: '1-1',
-                  user: { name: 'Sarah Johnson', avatar: '' },
-                  content: 'Glad it helped! Feel free to ask if you have more questions.',
-                  timestamp: '1 hour ago',
-                  likes: 2,
-                },
-              ],
-            },
-            {
-              id: '2',
-              user: { name: 'Jane Smith', avatar: '' },
-              content: 'Could you explain the difference between useState and useReducer?',
-              timestamp: '1 hour ago',
-              likes: 3,
-            },
-          ],
-          resources: [
-            {
-              id: '1',
-              name: 'React Hooks Cheat Sheet',
-              type: 'PDF',
-              url: '/resources/hooks-cheat-sheet.pdf',
-              description: 'Quick reference for all React hooks',
-            },
-            {
-              id: '2',
-              name: 'Code Examples',
-              type: 'ZIP',
-              url: '/resources/lesson-1-examples.zip',
-              description: 'All code examples from this lesson',
-            },
-          ],
-        });
+    const fetchLessonData = async () => {
+      if (!courseId || !lessonId) {
+        setError('Course ID or Lesson ID is missing');
         setLoading(false);
-      }, 1000);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        setError(null);
+
+        // Fetch lesson details, all lessons for navigation, and progress
+        const [lessonData, lessonsData, progressData] = await Promise.all([
+          lessonApi.getLesson(lessonId),
+          lessonApi.getLessons(courseId),
+          progressApi.getCourseProgress(courseId).catch(() => null) // Progress might not exist yet
+        ]);
+
+        // Find adjacent lessons for navigation
+        const { previousLessonId, nextLessonId } = findAdjacentLessons(lessonData, lessonsData);
+
+        // Find progress for this specific lesson
+        const lessonProgress = progressData?.lessonProgress?.find(
+          (lp: any) => lp.LessonId === lessonId
+        );
+
+        // Extract saved position from notes
+        const savedPosition = extractSavedPosition(lessonProgress?.Notes);
+
+        // Create extended lesson object
+        const extendedLesson: ExtendedLesson = {
+          ...lessonData,
+          courseTitle: lessonData.courseTitle || 'Course Title',
+          instructorName: lessonData.instructorName || 'Instructor',
+          completed: !!lessonProgress?.CompletedAt,
+          progress: lessonProgress?.ProgressPercentage || 0,
+          nextLessonId,
+          previousLessonId,
+          comments: [], // TODO: Implement comments API
+          extendedContent: transformLessonContent(lessonData.content || []),
+          resources: [], // TODO: Implement resources API
+          savedPosition // Add saved position for video resumption
+        };
+
+        setLesson(extendedLesson);
+        setAllLessons(lessonsData);
+        setProgress(progressData);
+
+        // Debug: Log progress data (can be removed in production)
+        if (progressData) {
+          console.log('Course progress data loaded:', progressData);
+        }
+
+      } catch (error: any) {
+        console.error('Failed to fetch lesson data:', error);
+        setError(error?.response?.data?.error || error?.message || 'Failed to load lesson');
+      } finally {
+        setLoading(false);
+      }
     };
 
-    fetchLesson();
+    fetchLessonData();
   }, [courseId, lessonId]);
 
-  const handleMarkComplete = () => {
+  const handleMarkComplete = async () => {
     if (lesson) {
-      setLesson({ ...lesson, completed: true, progress: 100 });
+      try {
+        // Mark lesson as complete via API
+        await progressApi.markLessonComplete(lesson.id, {
+          timeSpent: 0, // Time spent for manual completion
+          notes: 'Manually marked as complete'
+        });
+        
+        // Update local state
+        setLesson({ ...lesson, completed: true, progress: 100 });
+        
+        console.log('Lesson marked as complete successfully');
+      } catch (error) {
+        console.error('Failed to mark lesson as complete:', error);
+        // You could show an error message to the user here
+      }
     }
   };
 
@@ -228,7 +220,7 @@ export const LessonDetailPage: React.FC = () => {
       };
       setLesson({
         ...lesson,
-        comments: [comment, ...lesson.comments],
+        comments: [comment, ...(lesson.comments || [])],
       });
       setNewComment('');
     }
@@ -252,14 +244,21 @@ export const LessonDetailPage: React.FC = () => {
     );
   }
 
-  if (!lesson) {
+  if (!lesson || error) {
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
         <Header />
         <Container maxWidth="lg" sx={{ mt: 4, mb: 4, flex: 1 }}>
           <Typography variant="h6" color="error" sx={{ textAlign: 'center' }}>
-            Lesson not found
+            {error || 'Lesson not found'}
           </Typography>
+          <Button 
+            variant="contained" 
+            sx={{ mt: 2, display: 'block', mx: 'auto' }}
+            onClick={() => navigate(`/courses/${courseId}`)}
+          >
+            Back to Course
+          </Button>
         </Container>
       </Box>
     );
@@ -292,6 +291,9 @@ export const LessonDetailPage: React.FC = () => {
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 Instructor: {lesson.instructorName} • Duration: {lesson.duration}
+                {progress && (
+                  <> • Course Progress: {Math.round(progress.courseProgress?.OverallProgress || 0)}%</>
+                )}
               </Typography>
             </Box>
             <Box sx={{ display: 'flex', gap: 1 }}>
@@ -374,7 +376,7 @@ export const LessonDetailPage: React.FC = () => {
           {/* Main Content */}
           <Box sx={{ flex: 2 }}>
             {/* Lesson Content */}
-            {lesson.content.map((content) => (
+            {lesson.extendedContent?.map((content) => (
               <Paper key={content.id} sx={{ mb: 3 }}>
                 {content.type === 'video' && (
                   <VideoProgressTracker
@@ -384,18 +386,35 @@ export const LessonDetailPage: React.FC = () => {
                     }}
                     onComplete={() => {
                       console.log('Lesson completed!');
-                      // Optionally navigate to next lesson or show completion dialog
+                      // Update lesson state to show completion
+                      setLesson(prev => prev ? { ...prev, completed: true, progress: 100 } : null);
+                      
+                      // Optionally navigate to next lesson after a delay
+                      if (lesson.nextLessonId) {
+                        setTimeout(() => {
+                          const shouldAutoNavigate = confirm('Lesson completed! Would you like to go to the next lesson?');
+                          if (shouldAutoNavigate) {
+                            navigate(`/courses/${courseId}/lessons/${lesson.nextLessonId}`);
+                          }
+                        }, 2000);
+                      }
                     }}
                   >
-                    {(trackingProps) => (
-                      <VideoPlayer 
-                        src={content.videoUrl || '/api/videos/placeholder.mp4'}
-                        title={content.title || lesson.title}
-                        onProgress={trackingProps.onVideoProgress}
-                        onComplete={trackingProps.onVideoComplete}
-                        onTimeUpdate={trackingProps.onTimeUpdate}
-                      />
-                    )}
+                    {(trackingProps) => {
+                      // Use saved position if available, otherwise start from beginning
+                      const initialTime = lesson.savedPosition || 0;
+                      
+                      return (
+                        <VideoPlayer 
+                          src={content.videoUrl || '/api/videos/placeholder.mp4'}
+                          title={content.title || lesson.title}
+                          onProgress={trackingProps.onVideoProgress}
+                          onComplete={trackingProps.onVideoComplete}
+                          onTimeUpdate={trackingProps.onTimeUpdate}
+                          initialTime={initialTime}
+                        />
+                      );
+                    }}
                   </VideoProgressTracker>
                 )}
 
@@ -449,7 +468,7 @@ export const LessonDetailPage: React.FC = () => {
             {/* Comments Section */}
             <Paper sx={{ p: 3 }}>
               <Typography variant="h6" sx={{ mb: 3 }}>
-                Discussion ({lesson.comments.length})
+                Discussion ({lesson.comments?.length || 0})
               </Typography>
 
               {/* Add Comment */}
@@ -470,7 +489,7 @@ export const LessonDetailPage: React.FC = () => {
 
               {/* Comments List */}
               <List>
-                {lesson.comments.map((comment) => (
+                {lesson.comments?.map((comment) => (
                   <Box key={comment.id}>
                     <ListItem alignItems="flex-start" sx={{ px: 0 }}>
                       <Avatar sx={{ mr: 2 }}>{comment.user.name.charAt(0)}</Avatar>
@@ -533,7 +552,7 @@ export const LessonDetailPage: React.FC = () => {
                 Resources
               </Typography>
               <List>
-                {lesson.resources.map((resource) => (
+                {lesson.resources?.map((resource) => (
                   <ListItem key={resource.id} sx={{ px: 0 }}>
                     <ListItemIcon>
                       <Download />
@@ -556,33 +575,25 @@ export const LessonDetailPage: React.FC = () => {
                 Course Lessons
               </Typography>
               <List>
-                <ListItemButton selected>
-                  <ListItemIcon>
-                    <CheckCircle color="success" />
-                  </ListItemIcon>
-                  <ListItemText 
-                    primary="Introduction to React Hooks" 
-                    secondary="15:30 • Current"
-                  />
-                </ListItemButton>
-                <ListItemButton>
-                  <ListItemIcon>
-                    <RadioButtonUnchecked />
-                  </ListItemIcon>
-                  <ListItemText 
-                    primary="useEffect Hook" 
-                    secondary="12:45"
-                  />
-                </ListItemButton>
-                <ListItemButton>
-                  <ListItemIcon>
-                    <RadioButtonUnchecked />
-                  </ListItemIcon>
-                  <ListItemText 
-                    primary="Custom Hooks" 
-                    secondary="18:20"
-                  />
-                </ListItemButton>
+                {allLessons.map((courseLesson) => (
+                  <ListItemButton 
+                    key={courseLesson.id}
+                    selected={courseLesson.id === lesson.id}
+                    onClick={() => navigate(`/courses/${courseId}/lessons/${courseLesson.id}`)}
+                  >
+                    <ListItemIcon>
+                      {courseLesson.id === lesson.id ? (
+                        <CheckCircle color="success" />
+                      ) : (
+                        <RadioButtonUnchecked />
+                      )}
+                    </ListItemIcon>
+                    <ListItemText 
+                      primary={courseLesson.title} 
+                      secondary={courseLesson.id === lesson.id ? "Current" : `${courseLesson.duration || 'N/A'}`}
+                    />
+                  </ListItemButton>
+                ))}
               </List>
             </Paper>
           </Box>

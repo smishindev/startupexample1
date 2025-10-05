@@ -24,6 +24,11 @@ export interface Lesson {
   prerequisites: string[];
   createdAt: string;
   updatedAt: string;
+  // Optional course details (included when fetching single lesson)
+  courseTitle?: string;
+  courseDescription?: string;
+  instructorName?: string;
+  instructorEmail?: string;
 }
 
 // GET /lessons/:courseId - Get all lessons for a course
@@ -89,12 +94,15 @@ router.get('/lesson/:id', authenticateToken, async (req: Request, res: Response)
     const { id } = req.params;
     const userId = (req as any).user.userId;
 
-    // Get lesson with course ownership check
+    // Get lesson with course ownership check and course details
     const result = await db.query(
       `SELECT l.Id, l.CourseId, l.Title, l.Description, l.ContentJson, l.OrderIndex, 
-              l.Duration, l.IsRequired, l.Prerequisites, l.CreatedAt, l.UpdatedAt
+              l.Duration, l.IsRequired, l.Prerequisites, l.CreatedAt, l.UpdatedAt,
+              c.Title as CourseTitle, c.Description as CourseDescription,
+              u.FirstName, u.LastName, u.Email as InstructorEmail
        FROM dbo.Lessons l
        INNER JOIN dbo.Courses c ON l.CourseId = c.Id
+       INNER JOIN dbo.Users u ON c.InstructorId = u.Id
        WHERE l.Id = @id AND (c.InstructorId = @userId OR c.Id IN (
          SELECT CourseId FROM dbo.Enrollments WHERE UserId = @userId
        ))`,
@@ -117,7 +125,12 @@ router.get('/lesson/:id', authenticateToken, async (req: Request, res: Response)
       isRequired: row.IsRequired,
       prerequisites: JSON.parse(row.Prerequisites || '[]'),
       createdAt: row.CreatedAt,
-      updatedAt: row.UpdatedAt
+      updatedAt: row.UpdatedAt,
+      // Add course details
+      courseTitle: row.CourseTitle,
+      courseDescription: row.CourseDescription,
+      instructorName: `${row.FirstName} ${row.LastName}`,
+      instructorEmail: row.InstructorEmail
     };
 
     res.json(lesson);

@@ -27,6 +27,7 @@ interface VideoPlayerProps {
   onComplete?: () => void;
   onTimeUpdate?: (currentTime: number) => void;
   autoPlay?: boolean;
+  initialTime?: number; // Start time in seconds
 }
 
 export const VideoPlayer: React.FC<VideoPlayerProps> = ({
@@ -36,6 +37,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   onComplete,
   onTimeUpdate,
   autoPlay = false,
+  initialTime = 0,
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -58,6 +60,11 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
     const handleLoadedMetadata = () => {
       setDuration(video.duration);
+      // Seek to initial time if provided
+      if (initialTime > 0 && initialTime < video.duration) {
+        video.currentTime = initialTime;
+        setCurrentTime(initialTime);
+      }
     };
 
     const handleTimeUpdate = () => {
@@ -81,7 +88,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       video.removeEventListener('timeupdate', handleTimeUpdate);
       video.removeEventListener('ended', handleEnded);
     };
-  }, [onProgress, onComplete, onTimeUpdate]);
+  }, [onProgress, onComplete, onTimeUpdate, initialTime]);
 
   useEffect(() => {
     const video = videoRef.current;

@@ -1,9 +1,248 @@
 import { Router } from 'express';
+import { authenticateToken } from '../middleware/auth';
+import { DatabaseService } from '../services/DatabaseService';
 
 const router = Router();
+const db = DatabaseService.getInstance();
 
-router.get('/', (req: any, res: any) => {
-  res.json({ message: 'Courses endpoint - coming soon' });
+// Get all published courses with optional filtering and search
+router.get('/', async (req: any, res: any) => {
+  try {
+    const { 
+      search = '', 
+      category = '', 
+      level = '', 
+      instructorId = '',
+      page = 1, 
+      limit = 12 
+    } = req.query;
+
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+
+    let whereClause = 'WHERE c.IsPublished = 1';
+    const params: any = {};
+
+    // Add search filter
+    if (search) {
+      whereClause += ' AND (c.Title LIKE @search OR c.Description LIKE @search OR c.Tags LIKE @search)';
+      params.search = `%${search}%`;
+    }
+
+    // Add category filter
+    if (category) {
+      whereClause += ' AND c.Category = @category';
+      params.category = category;
+    }
+
+    // Add level filter
+    if (level) {
+      whereClause += ' AND c.Level = @level';
+      params.level = level;
+    }
+
+    // Add instructor filter
+    if (instructorId) {
+      whereClause += ' AND c.InstructorId = @instructorId';
+      params.instructorId = instructorId;
+    }
+
+    const query = `
+      SELECT 
+        c.Id,
+        c.Title,
+        c.Description,
+        c.Thumbnail,
+        c.Category,
+        c.Level,
+        c.Duration,
+        c.Price,
+        c.Rating,
+        c.EnrollmentCount,
+        c.Tags,
+        c.CreatedAt,
+        c.UpdatedAt,
+        u.FirstName as InstructorFirstName,
+        u.LastName as InstructorLastName,
+        u.Avatar as InstructorAvatar,
+        (SELECT COUNT(*) FROM Lessons l WHERE l.CourseId = c.Id) as LessonCount
+      FROM Courses c
+      INNER JOIN Users u ON c.InstructorId = u.Id
+      ${whereClause}
+      ORDER BY c.CreatedAt DESC
+      OFFSET @offset ROWS
+      FETCH NEXT @limit ROWS ONLY
+    `;
+
+    // Count query for pagination
+    const countQuery = `
+      SELECT COUNT(*) as total
+      FROM Courses c
+      INNER JOIN Users u ON c.InstructorId = u.Id
+      ${whereClause}
+    `;
+
+    const [coursesResult, countResult] = await Promise.all([
+      db.query(query, { ...params, offset, limit: parseInt(limit) }),
+      db.query(countQuery, params)
+    ]);
+
+    const courses = coursesResult.map((course: any) => ({
+      ...course,
+      Tags: course.Tags ? JSON.parse(course.Tags) : [],
+      Instructor: {
+        FirstName: course.InstructorFirstName,
+        LastName: course.InstructorLastName,
+        Avatar: course.InstructorAvatar
+      }
+    }));
+
+    // Remove instructor fields from course object
+    courses.forEach((course: any) => {
+      delete course.InstructorFirstName;
+      delete course.InstructorLastName;
+      delete course.InstructorAvatar;
+    });
+
+    const total = countResult[0].total;
+    const totalPages = Math.ceil(total / parseInt(limit));
+
+    res.json({
+      courses,
+      pagination: {
+        current: parseInt(page),
+        pages: totalPages,
+        total,
+        hasNext: parseInt(page) < totalPages,
+        hasPrev: parseInt(page) > 1
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching courses:', error);
+    res.status(500).json({ error: 'Failed to fetch courses' });
+  }
+});
+
+// Get course by ID with detailed information
+router.get('/:id', async (req: any, res: any) => {
+  try {
+    const { id } = req.params;
+
+    const query = `
+      SELECT 
+        c.*,
+        u.FirstName as InstructorFirstName,
+        u.LastName as InstructorLastName,
+        u.Avatar as InstructorAvatar,
+        u.Email as InstructorEmail
+      FROM Courses c
+      INNER JOIN Users u ON c.InstructorId = u.Id
+      WHERE c.Id = @id AND c.IsPublished = 1
+    `;
+
+    const result = await db.query(query, { id });
+
+    if (result.length === 0) {
+      return res.status(404).json({ error: 'Course not found' });
+    }
+
+    const course = result[0];
+
+    // Get lessons for this course
+    const lessonsQuery = `
+      SELECT Id, Title, Description, OrderIndex, Duration, IsRequired
+      FROM Lessons
+      WHERE CourseId = @courseId
+      ORDER BY OrderIndex
+    `;
+
+    const lessons = await db.query(lessonsQuery, { courseId: id });
+
+    // Format response
+    const courseData = {
+      ...course,
+      Prerequisites: course.Prerequisites ? JSON.parse(course.Prerequisites) : [],
+      LearningOutcomes: course.LearningOutcomes ? JSON.parse(course.LearningOutcomes) : [],
+      Tags: course.Tags ? JSON.parse(course.Tags) : [],
+      Instructor: {
+        Id: course.InstructorId,
+        FirstName: course.InstructorFirstName,
+        LastName: course.InstructorLastName,
+        Avatar: course.InstructorAvatar,
+        Email: course.InstructorEmail
+      },
+      Lessons: lessons
+    };
+
+    // Remove instructor fields from main course object
+    delete courseData.InstructorFirstName;
+    delete courseData.InstructorLastName;
+    delete courseData.InstructorAvatar;
+    delete courseData.InstructorEmail;
+
+    res.json(courseData);
+
+  } catch (error) {
+    console.error('Error fetching course:', error);
+    res.status(500).json({ error: 'Failed to fetch course' });
+  }
+});
+
+// Get enrollment status for authenticated user
+router.get('/:id/enrollment', authenticateToken, async (req: any, res: any) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+
+    const query = `
+      SELECT Id, Status, EnrolledAt, CompletedAt
+      FROM Enrollments
+      WHERE UserId = @userId AND CourseId = @courseId
+    `;
+
+    const result = await db.query(query, { userId, courseId: id });
+
+    if (result.length === 0) {
+      return res.json({ isEnrolled: false });
+    }
+
+    const enrollment = result[0];
+    res.json({
+      isEnrolled: true,
+      status: enrollment.Status,
+      enrolledAt: enrollment.EnrolledAt,
+      completedAt: enrollment.CompletedAt
+    });
+
+  } catch (error) {
+    console.error('Error checking enrollment:', error);
+    res.status(500).json({ error: 'Failed to check enrollment status' });
+  }
+});
+
+// Get course categories and stats
+router.get('/meta/categories', async (req: any, res: any) => {
+  try {
+    const query = `
+      SELECT 
+        Category,
+        COUNT(*) as Count,
+        AVG(Rating) as AverageRating,
+        AVG(EnrollmentCount) as AverageEnrollments
+      FROM Courses
+      WHERE IsPublished = 1
+      GROUP BY Category
+      ORDER BY Count DESC
+    `;
+
+    const result = await db.query(query);
+
+    res.json(result);
+
+  } catch (error) {
+    console.error('Error fetching categories:', error);
+    res.status(500).json({ error: 'Failed to fetch categories' });
+  }
 });
 
 export { router as courseRoutes };

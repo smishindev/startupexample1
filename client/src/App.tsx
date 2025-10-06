@@ -10,6 +10,7 @@ import { ProtectedRoute } from './components/Auth/ProtectedRoute';
 // Main Pages
 import { DashboardLayout } from './components/Layout/DashboardLayout';
 import { CoursesPage } from './pages/Courses/CoursesPage';
+import CourseDetail from './pages/Courses/CourseDetail';
 import { CourseDetailPage } from './pages/Course/CourseDetailPage';
 import { LessonDetailPage } from './pages/Course/LessonDetailPage';
 import { InstructorDashboard } from './pages/Instructor/InstructorDashboard';
@@ -67,14 +68,10 @@ function App() {
           }
         />
         
-        <Route
-          path="/courses"
-          element={
-            <ProtectedRoute>
-              <CoursesPage />
-            </ProtectedRoute>
-          }
-        />
+        <Route path="/courses" element={<CoursesPage />} />
+        
+        {/* Course Discovery Detail Route (public) */}
+        <Route path="/courses/:id/preview" element={<CourseDetail />} />
 
         <Route
           path="/my-learning"

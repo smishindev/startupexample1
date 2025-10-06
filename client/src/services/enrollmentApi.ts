@@ -63,9 +63,22 @@ export interface EnrollmentStats {
 export interface EnrollmentResponse {
   enrollmentId: string;
   courseId: string;
+  courseTitle?: string;
   status: string;
   enrolledAt: string;
   message: string;
+  code: string;
+  nextSteps?: {
+    startLearning: string;
+    viewProgress: string;
+    courseDetail: string;
+  };
+}
+
+export interface EnrollmentError {
+  error: string;
+  code: string;
+  enrollmentId?: string;
 }
 
 class EnrollmentApi {
@@ -80,13 +93,34 @@ class EnrollmentApi {
   }
 
   async enrollInCourse(courseId: string): Promise<EnrollmentResponse> {
-    const response = await api.post(`/api/enrollment/courses/${courseId}/enroll`);
-    return response.data;
+    try {
+      const response = await api.post(`/api/enrollment/courses/${courseId}/enroll`);
+      return response.data;
+    } catch (error: any) {
+      // Enhanced error handling with specific error codes
+      if (error.response?.data) {
+        const errorData = error.response.data as EnrollmentError;
+        throw new Error(JSON.stringify({
+          message: errorData.error,
+          code: errorData.code,
+          enrollmentId: errorData.enrollmentId,
+          status: error.response.status
+        }));
+      }
+      throw new Error('Failed to enroll in course. Please try again.');
+    }
   }
 
   async unenrollFromCourse(courseId: string): Promise<{ message: string }> {
-    const response = await api.delete(`/api/enrollment/courses/${courseId}/unenroll`);
-    return response.data;
+    try {
+      const response = await api.delete(`/api/enrollment/courses/${courseId}/unenroll`);
+      return response.data;
+    } catch (error: any) {
+      if (error.response?.data?.error) {
+        throw new Error(error.response.data.error);
+      }
+      throw new Error('Failed to unenroll from course. Please try again.');
+    }
   }
 
   async getCourseStats(courseId: string): Promise<EnrollmentStats> {

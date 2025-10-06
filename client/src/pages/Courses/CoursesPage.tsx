@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Container,
@@ -15,12 +15,19 @@ import {
   Tabs,
   Tab,
   Button,
+  CircularProgress,
+  Alert,
+  Pagination,
+  Card,
+  CardContent,
+  Rating,
 } from '@mui/material';
 import { Search, FilterList } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { Header } from '../../components/Navigation/Header';
 import { CourseCard, Course } from '../../components/Course/CourseCard';
 import { enrollmentApi } from '../../services/enrollmentApi';
+import { coursesApi, Course as ApiCourse, CourseFilters } from '../../services/coursesApi';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -34,6 +41,59 @@ const TabPanel: React.FC<TabPanelProps> = ({ children, value, index }) => (
   </div>
 );
 
+// Helper function to convert API course to UI course format
+const convertApiCourseToUiCourse = (apiCourse: ApiCourse): Course => ({
+  id: apiCourse.Id,
+  title: apiCourse.Title,
+  description: apiCourse.Description,
+  instructor: {
+    name: `${apiCourse.Instructor.FirstName} ${apiCourse.Instructor.LastName}`,
+    avatar: apiCourse.Instructor.Avatar || '',
+  },
+  thumbnail: apiCourse.Thumbnail || '',
+  duration: formatDuration(apiCourse.Duration),
+  level: apiCourse.Level as 'Beginner' | 'Intermediate' | 'Advanced',
+  rating: apiCourse.Rating,
+  reviewCount: Math.floor(apiCourse.EnrollmentCount * 0.3), // Estimate reviews from enrollments
+  enrolledStudents: apiCourse.EnrollmentCount,
+  price: apiCourse.Price,
+  category: formatCategory(apiCourse.Category),
+  tags: apiCourse.Tags || [],
+  isBookmarked: false, // TODO: Implement bookmarks
+  isPopular: apiCourse.EnrollmentCount > 100,
+  isNew: isNewCourse(apiCourse.CreatedAt),
+});
+
+// Helper function to format duration from minutes to readable format
+const formatDuration = (minutes: number): string => {
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  
+  if (hours > 0 && mins > 0) {
+    return `${hours}h ${mins}m`;
+  } else if (hours > 0) {
+    return `${hours}h`;
+  } else {
+    return `${mins}m`;
+  }
+};
+
+// Helper function to format category for display
+const formatCategory = (category: string): string => {
+  return category.split('_').map(word => 
+    word.charAt(0).toUpperCase() + word.slice(1)
+  ).join(' ');
+};
+
+// Helper function to check if course is new (created within last 30 days)
+const isNewCourse = (createdAt: string): boolean => {
+  const created = new Date(createdAt);
+  const now = new Date();
+  const diffTime = Math.abs(now.getTime() - created.getTime());
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  return diffDays <= 30;
+};
+
 export const CoursesPage: React.FC = () => {
   const navigate = useNavigate();
   const [tabValue, setTabValue] = useState(0);
@@ -41,140 +101,109 @@ export const CoursesPage: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedLevel, setSelectedLevel] = useState('');
   const [sortBy, setSortBy] = useState('popular');
+  const [currentPage, setCurrentPage] = useState(1);
+  
+  // State for API data
+  const [allCourses, setAllCourses] = useState<Course[]>([]);
+  const [enrolledCourses, setEnrolledCourses] = useState<Course[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [categoryStats, setCategoryStats] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [pagination, setPagination] = useState({
+    current: 1,
+    pages: 1,
+    total: 0,
+    hasNext: false,
+    hasPrev: false,
+  });
 
-  // Mock course data
-  const [allCourses, setAllCourses] = useState<Course[]>([
-    {
-      id: '1',
-      title: 'Advanced React Development',
-      description: 'Master modern React patterns, hooks, and best practices',
-      instructor: { name: 'Sarah Johnson', avatar: '' },
-      thumbnail: '',
-      duration: '8h 30m',
-      level: 'Advanced',
-      rating: 4.8,
-      reviewCount: 324,
-      enrolledStudents: 2150,
-      price: 79.99,
-      originalPrice: 129.99,
-      category: 'Web Development',
-      tags: ['React', 'JavaScript', 'Frontend'],
-      isPopular: true,
-      isBookmarked: false,
-    },
-    {
-      id: '2',
-      title: 'Machine Learning Fundamentals',
-      description: 'Introduction to ML algorithms and practical applications',
-      instructor: { name: 'Dr. Michael Chen', avatar: '' },
-      thumbnail: '',
-      duration: '12h 45m',
-      level: 'Intermediate',
-      rating: 4.9,
-      reviewCount: 567,
-      enrolledStudents: 3200,
-      price: 0,
-      category: 'Data Science',
-      tags: ['Machine Learning', 'Python', 'AI'],
-      isNew: true,
-      isBookmarked: true,
-    },
-    {
-      id: '3',
-      title: 'UI/UX Design Principles',
-      description: 'Learn design thinking and create beautiful user experiences',
-      instructor: { name: 'Emma Rodriguez', avatar: '' },
-      thumbnail: '',
-      duration: '6h 15m',
-      level: 'Beginner',
-      rating: 4.7,
-      reviewCount: 189,
-      enrolledStudents: 1450,
-      price: 49.99,
-      category: 'Design',
-      tags: ['UI/UX', 'Design', 'Figma'],
-      isBookmarked: false,
-    },
-    {
-      id: '4',
-      title: 'Node.js Backend Mastery',
-      description: 'Build scalable server applications with Node.js and Express',
-      instructor: { name: 'James Wilson', avatar: '' },
-      thumbnail: '',
-      duration: '10h 20m',
-      level: 'Intermediate',
-      rating: 4.6,
-      reviewCount: 298,
-      enrolledStudents: 1800,
-      price: 69.99,
-      originalPrice: 99.99,
-      category: 'Backend Development',
-      tags: ['Node.js', 'Express', 'API'],
-      isBookmarked: false,
-    },
-    {
-      id: '5',
-      title: 'Data Structures and Algorithms',
-      description: 'Master DSA for coding interviews and problem solving',
-      instructor: { name: 'Alex Kumar', avatar: '' },
-      thumbnail: '',
-      duration: '15h 30m',
-      level: 'Intermediate',
-      rating: 4.8,
-      reviewCount: 445,
-      enrolledStudents: 2700,
-      price: 89.99,
-      category: 'Computer Science',
-      tags: ['Algorithms', 'Data Structures', 'Coding'],
-      isPopular: true,
-      isBookmarked: true,
-    },
-    {
-      id: '6',
-      title: 'TypeScript Complete Guide',
-      description: 'From JavaScript to TypeScript mastery',
-      instructor: { name: 'Lisa Park', avatar: '' },
-      thumbnail: '',
-      duration: '7h 45m',
-      level: 'Beginner',
-      rating: 4.5,
-      reviewCount: 156,
-      enrolledStudents: 980,
-      price: 39.99,
-      category: 'Programming Languages',
-      tags: ['TypeScript', 'JavaScript'],
-      isNew: true,
-      isBookmarked: false,
-    },
-  ]);
+  const levels = ['beginner', 'intermediate', 'advanced'];
 
-  // Mock enrolled courses
-  const [enrolledCourses, setEnrolledCourses] = useState<Course[]>([
-    {
-      ...allCourses[0],
-      isEnrolled: true,
-      progress: 75,
-      lastAccessed: '2 hours ago',
-    },
-    {
-      ...allCourses[1],
-      isEnrolled: true,
-      progress: 45,
-      lastAccessed: '1 day ago',
-    },
-    {
-      ...allCourses[2],
-      isEnrolled: true,
-      progress: 30,
-      lastAccessed: '3 days ago',
-    },
-  ]);
+  // Load initial data
+  useEffect(() => {
+    loadCourses();
+    loadCategories();
+  }, [currentPage, searchQuery, selectedCategory, selectedLevel, sortBy]);
 
-  const categories = ['Web Development', 'Data Science', 'Design', 'Backend Development', 'Computer Science', 'Programming Languages'];
-  const levels = ['Beginner', 'Intermediate', 'Advanced'];
+  const loadCourses = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const filters: CourseFilters = {
+        page: currentPage,
+        limit: 12,
+      };
+
+      if (searchQuery) filters.search = searchQuery;
+      if (selectedCategory) filters.category = selectedCategory;
+      if (selectedLevel) filters.level = selectedLevel;
+
+      const response = await coursesApi.getCourses(filters);
+      
+      // Convert API courses to UI format
+      const uiCourses = response.courses.map(convertApiCourseToUiCourse);
+      
+      // Apply sorting (since API doesn't support all sort options yet)
+      const sortedCourses = sortCourses(uiCourses, sortBy);
+      
+      setAllCourses(sortedCourses);
+      setPagination(response.pagination);
+
+    } catch (err) {
+      console.error('Error loading courses:', err);
+      setError('Failed to load courses. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadCategories = async () => {
+    try {
+      const categoriesData = await coursesApi.getCategories();
+      const categoryNames = categoriesData.map(cat => formatCategory(cat.Category));
+      setCategories(categoryNames);
+      setCategoryStats(categoriesData);
+    } catch (err) {
+      console.error('Error loading categories:', err);
+    }
+  };
+
+  const sortCourses = (courses: Course[], sortType: string): Course[] => {
+    return [...courses].sort((a, b) => {
+      switch (sortType) {
+        case 'popular':
+          return b.enrolledStudents - a.enrolledStudents;
+        case 'rating':
+          return b.rating - a.rating;
+        case 'newest':
+          return (b.isNew ? 1 : 0) - (a.isNew ? 1 : 0);
+        case 'price-low':
+          return a.price - b.price;
+        case 'price-high':
+          return b.price - a.price;
+        default:
+          return 0;
+      }
+    });
+  };
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
+    if (newValue === 1) {
+      loadEnrolledCourses();
+    }
+  };
+
+  const loadEnrolledCourses = async () => {
+    try {
+      // TODO: Implement enrolled courses API endpoint
+      // For now, we'll use mock data or filter from enrollments
+      setEnrolledCourses([]);
+    } catch (err) {
+      console.error('Error loading enrolled courses:', err);
+    }
   };
 
   const handleEnroll = async (courseId: string) => {
@@ -188,63 +217,51 @@ export const CoursesPage: React.FC = () => {
           : course
       ));
       
-      // Add to enrolled courses list
-      const courseToEnroll = allCourses.find(c => c.id === courseId);
-      if (courseToEnroll) {
-        setEnrolledCourses(prev => [...prev, {
-          ...courseToEnroll,
-          isEnrolled: true,
-          progress: 0,
-          lastAccessed: 'Just now'
-        }]);
-      }
-      
       console.log('Successfully enrolled in course:', courseId);
     } catch (error) {
       console.error('Failed to enroll in course:', error);
-      // You could add a snackbar/toast notification here
+      setError('Failed to enroll in course. Please try again.');
     }
   };
 
   const handleBookmark = (courseId: string, isBookmarked: boolean) => {
     console.log('Bookmark course:', courseId, isBookmarked);
-    // Handle bookmark toggle
+    // TODO: Implement bookmark API
   };
 
   const handleShare = (courseId: string) => {
     console.log('Sharing course:', courseId);
-    // Handle course sharing
+    // TODO: Implement sharing functionality
   };
 
   const handleCourseClick = (courseId: string) => {
-    navigate(`/courses/${courseId}`);
+    navigate(`/courses/${courseId}/preview`);
   };
 
-  const filteredCourses = allCourses.filter(course => {
-    const matchesSearch = course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         course.description.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = !selectedCategory || course.category === selectedCategory;
-    const matchesLevel = !selectedLevel || course.level === selectedLevel;
-    
-    return matchesSearch && matchesCategory && matchesLevel;
-  });
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
+    setCurrentPage(1); // Reset to first page on search
+  };
 
-  const sortedCourses = [...filteredCourses].sort((a, b) => {
-    switch (sortBy) {
-      case 'popular':
-        return b.enrolledStudents - a.enrolledStudents;
-      case 'rating':
-        return b.rating - a.rating;
-      case 'newest':
-        return (b.isNew ? 1 : 0) - (a.isNew ? 1 : 0);
-      case 'price-low':
-        return a.price - b.price;
-      case 'price-high':
-        return b.price - a.price;
-      default:
-        return 0;
-    }
-  });
+  const handleCategoryChange = (value: string) => {
+    setSelectedCategory(value);
+    setCurrentPage(1); // Reset to first page on filter
+  };
+
+  const handleLevelChange = (value: string) => {
+    setSelectedLevel(value);
+    setCurrentPage(1); // Reset to first page on filter
+  };
+
+  const handleSortChange = (value: string) => {
+    setSortBy(value);
+    setCurrentPage(1); // Reset to first page on sort
+  };
+
+  const handlePageChange = (_event: React.ChangeEvent<unknown>, page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
@@ -269,6 +286,115 @@ export const CoursesPage: React.FC = () => {
 
         {/* All Courses Tab */}
         <TabPanel value={tabValue} index={0}>
+          {/* Course Statistics Overview */}
+          {!loading && (
+            <Paper sx={{ p: 3, mb: 4 }}>
+              <Typography variant="h6" sx={{ mb: 3 }}>
+                Course Overview
+              </Typography>
+              <Grid container spacing={3}>
+                <Grid item xs={12} sm={6} md={3}>
+                  <Box sx={{ textAlign: 'center' }}>
+                    <Typography variant="h4" color="primary.main" sx={{ fontWeight: 'bold' }}>
+                      {pagination.total}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Total Courses
+                    </Typography>
+                  </Box>
+                </Grid>
+                
+                <Grid item xs={12} sm={6} md={3}>
+                  <Box sx={{ textAlign: 'center' }}>
+                    <Typography variant="h4" color="success.main" sx={{ fontWeight: 'bold' }}>
+                      {allCourses.filter(c => c.price === 0).length}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Free Courses
+                    </Typography>
+                  </Box>
+                </Grid>
+                
+                <Grid item xs={12} sm={6} md={3}>
+                  <Box sx={{ textAlign: 'center' }}>
+                    <Typography variant="h4" color="warning.main" sx={{ fontWeight: 'bold' }}>
+                      {categoryStats.length}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Categories
+                    </Typography>
+                  </Box>
+                </Grid>
+                
+                <Grid item xs={12} sm={6} md={3}>
+                  <Box sx={{ textAlign: 'center' }}>
+                    <Typography variant="h4" color="info.main" sx={{ fontWeight: 'bold' }}>
+                      {allCourses.reduce((sum, course) => sum + course.enrolledStudents, 0).toLocaleString()}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Total Students
+                    </Typography>
+                  </Box>
+                </Grid>
+              </Grid>
+            </Paper>
+          )}
+
+          {/* Category Statistics */}
+          {categoryStats.length > 0 && (
+            <Paper sx={{ p: 3, mb: 4 }}>
+              <Typography variant="h6" sx={{ mb: 3 }}>
+                Course Categories
+              </Typography>
+              <Grid container spacing={2}>
+                {categoryStats.map((stat, index) => (
+                  <Grid item xs={12} sm={6} md={3} key={index}>
+                    <Card 
+                      sx={{ 
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                        '&:hover': {
+                          transform: 'translateY(-2px)',
+                          boxShadow: 3,
+                        },
+                        ...(selectedCategory === stat.Category.toLowerCase().replace(' ', '_') && {
+                          bgcolor: 'primary.50',
+                          borderColor: 'primary.main',
+                          borderWidth: 2,
+                        })
+                      }}
+                      onClick={() => setSelectedCategory(
+                        selectedCategory === stat.Category.toLowerCase().replace(' ', '_') 
+                          ? '' 
+                          : stat.Category.toLowerCase().replace(' ', '_')
+                      )}
+                    >
+                      <CardContent sx={{ textAlign: 'center', py: 2 }}>
+                        <Typography variant="h6" color="primary.main" sx={{ fontWeight: 'bold' }}>
+                          {stat.Count}
+                        </Typography>
+                        <Typography variant="body2" sx={{ mb: 1 }}>
+                          {formatCategory(stat.Category)}
+                        </Typography>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                            <Rating value={stat.AverageRating || 0} precision={0.1} readOnly size="small" />
+                            <Typography variant="caption">
+                              {(stat.AverageRating || 0).toFixed(1)}
+                            </Typography>
+                          </Box>
+                          <Typography variant="caption" color="text.secondary">
+                            ~{Math.round(stat.AverageEnrollments || 0)} enrolled
+                          </Typography>
+                        </Box>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                ))}
+              </Grid>
+            </Paper>
+          )}
+
           {/* Search and Filters */}
           <Paper sx={{ p: 3, mb: 4 }}>
             <Grid container spacing={3} alignItems="center">
@@ -277,7 +403,7 @@ export const CoursesPage: React.FC = () => {
                   fullWidth
                   placeholder="Search courses..."
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => handleSearchChange(e.target.value)}
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
@@ -294,11 +420,11 @@ export const CoursesPage: React.FC = () => {
                   <Select
                     value={selectedCategory}
                     label="Category"
-                    onChange={(e) => setSelectedCategory(e.target.value)}
+                    onChange={(e) => handleCategoryChange(e.target.value)}
                   >
                     <MenuItem value="">All Categories</MenuItem>
                     {categories.map((category) => (
-                      <MenuItem key={category} value={category}>
+                      <MenuItem key={category} value={category.toLowerCase().replace(' ', '_')}>
                         {category}
                       </MenuItem>
                     ))}
@@ -312,12 +438,12 @@ export const CoursesPage: React.FC = () => {
                   <Select
                     value={selectedLevel}
                     label="Level"
-                    onChange={(e) => setSelectedLevel(e.target.value)}
+                    onChange={(e) => handleLevelChange(e.target.value)}
                   >
                     <MenuItem value="">All Levels</MenuItem>
                     {levels.map((level) => (
                       <MenuItem key={level} value={level}>
-                        {level}
+                        {level.charAt(0).toUpperCase() + level.slice(1)}
                       </MenuItem>
                     ))}
                   </Select>
@@ -330,7 +456,7 @@ export const CoursesPage: React.FC = () => {
                   <Select
                     value={sortBy}
                     label="Sort By"
-                    onChange={(e) => setSortBy(e.target.value)}
+                    onChange={(e) => handleSortChange(e.target.value)}
                   >
                     <MenuItem value="popular">Most Popular</MenuItem>
                     <MenuItem value="rating">Highest Rated</MenuItem>
@@ -380,23 +506,52 @@ export const CoursesPage: React.FC = () => {
           </Paper>
 
           {/* Course Results */}
-          <Typography variant="h6" sx={{ mb: 3 }}>
-            {sortedCourses.length} courses found
-          </Typography>
+          {error && (
+            <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
+              {error}
+            </Alert>
+          )}
 
-          <Grid container spacing={3}>
-            {sortedCourses.map((course) => (
-              <Grid item xs={12} sm={6} md={4} key={course.id}>
-                <CourseCard
-                  course={course}
-                  onEnroll={handleEnroll}
-                  onBookmark={handleBookmark}
-                  onShare={handleShare}
-                  onClick={handleCourseClick}
-                />
+          {loading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+              <CircularProgress size={60} />
+            </Box>
+          ) : (
+            <>
+              <Typography variant="h6" sx={{ mb: 3 }}>
+                {allCourses.length} courses found
+              </Typography>
+
+              <Grid container spacing={3}>
+                {allCourses.map((course) => (
+                  <Grid item xs={12} sm={6} md={4} key={course.id}>
+                    <CourseCard
+                      course={course}
+                      onEnroll={handleEnroll}
+                      onBookmark={handleBookmark}
+                      onShare={handleShare}
+                      onClick={handleCourseClick}
+                    />
+                  </Grid>
+                ))}
               </Grid>
-            ))}
-          </Grid>
+
+              {/* Pagination */}
+              {pagination.pages > 1 && (
+                <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+                  <Pagination
+                    count={pagination.pages}
+                    page={pagination.current}
+                    onChange={handlePageChange}
+                    color="primary"
+                    size="large"
+                    showFirstButton
+                    showLastButton
+                  />
+                </Box>
+              )}
+            </>
+          )}
         </TabPanel>
 
         {/* My Courses Tab */}

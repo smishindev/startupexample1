@@ -113,30 +113,77 @@ router.post('/courses/:courseId/enroll', authenticateToken, async (req: AuthRequ
     const { courseId } = req.params;
     const userId = req.user?.userId;
 
+    // Validate course ID format
+    if (!courseId || courseId.length !== 36) {
+      return res.status(400).json({ 
+        error: 'Invalid course ID format',
+        code: 'INVALID_COURSE_ID' 
+      });
+    }
+
     // Check if already enrolled
     const existingEnrollment = await db.query(`
-      SELECT Id FROM dbo.Enrollments
+      SELECT Id, Status FROM dbo.Enrollments
       WHERE UserId = @userId AND CourseId = @courseId
     `, { userId, courseId });
 
     if (existingEnrollment.length > 0) {
-      return res.status(400).json({ error: 'Already enrolled in this course' });
+      const status = existingEnrollment[0].Status;
+      if (status === 'active') {
+        return res.status(409).json({ 
+          error: 'Already enrolled in this course',
+          code: 'ALREADY_ENROLLED',
+          enrollmentId: existingEnrollment[0].Id
+        });
+      } else if (status === 'dropped') {
+        // Reactivate dropped enrollment
+        await db.execute(`
+          UPDATE dbo.Enrollments
+          SET Status = 'active', EnrolledAt = @enrolledAt, DroppedAt = NULL
+          WHERE Id = @enrollmentId
+        `, {
+          enrollmentId: existingEnrollment[0].Id,
+          enrolledAt: new Date().toISOString()
+        });
+
+        return res.status(200).json({
+          enrollmentId: existingEnrollment[0].Id,
+          courseId,
+          status: 'active',
+          enrolledAt: new Date().toISOString(),
+          message: 'Successfully re-enrolled in course',
+          code: 'RE_ENROLLED'
+        });
+      }
     }
 
     // Verify course exists and is published
     const course = await db.query(`
-      SELECT Id, Title, InstructorId, Price, IsPublished
+      SELECT Id, Title, InstructorId, Price, IsPublished, EnrollmentCount
       FROM dbo.Courses
-      WHERE Id = @courseId AND IsPublished = 1
+      WHERE Id = @courseId
     `, { courseId });
 
     if (course.length === 0) {
-      return res.status(404).json({ error: 'Course not found or not available' });
+      return res.status(404).json({ 
+        error: 'Course not found',
+        code: 'COURSE_NOT_FOUND'
+      });
+    }
+
+    if (!course[0].IsPublished) {
+      return res.status(403).json({ 
+        error: 'Course is not available for enrollment',
+        code: 'COURSE_NOT_PUBLISHED'
+      });
     }
 
     // Don't allow instructor to enroll in their own course
     if (course[0].InstructorId === userId) {
-      return res.status(400).json({ error: 'Cannot enroll in your own course' });
+      return res.status(403).json({ 
+        error: 'Cannot enroll in your own course',
+        code: 'INSTRUCTOR_SELF_ENROLLMENT'
+      });
     }
 
     const enrollmentId = uuidv4();
@@ -168,17 +215,38 @@ router.post('/courses/:courseId/enroll', authenticateToken, async (req: AuthRequ
       updatedAt: now
     });
 
+    // Update course enrollment count
+    await db.execute(`
+      UPDATE dbo.Courses
+      SET EnrollmentCount = EnrollmentCount + 1,
+          UpdatedAt = @updatedAt
+      WHERE Id = @courseId
+    `, {
+      courseId,
+      updatedAt: now
+    });
+
     res.status(201).json({
       enrollmentId,
       courseId,
+      courseTitle: course[0].Title,
       status: 'active',
       enrolledAt: now,
-      message: 'Successfully enrolled in course'
+      message: `Successfully enrolled in "${course[0].Title}"`,
+      code: 'ENROLLMENT_SUCCESS',
+      nextSteps: {
+        startLearning: `/courses/${courseId}/lessons`,
+        viewProgress: `/my-learning`,
+        courseDetail: `/courses/${courseId}/preview`
+      }
     });
 
   } catch (error) {
     console.error('Error enrolling in course:', error);
-    res.status(500).json({ error: 'Failed to enroll in course' });
+    res.status(500).json({ 
+      error: 'Failed to enroll in course. Please try again.',
+      code: 'ENROLLMENT_FAILED'
+    });
   }
 });
 

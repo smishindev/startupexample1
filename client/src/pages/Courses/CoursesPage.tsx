@@ -198,11 +198,36 @@ export const CoursesPage: React.FC = () => {
 
   const loadEnrolledCourses = async () => {
     try {
-      // TODO: Implement enrolled courses API endpoint
-      // For now, we'll use mock data or filter from enrollments
-      setEnrolledCourses([]);
+      const enrollments = await enrollmentApi.getMyEnrollments();
+      
+      // Convert enrollment data to course format
+      const enrolledCoursesData: Course[] = enrollments.map(enrollment => ({
+        id: enrollment.courseId,
+        title: enrollment.Title,
+        description: enrollment.Description,
+        instructor: {
+          name: `${enrollment.instructorFirstName} ${enrollment.instructorLastName}`,
+        },
+        thumbnail: enrollment.Thumbnail || '',
+        duration: enrollment.Duration,
+        level: (enrollment.Level.charAt(0).toUpperCase() + enrollment.Level.slice(1).toLowerCase()) as 'Beginner' | 'Intermediate' | 'Advanced',
+        price: enrollment.Price,
+        rating: 0, // Not available in enrollment data
+        reviewCount: 0, // Not available in enrollment data
+        enrollmentCount: 0, // Not available in enrollment data
+        enrolledStudents: 0, // Not available in enrollment data
+        category: 'other', // Not available in enrollment data, defaulting
+        tags: [],
+        isEnrolled: true,
+        progress: enrollment.OverallProgress,
+        enrolledAt: enrollment.EnrolledAt,
+        lastAccessedAt: enrollment.LastAccessedAt,
+      }));
+      
+      setEnrolledCourses(enrolledCoursesData);
     } catch (err) {
       console.error('Error loading enrolled courses:', err);
+      setEnrolledCourses([]);
     }
   };
 
@@ -216,6 +241,9 @@ export const CoursesPage: React.FC = () => {
           ? { ...course, isEnrolled: true }
           : course
       ));
+      
+      // Refresh enrolled courses list
+      loadEnrolledCourses();
       
       console.log('Successfully enrolled in course:', courseId);
     } catch (error) {

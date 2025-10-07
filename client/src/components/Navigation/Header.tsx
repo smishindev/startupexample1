@@ -119,8 +119,10 @@ export const Header: React.FC<HeaderProps> = () => {
     { text: user?.role === 'instructor' ? 'My Teaching' : 'My Learning', icon: <LearningIcon />, path: '/my-learning' },
     { text: 'Progress', icon: <ProgressIcon />, path: '/progress' },
     { text: 'Chat', icon: <ChatIcon />, path: '/chat' },
-    { text: 'Instructor', icon: <SchoolIcon />, path: '/instructor/dashboard' },
-    { text: 'Analytics', icon: <AnalyticsIcon />, path: '/instructor/analytics' },
+    ...(user?.role === 'instructor' ? [
+      { text: 'Instructor', icon: <SchoolIcon />, path: '/instructor/dashboard' },
+      { text: 'Analytics', icon: <AnalyticsIcon />, path: '/instructor/analytics' },
+    ] : []),
   ];
 
   const profileMenuItems = [

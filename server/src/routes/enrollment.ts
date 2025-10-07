@@ -19,7 +19,7 @@ router.get('/my-enrollments', authenticateToken, async (req: AuthRequest, res: R
         SELECT 
           c.Id as courseId,
           c.Id as enrollmentId,
-          c.CreatedAt as EnrolledAt,
+          GETUTCDATE() as EnrolledAt,
           'teaching' as Status,
           NULL as CompletedAt,
           c.Title,
@@ -32,13 +32,13 @@ router.get('/my-enrollments', authenticateToken, async (req: AuthRequest, res: R
           'are teaching' as instructorLastName,
           COALESCE(AVG(CAST(up.OverallProgress as FLOAT)), 0) as OverallProgress,
           COUNT(DISTINCT e.UserId) as TimeSpent,
-          MAX(COALESCE(up.LastAccessedAt, c.UpdatedAt)) as LastAccessedAt
+          MAX(COALESCE(up.LastAccessedAt, GETUTCDATE())) as LastAccessedAt
         FROM dbo.Courses c
         LEFT JOIN dbo.Enrollments e ON c.Id = e.CourseId AND e.Status = 'active'
         LEFT JOIN dbo.UserProgress up ON e.UserId = up.UserId AND e.CourseId = up.CourseId
         WHERE c.InstructorId = @userId AND c.IsPublished = 1
-        GROUP BY c.Id, c.Title, c.Description, c.Thumbnail, c.Duration, c.Level, c.Price, c.CreatedAt, c.UpdatedAt
-        ORDER BY c.CreatedAt DESC
+        GROUP BY c.Id, c.Title, c.Description, c.Thumbnail, c.Duration, c.Level, c.Price
+        ORDER BY c.Id DESC
       `, { userId });
 
       res.json(instructorCourses);
@@ -203,27 +203,24 @@ router.post('/courses/:courseId/enroll', authenticateToken, async (req: AuthRequ
 
     // Initialize user progress
     await db.execute(`
-      INSERT INTO dbo.UserProgress (UserId, CourseId, OverallProgress, TimeSpent, LastAccessedAt, CreatedAt, UpdatedAt)
-      VALUES (@userId, @courseId, @progress, @timeSpent, @lastAccessed, @createdAt, @updatedAt)
+      INSERT INTO dbo.UserProgress (UserId, CourseId, OverallProgress, TimeSpent, LastAccessedAt, StartedAt)
+      VALUES (@userId, @courseId, @progress, @timeSpent, @lastAccessed, @startedAt)
     `, {
       userId,
       courseId,
       progress: 0,
       timeSpent: 0,
       lastAccessed: now,
-      createdAt: now,
-      updatedAt: now
+      startedAt: now
     });
 
     // Update course enrollment count
     await db.execute(`
       UPDATE dbo.Courses
-      SET EnrollmentCount = EnrollmentCount + 1,
-          UpdatedAt = @updatedAt
+      SET EnrollmentCount = EnrollmentCount + 1
       WHERE Id = @courseId
     `, {
-      courseId,
-      updatedAt: now
+      courseId
     });
 
     res.status(201).json({

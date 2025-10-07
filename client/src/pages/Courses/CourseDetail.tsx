@@ -65,7 +65,6 @@ const CourseDetail: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [enrolling, setEnrolling] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [enrollmentDialog, setEnrollmentDialog] = useState(false);
   const [enrollmentResult, setEnrollmentResult] = useState<any>(null);
@@ -125,7 +124,6 @@ const CourseDetail: React.FC = () => {
       
       setEnrollmentResult(result);
       setEnrollmentDialog(true);
-      setSuccessMessage(result.message);
       
     } catch (err: any) {
       console.error('Error enrolling in course:', err);

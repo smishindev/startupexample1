@@ -469,11 +469,10 @@ router.get('/achievements', authenticateToken, async (req: AuthRequest, res: Res
         SELECT 
           COUNT(DISTINCT up.CourseId) as coursesStarted,
           COUNT(DISTINCT CASE WHEN up.OverallProgress = 100 THEN up.CourseId END) as coursesCompleted,
-          SUM(up.TimeSpent) as totalTimeSpent,
-          COUNT(DISTINCT lp.LessonId) as lessonsCompleted,
+          COALESCE(SUM(up.TimeSpent), 0) as totalTimeSpent,
+          COUNT(DISTINCT CASE WHEN up.LessonId IS NOT NULL THEN up.LessonId END) as lessonsCompleted,
           MAX(up.LastAccessedAt) as lastActivity
         FROM dbo.UserProgress up
-        LEFT JOIN dbo.LessonProgress lp ON up.UserId = lp.UserId
         WHERE up.UserId = @userId
       `, { userId });
 

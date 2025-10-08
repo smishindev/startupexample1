@@ -523,6 +523,44 @@ export type LiveSessionEvent = SocketEvent<{
   attendeeCount: number;
 }>;
 
+// Bookmark Types
+export interface Bookmark {
+  id: string;
+  userId: string;
+  courseId: string;
+  notes?: string;
+  bookmarkedAt: Date;
+}
+
+export interface BookmarkWithCourse {
+  id: string;
+  userId: string;
+  courseId: string;
+  notes?: string;
+  bookmarkedAt: Date;
+  course: Course;
+}
+
+export interface BookmarkResponse {
+  bookmarks: BookmarkWithCourse[];
+  pagination: {
+    current: number;
+    pages: number;
+    total: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+  };
+}
+
+export interface BookmarkStatus {
+  isBookmarked: boolean;
+  bookmark?: {
+    id: string;
+    notes?: string;
+    bookmarkedAt: Date;
+  };
+}
+
 // Constants
 export const DEFAULT_PAGINATION_LIMIT = 20;
 export const MAX_PAGINATION_LIMIT = 100;

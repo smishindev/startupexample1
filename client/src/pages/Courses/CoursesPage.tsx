@@ -28,6 +28,8 @@ import { Header } from '../../components/Navigation/Header';
 import { CourseCard, Course } from '../../components/Course/CourseCard';
 import { enrollmentApi } from '../../services/enrollmentApi';
 import { coursesApi, Course as ApiCourse, CourseFilters } from '../../services/coursesApi';
+import { BookmarkApi } from '../../services/bookmarkApi';
+import { useAuthStore } from '../../stores/authStore';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -42,7 +44,7 @@ const TabPanel: React.FC<TabPanelProps> = ({ children, value, index }) => (
 );
 
 // Helper function to convert API course to UI course format
-const convertApiCourseToUiCourse = (apiCourse: ApiCourse): Course => ({
+const convertApiCourseToUiCourse = (apiCourse: ApiCourse, isBookmarked: boolean = false): Course => ({
   id: apiCourse.Id,
   title: apiCourse.Title,
   description: apiCourse.Description,
@@ -59,7 +61,7 @@ const convertApiCourseToUiCourse = (apiCourse: ApiCourse): Course => ({
   price: apiCourse.Price,
   category: formatCategory(apiCourse.Category),
   tags: apiCourse.Tags || [],
-  isBookmarked: false, // TODO: Implement bookmarks
+  isBookmarked: isBookmarked,
   isPopular: apiCourse.EnrollmentCount > 100,
   isNew: isNewCourse(apiCourse.CreatedAt),
 });
@@ -96,6 +98,7 @@ const isNewCourse = (createdAt: string): boolean => {
 
 export const CoursesPage: React.FC = () => {
   const navigate = useNavigate();
+  const { isAuthenticated, token, user } = useAuthStore();
   const [tabValue, setTabValue] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
@@ -103,12 +106,17 @@ export const CoursesPage: React.FC = () => {
   const [sortBy, setSortBy] = useState('popular');
   const [currentPage, setCurrentPage] = useState(1);
   
+  // Debug authentication state
+  console.log('CoursesPage auth state:', { isAuthenticated, hasToken: !!token, hasUser: !!user });
+  
   // State for API data
   const [allCourses, setAllCourses] = useState<Course[]>([]);
   const [enrolledCourses, setEnrolledCourses] = useState<Course[]>([]);
+  const [bookmarkedCourses, setBookmarkedCourses] = useState<Course[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [categoryStats, setCategoryStats] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [bookmarksLoading, setBookmarksLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pagination, setPagination] = useState({
     current: 1,
@@ -122,9 +130,21 @@ export const CoursesPage: React.FC = () => {
 
   // Load initial data
   useEffect(() => {
-    loadCourses();
-    loadCategories();
-  }, [currentPage, searchQuery, selectedCategory, selectedLevel, sortBy]);
+    // Add a small delay to ensure auth store has hydrated from localStorage
+    const timer = setTimeout(() => {
+      loadCourses();
+      loadCategories();
+    }, 100);
+    
+    return () => clearTimeout(timer);
+  }, [currentPage, searchQuery, selectedCategory, selectedLevel, sortBy, isAuthenticated]);
+
+  // Load bookmarked courses when tab is active and user is authenticated
+  useEffect(() => {
+    if (tabValue === 2 && isAuthenticated) {
+      loadBookmarkedCourses();
+    }
+  }, [tabValue, isAuthenticated]);
 
   const loadCourses = async () => {
     try {
@@ -142,13 +162,36 @@ export const CoursesPage: React.FC = () => {
 
       const response = await coursesApi.getCourses(filters);
       
-      // Convert API courses to UI format
-      const uiCourses = response.courses.map(convertApiCourseToUiCourse);
+      // Convert API courses to UI format without bookmark status first
+      const uiCourses = response.courses.map(course => convertApiCourseToUiCourse(course));
       
-      // Apply sorting (since API doesn't support all sort options yet)
-      const sortedCourses = sortCourses(uiCourses, sortBy);
-      
-      setAllCourses(sortedCourses);
+      // Get bookmark statuses for all courses (only if user is logged in)
+      if (isAuthenticated) {
+        try {
+          const courseIds = uiCourses.map(course => course.id);
+          const bookmarkStatuses = await BookmarkApi.getBookmarkStatuses(courseIds);
+          
+          // Update courses with bookmark status
+          const coursesWithBookmarks = uiCourses.map(course => ({
+            ...course,
+            isBookmarked: bookmarkStatuses[course.id] || false
+          }));
+          
+          // Apply sorting (since API doesn't support all sort options yet)
+          const sortedCourses = sortCourses(coursesWithBookmarks, sortBy);
+          setAllCourses(sortedCourses);
+        } catch (bookmarkError) {
+          console.warn('Failed to load bookmark statuses:', bookmarkError);
+          // Apply sorting without bookmark data
+          const sortedCourses = sortCourses(uiCourses, sortBy);
+          setAllCourses(sortedCourses);
+        }
+      } else {
+        // User not logged in, skip bookmark status
+        const sortedCourses = sortCourses(uiCourses, sortBy);
+        setAllCourses(sortedCourses);
+      }
+
       setPagination(response.pagination);
 
     } catch (err) {
@@ -193,6 +236,54 @@ export const CoursesPage: React.FC = () => {
     setTabValue(newValue);
     if (newValue === 1) {
       loadEnrolledCourses();
+    } else if (newValue === 2) {
+      loadBookmarkedCourses();
+    }
+  };
+
+  const loadBookmarkedCourses = async () => {
+    try {
+      console.log('loadBookmarkedCourses called, isAuthenticated:', isAuthenticated);
+      if (!isAuthenticated) {
+        console.log('User not authenticated, clearing bookmarks');
+        setBookmarkedCourses([]);
+        return;
+      }
+
+      console.log('Loading bookmarks for authenticated user...');
+      setBookmarksLoading(true);
+      const response = await BookmarkApi.getBookmarks(1, 50); // Load all bookmarks
+      console.log('Bookmarks loaded:', response);
+      
+      // Convert bookmark data to course format
+      const bookmarkedCoursesData: Course[] = response.bookmarks.map(bookmark => ({
+        id: bookmark.id,
+        title: bookmark.title,
+        description: bookmark.description,
+        instructor: {
+          name: bookmark.instructor.name,
+          avatar: bookmark.instructor.avatar,
+        },
+        thumbnail: bookmark.thumbnail,
+        duration: formatDuration(bookmark.duration),
+        level: bookmark.level.charAt(0).toUpperCase() + bookmark.level.slice(1).toLowerCase() as 'Beginner' | 'Intermediate' | 'Advanced',
+        rating: bookmark.rating,
+        reviewCount: Math.floor(bookmark.enrollmentCount * 0.3),
+        enrolledStudents: bookmark.enrollmentCount,
+        price: bookmark.price,
+        category: formatCategory(bookmark.category),
+        tags: bookmark.tags,
+        isBookmarked: true,
+        isPopular: bookmark.enrollmentCount > 100,
+        isNew: isNewCourse(bookmark.bookmarkedAt),
+      }));
+      
+      setBookmarkedCourses(bookmarkedCoursesData);
+    } catch (err) {
+      console.error('Error loading bookmarked courses:', err);
+      setBookmarkedCourses([]);
+    } finally {
+      setBookmarksLoading(false);
     }
   };
 
@@ -252,9 +343,42 @@ export const CoursesPage: React.FC = () => {
     }
   };
 
-  const handleBookmark = (courseId: string, isBookmarked: boolean) => {
-    console.log('Bookmark course:', courseId, isBookmarked);
-    // TODO: Implement bookmark API
+  const handleBookmark = async (courseId: string, isBookmarked: boolean) => {
+    try {
+      if (!isAuthenticated) {
+        setError('Please log in to bookmark courses.');
+        return;
+      }
+
+      if (isBookmarked) {
+        await BookmarkApi.addBookmark(courseId);
+      } else {
+        await BookmarkApi.removeBookmark(courseId);
+      }
+      
+      // Update the course in all relevant states
+      setAllCourses(prev => prev.map(course => 
+        course.id === courseId 
+          ? { ...course, isBookmarked: isBookmarked }
+          : course
+      ));
+      
+      setEnrolledCourses(prev => prev.map(course => 
+        course.id === courseId 
+          ? { ...course, isBookmarked: isBookmarked }
+          : course
+      ));
+      
+      // If we're on the bookmarked tab and course was unbookmarked, refresh the list
+      if (tabValue === 2 && !isBookmarked) {
+        loadBookmarkedCourses();
+      }
+      
+      console.log(`Successfully ${isBookmarked ? 'added' : 'removed'} bookmark for course:`, courseId);
+    } catch (error) {
+      console.error('Failed to update bookmark:', error);
+      setError(`Failed to ${isBookmarked ? 'add' : 'remove'} bookmark. Please try again.`);
+    }
   };
 
   const handleShare = (courseId: string) => {
@@ -606,13 +730,32 @@ export const CoursesPage: React.FC = () => {
         {/* Bookmarked Tab */}
         <TabPanel value={tabValue} index={2}>
           <Typography variant="h6" sx={{ mb: 3 }}>
-            Bookmarked Courses
+            Bookmarked Courses ({bookmarkedCourses.length})
           </Typography>
           
-          <Grid container spacing={3}>
-            {allCourses
-              .filter(course => course.isBookmarked)
-              .map((course) => (
+          {!isAuthenticated ? (
+            <Box sx={{ textAlign: 'center', py: 8 }}>
+              <Typography variant="h6" color="text.secondary" sx={{ mb: 2 }}>
+                Please log in to view bookmarked courses
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                Sign in to bookmark courses and access them from here.
+              </Typography>
+              <Button 
+                variant="contained" 
+                onClick={() => navigate('/login')}
+                sx={{ minWidth: 120 }}
+              >
+                Sign In
+              </Button>
+            </Box>
+          ) : bookmarksLoading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+              <CircularProgress size={60} />
+            </Box>
+          ) : (
+            <Grid container spacing={3}>
+              {bookmarkedCourses.map((course) => (
                 <Grid item xs={12} sm={6} md={4} key={course.id}>
                   <CourseCard
                     course={course}
@@ -623,7 +766,21 @@ export const CoursesPage: React.FC = () => {
                   />
                 </Grid>
               ))}
-          </Grid>
+              
+              {bookmarkedCourses.length === 0 && (
+                <Grid item xs={12}>
+                  <Box sx={{ textAlign: 'center', py: 8 }}>
+                    <Typography variant="h6" color="text.secondary" sx={{ mb: 2 }}>
+                      No bookmarked courses yet
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Start bookmarking courses you're interested in to see them here.
+                    </Typography>
+                  </Box>
+                </Grid>
+              )}
+            </Grid>
+          )}
         </TabPanel>
       </Container>
     </Box>

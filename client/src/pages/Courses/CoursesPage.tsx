@@ -30,6 +30,7 @@ import { enrollmentApi } from '../../services/enrollmentApi';
 import { coursesApi, Course as ApiCourse, CourseFilters } from '../../services/coursesApi';
 import { BookmarkApi } from '../../services/bookmarkApi';
 import { useAuthStore } from '../../stores/authStore';
+import { ShareDialog } from '../../components/Course/ShareDialog';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -118,6 +119,13 @@ export const CoursesPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [bookmarksLoading, setBookmarksLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [shareDialog, setShareDialog] = useState<{
+    open: boolean;
+    course: Course | null;
+  }>({
+    open: false,
+    course: null,
+  });
   const [pagination, setPagination] = useState({
     current: 1,
     pages: 1,
@@ -382,8 +390,26 @@ export const CoursesPage: React.FC = () => {
   };
 
   const handleShare = (courseId: string) => {
-    console.log('Sharing course:', courseId);
-    // TODO: Implement sharing functionality
+    // Find the course from all courses state
+    const course = allCourses.find(c => c.id === courseId) || 
+                   enrolledCourses.find(c => c.id === courseId) ||
+                   bookmarkedCourses.find(c => c.id === courseId);
+    
+    if (course) {
+      setShareDialog({
+        open: true,
+        course: course,
+      });
+    } else {
+      console.error('Course not found for sharing:', courseId);
+    }
+  };
+
+  const handleCloseShareDialog = () => {
+    setShareDialog({
+      open: false,
+      course: null,
+    });
   };
 
   const handleCourseClick = (courseId: string) => {
@@ -783,6 +809,15 @@ export const CoursesPage: React.FC = () => {
           )}
         </TabPanel>
       </Container>
+
+      {/* Share Dialog */}
+      {shareDialog.course && (
+        <ShareDialog
+          open={shareDialog.open}
+          onClose={handleCloseShareDialog}
+          course={shareDialog.course}
+        />
+      )}
     </Box>
   );
 };

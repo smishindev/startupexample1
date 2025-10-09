@@ -44,6 +44,7 @@ import {
   TutoringMessage, 
   CreateSessionRequest 
 } from '../../services/tutoringApi';
+import { Header } from '../../components/Navigation/Header';
 
 const Tutoring: React.FC = () => {
   const [sessions, setSessions] = useState<TutoringSession[]>([]);
@@ -58,6 +59,7 @@ const Tutoring: React.FC = () => {
     subject: 'General'
   });
   const [recommendations, setRecommendations] = useState<string[]>([]);
+  const [currentSuggestions, setCurrentSuggestions] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -128,6 +130,11 @@ const Tutoring: React.FC = () => {
       setMessages(prev => [...prev, response.userMessage, response.aiMessage]);
       setNewMessage('');
       
+      // Update current suggestions from AI response
+      if (response.aiMessage.suggestions) {
+        setCurrentSuggestions(response.aiMessage.suggestions);
+      }
+      
       // Update session in list
       setSessions(prev => 
         prev.map(s => 
@@ -155,6 +162,10 @@ const Tutoring: React.FC = () => {
       console.error('Failed to create session:', error);
       setError('Failed to create session');
     }
+  };
+
+  const handleSuggestionClick = (suggestion: string) => {
+    setNewMessage(suggestion);
   };
 
   const handleKeyPress = (event: React.KeyboardEvent) => {
@@ -204,11 +215,14 @@ const Tutoring: React.FC = () => {
   }
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Typography variant="h4" component="h1" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-        <AIIcon color="primary" />
-        AI Tutoring
-      </Typography>
+    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+      <Header />
+      
+      <Container maxWidth="lg" sx={{ py: 4, flex: 1 }}>
+        <Typography variant="h4" component="h1" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <AIIcon color="primary" />
+          AI Tutoring
+        </Typography>
 
       {error && (
         <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
@@ -348,6 +362,27 @@ const Tutoring: React.FC = () => {
 
               {/* Message Input */}
               <Box sx={{ p: 2, borderTop: 1, borderColor: 'divider' }}>
+                {/* Quick Suggestions */}
+                {currentSuggestions.length > 0 && (
+                  <Box sx={{ mb: 2 }}>
+                    <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+                      Quick suggestions:
+                    </Typography>
+                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                      {currentSuggestions.map((suggestion, index) => (
+                        <Chip
+                          key={index}
+                          label={suggestion}
+                          variant="outlined"
+                          size="small"
+                          onClick={() => handleSuggestionClick(suggestion)}
+                          sx={{ cursor: 'pointer' }}
+                        />
+                      ))}
+                    </Box>
+                  </Box>
+                )}
+                
                 <Box sx={{ display: 'flex', gap: 1 }}>
                   <TextField
                     fullWidth
@@ -424,6 +459,7 @@ const Tutoring: React.FC = () => {
         </DialogActions>
       </Dialog>
     </Container>
+    </Box>
   );
 };
 

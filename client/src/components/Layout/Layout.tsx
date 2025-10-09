@@ -62,12 +62,12 @@ const Layout: React.FC = () => {
   }
 
   const menuItems = [
-    { text: 'Dashboard', icon: <DashboardIcon />, path: '/app/dashboard' },
-    { text: 'Courses', icon: <SchoolIcon />, path: '/app/courses' },
-    { text: 'AI Tutoring', icon: <PsychologyIcon />, path: '/app/tutoring' },
-    { text: 'Analytics', icon: <AnalyticsIcon />, path: '/app/analytics' },
-    { text: 'Chat', icon: <ChatIcon />, path: '/app/chat' },
-    { text: 'Profile', icon: <PersonIcon />, path: '/app/profile' },
+    { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
+    { text: 'Courses', icon: <SchoolIcon />, path: '/courses' },
+    { text: 'AI Tutoring', icon: <PsychologyIcon />, path: '/tutoring' },
+    { text: 'Analytics', icon: <AnalyticsIcon />, path: '/analytics' },
+    { text: 'Chat', icon: <ChatIcon />, path: '/chat' },
+    { text: 'Profile', icon: <PersonIcon />, path: '/profile' },
   ]
 
   const drawer = (
@@ -165,7 +165,7 @@ const Layout: React.FC = () => {
             transformOrigin={{ horizontal: 'right', vertical: 'top' }}
             anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
           >
-            <MenuItem onClick={() => { navigate('/app/profile'); handleProfileMenuClose() }}>
+            <MenuItem onClick={() => { navigate('/profile'); handleProfileMenuClose() }}>
               <ListItemIcon>
                 <SettingsIcon fontSize="small" />
               </ListItemIcon>

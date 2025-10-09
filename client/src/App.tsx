@@ -23,6 +23,7 @@ import LandingPage from './pages/Landing/LandingPage';
 import MyLearningPage from './pages/Learning/MyLearningPage';
 import ProgressDashboard from './pages/Progress/ProgressDashboard';
 import Chat from './pages/Chat/Chat';
+import Tutoring from './pages/Tutoring/Tutoring';
 
 // Demo Components
 import { ContentUploadDemo } from './components/Demo/ContentUploadDemo';
@@ -96,6 +97,15 @@ function App() {
           element={
             <ProtectedRoute>
               <Chat />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/tutoring"
+          element={
+            <ProtectedRoute>
+              <Tutoring />
             </ProtectedRoute>
           }
         />

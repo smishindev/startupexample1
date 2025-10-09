@@ -2,6 +2,23 @@ import axios from 'axios';
 
 const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:3001';
 
+// Get auth token from auth store instead of localStorage directly
+const getAuthToken = () => {
+  try {
+    // First try to get from localStorage in the format the auth store uses
+    const authStorage = localStorage.getItem('auth-storage');
+    if (authStorage) {
+      const parsed = JSON.parse(authStorage);
+      return parsed.state?.token || null;
+    }
+    // Fallback to direct localStorage check
+    return localStorage.getItem('token');
+  } catch (error) {
+    console.error('Error getting auth token:', error);
+    return localStorage.getItem('token');
+  }
+};
+
 // Create axios instance with base configuration
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -9,7 +26,7 @@ const api = axios.create({
 
 // Add auth token to requests
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('authToken');
+  const token = getAuthToken();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -44,7 +61,10 @@ export interface SendMessageRequest {
 
 export interface SendMessageResponse {
   userMessage: TutoringMessage;
-  aiMessage: TutoringMessage;
+  aiMessage: TutoringMessage & {
+    suggestions?: string[];
+    followUpQuestions?: string[];
+  };
 }
 
 export interface LearningRecommendations {

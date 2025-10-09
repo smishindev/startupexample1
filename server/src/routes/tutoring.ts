@@ -3,84 +3,10 @@ import { Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { authenticateToken, AuthRequest } from '../middleware/auth';
 import { DatabaseService } from '../services/DatabaseService';
+import { AITutoringService, TutoringContext } from '../services/AITutoringService';
 
 const router = Router();
 const db = DatabaseService.getInstance();
-
-// Mock OpenAI service (replace with actual OpenAI integration)
-class AITutoringService {
-  async generateResponse(message: string, context?: any): Promise<string> {
-    // Simulate AI response generation
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Simple rule-based responses for demo
-    const lowerMessage = message.toLowerCase();
-    
-    if (lowerMessage.includes('hello') || lowerMessage.includes('hi')) {
-      return "Hello! I'm your AI tutor. I'm here to help you learn and answer any questions you have. What would you like to study today?";
-    }
-    
-    if (lowerMessage.includes('javascript') || lowerMessage.includes('js')) {
-      return "JavaScript is a versatile programming language! Here are some key concepts:\n\n" +
-             "• Variables (let, const, var)\n" +
-             "• Functions and arrow functions\n" +
-             "• Objects and arrays\n" +
-             "• Promises and async/await\n" +
-             "• DOM manipulation\n\n" +
-             "What specific aspect of JavaScript would you like to explore?";
-    }
-    
-    if (lowerMessage.includes('react')) {
-      return "React is a popular JavaScript library for building user interfaces! Key concepts include:\n\n" +
-             "• Components (functional and class)\n" +
-             "• JSX syntax\n" +
-             "• Props and state\n" +
-             "• Hooks (useState, useEffect, etc.)\n" +
-             "• Event handling\n\n" +
-             "Would you like me to explain any of these concepts in detail?";
-    }
-    
-    if (lowerMessage.includes('help') || lowerMessage.includes('explain')) {
-      return "I'd be happy to help! I can assist you with:\n\n" +
-             "• Programming concepts (JavaScript, React, Python, etc.)\n" +
-             "• Debugging code issues\n" +
-             "• Best practices and coding patterns\n" +
-             "• Learning path recommendations\n" +
-             "• Practice exercises\n\n" +
-             "Just ask me about any topic you'd like to learn!";
-    }
-    
-    if (lowerMessage.includes('example') || lowerMessage.includes('code')) {
-      return "Here's a simple JavaScript example:\n\n" +
-             "```javascript\n" +
-             "// Function to greet a user\n" +
-             "function greetUser(name) {\n" +
-             "  return `Hello, ${name}! Welcome to coding!`;\n" +
-             "}\n\n" +
-             "// Usage\n" +
-             "console.log(greetUser('Alice'));\n" +
-             "```\n\n" +
-             "This demonstrates function declaration, template literals, and function calls. Would you like me to explain any part of this code?";
-    }
-    
-    // Default response
-    return "That's an interesting question! As your AI tutor, I'm here to help you learn. " +
-           "Could you provide more context about what you'd like to understand? " +
-           "I can help with programming concepts, explanations, examples, and learning guidance.";
-  }
-
-  async generateLearningRecommendations(userId: string): Promise<string[]> {
-    // Simulate personalized recommendations
-    return [
-      "Based on your progress, try building a React todo app",
-      "Practice JavaScript array methods (map, filter, reduce)",
-      "Learn about async/await for handling promises",
-      "Explore CSS Flexbox for better layouts",
-      "Try implementing a simple REST API with Node.js"
-    ];
-  }
-}
-
 const aiService = new AITutoringService();
 
 // Get tutoring session history
@@ -91,16 +17,17 @@ router.get('/sessions', authenticateToken, async (req: AuthRequest, res: Respons
     const sessions = await db.query(`
       SELECT 
         ts.Id,
-        ts.Title,
-        ts.CreatedAt,
-        ts.UpdatedAt,
-        ts.Status,
+        COALESCE(c.Title, 'General Tutoring Session') as Title,
+        ts.StartedAt as CreatedAt,
+        COALESCE(ts.EndedAt, ts.StartedAt) as UpdatedAt,
+        CASE WHEN ts.EndedAt IS NULL THEN 'active' ELSE 'completed' END as Status,
         COUNT(tm.Id) as MessageCount
       FROM dbo.TutoringSessions ts
       LEFT JOIN dbo.TutoringMessages tm ON ts.Id = tm.SessionId
+      LEFT JOIN dbo.Courses c ON ts.CourseId = c.Id
       WHERE ts.UserId = @userId
-      GROUP BY ts.Id, ts.Title, ts.CreatedAt, ts.UpdatedAt, ts.Status
-      ORDER BY ts.UpdatedAt DESC
+      GROUP BY ts.Id, c.Title, ts.StartedAt, ts.EndedAt
+      ORDER BY ts.StartedAt DESC
     `, { userId });
 
     res.json(sessions);
@@ -113,25 +40,39 @@ router.get('/sessions', authenticateToken, async (req: AuthRequest, res: Respons
 // Create new tutoring session
 router.post('/sessions', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
-    const { title, subject } = req.body;
+    const { title, subject, courseId, lessonId } = req.body;
     const userId = req.user?.userId;
     const sessionId = uuidv4();
     const now = new Date().toISOString();
 
+    // Build initial context
+    const context = {
+      subject: subject || 'General Learning',
+      courseId,
+      lessonId,
+      userQuery: title,
+      startedAt: now
+    };
+
     await db.execute(`
-      INSERT INTO dbo.TutoringSessions (Id, UserId, Title, Subject, Status, CreatedAt, UpdatedAt)
-      VALUES (@id, @userId, @title, @subject, @status, @createdAt, @updatedAt)
+      INSERT INTO dbo.TutoringSessions (Id, UserId, CourseId, LessonId, StartedAt, Context)
+      VALUES (@id, @userId, @courseId, @lessonId, @startedAt, @context)
     `, {
       id: sessionId,
       userId,
-      title: title || 'New Tutoring Session',
-      subject: subject || 'General',
-      status: 'active',
-      createdAt: now,
-      updatedAt: now
+      courseId: courseId || null,
+      lessonId: lessonId || null,
+      startedAt: now,
+      context: JSON.stringify(context)
     });
 
-    res.status(201).json({ sessionId, title, subject, status: 'active' });
+    res.status(201).json({ 
+      Id: sessionId, 
+      Title: title || 'New Tutoring Session',
+      Status: 'active',
+      CreatedAt: now,
+      UpdatedAt: now
+    });
   } catch (error) {
     console.error('Error creating tutoring session:', error);
     res.status(500).json({ error: 'Failed to create tutoring session' });
@@ -159,11 +100,11 @@ router.get('/sessions/:sessionId/messages', authenticateToken, async (req: AuthR
         Id,
         Content,
         Role,
-        CreatedAt,
-        MessageType
+        Timestamp as CreatedAt,
+        'text' as MessageType
       FROM dbo.TutoringMessages
       WHERE SessionId = @sessionId
-      ORDER BY CreatedAt ASC
+      ORDER BY Timestamp ASC
     `, { sessionId });
 
     res.json(messages);
@@ -180,71 +121,87 @@ router.post('/sessions/:sessionId/messages', authenticateToken, async (req: Auth
     const { content } = req.body;
     const userId = req.user?.userId;
 
-    // Verify user owns the session
-    const session = await db.query(`
-      SELECT Id FROM dbo.TutoringSessions 
+    // Verify user owns the session and get session context
+    const sessionData = await db.query(`
+      SELECT Id, CourseId, LessonId, Context FROM dbo.TutoringSessions 
       WHERE Id = @sessionId AND UserId = @userId
     `, { sessionId, userId });
 
-    if (session.length === 0) {
+    if (sessionData.length === 0) {
       return res.status(403).json({ error: 'Access denied to this session' });
     }
 
+    const session = sessionData[0];
     const now = new Date().toISOString();
     
     // Store user message
     const userMessageId = uuidv4();
     await db.execute(`
-      INSERT INTO dbo.TutoringMessages (Id, SessionId, Content, Role, MessageType, CreatedAt)
-      VALUES (@id, @sessionId, @content, @role, @messageType, @createdAt)
+      INSERT INTO dbo.TutoringMessages (Id, SessionId, Content, Role, Timestamp)
+      VALUES (@id, @sessionId, @content, @role, @timestamp)
     `, {
       id: userMessageId,
       sessionId,
       content,
       role: 'user',
-      messageType: 'text',
-      createdAt: now
+      timestamp: now
     });
 
+    // Get previous messages for context
+    const previousMessages = await db.query(`
+      SELECT Role, Content FROM dbo.TutoringMessages
+      WHERE SessionId = @sessionId AND Id != @userMessageId
+      ORDER BY Timestamp ASC
+    `, { sessionId, userMessageId });
+
+    // Build tutoring context
+    const tutoringContext: TutoringContext = {
+      userId: userId!,
+      courseId: session.CourseId,
+      lessonId: session.LessonId,
+      previousMessages: previousMessages.map(msg => ({
+        role: msg.Role as 'user' | 'assistant',
+        content: msg.Content
+      }))
+    };
+
     // Generate AI response
-    const aiResponse = await aiService.generateResponse(content);
+    const aiResponse = await aiService.generateResponse(content, tutoringContext);
     
     // Store AI response
     const aiMessageId = uuidv4();
+    const aiTimestamp = new Date().toISOString();
     await db.execute(`
-      INSERT INTO dbo.TutoringMessages (Id, SessionId, Content, Role, MessageType, CreatedAt)
-      VALUES (@id, @sessionId, @content, @role, @messageType, @createdAt)
+      INSERT INTO dbo.TutoringMessages (Id, SessionId, Content, Role, Timestamp, Metadata)
+      VALUES (@id, @sessionId, @content, @role, @timestamp, @metadata)
     `, {
       id: aiMessageId,
       sessionId,
-      content: aiResponse,
-      role: 'assistant',
-      messageType: 'text',
-      createdAt: new Date().toISOString()
-    });
-
-    // Update session timestamp
-    await db.execute(`
-      UPDATE dbo.TutoringSessions 
-      SET UpdatedAt = @updatedAt 
-      WHERE Id = @sessionId
-    `, {
-      sessionId,
-      updatedAt: new Date().toISOString()
+      content: aiResponse.content,
+      role: 'ai',
+      timestamp: aiTimestamp,
+      metadata: JSON.stringify({
+        suggestions: aiResponse.suggestions,
+        followUpQuestions: aiResponse.followUpQuestions
+      })
     });
 
     res.json({
       userMessage: {
-        id: userMessageId,
-        content,
-        role: 'user',
-        createdAt: now
+        Id: userMessageId,
+        Content: content,
+        Role: 'user',
+        CreatedAt: now,
+        MessageType: 'text'
       },
       aiMessage: {
-        id: aiMessageId,
-        content: aiResponse,
-        role: 'assistant',
-        createdAt: new Date().toISOString()
+        Id: aiMessageId,
+        Content: aiResponse.content,
+        Role: 'assistant',
+        CreatedAt: aiTimestamp,
+        MessageType: 'text',
+        suggestions: aiResponse.suggestions,
+        followUpQuestions: aiResponse.followUpQuestions
       }
     });
 

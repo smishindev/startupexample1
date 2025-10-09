@@ -34,6 +34,7 @@ import {
   PlayCircleOutline as LearningIcon,
   Timeline as ProgressIcon,
   Chat as ChatIcon,
+  Psychology as PsychologyIcon,
 } from '@mui/icons-material';
 import { styled, alpha } from '@mui/material/styles';
 import { Link, useNavigate } from 'react-router-dom';
@@ -118,6 +119,7 @@ export const Header: React.FC<HeaderProps> = () => {
     { text: 'Courses', icon: <BookIcon />, path: '/courses' },
     { text: user?.role === 'instructor' ? 'My Teaching' : 'My Learning', icon: <LearningIcon />, path: '/my-learning' },
     { text: 'Progress', icon: <ProgressIcon />, path: '/progress' },
+    { text: 'AI Tutoring', icon: <PsychologyIcon />, path: '/tutoring' },
     { text: 'Chat', icon: <ChatIcon />, path: '/chat' },
     ...(user?.role === 'instructor' ? [
       { text: 'Instructor', icon: <SchoolIcon />, path: '/instructor/dashboard' },

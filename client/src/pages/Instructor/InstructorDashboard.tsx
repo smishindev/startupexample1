@@ -417,24 +417,50 @@ export const InstructorDashboard: React.FC = () => {
                 
                 <Divider sx={{ mb: 2 }} />
                 
-                <Box sx={{ display: 'flex', gap: 1 }}>
-                  <Button
-                    size="small"
-                    startIcon={<EditIcon />}
-                    onClick={() => navigate(`/instructor/courses/${course.id}/edit`)}
-                    fullWidth
-                  >
-                    Edit
-                  </Button>
-                  <Button
-                    size="small"
-                    startIcon={<VisibilityIcon />}
-                    onClick={() => navigate(`/courses/${course.id}`)}
-                    variant="outlined"
-                    fullWidth
-                  >
-                    Preview
-                  </Button>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  <Box sx={{ display: 'flex', gap: 1 }}>
+                    <Button
+                      size="small"
+                      startIcon={<EditIcon />}
+                      onClick={() => navigate(`/instructor/courses/${course.id}/edit`)}
+                      fullWidth
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      size="small"
+                      startIcon={<VisibilityIcon />}
+                      onClick={() => navigate(`/courses/${course.id}`)}
+                      variant="outlined"
+                      fullWidth
+                    >
+                      Preview
+                    </Button>
+                  </Box>
+                  <Box sx={{ display: 'flex', gap: 1 }}>
+                    <Button
+                      size="small"
+                      startIcon={<SchoolIcon />}
+                      onClick={() => navigate(`/instructor/courses/${course.id}/lessons`)}
+                      variant="outlined"
+                      fullWidth
+                    >
+                      Lessons
+                    </Button>
+                    <Button
+                      size="small"
+                      startIcon={<AssignmentIcon />}
+                      onClick={() => {
+                        // For now, navigate to first lesson's assessments
+                        // In a real app, you'd show a lesson selector or course-level assessments
+                        navigate(`/instructor/lessons/29D00B5C-30B2-4C79-B1D0-172F70BE9DA7/assessments`);
+                      }}
+                      variant="outlined"
+                      fullWidth
+                    >
+                      Assessments
+                    </Button>
+                  </Box>
                 </Box>
               </CardContent>
             </Card>

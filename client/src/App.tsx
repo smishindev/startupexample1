@@ -17,6 +17,11 @@ import { InstructorDashboard } from './pages/Instructor/InstructorDashboard';
 import { CourseCreationForm } from './pages/Instructor/CourseCreationForm';
 import { CourseEditPage } from './pages/Instructor/CourseEditPage';
 import { LessonManagementPage } from './pages/Instructor/LessonManagementPage';
+import { AssessmentManagementPage } from './pages/Instructor/AssessmentManagementPage';
+import { AssessmentCreationPage } from './pages/Instructor/AssessmentCreationPage';
+import { AssessmentEditPage } from './pages/Instructor/AssessmentEditPage';
+import { AssessmentViewPage } from './pages/Instructor/AssessmentViewPage';
+import { AssessmentTakingPage } from './pages/Assessment/AssessmentTakingPage';
 import StudentManagement from './pages/Instructor/StudentManagement';
 import CourseAnalyticsDashboard from './pages/Instructor/CourseAnalyticsDashboard';
 import LandingPage from './pages/Landing/LandingPage';
@@ -128,6 +133,15 @@ function App() {
           }
         />
 
+        <Route
+          path="/assessments/:assessmentId"
+          element={
+            <ProtectedRoute>
+              <AssessmentTakingPage />
+            </ProtectedRoute>
+          }
+        />
+
         {/* Instructor Routes */}
         <Route
           path="/instructor"
@@ -166,6 +180,42 @@ function App() {
           element={
             <ProtectedRoute requireRole="instructor">
               <LessonManagementPage />
+            </ProtectedRoute>
+          }
+        />
+        
+        <Route
+          path="/instructor/lessons/:lessonId/assessments"
+          element={
+            <ProtectedRoute requireRole="instructor">
+              <AssessmentManagementPage />
+            </ProtectedRoute>
+          }
+        />
+        
+        <Route
+          path="/instructor/lessons/:lessonId/assessments/create"
+          element={
+            <ProtectedRoute requireRole="instructor">
+              <AssessmentCreationPage />
+            </ProtectedRoute>
+          }
+        />
+        
+        <Route
+          path="/instructor/assessments/:assessmentId/edit"
+          element={
+            <ProtectedRoute requireRole="instructor">
+              <AssessmentEditPage />
+            </ProtectedRoute>
+          }
+        />
+        
+        <Route
+          path="/instructor/assessments/:assessmentId/view"
+          element={
+            <ProtectedRoute requireRole="instructor">
+              <AssessmentViewPage />
             </ProtectedRoute>
           }
         />

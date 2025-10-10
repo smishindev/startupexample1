@@ -99,16 +99,13 @@ const isNewCourse = (createdAt: string): boolean => {
 
 export const CoursesPage: React.FC = () => {
   const navigate = useNavigate();
-  const { isAuthenticated, token, user } = useAuthStore();
+  const { isAuthenticated } = useAuthStore();
   const [tabValue, setTabValue] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedLevel, setSelectedLevel] = useState('');
   const [sortBy, setSortBy] = useState('popular');
   const [currentPage, setCurrentPage] = useState(1);
-  
-  // Debug authentication state
-  console.log('CoursesPage auth state:', { isAuthenticated, hasToken: !!token, hasUser: !!user });
   
   // State for API data
   const [allCourses, setAllCourses] = useState<Course[]>([]);

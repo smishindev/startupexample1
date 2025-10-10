@@ -260,14 +260,14 @@ const Tutoring: React.FC = () => {
                     <ListItemText
                       primary={session.Title}
                       secondary={
-                        <Box>
-                          <Typography variant="caption" display="block">
+                        <React.Fragment>
+                          <Typography variant="caption" display="block" component="span">
                             {session.MessageCount} messages
                           </Typography>
-                          <Typography variant="caption" color="text.secondary">
+                          <Typography variant="caption" color="text.secondary" component="span">
                             {formatDistanceToNow(new Date(session.UpdatedAt), { addSuffix: true })}
                           </Typography>
-                        </Box>
+                        </React.Fragment>
                       }
                     />
                   </ListItemButton>

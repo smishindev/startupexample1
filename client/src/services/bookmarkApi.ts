@@ -31,12 +31,8 @@ const apiClient = axios.create({
 // Add token to requests
 apiClient.interceptors.request.use((config) => {
   const token = getAuthToken();
-  console.log('BookmarkApi: Getting token for request:', { hasToken: !!token, tokenLength: token?.length });
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
-    console.log('BookmarkApi: Added Authorization header');
-  } else {
-    console.log('BookmarkApi: No token available');
   }
   return config;
 });

@@ -76,9 +76,9 @@ const Chat: React.FC = () => {
   // Load messages for selected room
   const loadMessages = async (roomId: string) => {
     try {
-      console.log(`📥 Loading messages for room: ${roomId}`);
+      // Loading messages for room
       const messagesData = await chatApi.getMessages(roomId);
-      console.log(`📋 Loaded ${messagesData.length} messages:`, messagesData.map(m => ({ id: m.Id, content: m.Content, createdAt: m.CreatedAt })));
+      // Loaded messages successfully
       
       // Check for duplicates in loaded data
       const duplicates = messagesData.filter((msg, index, arr) => 

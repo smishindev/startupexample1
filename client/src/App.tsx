@@ -213,7 +213,12 @@ function App() {
 // Main App wrapper with Router
 function AppWrapper() {
   return (
-    <BrowserRouter>
+    <BrowserRouter
+      future={{
+        v7_startTransition: true,
+        v7_relativeSplatPath: true
+      }}
+    >
       <App />
     </BrowserRouter>
   );

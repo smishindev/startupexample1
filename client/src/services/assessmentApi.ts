@@ -345,6 +345,37 @@ class AssessmentApiService {
     };
   }
 
+  // Adaptive Assessment Methods
+  async getNextAdaptiveQuestion(
+    assessmentId: string, 
+    submissionId: string,
+    answeredQuestions: Array<{questionId: string, correct: boolean, difficulty: number}>,
+    recentPerformance: {correct: number, total: number, avgDifficulty: number}
+  ) {
+    const response = await api.post(`/api/assessments/${assessmentId}/adaptive/next-question`, {
+      submissionId,
+      answeredQuestions,
+      recentPerformance
+    });
+    return response.data;
+  }
+
+  async submitAdaptiveAnswer(
+    assessmentId: string,
+    submissionId: string,
+    questionId: string,
+    answer: any,
+    timeSpent: number
+  ) {
+    const response = await api.post(`/api/assessments/${assessmentId}/adaptive/submit-answer`, {
+      submissionId,
+      questionId,
+      answer,
+      timeSpent
+    });
+    return response.data;
+  }
+
   // Generate question templates for quiz creation
   getQuestionTemplate(type: Question['type']): Partial<Question> {
     const baseTemplate = {

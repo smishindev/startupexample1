@@ -260,6 +260,148 @@ router.post('/:assessmentId/start', authenticateToken, checkRole(['student']), a
   }
 });
 
+// Get next adaptive question
+router.post('/:assessmentId/adaptive/next-question', authenticateToken, async (req: AuthRequest, res: Response) => {
+  try {
+    const { assessmentId } = req.params;
+    const { submissionId, answeredQuestions, recentPerformance } = req.body;
+    const userId = req.user?.userId;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const db = DatabaseService.getInstance();
+
+    // Verify this is an adaptive assessment
+    const assessment = await db.query(`
+      SELECT IsAdaptive FROM dbo.Assessments WHERE Id = @assessmentId
+    `, { assessmentId });
+
+    if (assessment.length === 0 || !assessment[0].IsAdaptive) {
+      return res.status(400).json({ error: 'Not an adaptive assessment' });
+    }
+
+    // Get answered question IDs
+    const answeredQuestionIds = answeredQuestions.map((q: any) => q.questionId);
+
+    // Select next question using adaptive algorithm
+    const nextQuestion = await adaptiveAssessmentService.selectAdaptiveQuestion(
+      assessmentId,
+      userId,
+      answeredQuestionIds,
+      recentPerformance
+    );
+
+    if (!nextQuestion) {
+      return res.json({ question: null, completed: true });
+    }
+
+    // Get full question details
+    const questionDetails = await db.query(`
+      SELECT Id, Question, Type, Options, Difficulty, AdaptiveWeight, Tags
+      FROM dbo.Questions 
+      WHERE Id = @questionId
+    `, { questionId: nextQuestion.questionId });
+
+    if (questionDetails.length === 0) {
+      return res.status(404).json({ error: 'Question not found' });
+    }
+
+    const question = questionDetails[0];
+    
+    res.json({
+      question: {
+        id: question.Id,
+        question: question.Question,
+        type: question.Type,
+        options: question.Options ? JSON.parse(question.Options) : [],
+        difficulty: question.Difficulty,
+        adaptiveWeight: question.AdaptiveWeight,
+        tags: question.Tags ? JSON.parse(question.Tags) : []
+      },
+      adaptiveInfo: {
+        difficulty: nextQuestion.difficulty,
+        reason: nextQuestion.reason
+      },
+      completed: false
+    });
+  } catch (error) {
+    console.error('Error getting next adaptive question:', error);
+    res.status(500).json({ error: 'Failed to get next question' });
+  }
+});
+
+// Submit adaptive question answer
+router.post('/:assessmentId/adaptive/submit-answer', authenticateToken, async (req: AuthRequest, res: Response) => {
+  try {
+    const { assessmentId } = req.params;
+    const { submissionId, questionId, answer, timeSpent } = req.body;
+    const userId = req.user?.userId;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const db = DatabaseService.getInstance();
+
+    // Get question details for scoring
+    const question = await db.query(`
+      SELECT Id, Type, CorrectAnswer, Difficulty, AdaptiveWeight
+      FROM dbo.Questions 
+      WHERE Id = @questionId AND AssessmentId = @assessmentId
+    `, { questionId, assessmentId });
+
+    if (question.length === 0) {
+      return res.status(404).json({ error: 'Question not found' });
+    }
+
+    // Score the answer
+    const correctAnswer = JSON.parse(question[0].CorrectAnswer);
+    let isCorrect = false;
+    
+    if (question[0].Type === 'multiple_choice' || question[0].Type === 'true_false') {
+      isCorrect = answer === correctAnswer;
+    } else if (question[0].Type === 'short_answer') {
+      isCorrect = answer?.toLowerCase().trim() === correctAnswer?.toLowerCase().trim();
+    }
+
+    // Store answer in submission's temporary data
+    const currentSubmission = await db.query(`
+      SELECT Answers FROM dbo.AssessmentSubmissions WHERE Id = @submissionId
+    `, { submissionId });
+
+    let currentAnswers: Record<string, any> = {};
+    if (currentSubmission[0]?.Answers) {
+      try {
+        currentAnswers = JSON.parse(currentSubmission[0].Answers);
+      } catch {}
+    }
+
+    currentAnswers[questionId] = answer;
+
+    await db.query(`
+      UPDATE dbo.AssessmentSubmissions 
+      SET Answers = @answers, TimeSpent = @timeSpent
+      WHERE Id = @submissionId
+    `, { 
+      submissionId, 
+      answers: JSON.stringify(currentAnswers),
+      timeSpent 
+    });
+
+    res.json({
+      correct: isCorrect,
+      correctAnswer: correctAnswer,
+      difficulty: question[0].Difficulty,
+      adaptiveWeight: question[0].AdaptiveWeight
+    });
+  } catch (error) {
+    console.error('Error submitting adaptive answer:', error);
+    res.status(500).json({ error: 'Failed to submit answer' });
+  }
+});
+
 // POST /api/assessments/submissions/:submissionId/submit - Submit assessment answers
 router.post('/submissions/:submissionId/submit', authenticateToken, checkRole(['student']), async (req: AuthRequest, res: Response) => {
   try {

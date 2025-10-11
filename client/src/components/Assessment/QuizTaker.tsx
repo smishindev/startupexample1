@@ -30,6 +30,7 @@ import {
 } from '@mui/icons-material';
 import { useParams, useNavigate } from 'react-router-dom';
 import { assessmentApi, Assessment, Question, AssessmentSubmission } from '../../services/assessmentApi';
+import AdaptiveQuizTaker from './AdaptiveQuizTaker';
 
 interface QuizTakerProps {
   assessmentId?: string;
@@ -38,9 +39,76 @@ interface QuizTakerProps {
 
 const QuizTaker: React.FC<QuizTakerProps> = ({ assessmentId: propAssessmentId, onComplete }) => {
   const { assessmentId: paramAssessmentId } = useParams();
-  const navigate = useNavigate();
   
   const assessmentId = propAssessmentId || paramAssessmentId;
+
+  // State management
+  const [assessment, setAssessment] = useState<Assessment | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Load assessment data to check if it's adaptive
+  useEffect(() => {
+    if (assessmentId) {
+      loadAssessment();
+    }
+  }, [assessmentId]);
+
+  const loadAssessment = async () => {
+    try {
+      setLoading(true);
+      const data = await assessmentApi.getAssessmentWithProgress(assessmentId!);
+      setAssessment(data);
+    } catch (error) {
+      console.error('Error loading assessment:', error);
+      setError('Failed to load assessment');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+        <div>Loading assessment...</div>
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Alert severity="error" sx={{ m: 2 }}>
+        {error}
+      </Alert>
+    );
+  }
+
+  if (!assessment) {
+    return (
+      <Alert severity="warning" sx={{ m: 2 }}>
+        Assessment not found
+      </Alert>
+    );
+  }
+
+  // Route to adaptive component if assessment is adaptive
+  if (assessment.isAdaptive) {
+    return <AdaptiveQuizTaker assessmentId={assessmentId!} onComplete={onComplete} />;
+  }
+
+  // Continue with traditional quiz taker for non-adaptive assessments
+  return <TraditionalQuizTaker assessmentId={assessmentId!} assessment={assessment} onComplete={onComplete} />;
+};
+
+// Traditional Quiz Taker Component (existing logic)
+interface TraditionalQuizTakerProps {
+  assessmentId: string;
+  assessment: Assessment;
+  onComplete?: (submission: AssessmentSubmission) => void;
+}
+
+const TraditionalQuizTaker: React.FC<TraditionalQuizTakerProps> = ({ assessmentId, onComplete }) => {
+  const navigate = useNavigate();
 
   // State management
   const [assessment, setAssessment] = useState<Assessment | null>(null);

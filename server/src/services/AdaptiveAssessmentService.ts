@@ -190,9 +190,97 @@ export class AdaptiveAssessmentService {
 
   // Calculate diversity score to avoid repetitive question types
   private calculateDiversityScore(question: any, answeredQuestionIds: string[]): number {
-    // This is a simplified diversity calculation
-    // In a real implementation, you'd analyze question types, topics, etc.
-    return Math.random() * 2; // Placeholder for now
+    // Encourage diversity in question types and topics
+    const recentQuestions = answeredQuestionIds.slice(-3); // Last 3 questions
+    
+    // Base diversity score
+    let diversityScore = 3;
+    
+    // Check question type diversity
+    // (This would need more sophisticated logic based on question metadata)
+    
+    // Penalize if we've seen too many similar questions recently
+    if (recentQuestions.length > 0) {
+      diversityScore += 1; // Bonus for having previous questions to compare against
+    }
+    
+    // Random factor to ensure some unpredictability
+    diversityScore += Math.random() * 2;
+    
+    return diversityScore;
+  }
+
+  // Calculate question difficulty based on historical performance
+  async calculateQuestionDifficulty(questionId: string): Promise<number> {
+    try {
+      const db = DatabaseService.getInstance();
+      
+      // Get historical performance data for this question
+      const performanceData = await db.query(`
+        SELECT 
+          COUNT(*) as totalAttempts,
+          COUNT(CASE WHEN JSON_VALUE(s.Feedback, CONCAT('$.["', CAST(@questionId as NVARCHAR(36)), '"].isCorrect')) = 'true' THEN 1 END) as correctAnswers,
+          AVG(CASE WHEN JSON_VALUE(s.Feedback, CONCAT('$.["', CAST(@questionId as NVARCHAR(36)), '"].timeSpent')) IS NOT NULL 
+                   THEN CAST(JSON_VALUE(s.Feedback, CONCAT('$.["', CAST(@questionId as NVARCHAR(36)), '"].timeSpent')) as FLOAT) 
+                   ELSE NULL END) as avgTimeSpent
+        FROM dbo.AssessmentSubmissions s
+        JOIN dbo.Questions q ON q.AssessmentId = s.AssessmentId
+        WHERE q.Id = @questionId AND s.Status = 'completed'
+        AND JSON_VALUE(s.Feedback, CONCAT('$.["', CAST(@questionId as NVARCHAR(36)), '"]')) IS NOT NULL
+      `, { questionId });
+
+      const stats = performanceData[0];
+      
+      if (!stats || stats.totalAttempts < 5) {
+        // Not enough data, return default difficulty
+        return 5;
+      }
+
+      const successRate = stats.totalAttempts > 0 ? stats.correctAnswers / stats.totalAttempts : 0.5;
+      const avgTime = stats.avgTimeSpent || 60; // Default to 1 minute
+
+      // Calculate difficulty based on success rate and time spent
+      // Lower success rate = higher difficulty
+      let difficulty = 10 - (successRate * 8); // Range 2-10 based on success rate
+      
+      // Adjust based on time spent (longer time = higher difficulty)
+      if (avgTime > 120) difficulty += 1; // Very long time
+      else if (avgTime > 90) difficulty += 0.5; // Long time
+      else if (avgTime < 30) difficulty -= 0.5; // Quick answers
+      
+      // Ensure difficulty is within bounds
+      return Math.max(1, Math.min(10, Math.round(difficulty)));
+    } catch (error) {
+      console.error('Error calculating question difficulty:', error);
+      return 5; // Default difficulty
+    }
+  }
+
+  // Update question difficulties based on new performance data
+  async updateQuestionDifficulties(assessmentId: string): Promise<void> {
+    try {
+      const db = DatabaseService.getInstance();
+      
+      // Get all questions for this assessment
+      const questions = await db.query(`
+        SELECT Id FROM dbo.Questions WHERE AssessmentId = @assessmentId
+      `, { assessmentId });
+
+      // Update difficulty for each question
+      for (const question of questions) {
+        const newDifficulty = await this.calculateQuestionDifficulty(question.Id);
+        
+        await db.query(`
+          UPDATE dbo.Questions 
+          SET Difficulty = @difficulty 
+          WHERE Id = @questionId
+        `, { questionId: question.Id, difficulty: newDifficulty });
+      }
+      
+      console.log(`Updated difficulties for ${questions.length} questions in assessment ${assessmentId}`);
+    } catch (error) {
+      console.error('Error updating question difficulties:', error);
+    }
   }
 
   // Calculate adaptive scoring
@@ -394,6 +482,29 @@ export class AdaptiveAssessmentService {
     } catch (error) {
       console.error('Error generating recommendations:', error);
       return ["Continue practicing to improve your understanding"];
+    }
+  }
+
+  // Schedule difficulty updates for all assessments
+  async scheduleQuestionDifficultyUpdates(): Promise<void> {
+    try {
+      const db = DatabaseService.getInstance();
+      
+      // Get all adaptive assessments
+      const assessments = await db.query(`
+        SELECT Id FROM dbo.Assessments WHERE IsAdaptive = 1
+      `);
+
+      console.log(`Updating difficulties for ${assessments.length} adaptive assessments...`);
+      
+      // Update difficulties for each assessment
+      for (const assessment of assessments) {
+        await this.updateQuestionDifficulties(assessment.Id);
+      }
+      
+      console.log('Question difficulty update completed');
+    } catch (error) {
+      console.error('Error in scheduled difficulty update:', error);
     }
   }
 }

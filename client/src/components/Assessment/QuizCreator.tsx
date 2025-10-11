@@ -101,18 +101,37 @@ const QuizCreator: React.FC<QuizCreatorProps> = ({
   });
 
   // Helper function to map question API response
-  const mapQuestion = (apiQuestion: any) => ({
-    id: apiQuestion.Id,
-    type: apiQuestion.Type,
-    question: apiQuestion.Question,
-    options: apiQuestion.options || (apiQuestion.Options ? JSON.parse(apiQuestion.Options) : []),
-    correctAnswer: apiQuestion.correctAnswer || apiQuestion.CorrectAnswer,
-    explanation: apiQuestion.Explanation,
-    difficulty: apiQuestion.Difficulty || 5,
-    tags: apiQuestion.tags || (apiQuestion.Tags ? JSON.parse(apiQuestion.Tags) : []),
-    adaptiveWeight: apiQuestion.AdaptiveWeight,
-    orderIndex: apiQuestion.OrderIndex
-  });
+  const mapQuestion = (apiQuestion: any) => {
+    // Helper to safely get correct answer (handle both parsed and raw values)
+    const getCorrectAnswer = (apiQuestion: any) => {
+      if (apiQuestion.correctAnswer !== undefined) {
+        return apiQuestion.correctAnswer; // Already parsed by backend
+      }
+      if (apiQuestion.CorrectAnswer) {
+        try {
+          // Try to parse if it's a JSON string
+          return JSON.parse(apiQuestion.CorrectAnswer);
+        } catch {
+          // If parsing fails, return as-is
+          return apiQuestion.CorrectAnswer;
+        }
+      }
+      return '';
+    };
+
+    return {
+      id: apiQuestion.Id,
+      type: apiQuestion.Type,
+      question: apiQuestion.Question,
+      options: apiQuestion.options || (apiQuestion.Options ? JSON.parse(apiQuestion.Options) : []),
+      correctAnswer: getCorrectAnswer(apiQuestion),
+      explanation: apiQuestion.Explanation,
+      difficulty: apiQuestion.Difficulty || 5,
+      tags: apiQuestion.tags || (apiQuestion.Tags ? JSON.parse(apiQuestion.Tags) : []),
+      adaptiveWeight: apiQuestion.AdaptiveWeight,
+      orderIndex: apiQuestion.OrderIndex
+    };
+  };
 
   const loadAssessment = async () => {
     try {
@@ -139,6 +158,7 @@ const QuizCreator: React.FC<QuizCreatorProps> = ({
     const template = assessmentApi.getQuestionTemplate(type);
     const newQuestion: Partial<Question> = {
       ...template,
+      id: `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, // Generate temporary unique ID
       orderIndex: questions.length
     };
     setQuestions([...questions, newQuestion]);
@@ -237,6 +257,27 @@ const QuizCreator: React.FC<QuizCreatorProps> = ({
         return;
       }
 
+      // Prepare questions for API - preserve real IDs, remove temporary ones
+      const questionsForApi = questions.map(q => {
+        const questionData: any = {
+          type: q.type,
+          question: q.question,
+          options: q.options,
+          correctAnswer: q.correctAnswer,
+          explanation: q.explanation,
+          difficulty: q.difficulty,
+          tags: q.tags,
+          adaptiveWeight: q.adaptiveWeight
+        };
+
+        // Include ID only if it's a real database ID (not temporary)
+        if (q.id && !q.id.startsWith('temp-')) {
+          questionData.id = q.id;
+        }
+
+        return questionData;
+      });
+
       const assessmentData: CreateAssessmentRequest = {
         lessonId: lessonId!,
         title: assessment.title!,
@@ -245,7 +286,7 @@ const QuizCreator: React.FC<QuizCreatorProps> = ({
         maxAttempts: assessment.maxAttempts,
         timeLimit: assessment.timeLimit,
         isAdaptive: assessment.isAdaptive,
-        questions: questions as Omit<Question, 'id' | 'assessmentId'>[]
+        questions: questionsForApi
       };
 
       let savedAssessment: Assessment;
@@ -424,7 +465,7 @@ const QuizCreator: React.FC<QuizCreatorProps> = ({
                 <Box>
                   {questions.map((question, index) => (
                     <Accordion
-                      key={index}
+                      key={question.id || `question-${index}`}
                       expanded={expandedQuestion === index}
                       onChange={(_, isExpanded) => setExpandedQuestion(isExpanded ? index : false)}
                       sx={{ mb: 1 }}

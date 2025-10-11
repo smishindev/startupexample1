@@ -101,7 +101,8 @@ router.get('/:assessmentId', authenticateToken, async (req: AuthRequest, res: Re
       ...q,
       options: q.Options ? JSON.parse(q.Options) : null,
       tags: q.Tags ? JSON.parse(q.Tags) : [],
-      correctAnswer: req.user?.role === 'instructor' ? q.CorrectAnswer : undefined
+      correctAnswer: req.user?.role === 'instructor' ? 
+        (q.CorrectAnswer ? JSON.parse(q.CorrectAnswer) : null) : undefined
     }));
 
     // Get user's previous attempts if student
@@ -469,9 +470,10 @@ router.get('/submissions/:submissionId/results', authenticateToken, async (req: 
 router.put('/:assessmentId', authenticateToken, checkRole(['instructor']), async (req: AuthRequest, res: Response) => {
   try {
     const { assessmentId } = req.params;
-    const { title, type, passingScore, maxAttempts, timeLimit, isAdaptive } = req.body;
+    const { title, type, passingScore, maxAttempts, timeLimit, isAdaptive, questions } = req.body;
     const db = DatabaseService.getInstance();
 
+    // Update assessment properties
     await db.query(`
       UPDATE dbo.Assessments 
       SET 
@@ -492,6 +494,42 @@ router.put('/:assessmentId', authenticateToken, checkRole(['instructor']), async
       timeLimit,
       isAdaptive
     });
+
+    // Update questions if provided
+    if (questions && questions.length > 0) {
+      // Delete existing questions
+      await db.query(`DELETE FROM dbo.Questions WHERE AssessmentId = @assessmentId`, { assessmentId });
+
+      // Insert updated questions
+      for (let i = 0; i < questions.length; i++) {
+        const question = questions[i];
+        // Use existing ID if it's a real database ID, otherwise generate new UUID
+        const questionId = (question.id && !question.id.startsWith('temp-')) ? question.id : uuidv4();
+
+        await db.query(`
+          INSERT INTO dbo.Questions (
+            Id, AssessmentId, Type, Question, Options, CorrectAnswer, 
+            Explanation, Difficulty, Tags, AdaptiveWeight, OrderIndex
+          )
+          VALUES (
+            @id, @assessmentId, @type, @question, @options, @correctAnswer,
+            @explanation, @difficulty, @tags, @adaptiveWeight, @orderIndex
+          )
+        `, {
+          id: questionId,
+          assessmentId,
+          type: question.type,
+          question: question.question,
+          options: question.options ? JSON.stringify(question.options) : null,
+          correctAnswer: JSON.stringify(question.correctAnswer),
+          explanation: question.explanation || null,
+          difficulty: question.difficulty || 5,
+          tags: question.tags ? JSON.stringify(question.tags) : null,
+          adaptiveWeight: question.adaptiveWeight || null,
+          orderIndex: i
+        });
+      }
+    }
 
     const updatedAssessment = await db.query(`
       SELECT * FROM dbo.Assessments WHERE Id = @assessmentId

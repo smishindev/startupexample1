@@ -130,25 +130,25 @@ router.get('/courses/:courseId', authenticateToken, async (req: AuthRequest, res
         OverallProgress,
         TimeSpent,
         LastAccessedAt,
-        CreatedAt,
-        UpdatedAt
+        StartedAt,
+        CompletedAt
       FROM dbo.UserProgress
-      WHERE UserId = @userId AND CourseId = @courseId
+      WHERE UserId = @userId AND CourseId = @courseId AND LessonId IS NULL
     `, { userId, courseId });
 
     // Get lesson progress
     const lessonProgress = await db.query(`
       SELECT 
-        lp.LessonId,
+        up.LessonId,
         l.Title as lessonTitle,
         l.OrderIndex,
-        lp.CompletedAt,
-        lp.TimeSpent as lessonTimeSpent,
-        lp.ProgressPercentage,
-        lp.Notes
-      FROM dbo.LessonProgress lp
-      INNER JOIN dbo.Lessons l ON lp.LessonId = l.Id
-      WHERE lp.UserId = @userId AND l.CourseId = @courseId
+        up.CompletedAt,
+        up.TimeSpent as lessonTimeSpent,
+        up.OverallProgress as ProgressPercentage,
+        up.PerformanceMetrics as Notes
+      FROM dbo.UserProgress up
+      INNER JOIN dbo.Lessons l ON up.LessonId = l.Id
+      WHERE up.UserId = @userId AND l.CourseId = @courseId AND up.LessonId IS NOT NULL
       ORDER BY l.OrderIndex
     `, { userId, courseId });
 
@@ -165,8 +165,8 @@ router.get('/courses/:courseId', authenticateToken, async (req: AuthRequest, res
         OverallProgress: 0,
         TimeSpent: 0,
         LastAccessedAt: null,
-        CreatedAt: null,
-        UpdatedAt: null
+        StartedAt: null,
+        CompletedAt: null
       },
       lessonProgress,
       allLessons,
@@ -215,33 +215,34 @@ router.post('/lessons/:lessonId/complete', authenticateToken, async (req: AuthRe
 
     // Check if lesson progress already exists
     const existingProgress = await db.query(`
-      SELECT Id FROM dbo.LessonProgress
+      SELECT Id FROM dbo.UserProgress
       WHERE UserId = @userId AND LessonId = @lessonId
     `, { userId, lessonId });
 
     if (existingProgress.length > 0) {
       // Update existing progress
       await db.execute(`
-        UPDATE dbo.LessonProgress
+        UPDATE dbo.UserProgress
         SET CompletedAt = @completedAt, TimeSpent = @timeSpent, 
-            ProgressPercentage = 100, Notes = @notes, UpdatedAt = @updatedAt
+            OverallProgress = 100, PerformanceMetrics = @notes, LastAccessedAt = @updatedAt
         WHERE UserId = @userId AND LessonId = @lessonId
       `, { userId, lessonId, completedAt: now, timeSpent, notes, updatedAt: now });
     } else {
       // Create new progress record
       await db.execute(`
-        INSERT INTO dbo.LessonProgress (Id, UserId, LessonId, CompletedAt, TimeSpent, ProgressPercentage, Notes, CreatedAt, UpdatedAt)
-        VALUES (@id, @userId, @lessonId, @completedAt, @timeSpent, @progressPercentage, @notes, @createdAt, @updatedAt)
+        INSERT INTO dbo.UserProgress (Id, UserId, CourseId, LessonId, CompletedAt, TimeSpent, OverallProgress, PerformanceMetrics, StartedAt, LastAccessedAt)
+        VALUES (@id, @userId, @courseId, @lessonId, @completedAt, @timeSpent, @progressPercentage, @notes, @startedAt, @lastAccessedAt)
       `, {
         id: uuidv4(),
         userId,
+        courseId,
         lessonId,
         completedAt: now,
         timeSpent,
         progressPercentage: 100,
         notes,
-        createdAt: now,
-        updatedAt: now
+        startedAt: now,
+        lastAccessedAt: now
       });
     }
 
@@ -293,33 +294,34 @@ router.put('/lessons/:lessonId/progress', authenticateToken, async (req: AuthReq
 
     // Check if lesson progress exists
     const existingProgress = await db.query(`
-      SELECT Id FROM dbo.LessonProgress
+      SELECT Id FROM dbo.UserProgress
       WHERE UserId = @userId AND LessonId = @lessonId
     `, { userId, lessonId });
 
     if (existingProgress.length > 0) {
       // Update existing progress
       await db.execute(`
-        UPDATE dbo.LessonProgress
-        SET ProgressPercentage = @progressPercentage, TimeSpent = @timeSpent, 
-            CompletedAt = @completedAt, Notes = @notes, UpdatedAt = @updatedAt
+        UPDATE dbo.UserProgress
+        SET OverallProgress = @progressPercentage, TimeSpent = @timeSpent, 
+            CompletedAt = @completedAt, PerformanceMetrics = @notes, LastAccessedAt = @updatedAt
         WHERE UserId = @userId AND LessonId = @lessonId
       `, { userId, lessonId, progressPercentage, timeSpent, completedAt, notes, updatedAt: now });
     } else {
       // Create new progress record
       await db.execute(`
-        INSERT INTO dbo.LessonProgress (Id, UserId, LessonId, ProgressPercentage, TimeSpent, CompletedAt, Notes, CreatedAt, UpdatedAt)
-        VALUES (@id, @userId, @lessonId, @progressPercentage, @timeSpent, @completedAt, @notes, @createdAt, @updatedAt)
+        INSERT INTO dbo.UserProgress (Id, UserId, CourseId, LessonId, OverallProgress, TimeSpent, CompletedAt, PerformanceMetrics, StartedAt, LastAccessedAt)
+        VALUES (@id, @userId, @courseId, @lessonId, @progressPercentage, @timeSpent, @completedAt, @notes, @startedAt, @lastAccessedAt)
       `, {
         id: uuidv4(),
         userId,
+        courseId,
         lessonId,
         progressPercentage,
         timeSpent,
         completedAt,
         notes,
-        createdAt: now,
-        updatedAt: now
+        startedAt: now,
+        lastAccessedAt: now
       });
     }
 
@@ -344,11 +346,9 @@ async function updateCourseProgress(userId: string, courseId: string) {
 
     // Get completed lessons
     const completedLessons = await db.query(`
-      SELECT LessonId, ProgressPercentage, TimeSpent
-      FROM dbo.LessonProgress
-      WHERE UserId = @userId AND LessonId IN (
-        SELECT Id FROM dbo.Lessons WHERE CourseId = @courseId
-      )
+      SELECT LessonId, OverallProgress as ProgressPercentage, TimeSpent
+      FROM dbo.UserProgress
+      WHERE UserId = @userId AND LessonId IS NOT NULL AND CourseId = @courseId
     `, { userId, courseId });
 
     const totalLessons = allLessons.length;
@@ -364,20 +364,28 @@ async function updateCourseProgress(userId: string, courseId: string) {
     // Update or create user progress record
     const existingProgress = await db.query(`
       SELECT Id FROM dbo.UserProgress
-      WHERE UserId = @userId AND CourseId = @courseId
+      WHERE UserId = @userId AND CourseId = @courseId AND LessonId IS NULL
     `, { userId, courseId });
 
     if (existingProgress.length > 0) {
       await db.execute(`
         UPDATE dbo.UserProgress
-        SET OverallProgress = @progress, TimeSpent = @timeSpent, LastAccessedAt = @lastAccessed, UpdatedAt = @updatedAt
-        WHERE UserId = @userId AND CourseId = @courseId
-      `, { userId, courseId, progress: Math.round(avgProgress), timeSpent: totalTimeSpent, lastAccessed: now, updatedAt: now });
+        SET OverallProgress = @progress, TimeSpent = @timeSpent, LastAccessedAt = @lastAccessed
+        WHERE UserId = @userId AND CourseId = @courseId AND LessonId IS NULL
+      `, { userId, courseId, progress: Math.round(avgProgress), timeSpent: totalTimeSpent, lastAccessed: now });
     } else {
       await db.execute(`
-        INSERT INTO dbo.UserProgress (UserId, CourseId, OverallProgress, TimeSpent, LastAccessedAt, CreatedAt, UpdatedAt)
-        VALUES (@userId, @courseId, @progress, @timeSpent, @lastAccessed, @createdAt, @updatedAt)
-      `, { userId, courseId, progress: Math.round(avgProgress), timeSpent: totalTimeSpent, lastAccessed: now, createdAt: now, updatedAt: now });
+        INSERT INTO dbo.UserProgress (Id, UserId, CourseId, LessonId, OverallProgress, TimeSpent, LastAccessedAt, StartedAt)
+        VALUES (@id, @userId, @courseId, NULL, @progress, @timeSpent, @lastAccessed, @startedAt)
+      `, { 
+        id: uuidv4(),
+        userId, 
+        courseId, 
+        progress: Math.round(avgProgress), 
+        timeSpent: totalTimeSpent, 
+        lastAccessed: now, 
+        startedAt: now 
+      });
     }
 
     // Check if course is completed and update enrollment status

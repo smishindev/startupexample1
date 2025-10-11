@@ -45,7 +45,7 @@ const TabPanel: React.FC<TabPanelProps> = ({ children, value, index }) => (
 );
 
 // Helper function to convert API course to UI course format
-const convertApiCourseToUiCourse = (apiCourse: ApiCourse, isBookmarked: boolean = false): Course => ({
+const convertApiCourseToUiCourse = (apiCourse: ApiCourse, isBookmarked: boolean = false, isEnrolled: boolean = false): Course => ({
   id: apiCourse.Id,
   title: apiCourse.Title,
   description: apiCourse.Description,
@@ -63,6 +63,7 @@ const convertApiCourseToUiCourse = (apiCourse: ApiCourse, isBookmarked: boolean 
   category: formatCategory(apiCourse.Category),
   tags: apiCourse.Tags || [],
   isBookmarked: isBookmarked,
+  isEnrolled: isEnrolled,
   isPopular: apiCourse.EnrollmentCount > 100,
   isNew: isNewCourse(apiCourse.CreatedAt),
 });
@@ -170,29 +171,38 @@ export const CoursesPage: React.FC = () => {
       // Convert API courses to UI format without bookmark status first
       const uiCourses = response.courses.map(course => convertApiCourseToUiCourse(course));
       
-      // Get bookmark statuses for all courses (only if user is logged in)
+      // Get bookmark statuses and enrollment statuses for all courses (only if user is logged in)
       if (isAuthenticated) {
         try {
           const courseIds = uiCourses.map(course => course.id);
-          const bookmarkStatuses = await BookmarkApi.getBookmarkStatuses(courseIds);
           
-          // Update courses with bookmark status
-          const coursesWithBookmarks = uiCourses.map(course => ({
+          // Get both bookmark and enrollment statuses in parallel
+          const [bookmarkStatuses, enrolledCoursesList] = await Promise.all([
+            BookmarkApi.getBookmarkStatuses(courseIds),
+            enrollmentApi.getMyEnrollments()
+          ]);
+          
+          // Create a set of enrolled course IDs for quick lookup
+          const enrolledCourseIds = new Set(enrolledCoursesList.map(enrolled => enrolled.courseId));
+          
+          // Update courses with both bookmark and enrollment status
+          const coursesWithStatuses = uiCourses.map(course => ({
             ...course,
-            isBookmarked: bookmarkStatuses[course.id] || false
+            isBookmarked: bookmarkStatuses[course.id] || false,
+            isEnrolled: enrolledCourseIds.has(course.id)
           }));
           
-          // Apply sorting (since API doesn't support all sort options yet)
-          const sortedCourses = sortCourses(coursesWithBookmarks, sortBy);
+          // Apply sorting
+          const sortedCourses = sortCourses(coursesWithStatuses, sortBy);
           setAllCourses(sortedCourses);
-        } catch (bookmarkError) {
-          console.warn('Failed to load bookmark statuses:', bookmarkError);
-          // Apply sorting without bookmark data
+        } catch (error) {
+          console.warn('Failed to load bookmark/enrollment statuses:', error);
+          // Apply sorting without bookmark/enrollment data
           const sortedCourses = sortCourses(uiCourses, sortBy);
           setAllCourses(sortedCourses);
         }
       } else {
-        // User not logged in, skip bookmark status
+        // User not logged in, skip bookmark and enrollment status
         const sortedCourses = sortCourses(uiCourses, sortBy);
         setAllCourses(sortedCourses);
       }
@@ -342,9 +352,29 @@ export const CoursesPage: React.FC = () => {
       loadEnrolledCourses();
       
       console.log('Successfully enrolled in course:', courseId);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to enroll in course:', error);
-      setError('Failed to enroll in course. Please try again.');
+      
+      // Handle specific error cases
+      let errorMessage = 'Failed to enroll in course. Please try again.';
+      
+      try {
+        const errorData = JSON.parse(error.message);
+        if (errorData.code === 'ALREADY_ENROLLED') {
+          // User is already enrolled, update the UI to reflect this
+          setAllCourses(prev => prev.map(course => 
+            course.id === courseId 
+              ? { ...course, isEnrolled: true }
+              : course
+          ));
+          loadEnrolledCourses();
+          errorMessage = 'You are already enrolled in this course.';
+        }
+      } catch (parseError) {
+        // If we can't parse the error, use the default message
+      }
+      
+      setError(errorMessage);
     }
   };
 

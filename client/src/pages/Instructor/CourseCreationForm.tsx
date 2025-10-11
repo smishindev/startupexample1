@@ -530,12 +530,12 @@ export const CourseCreationForm: React.FC = () => {
                         <ListItemText
                           primary={lesson.title}
                           secondary={
-                            <Box>
-                              <Typography variant="body2" color="text.secondary">
+                            <Box component="span">
+                              <Typography variant="body2" color="text.secondary" component="span" display="block">
                                 {lesson.type.charAt(0).toUpperCase() + lesson.type.slice(1)} - {lesson.description}
                               </Typography>
                               {lesson.type === 'video' && (
-                                <Typography variant="caption" color="text.secondary">
+                                <Typography variant="caption" color="text.secondary" component="span" display="block">
                                   {lesson.useFileUpload 
                                     ? (lesson.videoFile 
                                         ? `📁 File: ${lesson.videoFile.originalName}`

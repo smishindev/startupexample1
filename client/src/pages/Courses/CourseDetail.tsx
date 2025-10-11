@@ -391,12 +391,12 @@ const CourseDetail: React.FC = () => {
                         <ListItemText
                           primary={`${index + 1}. ${lesson.Title}`}
                           secondary={
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
-                              <Typography variant="caption">
+                            <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
+                              <Typography variant="caption" component="span">
                                 {formatDuration(lesson.Duration)}
                               </Typography>
                               {lesson.IsRequired && (
-                                <Chip label="Required" size="small" color="primary" />
+                                <Chip label="Required" size="small" color="primary" component="span" />
                               )}
                             </Box>
                           }

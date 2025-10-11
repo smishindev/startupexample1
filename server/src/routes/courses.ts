@@ -192,7 +192,9 @@ router.get('/:id', async (req: any, res: any) => {
 router.get('/:id/enrollment', authenticateToken, async (req: any, res: any) => {
   try {
     const { id } = req.params;
-    const userId = req.user.id;
+    const userId = req.user.userId; // Changed from req.user.id to req.user.userId
+
+    console.log(`[ENROLLMENT DEBUG] Checking enrollment for userId: ${userId}, courseId: ${id}`);
 
     const query = `
       SELECT Id, Status, EnrolledAt, CompletedAt
@@ -202,17 +204,23 @@ router.get('/:id/enrollment', authenticateToken, async (req: any, res: any) => {
 
     const result = await db.query(query, { userId, courseId: id });
 
+    console.log(`[ENROLLMENT DEBUG] Query result:`, result);
+
     if (result.length === 0) {
+      console.log(`[ENROLLMENT DEBUG] No enrollment found, returning isEnrolled: false`);
       return res.json({ isEnrolled: false });
     }
 
     const enrollment = result[0];
-    res.json({
+    const response = {
       isEnrolled: true,
       status: enrollment.Status,
       enrolledAt: enrollment.EnrolledAt,
       completedAt: enrollment.CompletedAt
-    });
+    };
+    
+    console.log(`[ENROLLMENT DEBUG] Enrollment found, returning:`, response);
+    res.json(response);
 
   } catch (error) {
     console.error('Error checking enrollment:', error);

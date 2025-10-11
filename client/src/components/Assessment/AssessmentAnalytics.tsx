@@ -34,7 +34,7 @@ interface AnalyticsData {
   passRate: number;
   averageScore: number;
   averageTimeSpent: number;
-  difficultyDistribution: Record<number, number>;
+  scoreDistribution: Record<string, number>;
   recentSubmissions: any[];
   topPerformers: any[];
   strugglingStudents: any[];
@@ -54,40 +54,41 @@ const AssessmentAnalytics: React.FC<AssessmentAnalyticsProps> = ({ assessmentId 
     try {
       setLoading(true);
       
-      // Load assessment details
-      const assessmentData = await assessmentApi.getAssessment(assessmentId);
-      setAssessment(assessmentData);
-
-      // Load analytics (this would come from a dedicated analytics endpoint)
-      // For now, we'll simulate some data
-      const mockAnalytics: AnalyticsData = {
-        totalSubmissions: 45,
-        passRate: 73.3,
-        averageScore: 76.8,
-        averageTimeSpent: 22.5,
-        difficultyDistribution: {
-          1: 2, 2: 8, 3: 12, 4: 15, 5: 18, 6: 14, 7: 10, 8: 6, 9: 3, 10: 1
-        },
-        recentSubmissions: [
-          { id: '1', studentName: 'Alice Johnson', score: 92, timeSpent: 18, passed: true, submittedAt: '2024-01-15T10:30:00Z' },
-          { id: '2', studentName: 'Bob Smith', score: 67, timeSpent: 28, passed: false, submittedAt: '2024-01-15T09:45:00Z' },
-          { id: '3', studentName: 'Carol Williams', score: 84, timeSpent: 21, passed: true, submittedAt: '2024-01-15T08:15:00Z' },
-          { id: '4', studentName: 'David Brown', score: 78, timeSpent: 25, passed: true, submittedAt: '2024-01-14T16:20:00Z' },
-          { id: '5', studentName: 'Eva Davis', score: 58, timeSpent: 32, passed: false, submittedAt: '2024-01-14T14:10:00Z' }
-        ],
-        topPerformers: [
-          { name: 'Alice Johnson', score: 92, attempts: 1 },
-          { name: 'Michael Chen', score: 89, attempts: 1 },
-          { name: 'Sarah Wilson', score: 87, attempts: 2 }
-        ],
-        strugglingStudents: [
-          { name: 'Eva Davis', score: 58, attempts: 3 },
-          { name: 'Bob Smith', score: 67, attempts: 2 },
-          { name: 'John Martinez', score: 62, attempts: 3 }
-        ]
+      // Load real assessment analytics data
+      const analyticsData = await assessmentApi.getAssessmentAnalytics(assessmentId);
+      setAssessment(analyticsData.assessment);
+      
+      // Transform backend data to frontend format
+      const transformedAnalytics: AnalyticsData = {
+        totalSubmissions: analyticsData.analytics.totalSubmissions,
+        passRate: analyticsData.analytics.passRate,
+        averageScore: analyticsData.analytics.averageScore,
+        averageTimeSpent: analyticsData.analytics.averageTimeSpent,
+        scoreDistribution: analyticsData.analytics.scoreDistribution.reduce((acc, item) => {
+          acc[item.scoreRange] = item.count;
+          return acc;
+        }, {} as Record<string, number>),
+        recentSubmissions: analyticsData.analytics.recentSubmissions.map(sub => ({
+          id: sub.Id,
+          studentName: sub.StudentName,
+          score: sub.Score,
+          timeSpent: sub.TimeSpent,
+          passed: sub.Passed,
+          submittedAt: sub.CompletedAt
+        })),
+        topPerformers: analyticsData.analytics.topPerformers.map(perf => ({
+          name: perf.StudentName,
+          score: perf.Score,
+          attempts: perf.AttemptNumber
+        })),
+        strugglingStudents: analyticsData.analytics.strugglingStudents.map(strug => ({
+          name: strug.StudentName,
+          score: strug.Score,
+          attempts: strug.AttemptNumber
+        }))
       };
 
-      setAnalytics(mockAnalytics);
+      setAnalytics(transformedAnalytics);
     } catch (error) {
       console.error('Error loading analytics:', error);
       setError('Failed to load assessment analytics');
@@ -274,8 +275,56 @@ const AssessmentAnalytics: React.FC<AssessmentAnalyticsProps> = ({ assessmentId 
           </Card>
         </Grid>
 
-        {/* Performance Summary */}
+        {/* Score Distribution Chart */}
         <Grid item xs={12} lg={4}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6" gutterBottom>
+                Score Distribution
+              </Typography>
+              <Box sx={{ mt: 2 }}>
+                {Object.entries(analytics.scoreDistribution).map(([range, count]) => (
+                  <Box key={range} sx={{ mb: 2 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                      <Typography variant="body2">{range}%</Typography>
+                      <Typography variant="body2" fontWeight="bold">{count} students</Typography>
+                    </Box>
+                    <Box
+                      sx={{
+                        width: '100%',
+                        height: 8,
+                        bgcolor: 'grey.200',
+                        borderRadius: 1,
+                        overflow: 'hidden'
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          width: `${analytics.totalSubmissions > 0 ? (count / analytics.totalSubmissions) * 100 : 0}%`,
+                          height: '100%',
+                          bgcolor: range.startsWith('90') ? 'success.main' :
+                                  range.startsWith('80') ? 'info.main' :
+                                  range.startsWith('70') ? 'warning.main' : 'error.main',
+                          transition: 'width 0.3s ease'
+                        }}
+                      />
+                    </Box>
+                  </Box>
+                ))}
+                {Object.keys(analytics.scoreDistribution).length === 0 && (
+                  <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
+                    No submission data available
+                  </Typography>
+                )}
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+
+      <Grid container spacing={3}>
+        {/* Performance Summary */}
+        <Grid item xs={12} lg={8}>
           <Grid container spacing={2}>
             {/* Top Performers */}
             <Grid item xs={12}>

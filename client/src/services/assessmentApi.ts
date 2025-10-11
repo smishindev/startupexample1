@@ -100,6 +100,70 @@ export interface SubmitAssessmentResponse {
   feedback: Record<string, any>;
 }
 
+export interface AssessmentAnalytics {
+  assessment: Assessment;
+  analytics: {
+    totalSubmissions: number;
+    completedSubmissions: number;
+    passedSubmissions: number;
+    passRate: number;
+    averageScore: number;
+    averageTimeSpent: number;
+    minScore: number;
+    maxScore: number;
+    scoreDistribution: Array<{
+      scoreRange: string;
+      count: number;
+    }>;
+    recentSubmissions: Array<{
+      Id: string;
+      Score: number;
+      TimeSpent: number;
+      AttemptNumber: number;
+      CompletedAt: string;
+      StudentName: string;
+      Passed: boolean;
+    }>;
+    topPerformers: Array<{
+      StudentName: string;
+      Score: number;
+      AttemptNumber: number;
+      TimeSpent: number;
+      CompletedAt: string;
+    }>;
+    strugglingStudents: Array<{
+      StudentName: string;
+      Score: number;
+      AttemptNumber: number;
+      TimeSpent: number;
+      CompletedAt: string;
+    }>;
+    questionAnalysis: Array<{
+      Id: string;
+      Question: string;
+      Type: string;
+      Difficulty: number;
+      totalAttempts: number;
+      correctAnswers: number;
+      successRate: number;
+    }>;
+  };
+}
+
+export interface AssessmentSubmissionDetail {
+  Id: string;
+  Score: number;
+  MaxScore: number;
+  TimeSpent: number;
+  AttemptNumber: number;
+  Status: 'in_progress' | 'completed' | 'abandoned';
+  StartedAt: string;
+  CompletedAt?: string;
+  StudentName: string;
+  StudentEmail: string;
+  StudentId: string;
+}
+
 class AssessmentApiService {
   private baseUrl = '/api/assessments';
 
@@ -198,23 +262,36 @@ class AssessmentApiService {
     return remainingMins > 0 ? `${hours}h ${remainingMins}m` : `${hours}h`;
   }
 
-  // Calculate assessment statistics for instructors
-  async getAssessmentStatistics(_assessmentId: string): Promise<{
-    totalAttempts: number;
-    averageScore: number;
-    passRate: number;
-    averageTimeSpent: number;
-    difficultyDistribution: Record<number, number>;
-  }> {
-    // This would need additional backend endpoint for instructor analytics
-    // For now, return empty stats structure
-    return {
-      totalAttempts: 0,
-      averageScore: 0,
-      passRate: 0,
-      averageTimeSpent: 0,
-      difficultyDistribution: {}
+  // Get comprehensive assessment analytics for instructors
+  async getAssessmentAnalytics(assessmentId: string): Promise<AssessmentAnalytics> {
+    const response = await api.get(`${this.baseUrl}/${assessmentId}/analytics`);
+    return response.data;
+  }
+
+  // Get all submissions for an assessment (instructors only)
+  async getAssessmentSubmissions(
+    assessmentId: string, 
+    options?: {
+      page?: number;
+      limit?: number;
+      status?: 'all' | 'completed' | 'in_progress' | 'abandoned';
+    }
+  ): Promise<{
+    submissions: AssessmentSubmissionDetail[];
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      pages: number;
     };
+  }> {
+    const params = new URLSearchParams();
+    if (options?.page) params.append('page', options.page.toString());
+    if (options?.limit) params.append('limit', options.limit.toString());
+    if (options?.status) params.append('status', options.status);
+
+    const response = await api.get(`${this.baseUrl}/${assessmentId}/submissions?${params}`);
+    return response.data;
   }
 
   // Validate answers before submission

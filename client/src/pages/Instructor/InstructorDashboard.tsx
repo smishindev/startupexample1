@@ -451,9 +451,8 @@ export const InstructorDashboard: React.FC = () => {
                       size="small"
                       startIcon={<AssignmentIcon />}
                       onClick={() => {
-                        // For now, navigate to first lesson's assessments
-                        // In a real app, you'd show a lesson selector or course-level assessments
-                        navigate(`/instructor/lessons/29D00B5C-30B2-4C79-B1D0-172F70BE9DA7/assessments`);
+                        // Navigate directly to assessments management for the testvideo lesson
+                        navigate(`/instructor/lessons/2513624D-983D-4B58-9BC7-47324D13E6F6/assessments`);
                       }}
                       variant="outlined"
                       fullWidth

@@ -70,6 +70,156 @@ router.get('/lesson/:lessonId', authenticateToken, async (req: AuthRequest, res:
   }
 });
 
+// GET /api/assessments/:assessmentId/analytics - Get assessment analytics (Instructors only)
+router.get('/:assessmentId/analytics', authenticateToken, checkRole(['instructor']), async (req: AuthRequest, res: Response) => {
+  try {
+    const { assessmentId } = req.params;
+    const db = DatabaseService.getInstance();
+
+    // Get assessment details
+    const assessment = await db.query(`
+      SELECT * FROM dbo.Assessments WHERE Id = @assessmentId
+    `, { assessmentId });
+
+    if (assessment.length === 0) {
+      return res.status(404).json({ error: 'Assessment not found' });
+    }
+
+    // Get total submissions and pass rate
+    const submissionStats = await db.query(`
+      SELECT 
+        COUNT(*) as totalSubmissions,
+        COUNT(CASE WHEN Status = 'completed' THEN 1 END) as completedSubmissions,
+        COUNT(CASE WHEN Status = 'completed' AND Score >= @passingScore THEN 1 END) as passedSubmissions,
+        AVG(CASE WHEN Status = 'completed' THEN CAST(Score as FLOAT) END) as averageScore,
+        AVG(CASE WHEN Status = 'completed' THEN CAST(TimeSpent as FLOAT) END) as averageTimeSpent,
+        MIN(CASE WHEN Status = 'completed' THEN Score END) as minScore,
+        MAX(CASE WHEN Status = 'completed' THEN Score END) as maxScore
+      FROM dbo.AssessmentSubmissions 
+      WHERE AssessmentId = @assessmentId
+    `, { assessmentId, passingScore: assessment[0].PassingScore });
+
+    const stats = submissionStats[0];
+    const passRate = stats.completedSubmissions > 0 ? 
+      (stats.passedSubmissions / stats.completedSubmissions) * 100 : 0;
+
+    // Get score distribution
+    const scoreDistribution = await db.query(`
+      SELECT 
+        CASE 
+          WHEN Score >= 90 THEN '90-100'
+          WHEN Score >= 80 THEN '80-89'
+          WHEN Score >= 70 THEN '70-79'
+          WHEN Score >= 60 THEN '60-69'
+          WHEN Score >= 50 THEN '50-59'
+          ELSE '0-49'
+        END as scoreRange,
+        COUNT(*) as count
+      FROM dbo.AssessmentSubmissions 
+      WHERE AssessmentId = @assessmentId AND Status = 'completed'
+      GROUP BY 
+        CASE 
+          WHEN Score >= 90 THEN '90-100'
+          WHEN Score >= 80 THEN '80-89'
+          WHEN Score >= 70 THEN '70-79'
+          WHEN Score >= 60 THEN '60-69'
+          WHEN Score >= 50 THEN '50-59'
+          ELSE '0-49'
+        END
+      ORDER BY scoreRange DESC
+    `, { assessmentId });
+
+    // Get recent submissions with student details
+    const recentSubmissions = await db.query(`
+      SELECT TOP 10
+        s.Id,
+        s.Score,
+        s.TimeSpent,
+        s.AttemptNumber,
+        s.CompletedAt,
+        u.FirstName + ' ' + u.LastName as StudentName,
+        CASE WHEN s.Score >= @passingScore THEN 1 ELSE 0 END as Passed
+      FROM dbo.AssessmentSubmissions s
+      JOIN dbo.Users u ON s.UserId = u.Id
+      WHERE s.AssessmentId = @assessmentId AND s.Status = 'completed'
+      ORDER BY s.CompletedAt DESC
+    `, { assessmentId, passingScore: assessment[0].PassingScore });
+
+    // Get top and struggling performers
+    const topPerformers = await db.query(`
+      SELECT TOP 5
+        u.FirstName + ' ' + u.LastName as StudentName,
+        s.Score,
+        s.AttemptNumber,
+        s.TimeSpent,
+        s.CompletedAt
+      FROM dbo.AssessmentSubmissions s
+      JOIN dbo.Users u ON s.UserId = u.Id
+      WHERE s.AssessmentId = @assessmentId AND s.Status = 'completed'
+      ORDER BY s.Score DESC, s.AttemptNumber ASC
+    `, { assessmentId });
+
+    const strugglingStudents = await db.query(`
+      SELECT TOP 5
+        u.FirstName + ' ' + u.LastName as StudentName,
+        s.Score,
+        s.AttemptNumber,
+        s.TimeSpent,
+        s.CompletedAt
+      FROM dbo.AssessmentSubmissions s
+      JOIN dbo.Users u ON s.UserId = u.Id
+      WHERE s.AssessmentId = @assessmentId 
+        AND s.Status = 'completed'
+        AND s.Score < @passingScore
+      ORDER BY s.Score ASC, s.AttemptNumber DESC
+    `, { assessmentId, passingScore: assessment[0].PassingScore });
+
+    // Get difficulty analysis by question
+    const questionAnalysis = await db.query(`
+      SELECT 
+        q.Id,
+        q.Question,
+        q.Type,
+        q.Difficulty,
+        COUNT(s.Id) as totalAttempts,
+        COUNT(CASE WHEN JSON_VALUE(s.Feedback, CONCAT('$.["', CAST(q.Id as NVARCHAR(36)), '"].isCorrect')) = 'true' THEN 1 END) as correctAnswers
+      FROM dbo.Questions q
+      LEFT JOIN dbo.AssessmentSubmissions s ON s.AssessmentId = q.AssessmentId 
+        AND s.Status = 'completed'
+        AND JSON_VALUE(s.Feedback, CONCAT('$.["', CAST(q.Id as NVARCHAR(36)), '"]')) IS NOT NULL
+      WHERE q.AssessmentId = @assessmentId
+      GROUP BY q.Id, q.Question, q.Type, q.Difficulty, q.OrderIndex
+      ORDER BY q.OrderIndex
+    `, { assessmentId });
+
+    res.json({
+      assessment: assessment[0],
+      analytics: {
+        totalSubmissions: stats.totalSubmissions || 0,
+        completedSubmissions: stats.completedSubmissions || 0,
+        passedSubmissions: stats.passedSubmissions || 0,
+        passRate: parseFloat(passRate.toFixed(1)),
+        averageScore: stats.averageScore ? parseFloat(stats.averageScore.toFixed(1)) : 0,
+        averageTimeSpent: stats.averageTimeSpent ? parseFloat(stats.averageTimeSpent.toFixed(1)) : 0,
+        minScore: stats.minScore || 0,
+        maxScore: stats.maxScore || 0,
+        scoreDistribution: scoreDistribution,
+        recentSubmissions: recentSubmissions,
+        topPerformers: topPerformers,
+        strugglingStudents: strugglingStudents,
+        questionAnalysis: questionAnalysis.map(q => ({
+          ...q,
+          successRate: q.totalAttempts > 0 ? 
+            parseFloat(((q.correctAnswers / q.totalAttempts) * 100).toFixed(1)) : 0
+        }))
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching assessment analytics:', error);
+    res.status(500).json({ error: 'Failed to fetch assessment analytics' });
+  }
+});
+
 // GET /api/assessments/:assessmentId - Get assessment details with questions
 router.get('/:assessmentId', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
@@ -199,7 +349,7 @@ router.post('/', authenticateToken, checkRole(['instructor']), async (req: AuthR
 });
 
 // POST /api/assessments/:assessmentId/start - Start assessment attempt
-router.post('/:assessmentId/start', authenticateToken, checkRole(['student']), async (req: AuthRequest, res: Response) => {
+router.post('/:assessmentId/start', authenticateToken, checkRole(['student', 'instructor']), async (req: AuthRequest, res: Response) => {
   try {
     const { assessmentId } = req.params;
     const userId = req.user?.userId;
@@ -403,7 +553,7 @@ router.post('/:assessmentId/adaptive/submit-answer', authenticateToken, async (r
 });
 
 // POST /api/assessments/submissions/:submissionId/submit - Submit assessment answers
-router.post('/submissions/:submissionId/submit', authenticateToken, checkRole(['student']), async (req: AuthRequest, res: Response) => {
+router.post('/submissions/:submissionId/submit', authenticateToken, checkRole(['student', 'instructor']), async (req: AuthRequest, res: Response) => {
   try {
     const { submissionId } = req.params;
     const { answers } = req.body;
@@ -699,156 +849,6 @@ router.delete('/:assessmentId', authenticateToken, checkRole(['instructor']), as
   } catch (error) {
     console.error('Error deleting assessment:', error);
     res.status(500).json({ error: 'Failed to delete assessment' });
-  }
-});
-
-// GET /api/assessments/:assessmentId/analytics - Get assessment analytics (Instructors only)
-router.get('/:assessmentId/analytics', authenticateToken, checkRole(['instructor']), async (req: AuthRequest, res: Response) => {
-  try {
-    const { assessmentId } = req.params;
-    const db = DatabaseService.getInstance();
-
-    // Get assessment details
-    const assessment = await db.query(`
-      SELECT * FROM dbo.Assessments WHERE Id = @assessmentId
-    `, { assessmentId });
-
-    if (assessment.length === 0) {
-      return res.status(404).json({ error: 'Assessment not found' });
-    }
-
-    // Get total submissions and pass rate
-    const submissionStats = await db.query(`
-      SELECT 
-        COUNT(*) as totalSubmissions,
-        COUNT(CASE WHEN Status = 'completed' THEN 1 END) as completedSubmissions,
-        COUNT(CASE WHEN Status = 'completed' AND Score >= @passingScore THEN 1 END) as passedSubmissions,
-        AVG(CASE WHEN Status = 'completed' THEN CAST(Score as FLOAT) END) as averageScore,
-        AVG(CASE WHEN Status = 'completed' THEN CAST(TimeSpent as FLOAT) END) as averageTimeSpent,
-        MIN(CASE WHEN Status = 'completed' THEN Score END) as minScore,
-        MAX(CASE WHEN Status = 'completed' THEN Score END) as maxScore
-      FROM dbo.AssessmentSubmissions 
-      WHERE AssessmentId = @assessmentId
-    `, { assessmentId, passingScore: assessment[0].PassingScore });
-
-    const stats = submissionStats[0];
-    const passRate = stats.completedSubmissions > 0 ? 
-      (stats.passedSubmissions / stats.completedSubmissions) * 100 : 0;
-
-    // Get score distribution
-    const scoreDistribution = await db.query(`
-      SELECT 
-        CASE 
-          WHEN Score >= 90 THEN '90-100'
-          WHEN Score >= 80 THEN '80-89'
-          WHEN Score >= 70 THEN '70-79'
-          WHEN Score >= 60 THEN '60-69'
-          WHEN Score >= 50 THEN '50-59'
-          ELSE '0-49'
-        END as scoreRange,
-        COUNT(*) as count
-      FROM dbo.AssessmentSubmissions 
-      WHERE AssessmentId = @assessmentId AND Status = 'completed'
-      GROUP BY 
-        CASE 
-          WHEN Score >= 90 THEN '90-100'
-          WHEN Score >= 80 THEN '80-89'
-          WHEN Score >= 70 THEN '70-79'
-          WHEN Score >= 60 THEN '60-69'
-          WHEN Score >= 50 THEN '50-59'
-          ELSE '0-49'
-        END
-      ORDER BY scoreRange DESC
-    `, { assessmentId });
-
-    // Get recent submissions with student details
-    const recentSubmissions = await db.query(`
-      SELECT TOP 10
-        s.Id,
-        s.Score,
-        s.TimeSpent,
-        s.AttemptNumber,
-        s.CompletedAt,
-        u.FirstName + ' ' + u.LastName as StudentName,
-        CASE WHEN s.Score >= @passingScore THEN 1 ELSE 0 END as Passed
-      FROM dbo.AssessmentSubmissions s
-      JOIN dbo.Users u ON s.UserId = u.Id
-      WHERE s.AssessmentId = @assessmentId AND s.Status = 'completed'
-      ORDER BY s.CompletedAt DESC
-    `, { assessmentId, passingScore: assessment[0].PassingScore });
-
-    // Get top and struggling performers
-    const topPerformers = await db.query(`
-      SELECT TOP 5
-        u.FirstName + ' ' + u.LastName as StudentName,
-        s.Score,
-        s.AttemptNumber,
-        s.TimeSpent,
-        s.CompletedAt
-      FROM dbo.AssessmentSubmissions s
-      JOIN dbo.Users u ON s.UserId = u.Id
-      WHERE s.AssessmentId = @assessmentId AND s.Status = 'completed'
-      ORDER BY s.Score DESC, s.AttemptNumber ASC
-    `, { assessmentId });
-
-    const strugglingStudents = await db.query(`
-      SELECT TOP 5
-        u.FirstName + ' ' + u.LastName as StudentName,
-        s.Score,
-        s.AttemptNumber,
-        s.TimeSpent,
-        s.CompletedAt
-      FROM dbo.AssessmentSubmissions s
-      JOIN dbo.Users u ON s.UserId = u.Id
-      WHERE s.AssessmentId = @assessmentId 
-        AND s.Status = 'completed'
-        AND s.Score < @passingScore
-      ORDER BY s.Score ASC, s.AttemptNumber DESC
-    `, { assessmentId, passingScore: assessment[0].PassingScore });
-
-    // Get difficulty analysis by question
-    const questionAnalysis = await db.query(`
-      SELECT 
-        q.Id,
-        q.Question,
-        q.Type,
-        q.Difficulty,
-        COUNT(s.Id) as totalAttempts,
-        COUNT(CASE WHEN JSON_VALUE(s.Feedback, CONCAT('$.["', CAST(q.Id as NVARCHAR(36)), '"].isCorrect')) = 'true' THEN 1 END) as correctAnswers
-      FROM dbo.Questions q
-      LEFT JOIN dbo.AssessmentSubmissions s ON s.AssessmentId = q.AssessmentId 
-        AND s.Status = 'completed'
-        AND JSON_VALUE(s.Feedback, CONCAT('$.["', CAST(q.Id as NVARCHAR(36)), '"]')) IS NOT NULL
-      WHERE q.AssessmentId = @assessmentId
-      GROUP BY q.Id, q.Question, q.Type, q.Difficulty, q.OrderIndex
-      ORDER BY q.OrderIndex
-    `, { assessmentId });
-
-    res.json({
-      assessment: assessment[0],
-      analytics: {
-        totalSubmissions: stats.totalSubmissions || 0,
-        completedSubmissions: stats.completedSubmissions || 0,
-        passedSubmissions: stats.passedSubmissions || 0,
-        passRate: parseFloat(passRate.toFixed(1)),
-        averageScore: stats.averageScore ? parseFloat(stats.averageScore.toFixed(1)) : 0,
-        averageTimeSpent: stats.averageTimeSpent ? parseFloat(stats.averageTimeSpent.toFixed(1)) : 0,
-        minScore: stats.minScore || 0,
-        maxScore: stats.maxScore || 0,
-        scoreDistribution: scoreDistribution,
-        recentSubmissions: recentSubmissions,
-        topPerformers: topPerformers,
-        strugglingStudents: strugglingStudents,
-        questionAnalysis: questionAnalysis.map(q => ({
-          ...q,
-          successRate: q.totalAttempts > 0 ? 
-            parseFloat(((q.correctAnswers / q.totalAttempts) * 100).toFixed(1)) : 0
-        }))
-      }
-    });
-  } catch (error) {
-    console.error('Error fetching assessment analytics:', error);
-    res.status(500).json({ error: 'Failed to fetch assessment analytics' });
   }
 });
 

@@ -100,7 +100,14 @@ const AssessmentManager: React.FC<AssessmentManagerProps> = ({ lessonId }) => {
     setMenuAnchor(null);
   };
 
-  const handleViewAssessment = (assessment: Assessment) => {
+  const handlePreviewAssessment = (assessment: Assessment) => {
+    // Navigate to student view for preview with preview mode
+    navigate(`/assessments/${assessment.id}?preview=true`);
+    setMenuAnchor(null);
+  };
+
+  const handleViewAssessmentAnalytics = (assessment: Assessment) => {
+    // Navigate to analytics page
     navigate(`/instructor/assessments/${assessment.id}/view`);
     setMenuAnchor(null);
   };
@@ -279,9 +286,9 @@ const AssessmentManager: React.FC<AssessmentManagerProps> = ({ lessonId }) => {
                         <Button
                           size="small"
                           startIcon={<ViewIcon />}
-                          onClick={() => handleViewAssessment(assessment)}
+                          onClick={() => handlePreviewAssessment(assessment)}
                         >
-                          View
+                          Preview
                         </Button>
                         <Button
                           size="small"
@@ -384,7 +391,7 @@ const AssessmentManager: React.FC<AssessmentManagerProps> = ({ lessonId }) => {
         open={Boolean(menuAnchor)}
         onClose={() => setMenuAnchor(null)}
       >
-        <MenuItem onClick={() => selectedAssessment && handleViewAssessment(selectedAssessment)}>
+        <MenuItem onClick={() => selectedAssessment && handleViewAssessmentAnalytics(selectedAssessment)}>
           <ViewIcon sx={{ mr: 1 }} />
           View Details
         </MenuItem>

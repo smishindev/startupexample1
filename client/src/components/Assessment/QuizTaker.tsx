@@ -28,7 +28,7 @@ import {
   Warning as WarningIcon,
   TrendingUp as ScoreIcon
 } from '@mui/icons-material';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { assessmentApi, Assessment, Question, AssessmentSubmission } from '../../services/assessmentApi';
 import AdaptiveQuizTaker from './AdaptiveQuizTaker';
 
@@ -109,6 +109,8 @@ interface TraditionalQuizTakerProps {
 
 const TraditionalQuizTaker: React.FC<TraditionalQuizTakerProps> = ({ assessmentId, onComplete }) => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const isPreviewMode = searchParams.get('preview') === 'true';
 
   // State management
   const [assessment, setAssessment] = useState<Assessment | null>(null);
@@ -153,7 +155,8 @@ const TraditionalQuizTaker: React.FC<TraditionalQuizTakerProps> = ({ assessmentI
       setLoading(true);
       const data = await assessmentApi.getAssessmentWithProgress(assessmentId!);
       setAssessment(data);
-      setCanTakeAssessment(data.canTakeAssessment);
+      // In preview mode, always allow taking the assessment
+      setCanTakeAssessment(isPreviewMode || data.canTakeAssessment);
       
       if (data.timeLimit) {
         setTimeRemaining(data.timeLimit * 60); // Convert minutes to seconds
@@ -419,7 +422,13 @@ const TraditionalQuizTaker: React.FC<TraditionalQuizTakerProps> = ({ assessmentI
             </Alert>
           )}
 
-          {!canTakeAssessment && (
+          {isPreviewMode && (
+            <Alert severity="info" sx={{ mb: 3 }}>
+              📝 Preview Mode - You are viewing this assessment as an instructor. This will not affect student records or attempt counts.
+            </Alert>
+          )}
+
+          {!canTakeAssessment && !isPreviewMode && (
             <Alert severity="warning" sx={{ mb: 3 }}>
               You have exceeded the maximum number of attempts for this assessment.
             </Alert>

@@ -59,17 +59,17 @@ const AssessmentManager: React.FC<AssessmentManagerProps> = ({ lessonId }) => {
 
   // Helper function to map API response to expected format
   const mapAssessment = (apiAssessment: any) => ({
-    id: apiAssessment.Id,
-    title: apiAssessment.Title,
-    type: apiAssessment.Type,
-    passingScore: apiAssessment.PassingScore,
-    maxAttempts: apiAssessment.MaxAttempts,
-    timeLimit: apiAssessment.TimeLimit,
-    isAdaptive: apiAssessment.IsAdaptive,
-    questionCount: apiAssessment.QuestionCount,
-    lessonId: apiAssessment.LessonId,
-    createdAt: apiAssessment.CreatedAt,
-    updatedAt: apiAssessment.UpdatedAt
+    id: apiAssessment.id,
+    title: apiAssessment.title,
+    type: apiAssessment.type,
+    passingScore: apiAssessment.passingScore,
+    maxAttempts: apiAssessment.maxAttempts,
+    timeLimit: apiAssessment.timeLimit,
+    isAdaptive: apiAssessment.isAdaptive,
+    questionCount: apiAssessment.questionCount,
+    lessonId: apiAssessment.lessonId,
+    createdAt: apiAssessment.createdAt,
+    updatedAt: apiAssessment.updatedAt
   });
 
   // Load assessments

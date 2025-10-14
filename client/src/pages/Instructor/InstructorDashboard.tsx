@@ -78,6 +78,10 @@ export const InstructorDashboard: React.FC = () => {
         instructorApi.getCourses()
       ]);
       
+      console.log('Instructor stats from API:', statsData);
+      console.log('Instructor courses from API:', coursesData);
+      console.log('First course structure:', coursesData[0]);
+      
       setStats(statsData);
       setCourses(coursesData);
     } catch (error: any) {
@@ -341,7 +345,11 @@ export const InstructorDashboard: React.FC = () => {
       </Box>
       
       <Grid container spacing={3}>
-        {courses.map((course) => (
+        {(() => {
+          console.log('Rendering courses, current courses state:', courses);
+          console.log('First course in render:', courses[0]);
+          return courses;
+        })().map((course) => (
           <Grid item xs={12} sm={6} md={4} key={course.id}>
             <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
               <Box
@@ -452,7 +460,7 @@ export const InstructorDashboard: React.FC = () => {
                       startIcon={<AssignmentIcon />}
                       onClick={() => {
                         // Navigate directly to assessments management for the testvideo lesson
-                        navigate(`/instructor/lessons/2513624D-983D-4B58-9BC7-47324D13E6F6/assessments`);
+                        navigate(`/instructor/lessons/C2CCA540-3BD0-4FDA-9CF0-03071935D58A/assessments`);
                       }}
                       variant="outlined"
                       fullWidth

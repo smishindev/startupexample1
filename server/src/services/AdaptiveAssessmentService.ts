@@ -114,15 +114,26 @@ export class AdaptiveAssessmentService {
   ): Promise<AdaptiveQuestionSelection | null> {
     try {
       // Get available questions
-      const availableQuestions = await this.db.query(`
+      let query = `
         SELECT 
           Id, Difficulty, AdaptiveWeight, Tags,
           Question, Type
         FROM dbo.Questions 
-        WHERE AssessmentId = @assessmentId 
-        AND Id NOT IN (${answeredQuestionIds.map(() => '?').join(',') || 'NULL'})
-        ORDER BY OrderIndex
-      `, { assessmentId, ...answeredQuestionIds });
+        WHERE AssessmentId = @assessmentId`;
+      
+      const params: any = { assessmentId };
+      
+      if (answeredQuestionIds.length > 0) {
+        const placeholders = answeredQuestionIds.map((_, index) => `@answeredId${index}`).join(',');
+        query += ` AND Id NOT IN (${placeholders})`;
+        answeredQuestionIds.forEach((id, index) => {
+          params[`answeredId${index}`] = id;
+        });
+      }
+      
+      query += ` ORDER BY OrderIndex`;
+      
+      const availableQuestions = await this.db.query(query, params);
 
       if (availableQuestions.length === 0) {
         return null; // No more questions available

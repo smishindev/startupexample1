@@ -63,7 +63,22 @@ router.get('/lesson/:lessonId', authenticateToken, async (req: AuthRequest, res:
       ORDER BY a.CreatedAt
     `, { lessonId });
 
-    res.json(assessments);
+    // Map database field names to camelCase
+    const mappedAssessments = assessments.map((assessment: any) => ({
+      id: assessment.Id,
+      lessonId: assessment.LessonId,
+      title: assessment.Title,
+      type: assessment.Type,
+      passingScore: assessment.PassingScore,
+      maxAttempts: assessment.MaxAttempts,
+      timeLimit: assessment.TimeLimit,
+      isAdaptive: assessment.IsAdaptive,
+      createdAt: assessment.CreatedAt,
+      updatedAt: assessment.UpdatedAt,
+      questionCount: assessment.QuestionCount
+    }));
+
+    res.json(mappedAssessments);
   } catch (error) {
     console.error('Error fetching assessments:', error);
     res.status(500).json({ error: 'Failed to fetch assessments' });
@@ -85,7 +100,7 @@ router.get('/:assessmentId/analytics', authenticateToken, checkRole(['instructor
       return res.status(404).json({ error: 'Assessment not found' });
     }
 
-    // Get total submissions and pass rate
+    // Get total submissions and pass rate (excluding preview submissions)
     const submissionStats = await db.query(`
       SELECT 
         COUNT(*) as totalSubmissions,
@@ -96,7 +111,7 @@ router.get('/:assessmentId/analytics', authenticateToken, checkRole(['instructor
         MIN(CASE WHEN Status = 'completed' THEN Score END) as minScore,
         MAX(CASE WHEN Status = 'completed' THEN Score END) as maxScore
       FROM dbo.AssessmentSubmissions 
-      WHERE AssessmentId = @assessmentId
+      WHERE AssessmentId = @assessmentId AND IsPreview = 0
     `, { assessmentId, passingScore: assessment[0].PassingScore });
 
     const stats = submissionStats[0];
@@ -116,7 +131,7 @@ router.get('/:assessmentId/analytics', authenticateToken, checkRole(['instructor
         END as scoreRange,
         COUNT(*) as count
       FROM dbo.AssessmentSubmissions 
-      WHERE AssessmentId = @assessmentId AND Status = 'completed'
+      WHERE AssessmentId = @assessmentId AND Status = 'completed' AND IsPreview = 0
       GROUP BY 
         CASE 
           WHEN Score >= 90 THEN '90-100'
@@ -129,7 +144,7 @@ router.get('/:assessmentId/analytics', authenticateToken, checkRole(['instructor
       ORDER BY scoreRange DESC
     `, { assessmentId });
 
-    // Get recent submissions with student details
+    // Get recent submissions with student details (excluding preview submissions)
     const recentSubmissions = await db.query(`
       SELECT TOP 10
         s.Id,
@@ -141,11 +156,11 @@ router.get('/:assessmentId/analytics', authenticateToken, checkRole(['instructor
         CASE WHEN s.Score >= @passingScore THEN 1 ELSE 0 END as Passed
       FROM dbo.AssessmentSubmissions s
       JOIN dbo.Users u ON s.UserId = u.Id
-      WHERE s.AssessmentId = @assessmentId AND s.Status = 'completed'
+      WHERE s.AssessmentId = @assessmentId AND s.Status = 'completed' AND s.IsPreview = 0
       ORDER BY s.CompletedAt DESC
     `, { assessmentId, passingScore: assessment[0].PassingScore });
 
-    // Get top and struggling performers
+    // Get top and struggling performers (excluding preview submissions)
     const topPerformers = await db.query(`
       SELECT TOP 5
         u.FirstName + ' ' + u.LastName as StudentName,
@@ -155,7 +170,7 @@ router.get('/:assessmentId/analytics', authenticateToken, checkRole(['instructor
         s.CompletedAt
       FROM dbo.AssessmentSubmissions s
       JOIN dbo.Users u ON s.UserId = u.Id
-      WHERE s.AssessmentId = @assessmentId AND s.Status = 'completed'
+      WHERE s.AssessmentId = @assessmentId AND s.Status = 'completed' AND s.IsPreview = 0
       ORDER BY s.Score DESC, s.AttemptNumber ASC
     `, { assessmentId });
 
@@ -171,10 +186,11 @@ router.get('/:assessmentId/analytics', authenticateToken, checkRole(['instructor
       WHERE s.AssessmentId = @assessmentId 
         AND s.Status = 'completed'
         AND s.Score < @passingScore
+        AND s.IsPreview = 0
       ORDER BY s.Score ASC, s.AttemptNumber DESC
     `, { assessmentId, passingScore: assessment[0].PassingScore });
 
-    // Get difficulty analysis by question
+    // Get difficulty analysis by question (excluding preview submissions)
     const questionAnalysis = await db.query(`
       SELECT 
         q.Id,
@@ -182,11 +198,12 @@ router.get('/:assessmentId/analytics', authenticateToken, checkRole(['instructor
         q.Type,
         q.Difficulty,
         COUNT(s.Id) as totalAttempts,
-        COUNT(CASE WHEN JSON_VALUE(s.Feedback, CONCAT('$.["', CAST(q.Id as NVARCHAR(36)), '"].isCorrect')) = 'true' THEN 1 END) as correctAnswers
+        COUNT(CASE WHEN JSON_VALUE(s.Feedback, CONCAT('$."', CAST(q.Id as NVARCHAR(36)), '".isCorrect')) = 'true' THEN 1 END) as correctAnswers
       FROM dbo.Questions q
       LEFT JOIN dbo.AssessmentSubmissions s ON s.AssessmentId = q.AssessmentId 
         AND s.Status = 'completed'
-        AND JSON_VALUE(s.Feedback, CONCAT('$.["', CAST(q.Id as NVARCHAR(36)), '"]')) IS NOT NULL
+        AND s.IsPreview = 0
+        AND JSON_VALUE(s.Feedback, CONCAT('$."', CAST(q.Id as NVARCHAR(36)), '"')) IS NOT NULL
       WHERE q.AssessmentId = @assessmentId
       GROUP BY q.Id, q.Question, q.Type, q.Difficulty, q.OrderIndex
       ORDER BY q.OrderIndex
@@ -225,12 +242,31 @@ router.get('/:assessmentId', authenticateToken, async (req: AuthRequest, res: Re
   try {
     const { assessmentId } = req.params;
     const userId = req.user?.userId;
+    const userRole = req.user?.role;
     const db = DatabaseService.getInstance();
 
-    // Get assessment details
+    // Get assessment details with lesson info
     const assessment = await db.query(`
-      SELECT * FROM dbo.Assessments WHERE Id = @assessmentId
+      SELECT a.*, l.CourseId FROM dbo.Assessments a
+      JOIN dbo.Lessons l ON a.LessonId = l.Id
+      WHERE a.Id = @assessmentId
     `, { assessmentId });
+
+    if (assessment.length === 0) {
+      return res.status(404).json({ error: 'Assessment not found' });
+    }
+
+    // Check if student is enrolled in the course (only for students)
+    if (userRole === 'student') {
+      const enrollment = await db.query(`
+        SELECT Id FROM dbo.Enrollments 
+        WHERE UserId = @userId AND CourseId = @courseId AND Status = 'active'
+      `, { userId, courseId: assessment[0].CourseId });
+
+      if (enrollment.length === 0) {
+        return res.status(403).json({ error: 'You are not enrolled in this course' });
+      }
+    }
 
     if (assessment.length === 0) {
       return res.status(404).json({ error: 'Assessment not found' });
@@ -267,7 +303,16 @@ router.get('/:assessmentId', authenticateToken, async (req: AuthRequest, res: Re
     }
 
     res.json({
-      ...assessment[0],
+      id: assessment[0].Id,
+      lessonId: assessment[0].LessonId,
+      title: assessment[0].Title,
+      type: assessment[0].Type,
+      passingScore: assessment[0].PassingScore,
+      maxAttempts: assessment[0].MaxAttempts,
+      timeLimit: assessment[0].TimeLimit,
+      isAdaptive: assessment[0].IsAdaptive,
+      createdAt: assessment[0].CreatedAt,
+      updatedAt: assessment[0].UpdatedAt,
       questions: parsedQuestions,
       userSubmissions: userSubmissions
     });
@@ -352,6 +397,7 @@ router.post('/', authenticateToken, checkRole(['instructor']), async (req: AuthR
 router.post('/:assessmentId/start', authenticateToken, checkRole(['student', 'instructor']), async (req: AuthRequest, res: Response) => {
   try {
     const { assessmentId } = req.params;
+    const { isPreview = false } = req.body; // Accept preview mode flag
     const userId = req.user?.userId;
     const db = DatabaseService.getInstance();
 
@@ -364,18 +410,21 @@ router.post('/:assessmentId/start', authenticateToken, checkRole(['student', 'in
       return res.status(404).json({ error: 'Assessment not found' });
     }
 
-    // Check previous attempts
-    const previousAttempts = await db.query(`
-      SELECT COUNT(*) as attemptCount FROM dbo.AssessmentSubmissions 
-      WHERE UserId = @userId AND AssessmentId = @assessmentId
-    `, { userId, assessmentId });
+    // Skip attempt limit check for preview mode
+    if (!isPreview) {
+      // Check previous attempts (excluding preview attempts)
+      const previousAttempts = await db.query(`
+        SELECT COUNT(*) as attemptCount FROM dbo.AssessmentSubmissions 
+        WHERE UserId = @userId AND AssessmentId = @assessmentId AND IsPreview = 0
+      `, { userId, assessmentId });
 
-    const attemptCount = previousAttempts[0].attemptCount;
-    if (attemptCount >= assessment[0].MaxAttempts) {
-      return res.status(400).json({ error: 'Maximum attempts exceeded' });
+      const attemptCount = previousAttempts[0].attemptCount;
+      if (attemptCount >= assessment[0].MaxAttempts) {
+        return res.status(400).json({ error: 'Maximum attempts exceeded' });
+      }
     }
 
-    // Check for existing in-progress attempt
+    // Check for existing in-progress attempt (including preview)
     const inProgress = await db.query(`
       SELECT Id FROM dbo.AssessmentSubmissions 
       WHERE UserId = @userId AND AssessmentId = @assessmentId AND Status = 'in_progress'
@@ -385,25 +434,36 @@ router.post('/:assessmentId/start', authenticateToken, checkRole(['student', 'in
       return res.json({ submissionId: inProgress[0].Id, message: 'Assessment already in progress' });
     }
 
+    // Get attempt number (only count non-preview attempts)
+    const attemptCount = isPreview ? 0 : await db.query(`
+      SELECT COUNT(*) as attemptCount FROM dbo.AssessmentSubmissions 
+      WHERE UserId = @userId AND AssessmentId = @assessmentId AND IsPreview = 0
+    `, { userId, assessmentId }).then(result => result[0].attemptCount);
+
     // Create new submission
     const submissionId = uuidv4();
     await db.query(`
       INSERT INTO dbo.AssessmentSubmissions (
         Id, UserId, AssessmentId, Answers, Score, MaxScore, 
-        AttemptNumber, Status, StartedAt
+        AttemptNumber, Status, StartedAt, IsPreview
       )
       VALUES (
         @id, @userId, @assessmentId, '{}', 0, 100,
-        @attemptNumber, 'in_progress', GETUTCDATE()
+        @attemptNumber, 'in_progress', GETUTCDATE(), @isPreview
       )
     `, {
       id: submissionId,
       userId,
       assessmentId,
-      attemptNumber: attemptCount + 1
+      attemptNumber: isPreview ? 0 : (attemptCount + 1),
+      isPreview: isPreview ? 1 : 0
     });
 
-    res.json({ submissionId, attemptNumber: attemptCount + 1 });
+    res.json({ 
+      submissionId, 
+      attemptNumber: isPreview ? 0 : (attemptCount + 1),
+      isPreview 
+    });
   } catch (error) {
     console.error('Error starting assessment:', error);
     res.status(500).json({ error: 'Failed to start assessment' });

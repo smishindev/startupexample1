@@ -172,7 +172,7 @@ const TraditionalQuizTaker: React.FC<TraditionalQuizTakerProps> = ({ assessmentI
   const startAssessment = async () => {
     try {
       setLoading(true);
-      const response = await assessmentApi.startAssessment(assessmentId!);
+      const response = await assessmentApi.startAssessment(assessmentId!, isPreviewMode);
       setSubmissionId(response.submissionId);
       setAssessmentStarted(true);
       setError(null);

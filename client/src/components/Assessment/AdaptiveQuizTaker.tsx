@@ -28,7 +28,7 @@ import {
   TrendingUp as ScoreIcon,
   Psychology as AdaptiveIcon
 } from '@mui/icons-material';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { assessmentApi, Assessment, AssessmentSubmission } from '../../services/assessmentApi';
 
 interface AdaptiveQuizTakerProps {
@@ -57,6 +57,8 @@ interface AnsweredQuestion {
 const AdaptiveQuizTaker: React.FC<AdaptiveQuizTakerProps> = ({ assessmentId: propAssessmentId, onComplete }) => {
   const { assessmentId: paramAssessmentId } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const isPreviewMode = searchParams.get('preview') === 'true';
   
   const assessmentId = propAssessmentId || paramAssessmentId;
 
@@ -109,7 +111,7 @@ const AdaptiveQuizTaker: React.FC<AdaptiveQuizTakerProps> = ({ assessmentId: pro
       setLoading(true);
       const data = await assessmentApi.getAssessmentWithProgress(assessmentId!);
       setAssessment(data);
-      setCanTakeAssessment(data.canTakeAssessment);
+      setCanTakeAssessment(isPreviewMode || data.canTakeAssessment);
       
       if (data.timeLimit) {
         setTimeRemaining(data.timeLimit * 60); // Convert minutes to seconds
@@ -125,7 +127,7 @@ const AdaptiveQuizTaker: React.FC<AdaptiveQuizTakerProps> = ({ assessmentId: pro
   const startAssessment = async () => {
     try {
       setSubmitting(true);
-      const submission = await assessmentApi.startAssessment(assessmentId!);
+      const submission = await assessmentApi.startAssessment(assessmentId!, isPreviewMode);
       setSubmissionId(submission.submissionId);
       setAssessmentStarted(true);
       setQuestionStartTime(Date.now());
@@ -362,7 +364,7 @@ const AdaptiveQuizTaker: React.FC<AdaptiveQuizTakerProps> = ({ assessmentId: pro
     );
   }
 
-  if (!canTakeAssessment) {
+  if (!canTakeAssessment && !isPreviewMode) {
     return (
       <Alert severity="info" sx={{ m: 2 }}>
         You cannot take this assessment at this time. Please check the requirements or contact your instructor.
@@ -427,7 +429,11 @@ const AdaptiveQuizTaker: React.FC<AdaptiveQuizTakerProps> = ({ assessmentId: pro
           <Box mt={3}>
             <Button
               variant="contained"
-              onClick={() => navigate('/learning')}
+              onClick={() => {
+                // For now, navigate to My Learning page which is more reliable
+                // TODO: Could be enhanced to return to specific lesson page
+                navigate('/my-learning');
+              }}
               fullWidth
             >
               Continue Learning
@@ -452,6 +458,12 @@ const AdaptiveQuizTaker: React.FC<AdaptiveQuizTakerProps> = ({ assessmentId: pro
           <Alert severity="info" sx={{ mb: 3 }}>
             This is an adaptive assessment that will adjust question difficulty based on your performance.
           </Alert>
+
+          {isPreviewMode && (
+            <Alert severity="warning" sx={{ mb: 3 }}>
+              <strong>Preview Mode:</strong> You are viewing this assessment as an instructor. Results will not be recorded.
+            </Alert>
+          )}
 
           <Box mb={3}>
             <Typography variant="body1" paragraph>

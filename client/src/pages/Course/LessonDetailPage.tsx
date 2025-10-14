@@ -34,6 +34,7 @@ import { VideoPlayer } from '../../components/Video/VideoPlayer';
 import { VideoProgressTracker } from '../../components/Video/VideoProgressTracker';
 import { lessonApi, Lesson } from '../../services/lessonApi';
 import { progressApi } from '../../services/progressApi';
+import { assessmentApi, Assessment } from '../../services/assessmentApi';
 
 interface ExtendedLessonContent {
   id: string;
@@ -117,6 +118,7 @@ export const LessonDetailPage: React.FC = () => {
   
   const [lesson, setLesson] = useState<ExtendedLesson | null>(null);
   const [allLessons, setAllLessons] = useState<Lesson[]>([]);
+  const [assessments, setAssessments] = useState<Assessment[]>([]);
   const [progress, setProgress] = useState<any>(null);
   const [newComment, setNewComment] = useState('');
   const [isBookmarked, setIsBookmarked] = useState(false);
@@ -136,11 +138,12 @@ export const LessonDetailPage: React.FC = () => {
         setLoading(true);
         setError(null);
 
-        // Fetch lesson details, all lessons for navigation, and progress
-        const [lessonData, lessonsData, progressData] = await Promise.all([
+        // Fetch lesson details, all lessons for navigation, progress, and assessments
+        const [lessonData, lessonsData, progressData, assessmentsData] = await Promise.all([
           lessonApi.getLesson(lessonId),
           lessonApi.getLessons(courseId),
-          progressApi.getCourseProgress(courseId).catch(() => null) // Progress might not exist yet
+          progressApi.getCourseProgress(courseId).catch(() => null), // Progress might not exist yet
+          assessmentApi.getAssessmentsByLesson(lessonId).catch(() => []) // Assessments might not exist
         ]);
 
         // Find adjacent lessons for navigation
@@ -171,6 +174,7 @@ export const LessonDetailPage: React.FC = () => {
 
         setLesson(extendedLesson);
         setAllLessons(lessonsData);
+        setAssessments(assessmentsData);
         setProgress(progressData);
 
         // Debug: Log progress data (can be removed in production)
@@ -464,6 +468,67 @@ export const LessonDetailPage: React.FC = () => {
                 )}
               </Paper>
             ))}
+
+            {/* Assessments Section */}
+            {assessments.length > 0 && (
+              <Paper sx={{ p: 3, mb: 3 }}>
+                <Typography variant="h6" sx={{ mb: 3 }}>
+                  Assessments ({assessments.length})
+                </Typography>
+                {assessments.map((assessment) => (
+                  <Box key={assessment.id} sx={{ mb: 2, p: 2, border: '1px solid #e0e0e0', borderRadius: 1 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        <Quiz sx={{ mr: 2, color: 'primary.main' }} />
+                        <Box>
+                          <Typography variant="h6">{assessment.title}</Typography>
+                          <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
+                            <Chip 
+                              label={assessment.type} 
+                              size="small" 
+                              color="primary" 
+                              variant="outlined" 
+                            />
+                            {assessment.isAdaptive && (
+                              <Chip 
+                                label="Adaptive" 
+                                size="small" 
+                                color="secondary" 
+                                variant="outlined" 
+                              />
+                            )}
+                            <Chip 
+                              label={`Passing: ${assessment.passingScore}%`} 
+                              size="small" 
+                              variant="outlined" 
+                            />
+                            <Chip 
+                              label={`${assessment.maxAttempts} attempts`} 
+                              size="small" 
+                              variant="outlined" 
+                            />
+                            {assessment.timeLimit && (
+                              <Chip 
+                                label={`${assessment.timeLimit} min`} 
+                                size="small" 
+                                variant="outlined" 
+                              />
+                            )}
+                          </Box>
+                        </Box>
+                      </Box>
+                      <Button 
+                        variant="contained" 
+                        onClick={() => navigate(`/assessments/${assessment.id}`)}
+                        sx={{ ml: 2 }}
+                      >
+                        Take Assessment
+                      </Button>
+                    </Box>
+                  </Box>
+                ))}
+              </Paper>
+            )}
 
             {/* Comments Section */}
             <Paper sx={{ p: 3 }}>

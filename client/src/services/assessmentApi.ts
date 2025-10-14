@@ -197,9 +197,9 @@ class AssessmentApiService {
     return response.data;
   }
 
-  // Start assessment attempt (students only)
-  async startAssessment(assessmentId: string): Promise<StartAssessmentResponse> {
-    const response = await api.post(`${this.baseUrl}/${assessmentId}/start`);
+  // Start assessment attempt
+  async startAssessment(assessmentId: string, isPreview: boolean = false): Promise<StartAssessmentResponse> {
+    const response = await api.post(`${this.baseUrl}/${assessmentId}/start`, { isPreview });
     return response.data;
   }
 

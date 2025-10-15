@@ -2,6 +2,7 @@
   "name": "@mishin-learn/server",
   "version": "1.0.0",
   "description": "Backend server for Mishin Learn Platform",
+  "license": "UNLICENSED",
   "main": "dist/index.js",
   "scripts": {
     "dev": "nodemon src/index.ts",

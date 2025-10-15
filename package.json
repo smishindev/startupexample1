@@ -2,8 +2,8 @@
   "name": "mishin-learn-platform",
   "version": "1.0.0",
   "description": "Smart Learning Platform with AI Tutoring and Progress Analytics",
-  "author": "Mishin",
-  "license": "MIT",
+  "author": "Sergey Mishin <s.mishin.dev@gmail.com>",
+  "license": "UNLICENSED",
   "engines": {
     "node": ">=18.0.0"
   },

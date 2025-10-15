@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "type": "module",
   "description": "Frontend client for Mishin Learn Platform",
+  "license": "UNLICENSED",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",

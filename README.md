@@ -156,6 +156,18 @@ See `.env.example` files in client and server directories for required configura
 - [ ] Enterprise solutions
 - [ ] API for third-party integrations
 
+## 📄 License & Copyright
+
+**© 2025 Sergey Mishin. All rights reserved.**
+
+This software is proprietary and confidential. Unauthorized copying, distribution, modification, or use of this software is strictly prohibited without explicit written permission from the copyright holder.
+
+- **Source Code**: Available for viewing and educational purposes only
+- **Commercial Use**: Prohibited without explicit license agreement
+- **Contact**: s.mishin.dev@gmail.com for licensing inquiries
+
+For full license terms, see [LICENSE](./LICENSE) file.
+
 ---
 
-**Built with ❤️ by Mishin** | *Empowering learners through intelligent technology*
+**Built with ❤️ by Sergey Mishin** | *Empowering learners through intelligent technology*

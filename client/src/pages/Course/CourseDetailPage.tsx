@@ -174,7 +174,23 @@ export const CourseDetailPage: React.FC = () => {
             'Building and deploying production-ready applications',
             'Modern development workflow and best practices',
           ],
-          sections: [
+          sections: courseData.Lessons && courseData.Lessons.length > 0 ? [
+            {
+              id: 'section-1',
+              title: courseData.Title + ' Lessons',
+              isCompleted: false,
+              lessons: courseData.Lessons.map((lesson: any, index: number) => ({
+                id: lesson.Id,
+                title: lesson.Title,
+                type: 'video' as const,
+                duration: lesson.Duration ? `${lesson.Duration} min` : '5:30',
+                isCompleted: false,
+                isLocked: false,
+                description: lesson.Description,
+                videoUrl: `https://example.com/video${index + 1}`,
+              })),
+            },
+          ] : [
             {
               id: 'section-1',
               title: 'Getting Started with Advanced React',
@@ -646,8 +662,8 @@ export const CourseDetailPage: React.FC = () => {
                   size="large"
                   fullWidth
                   onClick={() => {
-                    if (course.sections[0]?.lessons[0]) {
-                      handleLessonSelect(course.sections[0].lessons[0]);
+                    if (course?.sections[0]?.lessons[0]) {
+                      navigate(`/courses/${course.id}/lessons/${course.sections[0].lessons[0].id}`);
                     }
                   }}
                   sx={{ mb: 3 }}

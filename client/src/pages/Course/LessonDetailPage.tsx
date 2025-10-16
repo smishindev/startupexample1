@@ -27,6 +27,7 @@ import {
   Bookmark,
   Share,
   ThumbUp,
+  Check,
 } from '@mui/icons-material';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Header } from '../../components/Navigation/Header';
@@ -195,6 +196,19 @@ export const LessonDetailPage: React.FC = () => {
 
   const handleMarkComplete = async () => {
     if (lesson) {
+      // Check if there are assessments available
+      if (assessments.length > 0) {
+        const shouldTakeAssessments = window.confirm(
+          `This lesson has ${assessments.length} assessment(s) available. Would you like to take them now to test your understanding before marking the lesson complete?`
+        );
+        
+        if (shouldTakeAssessments) {
+          // Navigate to the first assessment
+          navigate(`/assessments/${assessments[0].id}`);
+          return;
+        }
+      }
+
       try {
         // Mark lesson as complete via API
         await progressApi.markLessonComplete(lesson.id, {
@@ -206,6 +220,16 @@ export const LessonDetailPage: React.FC = () => {
         setLesson({ ...lesson, completed: true, progress: 100 });
         
         console.log('Lesson marked as complete successfully');
+        
+        // Show completion message with next steps
+        const message = lesson.nextLessonId 
+          ? 'Lesson completed! Would you like to proceed to the next lesson?'
+          : 'Lesson completed! Great job finishing this lesson.';
+          
+        if (lesson.nextLessonId && window.confirm(message)) {
+          navigate(`/courses/${courseId}/lessons/${lesson.nextLessonId}`);
+        }
+        
       } catch (error) {
         console.error('Failed to mark lesson as complete:', error);
         // You could show an error message to the user here
@@ -472,61 +496,120 @@ export const LessonDetailPage: React.FC = () => {
             {/* Assessments Section */}
             {assessments.length > 0 && (
               <Paper sx={{ p: 3, mb: 3 }}>
-                <Typography variant="h6" sx={{ mb: 3 }}>
-                  Assessments ({assessments.length})
+                <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
+                  <Quiz sx={{ mr: 1, color: 'primary.main' }} />
+                  Lesson Assessments ({assessments.length})
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                  Complete these assessments to test your understanding of the lesson material.
                 </Typography>
                 {assessments.map((assessment) => (
-                  <Box key={assessment.id} sx={{ mb: 2, p: 2, border: '1px solid #e0e0e0', borderRadius: 1 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <Quiz sx={{ mr: 2, color: 'primary.main' }} />
-                        <Box>
-                          <Typography variant="h6">{assessment.title}</Typography>
-                          <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
+                  <Paper 
+                    key={assessment.id} 
+                    sx={{ 
+                      mb: 2, 
+                      p: 3, 
+                      border: '1px solid #e0e0e0', 
+                      borderRadius: 2,
+                      '&:hover': {
+                        boxShadow: 2,
+                        borderColor: 'primary.main'
+                      }
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+                      <Box sx={{ flex: 1 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                          <Quiz sx={{ mr: 1, color: 'primary.main' }} />
+                          <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                            {assessment.title}
+                          </Typography>
+                        </Box>
+                        
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
+                          <Chip 
+                            label={assessment.type} 
+                            size="small" 
+                            color="primary" 
+                            variant="outlined" 
+                          />
+                          {assessment.isAdaptive && (
                             <Chip 
-                              label={assessment.type} 
+                              label="🧠 Adaptive" 
                               size="small" 
-                              color="primary" 
+                              color="secondary" 
                               variant="outlined" 
                             />
-                            {assessment.isAdaptive && (
-                              <Chip 
-                                label="Adaptive" 
-                                size="small" 
-                                color="secondary" 
-                                variant="outlined" 
-                              />
-                            )}
+                          )}
+                          <Chip 
+                            label={`Pass: ${assessment.passingScore}%`} 
+                            size="small" 
+                            variant="outlined" 
+                          />
+                          <Chip 
+                            label={`${assessment.maxAttempts} attempts max`} 
+                            size="small" 
+                            variant="outlined" 
+                          />
+                          {assessment.timeLimit && (
                             <Chip 
-                              label={`Passing: ${assessment.passingScore}%`} 
+                              label={`⏱️ ${assessment.timeLimit} min`} 
                               size="small" 
                               variant="outlined" 
+                              color="warning"
                             />
-                            <Chip 
-                              label={`${assessment.maxAttempts} attempts`} 
-                              size="small" 
-                              variant="outlined" 
-                            />
-                            {assessment.timeLimit && (
-                              <Chip 
-                                label={`${assessment.timeLimit} min`} 
-                                size="small" 
-                                variant="outlined" 
-                              />
-                            )}
-                          </Box>
+                          )}
+                        </Box>
+                        
+                        {/* Assessment Status - TODO: Implement with real progress data */}
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                          <Typography variant="body2" color="text.secondary">
+                            Status: 
+                          </Typography>
+                          <Chip 
+                            label="Not Started" 
+                            size="small" 
+                            variant="outlined"
+                            color="default"
+                          />
                         </Box>
                       </Box>
-                      <Button 
-                        variant="contained" 
-                        onClick={() => navigate(`/assessments/${assessment.id}`)}
-                        sx={{ ml: 2 }}
-                      >
-                        Take Assessment
-                      </Button>
+                      
+                      <Box sx={{ ml: 3, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                        <Button 
+                          variant="contained" 
+                          size="large"
+                          onClick={() => {
+                            const returnUrl = `/courses/${courseId}/lessons/${lessonId}`;
+                            navigate(`/assessments/${assessment.id}?returnUrl=${encodeURIComponent(returnUrl)}&courseId=${courseId}&lessonId=${lessonId}`);
+                          }}
+                          sx={{ 
+                            minWidth: '140px',
+                            background: 'linear-gradient(45deg, #667eea 30%, #764ba2 90%)',
+                            '&:hover': {
+                              background: 'linear-gradient(45deg, #5a67d8 30%, #6b46c1 90%)',
+                            }
+                          }}
+                        >
+                          Start Assessment
+                        </Button>
+                        {assessment.isAdaptive && (
+                          <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'center' }}>
+                            AI-powered difficulty
+                          </Typography>
+                        )}
+                      </Box>
                     </Box>
-                  </Box>
+                  </Paper>
                 ))}
+                
+                {/* Assessment completion hint */}
+                <Paper sx={{ p: 2, mt: 2, bgcolor: 'info.light', border: '1px solid #1976d2' }}>
+                  <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Check sx={{ mr: 1, color: 'info.main' }} />
+                    <strong>Tip:</strong> Complete assessments to unlock the next lesson and track your progress!
+                  </Typography>
+                </Paper>
               </Paper>
             )}
 

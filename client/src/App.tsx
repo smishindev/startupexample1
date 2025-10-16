@@ -18,10 +18,12 @@ import { CourseCreationForm } from './pages/Instructor/CourseCreationForm';
 import { CourseEditPage } from './pages/Instructor/CourseEditPage';
 import { LessonManagementPage } from './pages/Instructor/LessonManagementPage';
 import { AssessmentManagementPage } from './pages/Instructor/AssessmentManagementPage';
+import { CourseAssessmentManagementPage } from './pages/Instructor/CourseAssessmentManagementPage';
 import { AssessmentCreationPage } from './pages/Instructor/AssessmentCreationPage';
 import { AssessmentEditPage } from './pages/Instructor/AssessmentEditPage';
 import { AssessmentViewPage } from './pages/Instructor/AssessmentViewPage';
 import { AssessmentTakingPage } from './pages/Assessment/AssessmentTakingPage';
+import { StudentAssessmentDashboard } from './pages/Assessment/StudentAssessmentDashboard';
 import StudentManagement from './pages/Instructor/StudentManagement';
 import CourseAnalyticsDashboard from './pages/Instructor/CourseAnalyticsDashboard';
 import LandingPage from './pages/Landing/LandingPage';
@@ -134,6 +136,15 @@ function App() {
         />
 
         <Route
+          path="/my-assessments"
+          element={
+            <ProtectedRoute>
+              <StudentAssessmentDashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
           path="/assessments/:assessmentId"
           element={
             <ProtectedRoute>
@@ -180,6 +191,15 @@ function App() {
           element={
             <ProtectedRoute requireRole="instructor">
               <LessonManagementPage />
+            </ProtectedRoute>
+          }
+        />
+        
+        <Route
+          path="/instructor/courses/:courseId/assessments"
+          element={
+            <ProtectedRoute requireRole="instructor">
+              <CourseAssessmentManagementPage />
             </ProtectedRoute>
           }
         />

@@ -35,7 +35,7 @@ import { VideoPlayer } from '../../components/Video/VideoPlayer';
 import { VideoProgressTracker } from '../../components/Video/VideoProgressTracker';
 import { lessonApi, Lesson } from '../../services/lessonApi';
 import { progressApi } from '../../services/progressApi';
-import { assessmentApi, Assessment } from '../../services/assessmentApi';
+import { assessmentApi, AssessmentWithProgress } from '../../services/assessmentApi';
 
 interface ExtendedLessonContent {
   id: string;
@@ -119,7 +119,7 @@ export const LessonDetailPage: React.FC = () => {
   
   const [lesson, setLesson] = useState<ExtendedLesson | null>(null);
   const [allLessons, setAllLessons] = useState<Lesson[]>([]);
-  const [assessments, setAssessments] = useState<Assessment[]>([]);
+  const [assessments, setAssessments] = useState<AssessmentWithProgress[]>([]);
   const [progress, setProgress] = useState<any>(null);
   const [newComment, setNewComment] = useState('');
   const [isBookmarked, setIsBookmarked] = useState(false);
@@ -561,43 +561,115 @@ export const LessonDetailPage: React.FC = () => {
                           )}
                         </Box>
                         
-                        {/* Assessment Status - TODO: Implement with real progress data */}
+                        {/* Assessment Status */}
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                           <Typography variant="body2" color="text.secondary">
                             Status: 
                           </Typography>
-                          <Chip 
-                            label="Not Started" 
-                            size="small" 
-                            variant="outlined"
-                            color="default"
-                          />
+                          {assessment.userProgress ? (
+                            <>
+                              <Chip 
+                                label={
+                                  assessment.userProgress.status === 'passed' ? 'Passed ✅' :
+                                  assessment.userProgress.status === 'completed' ? 'Completed' :
+                                  assessment.userProgress.status === 'in_progress' ? 'In Progress' :
+                                  'Not Started'
+                                }
+                                size="small" 
+                                variant={assessment.userProgress.status === 'passed' ? 'filled' : 'outlined'}
+                                color={
+                                  assessment.userProgress.status === 'passed' ? 'success' :
+                                  assessment.userProgress.status === 'completed' ? 'primary' :
+                                  assessment.userProgress.status === 'in_progress' ? 'warning' :
+                                  'default'
+                                }
+                              />
+                              {assessment.userProgress.bestScore > 0 && (
+                                <Chip 
+                                  label={`Best: ${assessment.userProgress.bestScore}%`} 
+                                  size="small" 
+                                  variant="outlined"
+                                  color={assessment.userProgress.passed ? 'success' : 'default'}
+                                />
+                              )}
+                              {assessment.userProgress.attemptsUsed > 0 && (
+                                <Chip 
+                                  label={`${assessment.userProgress.attemptsUsed}/${assessment.maxAttempts} attempts`} 
+                                  size="small" 
+                                  variant="outlined"
+                                  color={assessment.userProgress.attemptsLeft === 0 ? 'error' : 'info'}
+                                />
+                              )}
+                            </>
+                          ) : (
+                            <Chip 
+                              label="Not Started" 
+                              size="small" 
+                              variant="outlined"
+                              color="default"
+                            />
+                          )}
                         </Box>
                       </Box>
                       
                       <Box sx={{ ml: 3, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                        <Button 
-                          variant="contained" 
-                          size="large"
-                          onClick={() => {
-                            const returnUrl = `/courses/${courseId}/lessons/${lessonId}`;
-                            navigate(`/assessments/${assessment.id}?returnUrl=${encodeURIComponent(returnUrl)}&courseId=${courseId}&lessonId=${lessonId}`);
-                          }}
-                          sx={{ 
-                            minWidth: '140px',
-                            background: 'linear-gradient(45deg, #667eea 30%, #764ba2 90%)',
-                            '&:hover': {
-                              background: 'linear-gradient(45deg, #5a67d8 30%, #6b46c1 90%)',
-                            }
-                          }}
-                        >
-                          Start Assessment
-                        </Button>
-                        {assessment.isAdaptive && (
-                          <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'center' }}>
-                            AI-powered difficulty
-                          </Typography>
+                        {assessment.userProgress?.canTakeAssessment !== false ? (
+                          <Button 
+                            variant="contained" 
+                            size="large"
+                            onClick={() => {
+                              const returnUrl = `/courses/${courseId}/lessons/${lessonId}`;
+                              navigate(`/assessments/${assessment.id}?returnUrl=${encodeURIComponent(returnUrl)}&courseId=${courseId}&lessonId=${lessonId}`);
+                            }}
+                            sx={{ 
+                              minWidth: '140px',
+                              background: assessment.userProgress?.status === 'passed' 
+                                ? 'linear-gradient(45deg, #4caf50 30%, #66bb6a 90%)'
+                                : assessment.userProgress?.status === 'completed'
+                                ? 'linear-gradient(45deg, #ff9800 30%, #ffb74d 90%)'
+                                : 'linear-gradient(45deg, #667eea 30%, #764ba2 90%)',
+                              '&:hover': {
+                                background: assessment.userProgress?.status === 'passed'
+                                  ? 'linear-gradient(45deg, #388e3c 30%, #4caf50 90%)'
+                                  : assessment.userProgress?.status === 'completed'
+                                  ? 'linear-gradient(45deg, #f57c00 30%, #ff9800 90%)'
+                                  : 'linear-gradient(45deg, #5a67d8 30%, #6b46c1 90%)',
+                              }
+                            }}
+                          >
+                            {assessment.userProgress?.status === 'passed' ? 'Retake Assessment' :
+                             assessment.userProgress?.status === 'completed' ? 'Retry Assessment' :
+                             assessment.userProgress?.status === 'in_progress' ? 'Continue Assessment' :
+                             'Start Assessment'}
+                          </Button>
+                        ) : (
+                          <Button 
+                            variant="outlined" 
+                            size="large"
+                            disabled
+                            sx={{ 
+                              minWidth: '140px'
+                            }}
+                          >
+                            Max Attempts Reached
+                          </Button>
                         )}
+                        
+                        <Box sx={{ textAlign: 'center' }}>
+                          {assessment.isAdaptive && (
+                            <Typography variant="caption" color="text.secondary">
+                              🧠 AI-powered difficulty
+                            </Typography>
+                          )}
+                          {assessment.userProgress && assessment.userProgress.attemptsLeft < assessment.maxAttempts && (
+                            <Typography variant="caption" color={assessment.userProgress.attemptsLeft > 0 ? 'warning.main' : 'error.main'}>
+                              {assessment.userProgress.attemptsLeft > 0 
+                                ? `${assessment.userProgress.attemptsLeft} attempts left`
+                                : 'No attempts remaining'
+                              }
+                            </Typography>
+                          )}
+                        </Box>
                       </Box>
                     </Box>
                   </Paper>

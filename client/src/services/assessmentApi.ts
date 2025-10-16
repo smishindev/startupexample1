@@ -33,6 +33,22 @@ export interface Assessment {
   userSubmissions?: AssessmentSubmission[];
 }
 
+export interface AssessmentProgress {
+  bestScore: number;
+  latestSubmission: AssessmentSubmission | null;
+  totalAttempts: number;
+  completedAttempts: number;
+  attemptsUsed: number;
+  attemptsLeft: number;
+  passed: boolean;
+  canTakeAssessment: boolean;
+  status: 'not_started' | 'in_progress' | 'completed' | 'passed';
+}
+
+export interface AssessmentWithProgress extends Assessment {
+  userProgress?: AssessmentProgress;
+}
+
 export interface Question {
   id: string;
   assessmentId: string;
@@ -168,7 +184,7 @@ class AssessmentApiService {
   private baseUrl = '/api/assessments';
 
   // Get all assessments for a lesson
-  async getAssessmentsByLesson(lessonId: string): Promise<Assessment[]> {
+  async getAssessmentsByLesson(lessonId: string): Promise<AssessmentWithProgress[]> {
     const response = await api.get(`${this.baseUrl}/lesson/${lessonId}`);
     return response.data;
   }
@@ -263,6 +279,11 @@ class AssessmentApiService {
   }
 
   // Get comprehensive assessment analytics for instructors
+  async getMyAssessmentProgress(): Promise<any> {
+    const response = await api.get(`${this.baseUrl}/my-progress`);
+    return response.data;
+  }
+
   async getAssessmentAnalytics(assessmentId: string): Promise<AssessmentAnalytics> {
     const response = await api.get(`${this.baseUrl}/${assessmentId}/analytics`);
     return response.data;

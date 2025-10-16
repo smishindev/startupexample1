@@ -46,10 +46,12 @@ interface AssessmentSubmission {
   feedback?: Record<string, any>;
 }
 
-// GET /api/assessments/lesson/:lessonId - Get all assessments for a lesson
+// GET /api/assessments/lesson/:lessonId - Get all assessments for a lesson with progress
 router.get('/lesson/:lessonId', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
     const { lessonId } = req.params;
+    const userId = req.user?.userId;
+    const userRole = req.user?.role;
     const db = DatabaseService.getInstance();
 
     const assessments = await db.query(`
@@ -63,25 +65,174 @@ router.get('/lesson/:lessonId', authenticateToken, async (req: AuthRequest, res:
       ORDER BY a.CreatedAt
     `, { lessonId });
 
-    // Map database field names to camelCase
-    const mappedAssessments = assessments.map((assessment: any) => ({
-      id: assessment.Id,
-      lessonId: assessment.LessonId,
-      title: assessment.Title,
-      type: assessment.Type,
-      passingScore: assessment.PassingScore,
-      maxAttempts: assessment.MaxAttempts,
-      timeLimit: assessment.TimeLimit,
-      isAdaptive: assessment.IsAdaptive,
-      createdAt: assessment.CreatedAt,
-      updatedAt: assessment.UpdatedAt,
-      questionCount: assessment.QuestionCount
+    // For students, get progress data for each assessment
+    const mappedAssessments = await Promise.all(assessments.map(async (assessment: any) => {
+      const baseAssessment = {
+        id: assessment.Id,
+        lessonId: assessment.LessonId,
+        title: assessment.Title,
+        type: assessment.Type,
+        passingScore: assessment.PassingScore,
+        maxAttempts: assessment.MaxAttempts,
+        timeLimit: assessment.TimeLimit,
+        isAdaptive: assessment.IsAdaptive,
+        createdAt: assessment.CreatedAt,
+        updatedAt: assessment.UpdatedAt,
+        questionCount: assessment.QuestionCount
+      };
+
+      // Add progress data for students
+      if (userRole === 'student') {
+        const userSubmissions = await db.query(`
+          SELECT Id, Score, MaxScore, AttemptNumber, Status, StartedAt, CompletedAt, TimeSpent
+          FROM dbo.AssessmentSubmissions 
+          WHERE UserId = @userId AND AssessmentId = @assessmentId AND IsPreview = 0
+          ORDER BY AttemptNumber DESC
+        `, { userId, assessmentId: assessment.Id });
+
+        const bestScore = userSubmissions.length > 0 ? Math.max(...userSubmissions.map((s: any) => s.Score || 0)) : 0;
+        const latestSubmission = userSubmissions.length > 0 ? userSubmissions[0] : null;
+        const completedSubmissions = userSubmissions.filter((s: any) => s.Status === 'completed');
+        const passed = completedSubmissions.some((s: any) => (s.Score || 0) >= assessment.PassingScore);
+        const attemptsUsed = userSubmissions.filter((s: any) => s.Status !== 'abandoned').length;
+        const canTakeAssessment = attemptsUsed < assessment.MaxAttempts;
+
+        return {
+          ...baseAssessment,
+          userProgress: {
+            bestScore,
+            latestSubmission,
+            totalAttempts: userSubmissions.length,
+            completedAttempts: completedSubmissions.length,
+            attemptsUsed,
+            attemptsLeft: Math.max(0, assessment.MaxAttempts - attemptsUsed),
+            passed,
+            canTakeAssessment,
+            status: passed ? 'passed' : 
+                   (completedSubmissions.length > 0 ? 'completed' : 
+                   (latestSubmission?.Status === 'in_progress' ? 'in_progress' : 'not_started'))
+          }
+        };
+      }
+
+      return baseAssessment;
     }));
 
     res.json(mappedAssessments);
   } catch (error) {
     console.error('Error fetching assessments:', error);
     res.status(500).json({ error: 'Failed to fetch assessments' });
+  }
+});
+
+// GET /api/assessments/my-progress - Get student's assessment progress across all courses
+router.get('/my-progress', authenticateToken, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    const userRole = req.user?.role;
+    const db = DatabaseService.getInstance();
+
+    if (userRole !== 'student') {
+      return res.status(403).json({ error: 'This endpoint is only available for students' });
+    }
+
+    // Get all assessments for courses the student is enrolled in
+    const assessmentsWithProgress = await db.query(`
+      SELECT 
+        a.Id as AssessmentId,
+        a.Title as AssessmentTitle,
+        a.Type as AssessmentType,
+        a.PassingScore,
+        a.MaxAttempts,
+        a.TimeLimit,
+        a.IsAdaptive,
+        l.Id as LessonId,
+        l.Title as LessonTitle,
+        c.Id as CourseId,
+        c.Title as CourseTitle,
+        c.ThumbnailUrl as CourseThumbnail,
+        -- Get latest submission data
+        (SELECT TOP 1 Score FROM dbo.AssessmentSubmissions s 
+         WHERE s.UserId = @userId AND s.AssessmentId = a.Id AND s.IsPreview = 0 
+         ORDER BY s.Score DESC) as BestScore,
+        (SELECT TOP 1 Status FROM dbo.AssessmentSubmissions s 
+         WHERE s.UserId = @userId AND s.AssessmentId = a.Id AND s.IsPreview = 0 
+         ORDER BY s.AttemptNumber DESC) as LatestStatus,
+        (SELECT COUNT(*) FROM dbo.AssessmentSubmissions s 
+         WHERE s.UserId = @userId AND s.AssessmentId = a.Id AND s.IsPreview = 0) as TotalAttempts,
+        (SELECT COUNT(*) FROM dbo.AssessmentSubmissions s 
+         WHERE s.UserId = @userId AND s.AssessmentId = a.Id AND s.Status = 'completed' AND s.IsPreview = 0) as CompletedAttempts,
+        (SELECT TOP 1 CompletedAt FROM dbo.AssessmentSubmissions s 
+         WHERE s.UserId = @userId AND s.AssessmentId = a.Id AND s.Status = 'completed' AND s.IsPreview = 0 
+         ORDER BY s.CompletedAt DESC) as LastCompletedAt
+      FROM dbo.Assessments a
+      JOIN dbo.Lessons l ON a.LessonId = l.Id
+      JOIN dbo.Courses c ON l.CourseId = c.Id
+      JOIN dbo.Enrollments e ON c.Id = e.CourseId
+      WHERE e.UserId = @userId AND e.Status = 'active'
+      ORDER BY c.Title, l.OrderIndex, a.CreatedAt
+    `, { userId });
+
+    // Process and format the data
+    const formattedAssessments = assessmentsWithProgress.map((item: any) => {
+      const bestScore = item.BestScore || 0;
+      const passed = bestScore >= item.PassingScore;
+      const attemptsUsed = item.TotalAttempts || 0;
+      const status = passed ? 'passed' : 
+                    (item.CompletedAttempts > 0 ? 'completed' : 
+                    (item.LatestStatus === 'in_progress' ? 'in_progress' : 'not_started'));
+
+      return {
+        assessmentId: item.AssessmentId,
+        assessmentTitle: item.AssessmentTitle,
+        assessmentType: item.AssessmentType,
+        passingScore: item.PassingScore,
+        maxAttempts: item.MaxAttempts,
+        timeLimit: item.TimeLimit,
+        isAdaptive: item.IsAdaptive,
+        lessonId: item.LessonId,
+        lessonTitle: item.LessonTitle,
+        courseId: item.CourseId,
+        courseTitle: item.CourseTitle,
+        courseThumbnail: item.CourseThumbnail,
+        progress: {
+          bestScore,
+          totalAttempts: attemptsUsed,
+          completedAttempts: item.CompletedAttempts || 0,
+          attemptsLeft: Math.max(0, item.MaxAttempts - attemptsUsed),
+          passed,
+          status,
+          lastCompletedAt: item.LastCompletedAt,
+          canTakeAssessment: attemptsUsed < item.MaxAttempts
+        }
+      };
+    });
+
+    // Group by course
+    const courseGroups = formattedAssessments.reduce((acc: any, assessment: any) => {
+      const courseKey = assessment.courseId;
+      if (!acc[courseKey]) {
+        acc[courseKey] = {
+          courseId: assessment.courseId,
+          courseTitle: assessment.courseTitle,
+          courseThumbnail: assessment.courseThumbnail,
+          assessments: []
+        };
+      }
+      acc[courseKey].assessments.push(assessment);
+      return acc;
+    }, {});
+
+    res.json({
+      totalAssessments: formattedAssessments.length,
+      completedAssessments: formattedAssessments.filter(a => a.progress.status === 'completed' || a.progress.status === 'passed').length,
+      passedAssessments: formattedAssessments.filter(a => a.progress.status === 'passed').length,
+      courseGroups: Object.values(courseGroups)
+    });
+
+  } catch (error) {
+    console.error('Error fetching student assessment progress:', error);
+    res.status(500).json({ error: 'Failed to fetch assessment progress' });
   }
 });
 

@@ -113,8 +113,16 @@ class CoursesApi {
   }
 
   async getEnrollmentStatus(courseId: string): Promise<EnrollmentStatus> {
-    const response = await api.get(`/api/courses/${courseId}/enrollment`);
-    return response.data;
+    const response = await api.get(`/api/enrollment/courses/${courseId}/enrollment-status`);
+    const data = response.data;
+    
+    // Map backend response to frontend interface
+    return {
+      isEnrolled: data.enrolled || false,
+      status: data.status,
+      enrolledAt: data.enrolledAt,
+      completedAt: data.completedAt
+    };
   }
 
   async getCategories(): Promise<CourseCategory[]> {

@@ -21,8 +21,7 @@ import {
   TrendingUp as TrendingUpIcon,
   Speed as PerformanceIcon,
   Refresh as RefreshIcon,
-  ArrowForward as ArrowForwardIcon,
-  Add as AddIcon
+  ArrowForward as ArrowForwardIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { Header } from '../../components/Navigation/Header';
@@ -280,48 +279,6 @@ export const AnalyticsHubPage: React.FC = () => {
             </Grid>
           ))}
         </Grid>
-
-        {/* Quick Actions Section */}
-        <Box sx={{ mt: 4 }}>
-          <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 3 }}>
-            Quick Actions
-          </Typography>
-          <Grid container spacing={2}>
-            <Grid item xs={12} md={4}>
-              <Button
-                variant="outlined"
-                fullWidth
-                onClick={() => navigate('/instructor/dashboard')}
-                startIcon={<CourseIcon />}
-                sx={{ py: 1.5 }}
-              >
-                Back to Dashboard
-              </Button>
-            </Grid>
-            <Grid item xs={12} md={4}>
-              <Button
-                variant="outlined"
-                fullWidth
-                onClick={() => navigate('/instructor/courses/create')}
-                startIcon={<AddIcon />}
-                sx={{ py: 1.5 }}
-              >
-                Create New Course
-              </Button>
-            </Grid>
-            <Grid item xs={12} md={4}>
-              <Button
-                variant="outlined"
-                fullWidth
-                onClick={() => navigate('/instructor/assessments')}
-                startIcon={<AssessmentIcon />}
-                sx={{ py: 1.5 }}
-              >
-                Manage Assessments
-              </Button>
-            </Grid>
-          </Grid>
-        </Box>
       </Box>
     </Box>
   );

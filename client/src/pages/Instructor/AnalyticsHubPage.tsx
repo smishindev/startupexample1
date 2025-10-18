@@ -82,6 +82,18 @@ export const AnalyticsHubPage: React.FC = () => {
       isNew: true
     },
     {
+      title: 'Student Analytics & AI',
+      description: 'AI-powered student progress insights, risk assessment, and personalized intervention recommendations.',
+      icon: <StudentsIcon sx={{ fontSize: 40 }} />,
+      path: '/instructor/student-analytics',
+      color: '#673ab7',
+      stats: {
+        primary: '🤖',
+        secondary: 'AI Insights'
+      },
+      isNew: true
+    },
+    {
       title: 'Student Management',
       description: 'Student enrollment analytics, progress tracking, and performance management tools.',
       icon: <StudentsIcon sx={{ fontSize: 40 }} />,

@@ -29,6 +29,7 @@ import { enrollmentRoutes } from './routes/enrollment';
 import bookmarkRoutes from './routes/bookmarks';
 import assessmentRoutes from './routes/assessments';
 import assessmentAnalyticsRoutes from './routes/assessment-analytics';
+const studentProgressRoutes = require('./routes/student-progress');
 import { DatabaseService } from './services/DatabaseService';
 import { setupSocketHandlers } from './sockets';
 import { logger } from './utils/logger';
@@ -126,6 +127,7 @@ app.use('/api/enrollment', enrollmentRoutes);
 app.use('/api/bookmarks', bookmarkRoutes);
 app.use('/api/assessments', assessmentRoutes);
 app.use('/api/assessment-analytics', assessmentAnalyticsRoutes);
+app.use('/api/student-progress', studentProgressRoutes);
 
 // Serve static files
 app.use('/uploads', express.static('uploads'));

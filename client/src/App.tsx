@@ -28,9 +28,11 @@ import StudentManagement from './pages/Instructor/StudentManagement';
 import CourseAnalyticsDashboard from './pages/Instructor/CourseAnalyticsDashboard';
 import { EnhancedAssessmentAnalyticsPage } from './pages/Instructor/EnhancedAssessmentAnalyticsPage';
 import { AnalyticsHubPage } from './pages/Instructor/AnalyticsHubPage';
+import { InstructorStudentAnalytics } from './pages/Instructor/InstructorStudentAnalytics';
 import LandingPage from './pages/Landing/LandingPage';
 import MyLearningPage from './pages/Learning/MyLearningPage';
 import ProgressDashboard from './pages/Progress/ProgressDashboard';
+import { StudentProgressPage } from './pages/Progress/StudentProgressPage';
 import Chat from './pages/Chat/Chat';
 import Tutoring from './pages/Tutoring/Tutoring';
 
@@ -97,6 +99,15 @@ function App() {
           element={
             <ProtectedRoute>
               <ProgressDashboard />
+            </ProtectedRoute>
+          }
+        />
+        
+        <Route
+          path="/smart-progress"
+          element={
+            <ProtectedRoute>
+              <StudentProgressPage />
             </ProtectedRoute>
           }
         />
@@ -274,6 +285,15 @@ function App() {
           element={
             <ProtectedRoute requireRole="instructor">
               <EnhancedAssessmentAnalyticsPage />
+            </ProtectedRoute>
+          }
+        />
+        
+        <Route
+          path="/instructor/student-analytics"
+          element={
+            <ProtectedRoute requireRole="instructor">
+              <InstructorStudentAnalytics />
             </ProtectedRoute>
           }
         />

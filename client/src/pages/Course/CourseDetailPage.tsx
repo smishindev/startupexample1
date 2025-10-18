@@ -49,6 +49,7 @@ import {
 import { Header } from '../../components/Navigation/Header';
 import { enrollmentApi } from '../../services/enrollmentApi';
 import { coursesApi } from '../../services/coursesApi';
+import { useAuthStore } from '../../stores/authStore';
 
 interface Lesson {
   id: string;
@@ -111,12 +112,14 @@ interface CourseDetails {
 export const CourseDetailPage: React.FC = () => {
   const { courseId } = useParams<{ courseId: string }>();
   const navigate = useNavigate();
+  const { user } = useAuthStore();
   
   // Use CourseDetails type (original interface) but populate with real API data
   const [course, setCourse] = useState<CourseDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
   const [showVideoPlayer, setShowVideoPlayer] = useState(false);
+  const [enrollmentStatus, setEnrollmentStatus] = useState<any>(null);
 
   // Fetch real course data from API
   useEffect(() => {
@@ -126,8 +129,14 @@ export const CourseDetailPage: React.FC = () => {
       try {
         setLoading(true);
         // Use real API call to get actual course data
-        const courseData = await coursesApi.getCourse(courseId);
+        const [courseData, enrollmentStatusData] = await Promise.all([
+          coursesApi.getCourse(courseId),
+          user ? coursesApi.getEnrollmentStatus(courseId) : Promise.resolve(null)
+        ]);
         console.log('Real course data:', courseData);
+        console.log('Enrollment status:', enrollmentStatusData);
+        
+        setEnrollmentStatus(enrollmentStatusData);
         
         // For now, still use mock course structure but with real data where available
         setTimeout(() => {
@@ -156,7 +165,7 @@ export const CourseDetailPage: React.FC = () => {
             lastUpdated: courseData.UpdatedAt ? courseData.UpdatedAt.split('T')[0] : '2025-09-15',
           language: 'English',
           certificate: true,
-          isEnrolled: true,
+          isEnrolled: enrollmentStatusData?.isEnrolled && !enrollmentStatusData?.isInstructor || false,
           isBookmarked: false,
           progress: 35,
           currentLesson: 'lesson-1-2',
@@ -274,7 +283,7 @@ export const CourseDetailPage: React.FC = () => {
     };
 
     fetchCourse();
-  }, [courseId]);
+  }, [courseId, user]);
 
   const handleEnroll = async () => {
     if (!courseId || !course) return;
@@ -684,7 +693,7 @@ export const CourseDetailPage: React.FC = () => {
                     <Share />
                   </IconButton>
                 </Tooltip>
-                {course.isEnrolled && (
+                {course.isEnrolled && !enrollmentStatus?.isInstructor && (
                   <Button
                     variant="outlined"
                     size="small"
@@ -693,6 +702,17 @@ export const CourseDetailPage: React.FC = () => {
                     sx={{ ml: 'auto' }}
                   >
                     Unenroll
+                  </Button>
+                )}
+                {enrollmentStatus?.isInstructor && (
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    color="primary"
+                    onClick={() => navigate(`/instructor/courses/${courseId}/edit`)}
+                    sx={{ ml: 'auto' }}
+                  >
+                    Manage Course
                   </Button>
                 )}
               </Box>

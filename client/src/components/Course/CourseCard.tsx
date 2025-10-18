@@ -27,6 +27,7 @@ export interface Course {
   title: string;
   description: string;
   instructor: {
+    id?: string; // Added instructor ID to detect ownership
     name: string;
     avatar?: string;
   };
@@ -51,6 +52,7 @@ export interface Course {
 interface CourseCardProps {
   course: Course;
   variant?: 'default' | 'enrolled' | 'compact';
+  currentUserId?: string; // Added to detect if user is instructor
   onEnroll?: (courseId: string) => void;
   onBookmark?: (courseId: string, isBookmarked: boolean) => void;
   onShare?: (courseId: string) => void;
@@ -60,12 +62,16 @@ interface CourseCardProps {
 export const CourseCard: React.FC<CourseCardProps> = ({
   course,
   variant = 'default',
+  currentUserId,
   onEnroll,
   onBookmark,
   onShare,
   onClick,
 }) => {
   const theme = useTheme();
+
+  // Check if current user is the instructor of this course
+  const isInstructor = currentUserId && course.instructor.id === currentUserId;
 
   const handleBookmarkClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -385,7 +391,29 @@ export const CourseCard: React.FC<CourseCardProps> = ({
             )}
           </Box>
 
-          {!course.isEnrolled ? (
+          {isInstructor ? (
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={(e) => {
+                e.stopPropagation();
+                window.location.href = `/instructor/courses/${course.id}/edit`;
+              }}
+              sx={{
+                textTransform: 'none',
+                fontWeight: 'bold',
+                px: 3,
+                borderColor: theme.palette.info.main,
+                color: theme.palette.info.main,
+                '&:hover': {
+                  backgroundColor: theme.palette.info.main,
+                  color: 'white',
+                },
+              }}
+            >
+              Manage
+            </Button>
+          ) : !course.isEnrolled ? (
             <Button
               variant="contained"
               size="small"

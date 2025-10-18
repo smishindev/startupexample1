@@ -42,7 +42,7 @@ import {
   Share,
   VideoLibrary,
   CheckCircle,
-  School,
+  School as SchoolIcon,
   TrendingUp,
   Language,
   Category,
@@ -364,7 +364,7 @@ const CourseDetail: React.FC = () => {
                       {course.Prerequisites.map((prerequisite, index) => (
                         <ListItem key={index}>
                           <ListItemIcon>
-                            <School color="primary" />
+                            <SchoolIcon color="primary" />
                           </ListItemIcon>
                           <ListItemText primary={prerequisite} />
                         </ListItem>
@@ -443,7 +443,18 @@ const CourseDetail: React.FC = () => {
 
               {/* Enrollment Button */}
               <Box sx={{ mb: 3 }}>
-                {enrollmentStatus?.isEnrolled ? (
+                {enrollmentStatus?.isInstructor ? (
+                  <Button
+                    variant="outlined"
+                    fullWidth
+                    size="large"
+                    startIcon={<SchoolIcon />}
+                    onClick={() => navigate(`/instructor/courses/${course.Id}/edit`)}
+                    sx={{ mb: 2 }}
+                  >
+                    Manage Course
+                  </Button>
+                ) : enrollmentStatus?.isEnrolled ? (
                   <Button
                     variant="contained"
                     fullWidth

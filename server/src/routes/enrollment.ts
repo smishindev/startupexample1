@@ -84,6 +84,22 @@ router.get('/courses/:courseId/enrollment-status', authenticateToken, async (req
     const { courseId } = req.params;
     const userId = req.user?.userId;
 
+    // First check if user is the instructor of this course
+    const instructorCheck = await db.query(`
+      SELECT Id, InstructorId FROM dbo.Courses
+      WHERE Id = @courseId
+    `, { courseId });
+
+    if (instructorCheck.length > 0 && instructorCheck[0].InstructorId === userId) {
+      return res.json({
+        enrolled: false,
+        isInstructor: true,
+        status: 'instructor',
+        message: 'You are the instructor of this course'
+      });
+    }
+
+    // Check for regular enrollment
     const enrollment = await db.query(`
       SELECT Id, Status, EnrolledAt, CompletedAt
       FROM dbo.Enrollments

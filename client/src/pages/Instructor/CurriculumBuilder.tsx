@@ -310,24 +310,28 @@ export const CurriculumBuilder: React.FC<CurriculumBuilderProps> = ({
                         {/* Reorder buttons */}
                         <Box sx={{ display: 'flex', flexDirection: 'column' }}>
                           <Tooltip title="Move up">
-                            <IconButton
-                              size="small"
-                              onClick={() => handleMoveUp(index)}
-                              disabled={index === 0}
-                              sx={{ p: 0.5 }}
-                            >
-                              <ArrowUpIcon fontSize="small" />
-                            </IconButton>
+                            <span>
+                              <IconButton
+                                size="small"
+                                onClick={() => handleMoveUp(index)}
+                                disabled={index === 0}
+                                sx={{ p: 0.5 }}
+                              >
+                                <ArrowUpIcon fontSize="small" />
+                              </IconButton>
+                            </span>
                           </Tooltip>
                           <Tooltip title="Move down">
-                            <IconButton
-                              size="small"
-                              onClick={() => handleMoveDown(index)}
-                              disabled={index === lessons.length - 1}
-                              sx={{ p: 0.5 }}
-                            >
-                              <ArrowDownIcon fontSize="small" />
-                            </IconButton>
+                            <span>
+                              <IconButton
+                                size="small"
+                                onClick={() => handleMoveDown(index)}
+                                disabled={index === lessons.length - 1}
+                                sx={{ p: 0.5 }}
+                              >
+                                <ArrowDownIcon fontSize="small" />
+                              </IconButton>
+                            </span>
                           </Tooltip>
                         </Box>
                         

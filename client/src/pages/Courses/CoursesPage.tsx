@@ -50,6 +50,7 @@ const convertApiCourseToUiCourse = (apiCourse: ApiCourse, isBookmarked: boolean 
   title: apiCourse.Title,
   description: apiCourse.Description,
   instructor: {
+    id: apiCourse.Instructor.Id, // Added instructor ID
     name: `${apiCourse.Instructor.FirstName} ${apiCourse.Instructor.LastName}`,
     avatar: apiCourse.Instructor.Avatar || '',
   },
@@ -100,7 +101,7 @@ const isNewCourse = (createdAt: string): boolean => {
 
 export const CoursesPage: React.FC = () => {
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, user } = useAuthStore();
   const [tabValue, setTabValue] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
@@ -182,8 +183,12 @@ export const CoursesPage: React.FC = () => {
             enrollmentApi.getMyEnrollments()
           ]);
           
-          // Create a set of enrolled course IDs for quick lookup
-          const enrolledCourseIds = new Set(enrolledCoursesList.map(enrolled => enrolled.courseId));
+          // Create a set of enrolled course IDs for quick lookup (exclude courses where user is teaching)
+          const enrolledCourseIds = new Set(
+            enrolledCoursesList
+              .filter(enrolled => enrolled.Status !== 'teaching') // Exclude courses instructor is teaching
+              .map(enrolled => enrolled.courseId)
+          );
           
           // Update courses with both bookmark and enrollment status
           const coursesWithStatuses = uiCourses.map(course => ({
@@ -732,6 +737,7 @@ export const CoursesPage: React.FC = () => {
                   <Grid item xs={12} sm={6} md={4} key={course.id}>
                     <CourseCard
                       course={course}
+                      currentUserId={user?.id}
                       onEnroll={handleEnroll}
                       onBookmark={handleBookmark}
                       onShare={handleShare}
@@ -771,6 +777,7 @@ export const CoursesPage: React.FC = () => {
                 <CourseCard
                   course={course}
                   variant="enrolled"
+                  currentUserId={user?.id}
                   onBookmark={handleBookmark}
                   onShare={handleShare}
                   onClick={handleCourseClick}
@@ -812,6 +819,7 @@ export const CoursesPage: React.FC = () => {
                 <Grid item xs={12} sm={6} md={4} key={course.id}>
                   <CourseCard
                     course={course}
+                    currentUserId={user?.id}
                     onEnroll={handleEnroll}
                     onBookmark={handleBookmark}
                     onShare={handleShare}

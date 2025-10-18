@@ -33,6 +33,7 @@ export interface Course {
   UpdatedAt: string;
   LessonCount: number;
   Instructor: {
+    Id: string; // Added instructor ID
     FirstName: string;
     LastName: string;
     Avatar?: string;
@@ -81,9 +82,11 @@ export interface CoursesResponse {
 
 export interface EnrollmentStatus {
   isEnrolled: boolean;
+  isInstructor?: boolean;
   status?: string;
   enrolledAt?: string;
   completedAt?: string;
+  message?: string;
 }
 
 export interface CourseCategory {
@@ -119,9 +122,11 @@ class CoursesApi {
     // Map backend response to frontend interface
     return {
       isEnrolled: data.enrolled || false,
+      isInstructor: data.isInstructor || false,
       status: data.status,
       enrolledAt: data.enrolledAt,
-      completedAt: data.completedAt
+      completedAt: data.completedAt,
+      message: data.message
     };
   }
 

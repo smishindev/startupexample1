@@ -346,24 +346,45 @@ const MyLearningPage: React.FC = () => {
                         }
                       </Typography>
 
-                      <Button
-                        variant="contained"
-                        startIcon={<PlayArrow />}
-                        fullWidth
-                        onClick={async () => {
-                          if (enrollment.OverallProgress === 0) {
-                            // For new courses, try to go to first lesson directly
-                            // TODO: We would need to fetch course structure to get first lesson ID
-                            // For now, go to course page which will show "Continue Learning" button
-                            navigate(`/courses/${enrollment.courseId}`);
-                          } else {
-                            // For courses in progress, go to course page (could be enhanced to go to last accessed lesson)
-                            navigate(`/courses/${enrollment.courseId}`);
-                          }
-                        }}
-                      >
-                        {enrollment.OverallProgress === 0 ? 'Start Course' : 'Continue'}
-                      </Button>
+                      {enrollment.Status === 'teaching' ? (
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                          <Button
+                            variant="outlined"
+                            startIcon={<Psychology />}
+                            fullWidth
+                            onClick={() => navigate(`/instructor/courses/${enrollment.courseId}/edit`)}
+                          >
+                            Manage Course
+                          </Button>
+                          <Button
+                            variant="text"
+                            size="small"
+                            fullWidth
+                            onClick={() => navigate(`/courses/${enrollment.courseId}`)}
+                          >
+                            Preview Course
+                          </Button>
+                        </Box>
+                      ) : (
+                        <Button
+                          variant="contained"
+                          startIcon={<PlayArrow />}
+                          fullWidth
+                          onClick={async () => {
+                            if (enrollment.OverallProgress === 0) {
+                              // For new courses, try to go to first lesson directly
+                              // TODO: We would need to fetch course structure to get first lesson ID
+                              // For now, go to course page which will show "Continue Learning" button
+                              navigate(`/courses/${enrollment.courseId}`);
+                            } else {
+                              // For courses in progress, go to course page (could be enhanced to go to last accessed lesson)
+                              navigate(`/courses/${enrollment.courseId}`);
+                            }
+                          }}
+                        >
+                          {enrollment.OverallProgress === 0 ? 'Start Course' : 'Continue'}
+                        </Button>
+                      )}
                     </CardContent>
                   </Card>
                 </Grid>

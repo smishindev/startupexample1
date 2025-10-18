@@ -61,6 +61,7 @@ router.get('/', async (req: any, res: any) => {
         c.Tags,
         c.CreatedAt,
         c.UpdatedAt,
+        c.InstructorId, -- Added instructor ID to response
         u.FirstName as InstructorFirstName,
         u.LastName as InstructorLastName,
         u.Avatar as InstructorAvatar,
@@ -90,6 +91,7 @@ router.get('/', async (req: any, res: any) => {
       ...course,
       Tags: course.Tags ? JSON.parse(course.Tags) : [],
       Instructor: {
+        Id: course.InstructorId, // Added instructor ID to response
         FirstName: course.InstructorFirstName,
         LastName: course.InstructorLastName,
         Avatar: course.InstructorAvatar
@@ -98,6 +100,7 @@ router.get('/', async (req: any, res: any) => {
 
     // Remove instructor fields from course object
     courses.forEach((course: any) => {
+      delete course.InstructorId; // Remove since it's now in Instructor object
       delete course.InstructorFirstName;
       delete course.InstructorLastName;
       delete course.InstructorAvatar;

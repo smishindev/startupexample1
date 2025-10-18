@@ -86,17 +86,17 @@ const QuizCreator: React.FC<QuizCreatorProps> = ({
 
   // Helper function to map API response to expected format
   const mapAssessment = (apiAssessment: any) => ({
-    id: apiAssessment.Id,
-    title: apiAssessment.Title,
-    type: apiAssessment.Type,
-    passingScore: apiAssessment.PassingScore,
-    maxAttempts: apiAssessment.MaxAttempts,
-    timeLimit: apiAssessment.TimeLimit,
-    isAdaptive: apiAssessment.IsAdaptive,
-    questionCount: apiAssessment.QuestionCount,
-    lessonId: apiAssessment.LessonId,
-    createdAt: apiAssessment.CreatedAt,
-    updatedAt: apiAssessment.UpdatedAt,
+    id: apiAssessment.id,
+    title: apiAssessment.title,
+    type: apiAssessment.type,
+    passingScore: apiAssessment.passingScore,
+    maxAttempts: apiAssessment.maxAttempts,
+    timeLimit: apiAssessment.timeLimit,
+    isAdaptive: apiAssessment.isAdaptive,
+    questionCount: apiAssessment.questionCount,
+    lessonId: apiAssessment.lessonId,
+    createdAt: apiAssessment.createdAt,
+    updatedAt: apiAssessment.updatedAt,
     questions: (apiAssessment.questions || []).map(mapQuestion)
   });
 
@@ -237,7 +237,7 @@ const QuizCreator: React.FC<QuizCreatorProps> = ({
         errors.push(`Question ${index + 1}: Multiple choice questions need at least 2 options`);
       }
 
-      if (!question.correctAnswer) {
+      if (question.correctAnswer === null || question.correctAnswer === undefined) {
         errors.push(`Question ${index + 1}: Correct answer is required`);
       }
     });

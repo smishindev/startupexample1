@@ -325,34 +325,40 @@ class AssessmentApiService {
     const invalidAnswers: string[] = [];
 
     questions.forEach(question => {
-      const answer = answers[question.id];
+      // Handle both capitalized (from database) and lowercase (from interface) IDs
+      const questionId = (question as any).Id || question.id;
+      const answer = answers[questionId];
       
       if (answer === undefined || answer === null || answer === '') {
-        missingAnswers.push(question.id);
+        missingAnswers.push(questionId);
         return;
       }
 
+      // Handle both capitalized and lowercase property names
+      const questionType = (question as any).Type || question.type;
+      const questionOptions = question.options || ((question as any).Options ? JSON.parse((question as any).Options) : []);
+
       // Basic validation based on question type
-      switch (question.type) {
+      switch (questionType) {
         case 'multiple_choice':
-          if (!question.options?.includes(answer)) {
-            invalidAnswers.push(question.id);
+          if (!questionOptions?.includes(answer)) {
+            invalidAnswers.push(questionId);
           }
           break;
         case 'true_false':
           if (typeof answer !== 'boolean') {
-            invalidAnswers.push(question.id);
+            invalidAnswers.push(questionId);
           }
           break;
         case 'short_answer':
         case 'essay':
           if (typeof answer !== 'string' || answer.trim().length === 0) {
-            invalidAnswers.push(question.id);
+            invalidAnswers.push(questionId);
           }
           break;
         case 'code':
           if (typeof answer !== 'string') {
-            invalidAnswers.push(question.id);
+            invalidAnswers.push(questionId);
           }
           break;
         // Add more validation for other question types

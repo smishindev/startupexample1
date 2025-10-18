@@ -33,7 +33,8 @@ export const AssessmentTakingPage: React.FC = () => {
 
   const handleAssessmentComplete = (submission: AssessmentSubmission) => {
     // Show completion message and navigation options
-    const score = submission.score || 0;
+    // Handle both capitalized (from database) and lowercase (from interface) property names
+    const score = (submission as any).Score || submission.score || 0;
     const passed = score >= (assessment?.passingScore || 70);
     
     const message = passed 

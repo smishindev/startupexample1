@@ -29,7 +29,7 @@ import {
   TrendingUp as ScoreIcon
 } from '@mui/icons-material';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { assessmentApi, Assessment, Question, AssessmentSubmission } from '../../services/assessmentApi';
+import { assessmentApi, Assessment, AssessmentSubmission } from '../../services/assessmentApi';
 import AdaptiveQuizTaker from './AdaptiveQuizTaker';
 
 interface QuizTakerProps {
@@ -154,6 +154,7 @@ const TraditionalQuizTaker: React.FC<TraditionalQuizTakerProps> = ({ assessmentI
     try {
       setLoading(true);
       const data = await assessmentApi.getAssessmentWithProgress(assessmentId!);
+
       setAssessment(data);
       // In preview mode, always allow taking the assessment
       setCanTakeAssessment(isPreviewMode || data.canTakeAssessment);
@@ -244,24 +245,30 @@ const TraditionalQuizTaker: React.FC<TraditionalQuizTakerProps> = ({ assessmentI
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
-  const renderQuestion = (question: Question, index: number) => {
-    const questionId = question.id!;
+  const renderQuestion = (question: any, index: number) => {
+    const questionId = question.Id || question.id;
     const userAnswer = answers[questionId];
+    
+    // Handle both uppercase (from backend) and lowercase (from interface) property names
+    const questionText = question.Question || question.question;
+    const questionType = question.Type || question.type;
+    const questionOptions = question.options || (question.Options ? JSON.parse(question.Options) : []);
+    const questionDifficulty = question.Difficulty || question.difficulty;
 
     return (
-      <Card key={question.id} sx={{ mb: 3 }}>
+      <Card sx={{ mb: 3 }}>
         <CardContent>
           <Box sx={{ mb: 2 }}>
             <Typography variant="h6" gutterBottom>
               Question {index + 1} of {assessment?.questions?.length}
             </Typography>
             <Typography variant="body1" sx={{ mb: 2 }}>
-              {question.question}
+              {questionText}
             </Typography>
             
-            {question.difficulty && (
+            {questionDifficulty && (
               <Chip 
-                label={`Difficulty: ${question.difficulty}/10`} 
+                label={`Difficulty: ${questionDifficulty}/10`} 
                 size="small" 
                 color="primary" 
                 variant="outlined"
@@ -271,13 +278,13 @@ const TraditionalQuizTaker: React.FC<TraditionalQuizTakerProps> = ({ assessmentI
           </Box>
 
           {/* Multiple Choice */}
-          {question.type === 'multiple_choice' && (
+          {questionType === 'multiple_choice' && (
             <FormControl component="fieldset" fullWidth>
               <RadioGroup
                 value={userAnswer || ''}
                 onChange={(e) => updateAnswer(questionId, e.target.value)}
               >
-                {question.options?.map((option, optionIndex) => (
+                {questionOptions?.map((option: string, optionIndex: number) => (
                   <FormControlLabel
                     key={optionIndex}
                     value={option}
@@ -290,7 +297,7 @@ const TraditionalQuizTaker: React.FC<TraditionalQuizTakerProps> = ({ assessmentI
           )}
 
           {/* True/False */}
-          {question.type === 'true_false' && (
+          {questionType === 'true_false' && (
             <FormControl component="fieldset" fullWidth>
               <RadioGroup
                 value={userAnswer !== undefined ? userAnswer.toString() : ''}
@@ -303,7 +310,7 @@ const TraditionalQuizTaker: React.FC<TraditionalQuizTakerProps> = ({ assessmentI
           )}
 
           {/* Short Answer */}
-          {question.type === 'short_answer' && (
+          {questionType === 'short_answer' && (
             <TextField
               fullWidth
               multiline
@@ -316,7 +323,7 @@ const TraditionalQuizTaker: React.FC<TraditionalQuizTakerProps> = ({ assessmentI
           )}
 
           {/* Essay */}
-          {question.type === 'essay' && (
+          {questionType === 'essay' && (
             <TextField
               fullWidth
               multiline
@@ -329,7 +336,7 @@ const TraditionalQuizTaker: React.FC<TraditionalQuizTakerProps> = ({ assessmentI
           )}
 
           {/* Code */}
-          {question.type === 'code' && (
+          {questionType === 'code' && (
             <TextField
               fullWidth
               multiline
@@ -550,7 +557,14 @@ const TraditionalQuizTaker: React.FC<TraditionalQuizTakerProps> = ({ assessmentI
 
       {/* Questions */}
       <Box>
-        {assessment.questions?.map((question, index) => renderQuestion(question, index))}
+        {assessment.questions?.map((question, index) => {
+          const questionId = (question as any).Id || question.id || index;
+          return (
+            <div key={questionId}>
+              {renderQuestion(question, index)}
+            </div>
+          );
+        })}
       </Box>
 
       {/* Submit confirmation dialog */}

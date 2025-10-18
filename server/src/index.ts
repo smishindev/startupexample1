@@ -28,6 +28,7 @@ import studentsRoutes from './routes/students';
 import { enrollmentRoutes } from './routes/enrollment';
 import bookmarkRoutes from './routes/bookmarks';
 import assessmentRoutes from './routes/assessments';
+import assessmentAnalyticsRoutes from './routes/assessment-analytics';
 import { DatabaseService } from './services/DatabaseService';
 import { setupSocketHandlers } from './sockets';
 import { logger } from './utils/logger';
@@ -124,6 +125,7 @@ app.use('/api/students', studentsRoutes);
 app.use('/api/enrollment', enrollmentRoutes);
 app.use('/api/bookmarks', bookmarkRoutes);
 app.use('/api/assessments', assessmentRoutes);
+app.use('/api/assessment-analytics', assessmentAnalyticsRoutes);
 
 // Serve static files
 app.use('/uploads', express.static('uploads'));

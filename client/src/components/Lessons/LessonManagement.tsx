@@ -169,18 +169,18 @@ export const LessonManagement: React.FC<LessonManagementProps> = ({ courseId }) 
                   }
                   secondary={
                     <Box sx={{ mt: 1 }}>
-                      <Typography variant="body2" color="text.secondary">
+                      <Typography variant="body2" color="text.secondary" component="span">
                         {lesson.description || 'No description'}
                       </Typography>
                       <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Typography variant="caption" color="text.secondary">
+                        <Typography variant="caption" color="text.secondary" component="span">
                           Order: {lesson.orderIndex}
                         </Typography>
-                        <Typography variant="caption" color="text.secondary">
+                        <Typography variant="caption" color="text.secondary" component="span">
                           • Content: {lesson.content.length} items
                         </Typography>
                         {lesson.duration && (
-                          <Typography variant="caption" color="text.secondary">
+                          <Typography variant="caption" color="text.secondary" component="span">
                             • Duration: {lesson.duration}min
                           </Typography>
                         )}
@@ -190,6 +190,7 @@ export const LessonManagement: React.FC<LessonManagementProps> = ({ courseId }) 
                       </Box>
                     </Box>
                   }
+                  secondaryTypographyProps={{ component: 'div' }}
                 />
                 <ListItemSecondaryAction>
                   <Box sx={{ display: 'flex', gap: 1 }}>

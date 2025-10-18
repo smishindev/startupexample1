@@ -123,7 +123,7 @@ export const Header: React.FC<HeaderProps> = () => {
     { text: 'Chat', icon: <ChatIcon />, path: '/chat' },
     ...(user?.role === 'instructor' ? [
       { text: 'Instructor', icon: <SchoolIcon />, path: '/instructor/dashboard' },
-      { text: 'Analytics', icon: <AnalyticsIcon />, path: '/instructor/analytics' },
+      { text: 'Analytics', icon: <AnalyticsIcon />, path: '/instructor/analytics-hub' },
     ] : []),
   ];
 

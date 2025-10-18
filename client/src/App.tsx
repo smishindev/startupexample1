@@ -27,6 +27,7 @@ import { StudentAssessmentDashboard } from './pages/Assessment/StudentAssessment
 import StudentManagement from './pages/Instructor/StudentManagement';
 import CourseAnalyticsDashboard from './pages/Instructor/CourseAnalyticsDashboard';
 import { EnhancedAssessmentAnalyticsPage } from './pages/Instructor/EnhancedAssessmentAnalyticsPage';
+import { AnalyticsHubPage } from './pages/Instructor/AnalyticsHubPage';
 import LandingPage from './pages/Landing/LandingPage';
 import MyLearningPage from './pages/Learning/MyLearningPage';
 import ProgressDashboard from './pages/Progress/ProgressDashboard';
@@ -246,6 +247,15 @@ function App() {
           element={
             <ProtectedRoute requireRole="instructor">
               <StudentManagement />
+            </ProtectedRoute>
+          }
+        />
+        
+        <Route
+          path="/instructor/analytics-hub"
+          element={
+            <ProtectedRoute requireRole="instructor">
+              <AnalyticsHubPage />
             </ProtectedRoute>
           }
         />

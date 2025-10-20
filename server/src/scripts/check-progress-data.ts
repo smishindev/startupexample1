@@ -4,11 +4,11 @@ async function checkProgressData() {
   const db = DatabaseService.getInstance();
   
   try {
-    console.log('🔍 Checking UserProgress table...');
+    console.log('🔍 Checking CourseProgress table...');
     
     // Check if table exists and has data
     const progressCount = await db.query(`
-      SELECT COUNT(*) as count FROM dbo.UserProgress
+      SELECT COUNT(*) as count FROM dbo.CourseProgress
     `);
     
     console.log(`Found ${progressCount[0].count} progress records`);
@@ -24,7 +24,7 @@ async function checkProgressData() {
           up.LastAccessedAt,
           c.Title as CourseTitle,
           u.FirstName + ' ' + u.LastName as UserName
-        FROM dbo.UserProgress up
+        FROM dbo.CourseProgress up
         LEFT JOIN dbo.Courses c ON up.CourseId = c.Id
         LEFT JOIN dbo.Users usr ON up.UserId = usr.Id
       `);

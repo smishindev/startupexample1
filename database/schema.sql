@@ -12,6 +12,14 @@ IF OBJECT_ID('dbo.ChatMessages', 'U') IS NOT NULL DROP TABLE dbo.ChatMessages;
 IF OBJECT_ID('dbo.ChatRooms', 'U') IS NOT NULL DROP TABLE dbo.ChatRooms;
 IF OBJECT_ID('dbo.LiveSessionAttendees', 'U') IS NOT NULL DROP TABLE dbo.LiveSessionAttendees;
 IF OBJECT_ID('dbo.LiveSessions', 'U') IS NOT NULL DROP TABLE dbo.LiveSessions;
+-- Student Progress Integration Tables (drop in dependency order)
+IF OBJECT_ID('dbo.PeerComparison', 'U') IS NOT NULL DROP TABLE dbo.PeerComparison;
+IF OBJECT_ID('dbo.StudentRiskAssessment', 'U') IS NOT NULL DROP TABLE dbo.StudentRiskAssessment;
+IF OBJECT_ID('dbo.StudentRecommendations', 'U') IS NOT NULL DROP TABLE dbo.StudentRecommendations;
+IF OBJECT_ID('dbo.LearningActivities', 'U') IS NOT NULL DROP TABLE dbo.LearningActivities;
+IF OBJECT_ID('dbo.CourseProgress', 'U') IS NOT NULL DROP TABLE dbo.CourseProgress;
+IF OBJECT_ID('dbo.Bookmarks', 'U') IS NOT NULL DROP TABLE dbo.Bookmarks;
+-- Core Assessment Tables
 IF OBJECT_ID('dbo.AssessmentSubmissions', 'U') IS NOT NULL DROP TABLE dbo.AssessmentSubmissions;
 IF OBJECT_ID('dbo.Questions', 'U') IS NOT NULL DROP TABLE dbo.Questions;
 IF OBJECT_ID('dbo.Assessments', 'U') IS NOT NULL DROP TABLE dbo.Assessments;
@@ -297,6 +305,114 @@ CREATE INDEX IX_FileUploads_LessonId ON dbo.FileUploads(LessonId);
 CREATE INDEX IX_FileUploads_FileType ON dbo.FileUploads(FileType);
 CREATE INDEX IX_FileUploads_CreatedAt ON dbo.FileUploads(CreatedAt);
 
+-- ========================================
+-- STUDENT PROGRESS INTEGRATION TABLES
+-- ========================================
+
+-- CourseProgress Table - Enhanced course-level progress tracking
+CREATE TABLE dbo.CourseProgress (
+    Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    UserId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id),
+    CourseId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Courses(Id) ON DELETE CASCADE,
+    OverallProgress INT NOT NULL DEFAULT 0 CHECK (OverallProgress >= 0 AND OverallProgress <= 100),
+    CompletedLessons NVARCHAR(MAX) NULL, -- JSON array of lesson IDs
+    TimeSpent INT NOT NULL DEFAULT 0, -- in minutes
+    LastAccessedAt DATETIME2 NULL,
+    CompletedAt DATETIME2 NULL,
+    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    UpdatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    UNIQUE(UserId, CourseId)
+);
+
+-- LearningActivities Table - Track user learning patterns for AI analysis
+CREATE TABLE dbo.LearningActivities (
+    Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    UserId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id),
+    CourseId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Courses(Id) ON DELETE CASCADE,
+    ActivityType NVARCHAR(50) NOT NULL CHECK (ActivityType IN ('assessment', 'lesson_view', 'video_watch', 'resource_download', 'discussion_post', 'quiz_attempt', 'assignment_submit')),
+    ResourceId UNIQUEIDENTIFIER NULL, -- Can reference Lessons, Assessments, etc.
+    TimeSpent INT NOT NULL DEFAULT 0, -- in seconds
+    Score DECIMAL(5,2) NULL, -- for assessments
+    AccuracyRate DECIMAL(5,2) NULL, -- percentage
+    CompletionRate DECIMAL(5,2) NULL, -- percentage
+    AttentionScore DECIMAL(5,2) NULL, -- AI-calculated attention score
+    InteractionCount INT NOT NULL DEFAULT 0,
+    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE()
+);
+
+-- StudentRecommendations Table - AI-powered personalized learning recommendations
+CREATE TABLE dbo.StudentRecommendations (
+    Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    UserId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id),
+    CourseId UNIQUEIDENTIFIER NULL FOREIGN KEY REFERENCES dbo.Courses(Id) ON DELETE CASCADE,
+    RecommendationType NVARCHAR(50) NOT NULL CHECK (RecommendationType IN ('content', 'skill', 'pace', 'intervention', 'path')),
+    Priority NVARCHAR(20) NOT NULL CHECK (Priority IN ('low', 'medium', 'high', 'critical')) DEFAULT 'medium',
+    Title NVARCHAR(200) NOT NULL,
+    Description NVARCHAR(MAX) NOT NULL,
+    ActionItems NVARCHAR(MAX) NULL, -- JSON array of actions
+    ResourceLinks NVARCHAR(MAX) NULL, -- JSON array of links
+    TargetSkills NVARCHAR(MAX) NULL, -- JSON array of skills
+    EstimatedTime INT NULL, -- in minutes
+    ConfidenceScore DECIMAL(5,2) NULL, -- AI confidence in recommendation
+    IsActive BIT NOT NULL DEFAULT 1,
+    IsCompleted BIT NOT NULL DEFAULT 0,
+    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    CompletedAt DATETIME2 NULL
+);
+
+-- StudentRiskAssessment Table - Early intervention system for at-risk students
+CREATE TABLE dbo.StudentRiskAssessment (
+    Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    UserId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id),
+    CourseId UNIQUEIDENTIFIER NULL FOREIGN KEY REFERENCES dbo.Courses(Id) ON DELETE CASCADE,
+    RiskLevel NVARCHAR(20) NOT NULL CHECK (RiskLevel IN ('low', 'medium', 'high', 'critical')) DEFAULT 'low',
+    RiskScore DECIMAL(5,2) NOT NULL DEFAULT 0, -- 0-100 scale
+    RiskFactors NVARCHAR(MAX) NULL, -- JSON array of risk factors
+    PredictedOutcome NVARCHAR(50) NULL,
+    RecommendedInterventions NVARCHAR(MAX) NULL, -- JSON array of interventions
+    LastUpdated DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE()
+);
+
+-- PeerComparison Table - Student performance benchmarking for motivation
+CREATE TABLE dbo.PeerComparison (
+    Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    UserId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id),
+    CourseId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Courses(Id) ON DELETE CASCADE,
+    MetricType NVARCHAR(50) NOT NULL CHECK (MetricType IN ('score', 'completion_rate', 'time_spent', 'engagement')),
+    UserValue DECIMAL(10,2) NOT NULL,
+    PeerAverage DECIMAL(10,2) NOT NULL,
+    PeerMedian DECIMAL(10,2) NOT NULL,
+    Percentile INT NOT NULL CHECK (Percentile >= 0 AND Percentile <= 100),
+    SampleSize INT NOT NULL DEFAULT 0,
+    CalculatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE()
+);
+
+-- Bookmarks Table - Course bookmarking system
+CREATE TABLE dbo.Bookmarks (
+    Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    UserId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id) ON DELETE CASCADE,
+    CourseId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Courses(Id) ON DELETE CASCADE,
+    BookmarkedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    Notes NVARCHAR(500) NULL, -- Optional user notes
+    UNIQUE(UserId, CourseId) -- Prevent duplicate bookmarks
+);
+
+-- Performance Indexes
+CREATE NONCLUSTERED INDEX IX_CourseProgress_UserId_CourseId ON dbo.CourseProgress (UserId, CourseId);
+CREATE NONCLUSTERED INDEX IX_LearningActivities_UserId_CreatedAt ON dbo.LearningActivities (UserId, CreatedAt DESC);
+CREATE NONCLUSTERED INDEX IX_LearningActivities_CourseId_ActivityType ON dbo.LearningActivities (CourseId, ActivityType);
+CREATE NONCLUSTERED INDEX IX_StudentRecommendations_UserId_IsActive ON dbo.StudentRecommendations (UserId, IsActive);
+CREATE NONCLUSTERED INDEX IX_StudentRiskAssessment_UserId_RiskLevel ON dbo.StudentRiskAssessment (UserId, RiskLevel);
+CREATE NONCLUSTERED INDEX IX_PeerComparison_UserId_CourseId ON dbo.PeerComparison (UserId, CourseId);
+CREATE NONCLUSTERED INDEX IX_Bookmarks_UserId ON dbo.Bookmarks(UserId);
+CREATE NONCLUSTERED INDEX IX_Bookmarks_CourseId ON dbo.Bookmarks(CourseId);
+CREATE NONCLUSTERED INDEX IX_Bookmarks_BookmarkedAt ON dbo.Bookmarks(BookmarkedAt);
+
+-- ========================================
+-- SAMPLE DATA
+-- ========================================
+
 -- Insert Sample Data
 INSERT INTO dbo.Users (Id, Email, Username, FirstName, LastName, PasswordHash, Role, IsActive, EmailVerified, CreatedAt, UpdatedAt)
 VALUES 
@@ -305,9 +421,12 @@ VALUES
     (NEWID(), 'student@mishinlearn.com', 'student1', 'Jane', 'Smith', '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LwlAR2B9VCFxCgHKK', 'student', 1, 1, GETUTCDATE(), GETUTCDATE());
 
 PRINT '✅ Mishin Learn Database Schema created successfully!';
-PRINT '📊 Created tables: Users, Courses, Lessons, Enrollments, UserProgress, Resources, Assessments, Questions, AssessmentSubmissions, LiveSessions, LiveSessionAttendees, ChatRooms, ChatMessages, TutoringSessions, TutoringMessages';
-PRINT '🔐 Sample accounts created:';
+PRINT '📊 Core Tables: Users, Courses, Lessons, Enrollments, UserProgress, Resources, Assessments, Questions, AssessmentSubmissions';
+PRINT '📊 Communication: LiveSessions, LiveSessionAttendees, ChatRooms, ChatMessages, TutoringSessions, TutoringMessages';
+PRINT '🧠 AI Progress Integration: CourseProgress, LearningActivities, StudentRecommendations, StudentRiskAssessment, PeerComparison';
+PRINT '� User Features: Bookmarks, FileUploads';
+PRINT '�🔐 Sample accounts created:';
 PRINT '   - Admin: admin@mishinlearn.com (password: password123)';
 PRINT '   - Instructor: instructor@mishinlearn.com (password: password123)';  
 PRINT '   - Student: student@mishinlearn.com (password: password123)';
-PRINT '🚀 Database is ready for Mishin Learn Platform!';
+PRINT '🚀 Database is ready for Mishin Learn Platform with AI-powered Student Progress Integration!';

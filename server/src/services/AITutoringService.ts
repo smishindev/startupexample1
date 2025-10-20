@@ -280,7 +280,7 @@ Provide actionable, specific recommendations.`;
           up.OverallProgress,
           up.TimeSpent,
           up.LastAccessedAt
-        FROM dbo.UserProgress up
+        FROM dbo.CourseProgress up
         JOIN dbo.Courses c ON up.CourseId = c.Id
         WHERE up.UserId = @userId
         ORDER BY up.LastAccessedAt DESC

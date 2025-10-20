@@ -21,7 +21,7 @@ router.get('/analytics/me', authenticateToken, async (req: AuthRequest, res) => 
         COUNT(DISTINCT CASE WHEN cp.OverallProgress = 100 THEN e.CourseId END) as completedCourses,
         COUNT(DISTINCT CASE WHEN cp.OverallProgress > 0 AND cp.OverallProgress < 100 THEN e.CourseId END) as inProgressCourses,
         AVG(CAST(cp.OverallProgress as FLOAT)) as averageCompletion,
-        SUM(CAST(cp.TimeSpent as FLOAT)) / 3600 as totalTimeSpent
+        SUM(CAST(cp.TimeSpent as FLOAT)) / 60.0 as totalTimeSpent
       FROM Enrollments e
       LEFT JOIN CourseProgress cp ON e.CourseId = cp.CourseId AND e.UserId = cp.UserId
       WHERE e.UserId = @userId AND e.Status = 'active'
@@ -43,7 +43,8 @@ router.get('/analytics/me', authenticateToken, async (req: AuthRequest, res) => 
       JOIN Courses c ON l.CourseId = c.Id
       JOIN Enrollments e ON c.Id = e.CourseId
       WHERE e.UserId = @userId AND e.Status = 'active'
-        AND asub.CreatedAt >= DATEADD(day, -90, GETDATE())
+        AND asub.CompletedAt >= DATEADD(day, -90, GETDATE())
+        AND asub.CompletedAt IS NOT NULL
     `;
 
     const performance = await dbService.query(performanceQuery, { userId });
@@ -51,7 +52,7 @@ router.get('/analytics/me', authenticateToken, async (req: AuthRequest, res) => 
     // Get recent activity trend (last 4 weeks)
     const activityQuery = `
       SELECT 
-        DATEPART(week, asub.CreatedAt) as weekNumber,
+        DATEPART(week, asub.CompletedAt) as weekNumber,
         COUNT(*) as assessmentsTaken,
         AVG(CAST(asub.Score as FLOAT)) as avgScore,
         COUNT(DISTINCT l.CourseId) as activeCourses
@@ -60,8 +61,9 @@ router.get('/analytics/me', authenticateToken, async (req: AuthRequest, res) => 
       JOIN Lessons l ON a.LessonId = l.Id
       JOIN Enrollments e ON l.CourseId = e.CourseId
       WHERE e.UserId = @userId 
-        AND asub.CreatedAt >= DATEADD(week, -4, GETDATE())
-      GROUP BY DATEPART(week, asub.CreatedAt)
+        AND asub.CompletedAt >= DATEADD(week, -4, GETDATE())
+        AND asub.CompletedAt IS NOT NULL
+      GROUP BY DATEPART(week, asub.CompletedAt)
       ORDER BY weekNumber DESC
     `;
 
@@ -217,7 +219,7 @@ router.post('/recommendations', authenticateToken, async (req: AuthRequest, res)
         a.PassingScore,
         c.Title as courseTitle,
         c.Id as courseId,
-        asub.CreatedAt,
+        asub.CompletedAt,
         asub.AttemptNumber
       FROM AssessmentSubmissions asub
       JOIN Assessments a ON asub.AssessmentId = a.Id
@@ -225,8 +227,9 @@ router.post('/recommendations', authenticateToken, async (req: AuthRequest, res)
       JOIN Courses c ON l.CourseId = c.Id
       JOIN Enrollments e ON c.Id = e.CourseId
       WHERE e.UserId = @userId
+        AND asub.CompletedAt IS NOT NULL
         ${courseId ? 'AND c.Id = @courseId' : ''}
-      ORDER BY asub.CreatedAt DESC
+      ORDER BY asub.CompletedAt DESC
     `;
 
     const recentPerformance = await dbService.query(performanceQuery, 

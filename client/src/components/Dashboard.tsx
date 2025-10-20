@@ -20,16 +20,23 @@ import {
   PlayCircleOutline,
   BookmarkBorder,
   EmojiEvents,
+  Psychology,
 } from '@mui/icons-material';
 import { useAuthStore } from '../stores/authStore';
+import { useNavigate } from 'react-router-dom';
 
 export const Dashboard: React.FC = () => {
   const { user, logout } = useAuthStore();
+  const navigate = useNavigate();
 
   if (!user) return null;
 
   const handleLogout = () => {
     logout();
+  };
+
+  const handleSmartProgress = () => {
+    navigate('/smart-progress');
   };
 
   const stats = [
@@ -121,13 +128,23 @@ export const Dashboard: React.FC = () => {
               </Box>
             </Box>
           </Box>
-          <Button
-            variant="outlined"
-            color="inherit"
-            onClick={handleLogout}
-          >
-            Logout
-          </Button>
+          <Box display="flex" gap={2}>
+            <Button
+              variant="contained"
+              startIcon={<Psychology />}
+              onClick={handleSmartProgress}
+              sx={{ mr: 1 }}
+            >
+              Smart Progress
+            </Button>
+            <Button
+              variant="outlined"
+              color="inherit"
+              onClick={handleLogout}
+            >
+              Logout
+            </Button>
+          </Box>
         </Box>
         <Typography variant="body1" color="text.secondary">
           Continue your learning journey with personalized recommendations and track your progress.

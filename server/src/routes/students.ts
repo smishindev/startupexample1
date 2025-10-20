@@ -36,7 +36,7 @@ router.get('/', authenticateToken, async (req: any, res) => {
       FROM dbo.Users u
       INNER JOIN dbo.Enrollments e ON u.Id = e.UserId
       INNER JOIN dbo.Courses c ON e.CourseId = c.Id
-      LEFT JOIN dbo.UserProgress up ON u.Id = up.UserId AND c.Id = up.CourseId
+      LEFT JOIN dbo.CourseProgress up ON u.Id = up.UserId AND c.Id = up.CourseId
       LEFT JOIN (
         SELECT CourseId, COUNT(*) as total
         FROM dbo.Lessons
@@ -137,14 +137,14 @@ router.get('/:studentId/progress/:courseId', authenticateToken, async (req: any,
         up.CompletedAt,
         up.CompletedLessons,
         up.CurrentLesson,
-        up.PerformanceMetrics,
+        NULL as PerformanceMetrics, -- CourseProgress doesn't have PerformanceMetrics
         e.EnrolledAt,
         e.Status as enrollmentStatus,
         u.FirstName,
         u.LastName,
         u.Email,
         c.Title as courseTitle
-      FROM dbo.UserProgress up
+      FROM dbo.CourseProgress up
       INNER JOIN dbo.Enrollments e ON up.UserId = e.UserId AND up.CourseId = e.CourseId
       INNER JOIN dbo.Users u ON up.UserId = u.Id
       INNER JOIN dbo.Courses c ON up.CourseId = c.Id
@@ -167,7 +167,7 @@ router.get('/:studentId/progress/:courseId', authenticateToken, async (req: any,
         CASE WHEN JSON_VALUE(up.CompletedLessons, '$') LIKE '%' + CAST(l.Id AS NVARCHAR(36)) + '%' 
              THEN 1 ELSE 0 END as isCompleted
       FROM dbo.Lessons l
-      LEFT JOIN dbo.UserProgress up ON up.CourseId = l.CourseId AND up.UserId = @studentId
+      LEFT JOIN dbo.CourseProgress up ON up.CourseId = l.CourseId AND up.UserId = @studentId
       WHERE l.CourseId = @courseId
       ORDER BY l.OrderIndex
     `;
@@ -333,7 +333,7 @@ router.get('/analytics', authenticateToken, async (req: any, res) => {
         COUNT(DISTINCT CASE WHEN up.LastAccessedAt > DATEADD(day, -30, GETUTCDATE()) THEN e.UserId END) as activeLastMonth
       FROM dbo.Enrollments e
       INNER JOIN dbo.Courses c ON e.CourseId = c.Id
-      LEFT JOIN dbo.UserProgress up ON e.UserId = up.UserId AND e.CourseId = up.CourseId
+      LEFT JOIN dbo.CourseProgress up ON e.UserId = up.UserId AND e.CourseId = up.CourseId
       WHERE c.InstructorId = @instructorId ${courseFilter}
     `;
 

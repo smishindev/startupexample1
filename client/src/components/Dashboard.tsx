@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Container,
@@ -11,6 +11,7 @@ import {
   Avatar,
   Chip,
   LinearProgress,
+  CircularProgress,
 } from '@mui/material';
 import {
   School,
@@ -24,12 +25,51 @@ import {
 } from '@mui/icons-material';
 import { useAuthStore } from '../stores/authStore';
 import { useNavigate } from 'react-router-dom';
+import { enrollmentApi } from '../services/enrollmentApi';
+
+interface EnrolledCourse {
+  CourseID: string;
+  Title: string;
+  Description?: string;
+  Instructor?: string;
+  Progress?: number;
+}
 
 export const Dashboard: React.FC = () => {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
+  const [enrolledCourses, setEnrolledCourses] = useState<EnrolledCourse[]>([]);
+  const [loading, setLoading] = useState(true);
 
   if (!user) return null;
+
+  useEffect(() => {
+    const fetchEnrolledCourses = async () => {
+      try {
+        setLoading(true);
+        const enrollments = await enrollmentApi.getMyEnrollments();
+        
+        // Map enrollments to the format needed for display
+        const courses: EnrolledCourse[] = enrollments.map((enrollment) => ({
+          CourseID: enrollment.courseId,
+          Title: enrollment.Title,
+          Description: enrollment.Description,
+          Instructor: `${enrollment.instructorFirstName} ${enrollment.instructorLastName}`,
+          Progress: enrollment.OverallProgress || 0,
+        }));
+
+        setEnrolledCourses(courses);
+      } catch (error) {
+        console.error('Failed to fetch enrolled courses:', error);
+        // Fallback to empty array if API fails
+        setEnrolledCourses([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchEnrolledCourses();
+  }, []);
 
   const handleLogout = () => {
     logout();
@@ -70,26 +110,13 @@ export const Dashboard: React.FC = () => {
     },
   ];
 
-  const recentCourses = [
-    {
-      title: 'Advanced React Development',
-      progress: 75,
-      instructor: 'Dr. Sarah Johnson',
-      nextLesson: 'React Performance Optimization',
-    },
-    {
-      title: 'Data Structures & Algorithms',
-      progress: 45,
-      instructor: 'Prof. Michael Chen',
-      nextLesson: 'Binary Search Trees',
-    },
-    {
-      title: 'Machine Learning Fundamentals',
-      progress: 30,
-      instructor: 'Dr. Emily Rodriguez',
-      nextLesson: 'Linear Regression',
-    },
-  ];
+  // Use real enrolled courses data, limiting to 3 recent ones
+  const recentCourses = enrolledCourses.slice(0, 3).map(course => ({
+    title: course.Title,
+    progress: course.Progress || 0,
+    instructor: course.Instructor || 'Unknown Instructor',
+    nextLesson: 'Continue Learning', // Could be enhanced with real lesson data later
+  }));
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
@@ -207,49 +234,70 @@ export const Dashboard: React.FC = () => {
               </Button>
             </Box>
             
-            <Box display="flex" flexDirection="column" gap={2}>
-              {recentCourses.map((course, index) => (
-                <Card key={index} variant="outlined">
-                  <CardContent>
-                    <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
+            {loading ? (
+              <Box display="flex" justifyContent="center" py={4}>
+                <CircularProgress />
+              </Box>
+            ) : recentCourses.length > 0 ? (
+              <Box display="flex" flexDirection="column" gap={2}>
+                {recentCourses.map((course, index) => (
+                  <Card key={index} variant="outlined">
+                    <CardContent>
+                      <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
+                        <Box>
+                          <Typography variant="h6" gutterBottom>
+                            {course.title}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary" gutterBottom>
+                            by {course.instructor}
+                          </Typography>
+                          <Typography variant="body2" color="primary">
+                            Next: {course.nextLesson}
+                          </Typography>
+                        </Box>
+                        <Button
+                          variant="contained"
+                          startIcon={<PlayCircleOutline />}
+                          size="small"
+                          onClick={() => navigate(`/course/${enrolledCourses[index]?.CourseID}`)}
+                        >
+                          Continue
+                        </Button>
+                      </Box>
                       <Box>
-                        <Typography variant="h6" gutterBottom>
-                          {course.title}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary" gutterBottom>
-                          by {course.instructor}
-                        </Typography>
-                        <Typography variant="body2" color="primary">
-                          Next: {course.nextLesson}
-                        </Typography>
+                        <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
+                          <Typography variant="body2" color="text.secondary">
+                            Progress
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            {Math.round(course.progress)}%
+                          </Typography>
+                        </Box>
+                        <LinearProgress
+                          variant="determinate"
+                          value={course.progress}
+                          sx={{ height: 8, borderRadius: 4 }}
+                        />
                       </Box>
-                      <Button
-                        variant="contained"
-                        startIcon={<PlayCircleOutline />}
-                        size="small"
-                      >
-                        Continue
-                      </Button>
-                    </Box>
-                    <Box>
-                      <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
-                        <Typography variant="body2" color="text.secondary">
-                          Progress
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          {course.progress}%
-                        </Typography>
-                      </Box>
-                      <LinearProgress
-                        variant="determinate"
-                        value={course.progress}
-                        sx={{ height: 8, borderRadius: 4 }}
-                      />
-                    </Box>
-                  </CardContent>
-                </Card>
-              ))}
-            </Box>
+                    </CardContent>
+                  </Card>
+                ))}
+              </Box>
+            ) : (
+              <Box textAlign="center" py={4}>
+                <Typography variant="body2" color="text.secondary" gutterBottom>
+                  No courses enrolled yet
+                </Typography>
+                <Button
+                  variant="contained"
+                  startIcon={<School />}
+                  onClick={() => navigate('/courses')}
+                  sx={{ mt: 1 }}
+                >
+                  Browse Courses
+                </Button>
+              </Box>
+            )}
           </Paper>
         </Grid>
 

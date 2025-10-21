@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Container,
@@ -11,6 +11,7 @@ import {
   Chip,
   IconButton,
   useTheme,
+  CircularProgress,
 } from '@mui/material';
 import {
   TrendingUp,
@@ -22,6 +23,7 @@ import {
 } from '@mui/icons-material';
 import { Header } from '../Navigation/Header';
 import { useAuthStore } from '../../stores/authStore';
+import { enrollmentApi } from '../../services/enrollmentApi';
 
 interface DashboardStats {
   totalCourses: number;
@@ -54,7 +56,7 @@ export const DashboardLayout: React.FC = () => {
   const theme = useTheme();
   const { user } = useAuthStore();
 
-  // Mock data - in real app, this would come from API
+  // Real data from API
   const [stats] = useState<DashboardStats>({
     totalCourses: 12,
     completedCourses: 3,
@@ -62,38 +64,41 @@ export const DashboardLayout: React.FC = () => {
     currentStreak: 7,
   });
 
-  const [recentCourses] = useState<RecentCourse[]>([
-    {
-      id: '1',
-      title: 'Advanced React Development',
-      instructor: 'Sarah Johnson',
-      progress: 75,
-      thumbnail: '/api/placeholder/300/200',
-      lastAccessed: '2 hours ago',
-      duration: '8h 30m',
-      rating: 4.8,
-    },
-    {
-      id: '2',
-      title: 'Machine Learning Fundamentals',
-      instructor: 'Dr. Michael Chen',
-      progress: 45,
-      thumbnail: '/api/placeholder/300/200',
-      lastAccessed: '1 day ago',
-      duration: '12h 45m',
-      rating: 4.9,
-    },
-    {
-      id: '3',
-      title: 'UI/UX Design Principles',
-      instructor: 'Emma Rodriguez',
-      progress: 30,
-      thumbnail: '/api/placeholder/300/200',
-      lastAccessed: '3 days ago',
-      duration: '6h 15m',
-      rating: 4.7,
-    },
-  ]);
+  const [recentCourses, setRecentCourses] = useState<RecentCourse[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchEnrolledCourses = async () => {
+      try {
+        setLoading(true);
+        const enrollments = await enrollmentApi.getMyEnrollments();
+        
+        // Map enrollments to RecentCourse format
+        const courses: RecentCourse[] = enrollments.slice(0, 3).map((enrollment) => ({
+          id: enrollment.courseId,
+          title: enrollment.Title,
+          instructor: `${enrollment.instructorFirstName} ${enrollment.instructorLastName}`,
+          progress: enrollment.OverallProgress || 0,
+          thumbnail: '/api/placeholder/300/200',
+          lastAccessed: enrollment.LastAccessedAt || 'Recently',
+          duration: enrollment.Duration || 'N/A',
+          rating: 4.5, // Default rating - could be enhanced with real ratings
+        }));
+
+        setRecentCourses(courses);
+      } catch (error) {
+        console.error('Failed to fetch enrolled courses:', error);
+        setRecentCourses([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchEnrolledCourses();
+  }, []);
+
+  // Use real enrolled courses data
+  const displayCourses = recentCourses;
 
   const [achievements] = useState<Achievement[]>([
     {
@@ -342,13 +347,28 @@ export const DashboardLayout: React.FC = () => {
           <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 3 }}>
             Continue Learning
           </Typography>
-          <Grid container spacing={3}>
-            {recentCourses.map((course) => (
-              <Grid item xs={12} sm={6} md={4} key={course.id}>
-                <CourseCard course={course} />
-              </Grid>
-            ))}
-          </Grid>
+          {loading ? (
+            <Box display="flex" justifyContent="center" py={4}>
+              <CircularProgress />
+            </Box>
+          ) : displayCourses.length > 0 ? (
+            <Grid container spacing={3}>
+              {displayCourses.map((course) => (
+                <Grid item xs={12} sm={6} md={4} key={course.id}>
+                  <CourseCard course={course} />
+                </Grid>
+              ))}
+            </Grid>
+          ) : (
+            <Box textAlign="center" py={4}>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                No courses enrolled yet
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Browse our course catalog to get started!
+              </Typography>
+            </Box>
+          )}
         </Box>
 
         {/* Achievements Section */}

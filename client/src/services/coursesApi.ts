@@ -96,6 +96,13 @@ export interface CourseCategory {
   AverageEnrollments: number;
 }
 
+export interface CourseLevel {
+  Level: string;
+  Count: number;
+  AverageRating: number;
+  AverageEnrollments: number;
+}
+
 class CoursesApi {
   async getCourses(filters: CourseFilters = {}): Promise<CoursesResponse> {
     const params = new URLSearchParams();
@@ -132,6 +139,21 @@ class CoursesApi {
 
   async getCategories(): Promise<CourseCategory[]> {
     const response = await api.get('/api/courses/meta/categories');
+    return response.data;
+  }
+
+  async getLevels(): Promise<CourseLevel[]> {
+    const response = await api.get('/api/courses/meta/levels');
+    return response.data;
+  }
+
+  async getStats(): Promise<{
+    TotalCourses: number;
+    FreeCourses: number;
+    TotalStudents: number;
+    TotalCategories: number;
+  }> {
+    const response = await api.get('/api/courses/meta/stats');
     return response.data;
   }
 

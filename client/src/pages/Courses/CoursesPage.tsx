@@ -27,7 +27,7 @@ import { useNavigate } from 'react-router-dom';
 import { Header } from '../../components/Navigation/Header';
 import { CourseCard, Course } from '../../components/Course/CourseCard';
 import { enrollmentApi } from '../../services/enrollmentApi';
-import { coursesApi, Course as ApiCourse, CourseFilters } from '../../services/coursesApi';
+import { coursesApi, Course as ApiCourse, CourseFilters, CourseCategory, CourseLevel } from '../../services/coursesApi';
 import { BookmarkApi } from '../../services/bookmarkApi';
 import { useAuthStore } from '../../stores/authStore';
 import { ShareDialog } from '../../components/Course/ShareDialog';
@@ -104,6 +104,7 @@ export const CoursesPage: React.FC = () => {
   const { isAuthenticated, user } = useAuthStore();
   const [tabValue, setTabValue] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedLevel, setSelectedLevel] = useState('');
   const [sortBy, setSortBy] = useState('popular');
@@ -114,8 +115,17 @@ export const CoursesPage: React.FC = () => {
   const [enrolledCourses, setEnrolledCourses] = useState<Course[]>([]);
   const [bookmarkedCourses, setBookmarkedCourses] = useState<Course[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
-  const [categoryStats, setCategoryStats] = useState<any[]>([]);
+  const [categoryStats, setCategoryStats] = useState<CourseCategory[]>([]);
+  const [levels, setLevels] = useState<string[]>([]);
+  const [levelStats, setLevelStats] = useState<CourseLevel[]>([]);
+  const [overallStats, setOverallStats] = useState({
+    TotalCourses: 0,
+    FreeCourses: 0,
+    TotalStudents: 0,
+    TotalCategories: 0,
+  });
   const [loading, setLoading] = useState(true);
+  const [searchLoading, setSearchLoading] = useState(false);
   const [bookmarksLoading, setBookmarksLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [shareDialog, setShareDialog] = useState<{
@@ -133,18 +143,37 @@ export const CoursesPage: React.FC = () => {
     hasPrev: false,
   });
 
-  const levels = ['beginner', 'intermediate', 'advanced'];
+  // Debounce search query to prevent excessive API calls and flickering
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+      // Reset to first page when search query changes
+      if (searchQuery !== debouncedSearchQuery) {
+        setCurrentPage(1);
+      }
+    }, 300); // 300ms delay for debouncing
+
+    return () => clearTimeout(timer);
+  }, [searchQuery, debouncedSearchQuery]);
 
   // Load initial data
   useEffect(() => {
     // Add a small delay to ensure auth store has hydrated from localStorage
     const timer = setTimeout(() => {
-      loadCourses();
-      loadCategories();
+      // Determine if this is a search operation
+      const isSearch = debouncedSearchQuery !== '';
+      loadCourses(isSearch);
+      
+      // Only load categories and levels on initial load, not on search
+      if (!isSearch) {
+        loadCategories();
+        loadLevels();
+        loadOverallStats();
+      }
     }, 100);
     
     return () => clearTimeout(timer);
-  }, [currentPage, searchQuery, selectedCategory, selectedLevel, sortBy, isAuthenticated]);
+  }, [currentPage, debouncedSearchQuery, selectedCategory, selectedLevel, sortBy, isAuthenticated]);
 
   // Load bookmarked courses when tab is active and user is authenticated
   useEffect(() => {
@@ -153,9 +182,14 @@ export const CoursesPage: React.FC = () => {
     }
   }, [tabValue, isAuthenticated]);
 
-  const loadCourses = async () => {
+  const loadCourses = async (isSearch = false) => {
     try {
-      setLoading(true);
+      // Only show full loading for initial load, use search loading for searches
+      if (isSearch) {
+        setSearchLoading(true);
+      } else {
+        setLoading(true);
+      }
       setError(null);
 
       const filters: CourseFilters = {
@@ -163,7 +197,7 @@ export const CoursesPage: React.FC = () => {
         limit: 12,
       };
 
-      if (searchQuery) filters.search = searchQuery;
+      if (debouncedSearchQuery) filters.search = debouncedSearchQuery;
       if (selectedCategory) filters.category = selectedCategory;
       if (selectedLevel) filters.level = selectedLevel;
 
@@ -219,6 +253,7 @@ export const CoursesPage: React.FC = () => {
       setError('Failed to load courses. Please try again.');
     } finally {
       setLoading(false);
+      setSearchLoading(false);
     }
   };
 
@@ -230,6 +265,26 @@ export const CoursesPage: React.FC = () => {
       setCategoryStats(categoriesData);
     } catch (err) {
       console.error('Error loading categories:', err);
+    }
+  };
+
+  const loadLevels = async () => {
+    try {
+      const levelsData = await coursesApi.getLevels();
+      const levelNames = levelsData.map(level => level.Level);
+      setLevels(levelNames);
+      setLevelStats(levelsData);
+    } catch (err) {
+      console.error('Error loading levels:', err);
+    }
+  };
+
+  const loadOverallStats = async () => {
+    try {
+      const statsData = await coursesApi.getStats();
+      setOverallStats(statsData);
+    } catch (err) {
+      console.error('Error loading overall stats:', err);
     }
   };
 
@@ -506,7 +561,7 @@ export const CoursesPage: React.FC = () => {
                 <Grid item xs={12} sm={6} md={3}>
                   <Box sx={{ textAlign: 'center' }}>
                     <Typography variant="h4" color="primary.main" sx={{ fontWeight: 'bold' }}>
-                      {pagination.total}
+                      {overallStats.TotalCourses}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
                       Total Courses
@@ -517,7 +572,7 @@ export const CoursesPage: React.FC = () => {
                 <Grid item xs={12} sm={6} md={3}>
                   <Box sx={{ textAlign: 'center' }}>
                     <Typography variant="h4" color="success.main" sx={{ fontWeight: 'bold' }}>
-                      {allCourses.filter(c => c.price === 0).length}
+                      {overallStats.FreeCourses}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
                       Free Courses
@@ -528,7 +583,7 @@ export const CoursesPage: React.FC = () => {
                 <Grid item xs={12} sm={6} md={3}>
                   <Box sx={{ textAlign: 'center' }}>
                     <Typography variant="h4" color="warning.main" sx={{ fontWeight: 'bold' }}>
-                      {categoryStats.length}
+                      {overallStats.TotalCategories}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
                       Categories
@@ -539,7 +594,7 @@ export const CoursesPage: React.FC = () => {
                 <Grid item xs={12} sm={6} md={3}>
                   <Box sx={{ textAlign: 'center' }}>
                     <Typography variant="h4" color="info.main" sx={{ fontWeight: 'bold' }}>
-                      {allCourses.reduce((sum, course) => sum + course.enrolledStudents, 0).toLocaleString()}
+                      {overallStats.TotalStudents.toLocaleString()}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
                       Total Students
@@ -585,6 +640,61 @@ export const CoursesPage: React.FC = () => {
                         </Typography>
                         <Typography variant="body2" sx={{ mb: 1 }}>
                           {formatCategory(stat.Category)}
+                        </Typography>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                            <Rating value={stat.AverageRating || 0} precision={0.1} readOnly size="small" />
+                            <Typography variant="caption">
+                              {(stat.AverageRating || 0).toFixed(1)}
+                            </Typography>
+                          </Box>
+                          <Typography variant="caption" color="text.secondary">
+                            ~{Math.round(stat.AverageEnrollments || 0)} enrolled
+                          </Typography>
+                        </Box>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                ))}
+              </Grid>
+            </Paper>
+          )}
+
+          {/* Level Statistics */}
+          {levelStats.length > 0 && (
+            <Paper sx={{ p: 3, mb: 4 }}>
+              <Typography variant="h6" sx={{ mb: 3 }}>
+                Course Levels
+              </Typography>
+              <Grid container spacing={2}>
+                {levelStats.map((stat, index) => (
+                  <Grid item xs={12} sm={4} md={4} key={index}>
+                    <Card 
+                      sx={{ 
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                        '&:hover': {
+                          transform: 'translateY(-2px)',
+                          boxShadow: 3,
+                        },
+                        ...(selectedLevel === stat.Level && {
+                          bgcolor: 'primary.50',
+                          borderColor: 'primary.main',
+                          borderWidth: 2,
+                        })
+                      }}
+                      onClick={() => setSelectedLevel(
+                        selectedLevel === stat.Level 
+                          ? '' 
+                          : stat.Level
+                      )}
+                    >
+                      <CardContent sx={{ textAlign: 'center', py: 2 }}>
+                        <Typography variant="h6" color="primary.main" sx={{ fontWeight: 'bold' }}>
+                          {stat.Count}
+                        </Typography>
+                        <Typography variant="body2" sx={{ mb: 1 }}>
+                          {stat.Level}
                         </Typography>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
@@ -653,7 +763,7 @@ export const CoursesPage: React.FC = () => {
                     <MenuItem value="">All Levels</MenuItem>
                     {levels.map((level) => (
                       <MenuItem key={level} value={level}>
-                        {level.charAt(0).toUpperCase() + level.slice(1)}
+                        {level}
                       </MenuItem>
                     ))}
                   </Select>
@@ -728,9 +838,14 @@ export const CoursesPage: React.FC = () => {
             </Box>
           ) : (
             <>
-              <Typography variant="h6" sx={{ mb: 3 }}>
-                {allCourses.length} courses found
-              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+                <Typography variant="h6">
+                  {allCourses.length} courses found
+                </Typography>
+                {searchLoading && (
+                  <CircularProgress size={20} sx={{ ml: 2 }} />
+                )}
+              </Box>
 
               <Grid container spacing={3}>
                 {allCourses.map((course) => (

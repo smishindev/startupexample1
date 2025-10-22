@@ -236,23 +236,98 @@ router.get('/meta/categories', async (req: any, res: any) => {
   try {
     const query = `
       SELECT 
-        Category,
+        c.Category,
         COUNT(*) as Count,
-        AVG(Rating) as AverageRating,
-        AVG(EnrollmentCount) as AverageEnrollments
-      FROM Courses
-      WHERE IsPublished = 1
-      GROUP BY Category
+        ISNULL(AVG(CAST(c.Rating as FLOAT)), 0) as AverageRating,
+        ISNULL(AVG(CAST(e.EnrollmentCount as FLOAT)), 0) as AverageEnrollments
+      FROM Courses c
+      LEFT JOIN (
+        SELECT 
+          CourseId,
+          COUNT(*) as EnrollmentCount
+        FROM Enrollments 
+        WHERE Status = 'active'
+        GROUP BY CourseId
+      ) e ON c.Id = e.CourseId
+      WHERE c.IsPublished = 1
+      GROUP BY c.Category
       ORDER BY Count DESC
     `;
 
     const result = await db.query(query);
+    
+    console.log('Categories API response:', JSON.stringify(result, null, 2));
 
     res.json(result);
 
   } catch (error) {
     console.error('Error fetching categories:', error);
     res.status(500).json({ error: 'Failed to fetch categories' });
+  }
+});
+
+// Get course levels and stats
+router.get('/meta/levels', async (req: any, res: any) => {
+  try {
+    const query = `
+      SELECT 
+        c.Level,
+        COUNT(*) as Count,
+        ISNULL(AVG(CAST(c.Rating as FLOAT)), 0) as AverageRating,
+        ISNULL(AVG(CAST(e.EnrollmentCount as FLOAT)), 0) as AverageEnrollments
+      FROM Courses c
+      LEFT JOIN (
+        SELECT 
+          CourseId,
+          COUNT(*) as EnrollmentCount
+        FROM Enrollments 
+        WHERE Status = 'active'
+        GROUP BY CourseId
+      ) e ON c.Id = e.CourseId
+      WHERE c.IsPublished = 1
+      GROUP BY c.Level
+      ORDER BY Count DESC
+    `;
+
+    const result = await db.query(query);
+    
+    console.log('Levels API response:', JSON.stringify(result, null, 2));
+
+    res.json(result);
+
+  } catch (error) {
+    console.error('Error fetching levels:', error);
+    res.status(500).json({ error: 'Failed to fetch levels' });
+  }
+});
+
+// Get overall course statistics
+router.get('/meta/stats', async (req: any, res: any) => {
+  try {
+    const query = `
+      SELECT 
+        COUNT(*) as TotalCourses,
+        COUNT(CASE WHEN c.Price = 0 THEN 1 END) as FreeCourses,
+        ISNULL((SELECT COUNT(DISTINCT UserId) FROM Enrollments WHERE Status = 'active'), 0) as TotalStudents,
+        COUNT(DISTINCT c.Category) as TotalCategories
+      FROM Courses c
+      WHERE c.IsPublished = 1
+    `;
+
+    const result = await db.query(query);
+    
+    console.log('Overall Stats API response:', JSON.stringify(result, null, 2));
+    
+    res.json(result[0] || {
+      TotalCourses: 0,
+      FreeCourses: 0,
+      TotalStudents: 0,
+      TotalCategories: 0
+    });
+
+  } catch (error) {
+    console.error('Error fetching overall stats:', error);
+    res.status(500).json({ error: 'Failed to fetch overall stats' });
   }
 });
 

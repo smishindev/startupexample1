@@ -25,6 +25,50 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// Add response interceptor to handle token expiration
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+
+    // If token expired (401) and we haven't already retried
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+
+      try {
+        // Try to refresh token
+        const authStorage = localStorage.getItem('auth-storage');
+        if (authStorage) {
+          const parsedAuth = JSON.parse(authStorage);
+          const refreshTokenFn = parsedAuth?.state?.refreshToken;
+          
+          if (refreshTokenFn) {
+            // Get fresh auth store state to call refresh
+            const { useAuthStore } = await import('../stores/authStore');
+            const refreshed = await useAuthStore.getState().validateToken();
+            
+            if (refreshed) {
+              // Retry the original request with new token
+              const newAuthStorage = localStorage.getItem('auth-storage');
+              const newAuth = JSON.parse(newAuthStorage || '{}');
+              const newToken = newAuth?.state?.token;
+              
+              if (newToken) {
+                originalRequest.headers.Authorization = `Bearer ${newToken}`;
+                return api(originalRequest);
+              }
+            }
+          }
+        }
+      } catch (refreshError) {
+        console.error('Token refresh failed:', refreshError);
+      }
+    }
+
+    return Promise.reject(error);
+  }
+);
+
 export interface Enrollment {
   enrollmentId: string;
   EnrolledAt: string;

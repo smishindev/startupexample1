@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { Box, CircularProgress, Typography } from '@mui/material';
 import { useAuthStore } from '../../stores/authStore';
@@ -15,10 +15,35 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   redirectTo = '/login'
 }) => {
   const location = useLocation();
-  const { isAuthenticated, user, isLoading } = useAuthStore();
+  const { isAuthenticated, user, isLoading, validateToken } = useAuthStore();
+  const [isValidating, setIsValidating] = useState(true);
+  const [isValid, setIsValid] = useState(false);
 
-  // Show loading spinner while checking authentication
-  if (isLoading) {
+  // Validate token on component mount
+  useEffect(() => {
+    const performTokenValidation = async () => {
+      if (!isAuthenticated || !user) {
+        setIsValid(false);
+        setIsValidating(false);
+        return;
+      }
+
+      try {
+        const valid = await validateToken();
+        setIsValid(valid);
+      } catch (error) {
+        console.error('Token validation failed:', error);
+        setIsValid(false);
+      } finally {
+        setIsValidating(false);
+      }
+    };
+
+    performTokenValidation();
+  }, [isAuthenticated, user, validateToken, location.pathname]);
+
+  // Show loading spinner while checking authentication or validating token
+  if (isLoading || isValidating) {
     return (
       <Box
         display="flex"
@@ -30,14 +55,14 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
       >
         <CircularProgress size={60} sx={{ mb: 2 }} />
         <Typography variant="h6" color="text.secondary">
-          Loading...
+          {isValidating ? 'Validating session...' : 'Loading...'}
         </Typography>
       </Box>
     );
   }
 
-  // Redirect to login if not authenticated
-  if (!isAuthenticated || !user) {
+  // Redirect to login if not authenticated or token validation failed
+  if (!isAuthenticated || !user || !isValid) {
     return <Navigate to={redirectTo} state={{ from: location }} replace />;
   }
 

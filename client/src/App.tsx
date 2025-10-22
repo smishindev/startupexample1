@@ -43,14 +43,18 @@ import { ContentUploadDemo } from './components/Demo/ContentUploadDemo';
 import { useAuthStore } from './stores/authStore';
 
 function App() {
-  const { isAuthenticated, token, refreshToken } = useAuthStore();
+  const { isAuthenticated, token, validateToken } = useAuthStore();
 
-  // Auto-refresh token on app load
+  // Validate token on app startup
   useEffect(() => {
-    if (token && !isAuthenticated) {
-      refreshToken();
-    }
-  }, [token, isAuthenticated, refreshToken]);
+    const initializeAuth = async () => {
+      if (token) {
+        await validateToken();
+      }
+    };
+
+    initializeAuth();
+  }, []); // Run once on app startup
 
   return (
     <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>

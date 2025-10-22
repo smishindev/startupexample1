@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { isTokenExpired, shouldRefreshToken } from '../utils/jwtUtils';
 
 export interface User {
   id: string;
@@ -32,6 +33,10 @@ export interface AuthState {
   clearError: () => void;
   setLoading: (loading: boolean) => void;
   updateUser: (userData: Partial<User>) => void;
+  
+  // Token validation
+  validateToken: () => Promise<boolean>;
+  isTokenValid: () => boolean;
 }
 
 export interface RegisterData {
@@ -216,6 +221,50 @@ export const useAuthStore = create<AuthState>()(
             user: { ...user, ...userData },
           });
         }
+      },
+
+      // Token validation methods
+      isTokenValid: (): boolean => {
+        const { token } = get();
+        if (!token) return false;
+        
+        const expired = isTokenExpired(token);
+        return expired === false; // true if not expired, false if expired or invalid
+      },
+
+      validateToken: async (): Promise<boolean> => {
+        const { token, refreshToken } = get();
+        
+        if (!token) {
+          set({ isAuthenticated: false, user: null });
+          return false;
+        }
+
+        const expired = isTokenExpired(token);
+        
+        // If token is invalid, logout
+        if (expired === null) {
+          get().logout();
+          return false;
+        }
+
+        // If token is expired, try to refresh
+        if (expired === true) {
+          console.log('Token expired, attempting refresh...');
+          const refreshed = await refreshToken();
+          if (!refreshed) {
+            return false; // refresh already calls logout on failure
+          }
+          return true;
+        }
+
+        // If token expires soon, proactively refresh
+        if (shouldRefreshToken(token)) {
+          console.log('Token expiring soon, proactively refreshing...');
+          await refreshToken(); // Don't fail if proactive refresh fails
+        }
+
+        return true;
       },
     }),
     {

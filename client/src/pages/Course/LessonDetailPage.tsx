@@ -158,13 +158,19 @@ export const LessonDetailPage: React.FC = () => {
         // Extract saved position from notes
         const savedPosition = extractSavedPosition(lessonProgress?.Notes);
 
+        // Calculate proper lesson progress: if completed, it should be 100%
+        const isLessonCompleted = !!lessonProgress?.CompletedAt;
+        const lessonProgressPercentage = isLessonCompleted 
+          ? 100 
+          : (lessonProgress?.ProgressPercentage || 0);
+
         // Create extended lesson object
         const extendedLesson: ExtendedLesson = {
           ...lessonData,
           courseTitle: lessonData.courseTitle || 'Course Title',
           instructorName: lessonData.instructorName || 'Instructor',
-          completed: !!lessonProgress?.CompletedAt,
-          progress: lessonProgress?.ProgressPercentage || 0,
+          completed: isLessonCompleted,
+          progress: lessonProgressPercentage,
           nextLessonId,
           previousLessonId,
           comments: [], // TODO: Implement comments API
@@ -181,6 +187,9 @@ export const LessonDetailPage: React.FC = () => {
         // Debug: Log progress data (can be removed in production)
         if (progressData) {
           console.log('Course progress data loaded:', progressData);
+          console.log('Current lesson progress:', lessonProgress);
+          console.log('Calculated lesson progress percentage:', lessonProgressPercentage);
+          console.log('Is lesson completed:', isLessonCompleted);
         }
 
       } catch (error: any) {
@@ -215,6 +224,10 @@ export const LessonDetailPage: React.FC = () => {
           timeSpent: 0, // Time spent for manual completion
           notes: 'Manually marked as complete'
         });
+        
+        // Refresh progress data to get updated course and lesson progress
+        const updatedProgressData = await progressApi.getCourseProgress(courseId!);
+        setProgress(updatedProgressData);
         
         // Update local state
         setLesson({ ...lesson, completed: true, progress: 100 });

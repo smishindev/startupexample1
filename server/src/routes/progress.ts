@@ -114,13 +114,16 @@ router.get('/courses/:courseId', authenticateToken, async (req: AuthRequest, res
     const { courseId } = req.params;
     const userId = req.user?.userId;
 
-    // Verify user is enrolled in the course
-    const enrollment = await db.query(`
-      SELECT Id FROM dbo.Enrollments
-      WHERE UserId = @userId AND CourseId = @courseId AND Status = 'active'
+    // Verify user is enrolled OR is the instructor (matching lesson access logic exactly)
+    const access = await db.query(`
+      SELECT Id, InstructorId FROM dbo.Courses 
+      WHERE Id = @courseId AND (InstructorId = @userId OR Id IN (
+        SELECT CourseId FROM dbo.Enrollments WHERE UserId = @userId
+      ))
     `, { userId, courseId });
 
-    if (enrollment.length === 0) {
+    if (access.length === 0) {
+      console.log(`[COURSE PROGRESS] Access denied - user ${userId} not enrolled or instructor for course ${courseId}`);
       return res.status(403).json({ error: 'Not enrolled in this course' });
     }
 
@@ -201,13 +204,16 @@ router.post('/lessons/:lessonId/complete', authenticateToken, async (req: AuthRe
 
     const courseId = lesson[0].CourseId;
 
-    // Verify user is enrolled
-    const enrollment = await db.query(`
-      SELECT Id FROM dbo.Enrollments
-      WHERE UserId = @userId AND CourseId = @courseId AND Status = 'active'
+    // Verify user is enrolled OR is the instructor (matching lesson access logic exactly)
+    const access = await db.query(`
+      SELECT Id, InstructorId FROM dbo.Courses 
+      WHERE Id = @courseId AND (InstructorId = @userId OR Id IN (
+        SELECT CourseId FROM dbo.Enrollments WHERE UserId = @userId
+      ))
     `, { userId, courseId });
 
-    if (enrollment.length === 0) {
+    if (access.length === 0) {
+      console.log(`[PROGRESS API] Access denied - user ${userId} not enrolled or instructor for course ${courseId}`);
       return res.status(403).json({ error: 'Not enrolled in this course' });
     }
 
@@ -279,13 +285,16 @@ router.put('/lessons/:lessonId/progress', authenticateToken, async (req: AuthReq
 
     const courseId = lesson[0].CourseId;
 
-    // Verify user is enrolled
-    const enrollment = await db.query(`
-      SELECT Id FROM dbo.Enrollments
-      WHERE UserId = @userId AND CourseId = @courseId AND Status = 'active'
+    // Verify user is enrolled OR is the instructor (matching lesson access logic exactly)
+    const access = await db.query(`
+      SELECT Id, InstructorId FROM dbo.Courses 
+      WHERE Id = @courseId AND (InstructorId = @userId OR Id IN (
+        SELECT CourseId FROM dbo.Enrollments WHERE UserId = @userId
+      ))
     `, { userId, courseId });
 
-    if (enrollment.length === 0) {
+    if (access.length === 0) {
+      console.log(`[LESSON PROGRESS] Access denied - user ${userId} not enrolled or instructor for course ${courseId}`);
       return res.status(403).json({ error: 'Not enrolled in this course' });
     }
 

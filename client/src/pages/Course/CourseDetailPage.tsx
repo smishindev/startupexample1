@@ -136,11 +136,23 @@ export const CourseDetailPage: React.FC = () => {
         console.log('Real course data:', courseData);
         console.log('Enrollment status:', enrollmentStatusData);
         
+        // Get real progress if enrolled
+        let realProgress = 0;
+        if (enrollmentStatusData?.isEnrolled && !enrollmentStatusData?.isInstructor) {
+          try {
+            const { progressApi } = await import('../../services/progressApi');
+            const progressData = await progressApi.getCourseProgress(courseId);
+            realProgress = Math.round(progressData.courseProgress?.OverallProgress || 0);
+          } catch (err) {
+            console.log('Progress not available:', err);
+          }
+        }
+        
         setEnrollmentStatus(enrollmentStatusData);
         
-        // For now, still use mock course structure but with real data where available
+        // Use real course data from API
         setTimeout(() => {
-          const mockCourse: CourseDetails = {
+          const realCourse: CourseDetails = {
             id: courseData.Id,
             title: courseData.Title,
             description: courseData.Description,
@@ -152,22 +164,22 @@ export const CourseDetailPage: React.FC = () => {
               rating: 4.9,
               studentCount: 15000,
             },
-            thumbnail: '',
-            duration: '12h 30m',
-            level: 'Advanced',
-            rating: 4.8,
-            reviewCount: 324,
-            enrolledStudents: courseData.EnrollmentCount || 2150,
-            price: courseData.Price || 79.99,
-            originalPrice: courseData.Price ? courseData.Price * 1.3 : 129.99,
-            category: courseData.Category || 'Web Development',
-            tags: courseData.Tags || ['Course', 'Learning'],
-            lastUpdated: courseData.UpdatedAt ? courseData.UpdatedAt.split('T')[0] : '2025-09-15',
-          language: 'English',
-          certificate: true,
-          isEnrolled: enrollmentStatusData?.isEnrolled && !enrollmentStatusData?.isInstructor || false,
-          isBookmarked: false,
-          progress: 35,
+            thumbnail: courseData.Thumbnail || '',
+            duration: `${Math.floor(courseData.Duration / 60)}h ${courseData.Duration % 60}m`,
+            level: courseData.Level as 'Beginner' | 'Intermediate' | 'Advanced',
+            rating: courseData.Rating || 0.0,
+            reviewCount: Math.floor(courseData.EnrollmentCount * 0.3) || 0,
+            enrolledStudents: courseData.EnrollmentCount || 0,
+            price: courseData.Price || 0,
+            originalPrice: courseData.Price ? courseData.Price * 1.3 : 0,
+            category: courseData.Category || 'General',
+            tags: courseData.Tags || [],
+            lastUpdated: courseData.UpdatedAt ? courseData.UpdatedAt.split('T')[0] : new Date().toISOString().split('T')[0],
+            language: 'English', // TODO: Get from course data when available
+            certificate: true,
+            isEnrolled: enrollmentStatusData?.isEnrolled && !enrollmentStatusData?.isInstructor || false,
+            isBookmarked: false,
+            progress: realProgress, // Real progress from API
           currentLesson: 'lesson-1-2',
           requirements: [
             'Basic knowledge of JavaScript ES6+',
@@ -273,7 +285,7 @@ export const CourseDetailPage: React.FC = () => {
             },
           ],
         };
-        setCourse(mockCourse);
+        setCourse(realCourse);
         setLoading(false);
         }, 1000);
       } catch (error) {

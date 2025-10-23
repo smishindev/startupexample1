@@ -13,7 +13,6 @@ import {
   List,
   ListItem,
   ListItemIcon,
-  ListItemText,
   Divider,
   Paper,
   IconButton,
@@ -470,40 +469,34 @@ export const StudentProgressDashboard: React.FC = () => {
                         <RecommendationIcon />
                       </Avatar>
                     </ListItemIcon>
-                    <ListItemText
-                      primary={
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                          <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
-                            {recommendation.title}
-                          </Typography>
-                          <Chip 
-                            label={recommendation.priority} 
-                            size="small" 
-                            color={getPriorityColor(recommendation.priority) as any}
-                          />
-                          <Chip 
-                            label={recommendation.type} 
-                            size="small" 
-                            variant="outlined"
-                          />
-                        </Box>
-                      }
-                      secondary={
-                        <Box>
-                          <Typography variant="body2" sx={{ mb: 1 }}>
-                            {recommendation.description}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            💡 {recommendation.reason}
-                          </Typography>
-                          {recommendation.estimatedTime && (
-                            <Typography variant="caption" color="text.secondary" sx={{ ml: 2 }}>
-                              ⏱️ ~{recommendation.estimatedTime} minutes
-                            </Typography>
-                          )}
-                        </Box>
-                      }
-                    />
+                    <Box sx={{ flexGrow: 1, mr: 2 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
+                          {recommendation.title}
+                        </Typography>
+                        <Chip 
+                          label={recommendation.priority} 
+                          size="small" 
+                          color={getPriorityColor(recommendation.priority) as any}
+                        />
+                        <Chip 
+                          label={recommendation.type} 
+                          size="small" 
+                          variant="outlined"
+                        />
+                      </Box>
+                      <Typography variant="body2" sx={{ mb: 1 }}>
+                        {recommendation.description}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        💡 {recommendation.reason}
+                      </Typography>
+                      {recommendation.estimatedTime && (
+                        <Typography variant="caption" color="text.secondary" sx={{ ml: 2 }}>
+                          ⏱️ ~{recommendation.estimatedTime} minutes
+                        </Typography>
+                      )}
+                    </Box>
                     <Box>
                       <Button
                         variant="contained"

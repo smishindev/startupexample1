@@ -105,10 +105,10 @@ export const AnalyticsHubPage: React.FC = () => {
       }
     },
     {
-      title: 'Progress Dashboard',
-      description: 'Overall teaching progress, completion rates, and learning outcome analytics.',
+      title: 'Smart Progress Dashboard',
+      description: 'AI-powered progress analytics, completion rates, and learning outcome insights.',
       icon: <ProgressIcon sx={{ fontSize: 40 }} />,
-      path: '/progress',
+      path: '/smart-progress',
       color: '#9c27b0',
       stats: {
         primary: `${stats?.completionRate || 0}%`,

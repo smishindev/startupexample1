@@ -48,6 +48,7 @@ import {
 } from '@mui/icons-material';
 import { Header } from '../../components/Navigation/Header';
 import { enrollmentApi } from '../../services/enrollmentApi';
+import { formatCurrency, roundToDecimals } from '../../utils/formatUtils';
 import { coursesApi } from '../../services/coursesApi';
 import { useAuthStore } from '../../stores/authStore';
 
@@ -171,7 +172,7 @@ export const CourseDetailPage: React.FC = () => {
             reviewCount: Math.floor(courseData.EnrollmentCount * 0.3) || 0,
             enrolledStudents: courseData.EnrollmentCount || 0,
             price: courseData.Price || 0,
-            originalPrice: courseData.Price ? courseData.Price * 1.3 : 0,
+            originalPrice: courseData.Price ? roundToDecimals(courseData.Price * 1.3) : 0,
             category: courseData.Category || 'General',
             tags: courseData.Tags || [],
             lastUpdated: courseData.UpdatedAt ? courseData.UpdatedAt.split('T')[0] : new Date().toISOString().split('T')[0],
@@ -656,14 +657,14 @@ export const CourseDetailPage: React.FC = () => {
                 <Box sx={{ mb: 3 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                     <Typography variant="h5" sx={{ fontWeight: 'bold', mr: 2 }}>
-                      ${course.price}
+                      {formatCurrency(course.price)}
                     </Typography>
                     {course.originalPrice && (
                       <Typography
                         variant="body1"
                         sx={{ textDecoration: 'line-through', color: 'text.secondary' }}
                       >
-                        ${course.originalPrice}
+                        {formatCurrency(course.originalPrice)}
                       </Typography>
                     )}
                   </Box>

@@ -4,6 +4,7 @@ import { DatabaseService } from '../services/DatabaseService';
 import { authenticateToken, AuthRequest } from '../middleware/auth';
 import { checkRole } from '../middleware/roleCheck';
 import { adaptiveAssessmentService } from '../services/AdaptiveAssessmentService';
+import { AssessmentFeedbackService } from '../services/AssessmentFeedbackService';
 
 const router = express.Router();
 
@@ -1125,6 +1126,120 @@ router.get('/:assessmentId/submissions', authenticateToken, checkRole(['instruct
   } catch (error) {
     console.error('Error fetching assessment submissions:', error);
     res.status(500).json({ error: 'Failed to fetch assessment submissions' });
+  }
+});
+
+// GET /api/assessments/submissions/:submissionId/ai-feedback - Get AI-powered feedback for assessment submission
+router.get('/submissions/:submissionId/ai-feedback', authenticateToken, async (req: AuthRequest, res: Response) => {
+  try {
+    const { submissionId } = req.params;
+    const userId = req.user?.userId;
+    const db = DatabaseService.getInstance();
+
+    // Verify submission belongs to user or user is instructor
+    const submission = await db.query(`
+      SELECT s.*, a.Id as AssessmentId, a.Title, l.CourseId,
+             c.InstructorId
+      FROM dbo.AssessmentSubmissions s
+      JOIN dbo.Assessments a ON s.AssessmentId = a.Id
+      JOIN dbo.Lessons l ON a.LessonId = l.Id
+      JOIN dbo.Courses c ON l.CourseId = c.Id
+      WHERE s.Id = @submissionId
+    `, { submissionId });
+
+    if (submission.length === 0) {
+      return res.status(404).json({ error: 'Submission not found' });
+    }
+
+    const submissionData = submission[0];
+    
+    // Check permission: student can see their own submissions, instructors can see all in their courses
+    if (submissionData.UserId !== userId && submissionData.InstructorId !== userId) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    // Generate AI feedback
+    const feedbackService = new AssessmentFeedbackService();
+    const aiFeedback = await feedbackService.generateAssessmentFeedback(
+      submissionId,
+      submissionData.UserId,
+      submissionData.AssessmentId
+    );
+
+    res.json({
+      submissionId,
+      assessmentTitle: submissionData.Title,
+      aiFeedback,
+      generatedAt: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('Error generating AI feedback:', error);
+    res.status(500).json({ 
+      error: 'Failed to generate AI feedback',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// POST /api/assessments/submissions/:submissionId/request-ai-insights - Request additional AI insights
+router.post('/submissions/:submissionId/request-ai-insights', authenticateToken, async (req: AuthRequest, res: Response) => {
+  try {
+    const { submissionId } = req.params;
+    const { focusArea, specificQuestion } = req.body;
+    const userId = req.user?.userId;
+    const db = DatabaseService.getInstance();
+
+    // Verify submission access
+    const submission = await db.query(`
+      SELECT s.*, a.Id as AssessmentId, a.Title, l.CourseId,
+             c.InstructorId
+      FROM dbo.AssessmentSubmissions s
+      JOIN dbo.Assessments a ON s.AssessmentId = a.Id
+      JOIN dbo.Lessons l ON a.LessonId = l.Id
+      JOIN dbo.Courses c ON l.CourseId = c.Id
+      WHERE s.Id = @submissionId
+    `, { submissionId });
+
+    if (submission.length === 0) {
+      return res.status(404).json({ error: 'Submission not found' });
+    }
+
+    const submissionData = submission[0];
+    
+    if (submissionData.UserId !== userId && submissionData.InstructorId !== userId) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    // Generate focused AI insights based on user request
+    const feedbackService = new AssessmentFeedbackService();
+    
+    // This could be extended to provide more targeted insights
+    const insights = await feedbackService.generateAssessmentFeedback(
+      submissionId,
+      submissionData.UserId,
+      submissionData.AssessmentId
+    );
+
+    res.json({
+      submissionId,
+      focusArea,
+      specificQuestion,
+      insights: {
+        personalizedAdvice: insights.motivationalMessage,
+        nextSteps: insights.overallAnalysis.nextSteps,
+        studyPlan: insights.overallAnalysis.studyPlan,
+        performanceInsights: insights.performanceInsights
+      },
+      generatedAt: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('Error generating AI insights:', error);
+    res.status(500).json({ 
+      error: 'Failed to generate AI insights',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
   }
 });
 

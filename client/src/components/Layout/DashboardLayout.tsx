@@ -25,6 +25,28 @@ import { Header } from '../Navigation/Header';
 import { useAuthStore } from '../../stores/authStore';
 import { enrollmentApi } from '../../services/enrollmentApi';
 
+// Helper function to format last accessed date
+const formatLastAccessed = (dateString: string | null): string => {
+  if (!dateString) return 'Recently';
+  
+  const now = new Date();
+  const lastAccessed = new Date(dateString);
+  const diffInMs = now.getTime() - lastAccessed.getTime();
+  const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+  const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+  const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
+  
+  if (diffInMinutes < 5) return 'Just now';
+  if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
+  if (diffInHours < 24) return `${diffInHours}h ago`;
+  if (diffInDays === 0) return 'Today';
+  if (diffInDays === 1) return 'Yesterday';
+  if (diffInDays < 7) return `${diffInDays} days ago`;
+  if (diffInDays < 30) return `${Math.floor(diffInDays / 7)} weeks ago`;
+  
+  return lastAccessed.toLocaleDateString();
+};
+
 interface DashboardStats {
   totalCourses: number;
   completedCourses: number;
@@ -73,18 +95,31 @@ export const DashboardLayout: React.FC = () => {
         setLoading(true);
         const enrollments = await enrollmentApi.getMyEnrollments();
         
-        // Map enrollments to RecentCourse format
-        const courses: RecentCourse[] = enrollments.slice(0, 3).map((enrollment) => ({
-          id: enrollment.courseId,
-          title: enrollment.Title,
-          instructor: `${enrollment.instructorFirstName} ${enrollment.instructorLastName}`,
-          progress: enrollment.OverallProgress || 0,
-          thumbnail: '/api/placeholder/300/200',
-          lastAccessed: enrollment.LastAccessedAt || 'Recently',
-          duration: enrollment.Duration || 'N/A',
-          rating: 4.5, // Default rating - could be enhanced with real ratings
-        }));
+        // Create a Map to deduplicate courses by courseId and keep the most recent enrollment
+        const courseMap = new Map<string, RecentCourse>();
+        
+        enrollments.forEach((enrollment) => {
+          const courseId = enrollment.courseId;
+          const courseData: RecentCourse = {
+            id: courseId,
+            title: enrollment.Title,
+            instructor: `${enrollment.instructorFirstName} ${enrollment.instructorLastName}`,
+            progress: enrollment.OverallProgress || 0,
+            thumbnail: '/api/placeholder/300/200',
+            lastAccessed: formatLastAccessed(enrollment.LastAccessedAt),
+            duration: enrollment.Duration || 'N/A',
+            rating: 4.5, // Default rating - could be enhanced with real ratings
+          };
+          
+          // Only keep the most recent enrollment for each course
+          if (!courseMap.has(courseId) || 
+              new Date(enrollment.LastAccessedAt || 0) > new Date(courseMap.get(courseId)?.lastAccessed || 0)) {
+            courseMap.set(courseId, courseData);
+          }
+        });
 
+        // Convert Map to array and take first 3 courses
+        const courses = Array.from(courseMap.values()).slice(0, 3);
         setRecentCourses(courses);
       } catch (error) {
         console.error('Failed to fetch enrolled courses:', error);

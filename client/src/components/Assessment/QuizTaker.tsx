@@ -17,20 +17,18 @@ import {
   DialogActions,
   LinearProgress,
   Chip,
-  Divider,
   Paper,
   Grid
 } from '@mui/material';
 import {
   Quiz as QuizIcon,
   Timer as TimerIcon,
-  Check as CheckIcon,
-  Warning as WarningIcon,
   TrendingUp as ScoreIcon
 } from '@mui/icons-material';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { assessmentApi, Assessment, AssessmentSubmission } from '../../services/assessmentApi';
 import AdaptiveQuizTaker from './AdaptiveQuizTaker';
+import { AIEnhancedAssessmentResults } from './AIEnhancedAssessmentResults';
 
 interface QuizTakerProps {
   assessmentId?: string;
@@ -465,47 +463,50 @@ const TraditionalQuizTaker: React.FC<TraditionalQuizTakerProps> = ({ assessmentI
   // Show results
   if (showResults && results) {
     return (
-      <Box sx={{ p: 3, maxWidth: 800, mx: 'auto' }}>
-        <Paper sx={{ p: 4 }}>
-          <Box sx={{ textAlign: 'center', mb: 4 }}>
-            <Box sx={{ mb: 2 }}>
-              {results.passed ? (
-                <CheckIcon sx={{ fontSize: 60, color: 'success.main' }} />
-              ) : (
-                <WarningIcon sx={{ fontSize: 60, color: 'warning.main' }} />
-              )}
-            </Box>
-            
-            <Typography variant="h4" gutterBottom>
-              {results.passed ? 'Congratulations!' : 'Not Passed'}
-            </Typography>
-            
-            <Typography variant="h2" color="primary" gutterBottom>
-              {results.score}%
-            </Typography>
-            
-            <Typography variant="body1" color="text.secondary">
-              You scored {results.score} out of {results.maxScore} points
-            </Typography>
-            
-            <Typography variant="body2" color="text.secondary">
-              Time spent: {assessmentApi.formatTime(results.timeSpent)}
-            </Typography>
-          </Box>
-
-          <Divider sx={{ my: 3 }} />
-
-          <Box sx={{ textAlign: 'center' }}>
-            <Button
-              variant="contained"
-              onClick={() => navigate(-1)}
-              size="large"
-            >
-              Back to Course
-            </Button>
-          </Box>
-        </Paper>
-      </Box>
+      <AIEnhancedAssessmentResults
+        results={{
+          score: results.score,
+          maxScore: results.maxScore || 100,
+          passed: results.passed,
+          timeSpent: results.timeSpent,
+          attemptNumber: 1,
+          feedback: results.feedback,
+          submissionId: submissionId || undefined // Pass submission ID for AI feedback
+        }}
+        assessment={{
+          id: assessmentId,
+          title: assessment?.title || 'Assessment',
+          type: assessment?.type || 'quiz',
+          passingScore: assessment?.passingScore || 70,
+          maxAttempts: assessment?.maxAttempts || 3,
+          isAdaptive: assessment?.isAdaptive || false
+        }}
+        questions={assessment?.questions?.map((q: any) => ({
+          id: q.Id || q.id,
+          type: q.Type || q.type,
+          question: q.Question || q.question,
+          correctAnswer: q.CorrectAnswer || q.correctAnswer,
+          explanation: q.Explanation || q.explanation,
+          difficulty: q.Difficulty || q.difficulty || 1,
+          userAnswer: answers[q.Id || q.id],
+          isCorrect: results.feedback?.[q.Id || q.id]?.isCorrect
+        })) || []}
+        userProgress={{
+          attemptsLeft: (assessment?.maxAttempts || 3) - 1,
+          bestScore: results.score,
+          canRetake: !results.passed && (assessment?.maxAttempts || 3) > 1
+        }}
+        onRetake={() => {
+          // Reset state for retake
+          setShowResults(false);
+          setResults(null);
+          setAnswers({});
+          setAssessmentStarted(false);
+          setSubmissionId(null);
+          loadAssessment();
+        }}
+        onBackToCourse={() => navigate(-1)}
+      />
     );
   }
 

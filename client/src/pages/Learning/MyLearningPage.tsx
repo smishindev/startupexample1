@@ -46,7 +46,22 @@ const MyLearningPage: React.FC = () => {
   const loadEnrollments = async () => {
     try {
       const data = await enrollmentApi.getMyEnrollments();
-      setEnrollments(data);
+      
+      // Deduplicate courses by keeping the most recent enrollment for each course
+      const courseMap = new Map<string, Enrollment>();
+      data.forEach((enrollment) => {
+        const courseId = enrollment.courseId;
+        
+        // Only keep the most recent enrollment for each course
+        if (!courseMap.has(courseId) || 
+            new Date(enrollment.LastAccessedAt || 0) > new Date(courseMap.get(courseId)?.LastAccessedAt || 0)) {
+          courseMap.set(courseId, enrollment);
+        }
+      });
+      
+      // Convert Map back to array
+      const uniqueEnrollments = Array.from(courseMap.values());
+      setEnrollments(uniqueEnrollments);
       setError(null); // Clear any previous errors
     } catch (error) {
       console.error('Failed to load data:', error);

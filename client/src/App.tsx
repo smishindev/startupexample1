@@ -31,7 +31,7 @@ import { AnalyticsHubPage } from './pages/Instructor/AnalyticsHubPage';
 import { InstructorStudentAnalytics } from './pages/Instructor/InstructorStudentAnalytics';
 import LandingPage from './pages/Landing/LandingPage';
 import MyLearningPage from './pages/Learning/MyLearningPage';
-import ProgressDashboard from './pages/Progress/ProgressDashboard';
+
 import { StudentProgressPage } from './pages/Progress/StudentProgressPage';
 import Chat from './pages/Chat/Chat';
 import Tutoring from './pages/Tutoring/Tutoring';
@@ -100,11 +100,7 @@ function App() {
 
         <Route
           path="/progress"
-          element={
-            <ProtectedRoute>
-              <ProgressDashboard />
-            </ProtectedRoute>
-          }
+          element={<Navigate to="/smart-progress" replace />}
         />
         
         <Route

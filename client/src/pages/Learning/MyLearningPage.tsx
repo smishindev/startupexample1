@@ -364,13 +364,31 @@ const MyLearningPage: React.FC = () => {
                       {enrollment.Status === 'teaching' ? (
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                           <Button
-                            variant="outlined"
+                            variant="contained"
                             startIcon={<Psychology />}
                             fullWidth
                             onClick={() => navigate(`/instructor/courses/${enrollment.courseId}/edit`)}
                           >
-                            Manage Course
+                            Edit Course
                           </Button>
+                          <Box sx={{ display: 'flex', gap: 1 }}>
+                            <Button
+                              variant="outlined"
+                              size="small"
+                              fullWidth
+                              onClick={() => navigate(`/instructor/courses/${enrollment.courseId}/lessons`)}
+                            >
+                              Lessons
+                            </Button>
+                            <Button
+                              variant="outlined"
+                              size="small"
+                              fullWidth
+                              onClick={() => navigate(`/instructor/courses/${enrollment.courseId}/assessments`)}
+                            >
+                              Assessments
+                            </Button>
+                          </Box>
                           <Button
                             variant="text"
                             size="small"

@@ -285,6 +285,7 @@
 - ✅ **Floating-point precision in currency display**: Fixed "$3.9000000000000004" display with proper currency formatting utilities (October 23, 2025)
 - ✅ **Legacy /progress page issues**: Fixed NaN values, unformatted percentages, confusing instructor names, added Smart Progress recommendation (October 23, 2025)
 - ✅ **Remove redundant /progress route**: Removed legacy /progress route, redirects to /smart-progress, updated all navigation references (October 23, 2025)
+- ✅ **My Learning page UX consistency**: Enhanced instructor view to provide full course management capabilities (Edit, Lessons, Assessments, Preview) matching instructor dashboard functionality (October 23, 2025)
 
 ---
 

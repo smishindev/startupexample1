@@ -81,6 +81,7 @@ const AdaptiveQuizTaker: React.FC<AdaptiveQuizTakerProps> = ({ assessmentId: pro
   const [assessmentStarted, setAssessmentStarted] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
   const [adaptiveInfo, setAdaptiveInfo] = useState<{difficulty: number, reason: string} | null>(null);
+  const [submissionDetails, setSubmissionDetails] = useState<AssessmentSubmission | null>(null);
 
   // Timer effect
   useEffect(() => {
@@ -237,11 +238,31 @@ const AdaptiveQuizTaker: React.FC<AdaptiveQuizTakerProps> = ({ assessmentId: pro
       setResults(result);
       setShowResults(true);
 
-      if (onComplete) {
-        // Create a proper AssessmentSubmission object for the callback
+      // Don't call onComplete immediately - let the results page handle navigation
+      // Get complete submission details including attempt number
+      try {
+        const submissionDetails = await assessmentApi.getSubmissionResults(submissionId!);
         const submissionResult: AssessmentSubmission = {
           id: submissionId!,
-          userId: '', // Will be filled by backend
+          userId: (submissionDetails as any).UserId || submissionDetails.userId || '',
+          assessmentId: assessmentId!,
+          answers: finalAnswers,
+          score: result.score,
+          maxScore: result.maxScore,
+          timeSpent: totalTimeSpent,
+          attemptNumber: (submissionDetails as any).AttemptNumber || submissionDetails.attemptNumber || 1,
+          status: 'completed',
+          startedAt: (submissionDetails as any).StartedAt || submissionDetails.startedAt || new Date().toISOString(),
+          completedAt: (submissionDetails as any).CompletedAt || submissionDetails.completedAt || new Date().toISOString(),
+          feedback: result.feedback
+        };
+        setSubmissionDetails(submissionResult);
+      } catch (detailsError) {
+        console.error('Error getting submission details:', detailsError);
+        // Fallback to basic submission result
+        const submissionResult: AssessmentSubmission = {
+          id: submissionId!,
+          userId: '',
           assessmentId: assessmentId!,
           answers: finalAnswers,
           score: result.score,
@@ -253,7 +274,7 @@ const AdaptiveQuizTaker: React.FC<AdaptiveQuizTakerProps> = ({ assessmentId: pro
           completedAt: new Date().toISOString(),
           feedback: result.feedback
         };
-        onComplete(submissionResult);
+        setSubmissionDetails(submissionResult);
       }
     } catch (error) {
       console.error('Error finishing assessment:', error);
@@ -430,9 +451,13 @@ const AdaptiveQuizTaker: React.FC<AdaptiveQuizTakerProps> = ({ assessmentId: pro
             <Button
               variant="contained"
               onClick={() => {
-                // For now, navigate to My Learning page which is more reliable
-                // TODO: Could be enhanced to return to specific lesson page
-                navigate('/my-learning');
+                // Call the onComplete callback to handle navigation properly
+                if (onComplete && submissionDetails) {
+                  onComplete(submissionDetails);
+                } else {
+                  // Fallback navigation if no callback provided
+                  navigate('/my-learning');
+                }
               }}
               fullWidth
             >

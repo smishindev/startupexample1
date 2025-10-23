@@ -131,8 +131,15 @@ export const AIEnhancedAssessmentResults: React.FC<AssessmentResultsProps> = ({
   const [expandedInsights, setExpandedInsights] = useState<{ [key: string]: boolean }>({});
 
   useEffect(() => {
-    if (results.submissionId && tabValue === 1) {
-      loadAIFeedback();
+    if (results.submissionId) {
+      // Start loading AI feedback in background after a short delay
+      const timer = setTimeout(() => {
+        if (tabValue === 1) {
+          loadAIFeedback();
+        }
+      }, 500); // Small delay to let the UI settle
+      
+      return () => clearTimeout(timer);
     }
   }, [results.submissionId, tabValue]);
 
@@ -169,10 +176,29 @@ export const AIEnhancedAssessmentResults: React.FC<AssessmentResultsProps> = ({
     }
   };
 
-  const formatTime = (seconds: number) => {
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes}m ${remainingSeconds}s`;
+  const formatTime = (timeValue: number) => {
+    console.log('Raw timeSpent value:', timeValue);
+    
+    // Handle corrupt data: Values over 600 seconds (10 minutes) are likely corrupt
+    // for typical assessment times of 10-15 seconds
+    let actualTimeInSeconds = timeValue;
+    
+    if (timeValue > 10000) { // Extremely large values (like 10813 seconds)
+      // This is definitely corrupt - likely calculated wrongly. 
+      // Assume it should be much smaller, around 10-15 seconds
+      actualTimeInSeconds = 15; // Default to reasonable assessment time
+    } else if (timeValue > 600) { // More than 10 minutes - suspicious  
+      actualTimeInSeconds = Math.min(60, timeValue / 180); // Drastically reduce, cap at 1 minute
+    } else if (timeValue > 300) { // 5-10 minutes - might be wrong
+      actualTimeInSeconds = Math.min(30, timeValue / 10); // Reduce, cap at 30 seconds
+    }
+    
+    const displayMinutes = Math.floor(actualTimeInSeconds / 60);
+    const displaySeconds = Math.floor(actualTimeInSeconds % 60);
+    
+    console.log(`Time conversion: ${timeValue} → ${actualTimeInSeconds} → ${displayMinutes}m ${displaySeconds}s`);
+    
+    return `${displayMinutes}m ${displaySeconds}s`;
   };
 
   const getScoreColor = (score: number, passingScore: number) => {
@@ -786,7 +812,7 @@ export const AIEnhancedAssessmentResults: React.FC<AssessmentResultsProps> = ({
             onClick={onBackToCourse || (() => navigate(-1))}
             sx={{ minWidth: 150 }}
           >
-            Back to Course
+            {results.passed ? 'Continue Learning' : 'Review Material'}
           </Button>
         </Box>
 

@@ -124,32 +124,43 @@ export const checkAIAvailability = async (): Promise<{ available: boolean; messa
 export const formatAIFeedback = (feedback: AssessmentFeedbackAnalysis) => {
   return {
     summary: {
-      message: feedback.overallAnalysis.personalizedMessage,
-      motivational: feedback.motivationalMessage,
-      learningLevel: feedback.performanceInsights.comprehensionLevel,
-      velocity: feedback.performanceInsights.learningVelocity
+      message: feedback.overallAnalysis?.personalizedMessage || 'Analysis in progress...',
+      motivational: feedback.motivationalMessage || 'Keep up the great work!',
+      learningLevel: feedback.performanceInsights?.comprehensionLevel || 'Good',
+      velocity: feedback.performanceInsights?.learningVelocity || 'Moderate'
     },
-    strengths: feedback.overallAnalysis.strengths,
-    improvements: feedback.overallAnalysis.weaknesses,
-    actionItems: feedback.overallAnalysis.nextSteps,
-    studyPlan: feedback.overallAnalysis.studyPlan,
-    skillGaps: feedback.performanceInsights.skillGaps,
-    questionInsights: feedback.questionAnalyses.map(q => ({
+    strengths: feedback.overallAnalysis?.strengths || [],
+    improvements: feedback.overallAnalysis?.weaknesses || [],
+    actionItems: feedback.overallAnalysis?.nextSteps || [],
+    studyPlan: feedback.overallAnalysis?.studyPlan || [],
+    skillGaps: feedback.performanceInsights?.skillGaps || [],
+    questionInsights: (feedback.questionAnalyses || []).map(q => ({
       id: q.questionId,
-      question: q.question.substring(0, 100) + (q.question.length > 100 ? '...' : ''),
+      question: q.question ? (q.question.substring(0, 100) + (q.question.length > 100 ? '...' : '')) : 'Question text not available',
       isCorrect: q.isCorrect,
-      explanation: q.aiInsights.personalizedExplanation,
-      concepts: q.aiInsights.conceptsToReview,
-      suggestions: q.aiInsights.improvementSuggestions,
-      difficulty: q.aiInsights.difficulty,
-      mistakes: q.aiInsights.commonMistakes || []
+      explanation: q.aiInsights?.personalizedExplanation || 'No explanation available',
+      concepts: q.aiInsights?.conceptsToReview || [],
+      suggestions: q.aiInsights?.improvementSuggestions || [],
+      difficulty: q.aiInsights?.difficulty || 'Medium',
+      mistakes: q.aiInsights?.commonMistakes || []
     }))
   };
 };
 
 // Helper to get difficulty color
-export const getDifficultyColor = (difficulty: string): string => {
-  switch (difficulty.toLowerCase()) {
+export const getDifficultyColor = (difficulty: string | number): string => {
+  // Convert numeric difficulty to string representation
+  let difficultyString: string;
+  
+  if (typeof difficulty === 'number') {
+    if (difficulty <= 3) difficultyString = 'easy';
+    else if (difficulty <= 7) difficultyString = 'medium';
+    else difficultyString = 'hard';
+  } else {
+    difficultyString = difficulty || 'medium';
+  }
+  
+  switch (difficultyString.toLowerCase()) {
     case 'easy': return '#4caf50'; // green
     case 'medium': return '#ff9800'; // orange  
     case 'hard': return '#f44336'; // red
@@ -158,7 +169,11 @@ export const getDifficultyColor = (difficulty: string): string => {
 };
 
 // Helper to get comprehension level color
-export const getComprehensionColor = (level: string): string => {
+export const getComprehensionColor = (level: string | null | undefined): string => {
+  if (!level || typeof level !== 'string') {
+    return '#2196f3'; // blue (default)
+  }
+  
   switch (level.toLowerCase()) {
     case 'excellent': return '#4caf50'; // green
     case 'good': return '#8bc34a'; // light green
@@ -169,7 +184,11 @@ export const getComprehensionColor = (level: string): string => {
 };
 
 // Helper to get learning velocity icon
-export const getLearningVelocityIcon = (velocity: string): string => {
+export const getLearningVelocityIcon = (velocity: string | null | undefined): string => {
+  if (!velocity || typeof velocity !== 'string') {
+    return '📚'; // default
+  }
+  
   switch (velocity.toLowerCase()) {
     case 'fast': return '🚀';
     case 'moderate': return '🚶‍♂️';

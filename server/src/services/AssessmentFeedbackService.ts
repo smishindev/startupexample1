@@ -471,7 +471,7 @@ ${passed ? 'Celebrate their success and encourage continued progress.' : 'Be sup
    */
   private async getAssessmentQuestions(assessmentId: string): Promise<any[]> {
     return await this.db.query(`
-      SELECT * FROM dbo.AssessmentQuestions 
+      SELECT * FROM dbo.Questions 
       WHERE AssessmentId = @assessmentId
       ORDER BY OrderIndex
     `, { assessmentId });

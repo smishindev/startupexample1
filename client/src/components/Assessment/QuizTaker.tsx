@@ -41,7 +41,7 @@ const QuizTaker: React.FC<QuizTakerProps> = ({ assessmentId: propAssessmentId, o
   const assessmentId = propAssessmentId || paramAssessmentId;
 
   // State management
-  const [assessment, setAssessment] = useState<Assessment | null>(null);
+  const [assessment, setAssessment] = useState<Assessment & { canTakeAssessment?: boolean; attemptsLeft?: number } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -111,7 +111,7 @@ const TraditionalQuizTaker: React.FC<TraditionalQuizTakerProps> = ({ assessmentI
   const isPreviewMode = searchParams.get('preview') === 'true';
 
   // State management
-  const [assessment, setAssessment] = useState<Assessment | null>(null);
+  const [assessment, setAssessment] = useState<Assessment & { canTakeAssessment?: boolean; attemptsLeft?: number } | null>(null);
   const [submissionId, setSubmissionId] = useState<string | null>(null);
   const [answers, setAnswers] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(true);
@@ -212,14 +212,33 @@ const TraditionalQuizTaker: React.FC<TraditionalQuizTakerProps> = ({ assessmentI
     try {
       setSubmitting(true);
       const response = await assessmentApi.submitAssessment(submissionId, { answers });
-      setResults(response);
+      
+      // Get complete submission details including attempt number
+      const submissionDetails = await assessmentApi.getSubmissionResults(submissionId);
+      
+      // Combine submission results with response data
+      console.log('Before merge - response timeSpent:', response.timeSpent);
+      console.log('Before merge - submissionDetails TimeSpent:', (submissionDetails as any).TimeSpent);
+      
+      const completeResults = {
+        ...response,
+        attemptNumber: (submissionDetails as any).AttemptNumber || submissionDetails.attemptNumber || 1,
+        submissionId: submissionId
+      };
+      
+      console.log('Assessment submission results:', {
+        response,
+        submissionDetails,
+        completeResults,
+        timeSpent: completeResults.timeSpent,
+        attemptNumber: completeResults.attemptNumber
+      });
+
+      setResults(completeResults);
       setShowResults(true);
       setConfirmSubmitOpen(false);
       
-      if (onComplete) {
-        const submissionDetails = await assessmentApi.getSubmissionResults(submissionId);
-        onComplete(submissionDetails);
-      }
+      // Don't call onComplete immediately - let the results page handle navigation
     } catch (error) {
       console.error('Error submitting assessment:', error);
       setError(autoSubmit ? 'Time expired - assessment auto-submitted' : 'Failed to submit assessment');
@@ -416,7 +435,7 @@ const TraditionalQuizTaker: React.FC<TraditionalQuizTakerProps> = ({ assessmentI
                 Attempts allowed: {assessment.maxAttempts}
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Attempts remaining: {(assessment as any).attemptsLeft || 0}
+                Attempts remaining: {assessment.attemptsLeft || 0}
               </Typography>
             </Grid>
           </Grid>
@@ -469,7 +488,7 @@ const TraditionalQuizTaker: React.FC<TraditionalQuizTakerProps> = ({ assessmentI
           maxScore: results.maxScore || 100,
           passed: results.passed,
           timeSpent: results.timeSpent,
-          attemptNumber: 1,
+          attemptNumber: results.attemptNumber || 1,
           feedback: results.feedback,
           submissionId: submissionId || undefined // Pass submission ID for AI feedback
         }}
@@ -491,11 +510,33 @@ const TraditionalQuizTaker: React.FC<TraditionalQuizTakerProps> = ({ assessmentI
           userAnswer: answers[q.Id || q.id],
           isCorrect: results.feedback?.[q.Id || q.id]?.isCorrect
         })) || []}
-        userProgress={{
-          attemptsLeft: (assessment?.maxAttempts || 3) - 1,
-          bestScore: results.score,
-          canRetake: !results.passed && (assessment?.maxAttempts || 3) > 1
-        }}
+        userProgress={(() => {
+          // Calculate attempts left using the actual completed attempts count
+          const completedAttempts = assessment?.userSubmissions?.filter((sub: any) => sub.status === 'completed').length || 0;
+          const maxAttempts = assessment?.maxAttempts || 3;
+          const attemptsLeft = Math.max(0, maxAttempts - completedAttempts);
+          
+          const bestScore = Math.max(
+            results.score,
+            ...(assessment?.userSubmissions?.map((sub: any) => sub.score || 0) || [])
+          );
+          
+          console.log('User progress calculation:', {
+            maxAttempts,
+            totalSubmissions: assessment?.userSubmissions?.length || 0,
+            completedAttempts,
+            attemptsLeft,
+            bestScore,
+            fallbackCalculation: Math.max(0, (assessment?.maxAttempts || 3) - (results.attemptNumber || 1)),
+            currentAttemptNumber: results.attemptNumber
+          });
+          
+          return {
+            attemptsLeft,
+            bestScore,
+            canRetake: !results.passed && ((results.attemptNumber || 1) < (assessment?.maxAttempts || 3))
+          };
+        })()}
         onRetake={() => {
           // Reset state for retake
           setShowResults(false);
@@ -505,7 +546,21 @@ const TraditionalQuizTaker: React.FC<TraditionalQuizTakerProps> = ({ assessmentI
           setSubmissionId(null);
           loadAssessment();
         }}
-        onBackToCourse={() => navigate(-1)}
+        onBackToCourse={async () => {
+          // Call the original onComplete callback with submission details before navigating
+          if (onComplete && submissionId) {
+            try {
+              const submissionDetails = await assessmentApi.getSubmissionResults(submissionId);
+              onComplete(submissionDetails);
+            } catch (error) {
+              console.error('Error getting submission details:', error);
+              // Still navigate even if we can't get details
+              navigate(-1);
+            }
+          } else {
+            navigate(-1);
+          }
+        }}
       />
     );
   }

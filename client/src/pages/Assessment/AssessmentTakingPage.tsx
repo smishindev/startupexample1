@@ -32,16 +32,21 @@ export const AssessmentTakingPage: React.FC = () => {
   }, [assessmentId]);
 
   const handleAssessmentComplete = (submission: AssessmentSubmission) => {
-    // Show completion message and navigation options
+    // Don't show immediate navigation dialog - let the results page handle it
+    // The AI-enhanced results page will show detailed feedback first
+    // Navigation will be handled through the "Back to Course" button on results page
+    
+    // Store submission data for potential use (though results page handles its own data)
     // Handle both capitalized (from database) and lowercase (from interface) property names
     const score = (submission as any).Score || submission.score || 0;
     const passed = score >= (assessment?.passingScore || 70);
     
-    const message = passed 
-      ? `Congratulations! You passed with ${score}%! ${returnUrl ? 'Would you like to return to the lesson?' : ''}`
-      : `You scored ${score}%. ${returnUrl ? 'Would you like to return to the lesson to review the material?' : ''}`;
+    console.log('Assessment completed:', { score, passed, submission });
     
-    if (returnUrl && window.confirm(message)) {
+    // Navigation logic is now handled by the AIEnhancedAssessmentResults component
+    // through the onBackToCourse callback which will use returnUrl, lessonId, courseId as needed
+    if (returnUrl) {
+      // Navigate to return URL (lesson page)
       navigate(returnUrl);
     } else if (lessonId && courseId) {
       // Fallback navigation to lesson

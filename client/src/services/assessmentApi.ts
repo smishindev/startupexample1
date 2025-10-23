@@ -191,7 +191,23 @@ class AssessmentApiService {
 
   // Get assessment details with questions
   async getAssessment(assessmentId: string): Promise<Assessment> {
-    const response = await api.get(`${this.baseUrl}/${assessmentId}`);
+    // Add cache busting parameter to ensure fresh data
+    const cacheBuster = Date.now();
+    const response = await api.get(`${this.baseUrl}/${assessmentId}?_=${cacheBuster}`);
+    
+    // Debug: Log assessment data for the problematic assessment
+    if (assessmentId === '372896DE-CA53-40FA-BDB4-7A486BCA1706') {
+      console.log('[DEBUG Frontend] Assessment API Response:', {
+        maxAttempts: response.data.maxAttempts,
+        userSubmissions: response.data.userSubmissions?.map((s: any) => ({
+          id: s.id,
+          timeSpent: s.timeSpent,
+          attemptNumber: s.attemptNumber,
+          status: s.status
+        }))
+      });
+    }
+    
     return response.data;
   }
 
@@ -240,11 +256,24 @@ class AssessmentApiService {
     
     const completedAttempts = userSubmissions.filter(sub => sub.status === 'completed').length;
     const hasInProgress = userSubmissions.some(sub => sub.status === 'in_progress');
+    const attemptsLeft = Math.max(0, assessment.maxAttempts - completedAttempts);
+    
+    // Debug: Log attempt calculation for the problematic assessment
+    if (assessmentId === '372896DE-CA53-40FA-BDB4-7A486BCA1706') {
+      console.log('[DEBUG Frontend] Attempt Calculation:', {
+        maxAttempts: assessment.maxAttempts,
+        totalSubmissions: userSubmissions.length,
+        completedAttempts,
+        hasInProgress,
+        attemptsLeft,
+        submissionStatuses: userSubmissions.map(s => ({ attempt: s.attemptNumber, status: s.status }))
+      });
+    }
     
     return {
       ...assessment,
       canTakeAssessment: !hasInProgress && completedAttempts < assessment.maxAttempts,
-      attemptsLeft: Math.max(0, assessment.maxAttempts - completedAttempts)
+      attemptsLeft
     };
   }
 

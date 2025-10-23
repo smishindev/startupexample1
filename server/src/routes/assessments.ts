@@ -444,17 +444,37 @@ router.get('/:assessmentId', authenticateToken, async (req: AuthRequest, res: Re
     }));
 
     // Get user's previous attempts if student
-    let userSubmissions = [];
+    let userSubmissions: any[] = [];
     if (req.user?.role === 'student') {
-      userSubmissions = await db.query(`
+      const rawSubmissions = await db.query(`
         SELECT Id, Score, MaxScore, AttemptNumber, Status, StartedAt, CompletedAt, TimeSpent
         FROM dbo.AssessmentSubmissions 
         WHERE UserId = @userId AND AssessmentId = @assessmentId
         ORDER BY AttemptNumber DESC
       `, { userId, assessmentId });
+      
+      // Debug: Log the TimeSpent values from database
+      console.log(`[DEBUG] Assessment ${assessmentId} - Raw TimeSpent values from DB:`, 
+        rawSubmissions.map(s => ({ id: s.Id, timeSpent: s.TimeSpent, attempt: s.AttemptNumber })));
+      
+      // Transform to match frontend interface
+      userSubmissions = rawSubmissions.map((submission: any) => ({
+        id: submission.Id,
+        userId: userId,
+        assessmentId: assessmentId,
+        score: submission.Score || 0,
+        maxScore: submission.MaxScore || 0,
+        timeSpent: submission.TimeSpent || 0,
+        attemptNumber: submission.AttemptNumber,
+        status: submission.Status?.toLowerCase() || 'abandoned',
+        startedAt: submission.StartedAt,
+        completedAt: submission.CompletedAt,
+        answers: {}, // Not needed for progress calculation
+        feedback: {} // Not needed for progress calculation
+      }));
     }
 
-    res.json({
+    const responseData = {
       id: assessment[0].Id,
       lessonId: assessment[0].LessonId,
       title: assessment[0].Title,
@@ -467,7 +487,22 @@ router.get('/:assessmentId', authenticateToken, async (req: AuthRequest, res: Re
       updatedAt: assessment[0].UpdatedAt,
       questions: parsedQuestions,
       userSubmissions: userSubmissions
-    });
+    };
+
+    // Debug: Log final response data for this specific assessment
+    if (assessmentId === '372896DE-CA53-40FA-BDB4-7A486BCA1706') {
+      console.log(`[DEBUG] Assessment ${assessmentId} - Final Response:`, {
+        maxAttempts: responseData.maxAttempts,
+        userSubmissions: responseData.userSubmissions.map(s => ({
+          id: s.id,
+          timeSpent: s.timeSpent,
+          attemptNumber: s.attemptNumber,
+          status: s.status
+        }))
+      });
+    }
+
+    res.json(responseData);
   } catch (error) {
     console.error('Error fetching assessment:', error);
     res.status(500).json({ error: 'Failed to fetch assessment' });
@@ -789,8 +824,19 @@ router.post('/submissions/:submissionId/submit', authenticateToken, checkRole(['
       return res.status(400).json({ error: 'Submission is not in progress' });
     }
 
-    // Calculate time spent
-    const timeSpent = Math.floor((Date.now() - new Date(submission[0].StartedAt).getTime()) / (1000 * 60));
+    // Calculate time spent in seconds
+    const now = Date.now();
+    const startedAt = new Date(submission[0].StartedAt).getTime();
+    const timeSpent = Math.floor((now - startedAt) / 1000);
+    
+    // Debug: Log time calculation details
+    console.log(`[DEBUG Time Calculation] Submission ${submissionId}:`, {
+      now: new Date(now).toISOString(),
+      startedAt: submission[0].StartedAt,
+      startedAtParsed: new Date(startedAt).toISOString(),
+      differenceMs: now - startedAt,
+      timeSpentSeconds: timeSpent
+    });
 
     // Get questions with correct answers
     const questions = await db.query(`
@@ -963,7 +1009,26 @@ router.get('/submissions/:submissionId/results', authenticateToken, async (req: 
     result.Answers = JSON.parse(result.Answers);
     result.Feedback = result.Feedback ? JSON.parse(result.Feedback) : {};
 
-    res.json(result);
+    // Transform to consistent lowercase format for frontend
+    const transformedResult = {
+      ...result,
+      id: result.Id,
+      assessmentId: result.AssessmentId,
+      userId: result.UserId,
+      score: result.Score,
+      maxScore: result.MaxScore,
+      attemptNumber: result.AttemptNumber,
+      status: result.Status?.toLowerCase(),
+      timeSpent: result.TimeSpent || 0, // Convert to lowercase
+      startedAt: result.StartedAt,
+      completedAt: result.CompletedAt,
+      answers: result.Answers,
+      feedback: result.Feedback,
+      assessmentTitle: result.AssessmentTitle,
+      passingScore: result.PassingScore
+    };
+
+    res.json(transformedResult);
   } catch (error) {
     console.error('Error fetching submission results:', error);
     res.status(500).json({ error: 'Failed to fetch results' });
@@ -1138,7 +1203,7 @@ router.get('/submissions/:submissionId/ai-feedback', authenticateToken, async (r
 
     // Verify submission belongs to user or user is instructor
     const submission = await db.query(`
-      SELECT s.*, a.Id as AssessmentId, a.Title, l.CourseId,
+      SELECT TOP 1 s.*, a.Id as AssessmentId, a.Title, l.CourseId,
              c.InstructorId
       FROM dbo.AssessmentSubmissions s
       JOIN dbo.Assessments a ON s.AssessmentId = a.Id
@@ -1153,9 +1218,31 @@ router.get('/submissions/:submissionId/ai-feedback', authenticateToken, async (r
 
     const submissionData = submission[0];
     
+    // Fix assessmentId if it's an array (take the first value)
+    const assessmentId = Array.isArray(submissionData.AssessmentId) 
+      ? submissionData.AssessmentId[0] 
+      : submissionData.AssessmentId;
+    
+    // Debug logging
+    console.log('Submission data for AI feedback:', {
+      submissionId,
+      userId: submissionData.UserId,
+      assessmentId: assessmentId,
+      title: submissionData.Title,
+      originalAssessmentId: submissionData.AssessmentId
+    });
+    
     // Check permission: student can see their own submissions, instructors can see all in their courses
     if (submissionData.UserId !== userId && submissionData.InstructorId !== userId) {
       return res.status(403).json({ error: 'Access denied' });
+    }
+
+    // Validate assessmentId
+    if (!assessmentId) {
+      return res.status(400).json({ 
+        error: 'Invalid assessment data',
+        details: 'AssessmentId is missing from submission data'
+      });
     }
 
     // Generate AI feedback
@@ -1163,7 +1250,7 @@ router.get('/submissions/:submissionId/ai-feedback', authenticateToken, async (r
     const aiFeedback = await feedbackService.generateAssessmentFeedback(
       submissionId,
       submissionData.UserId,
-      submissionData.AssessmentId
+      assessmentId
     );
 
     res.json({

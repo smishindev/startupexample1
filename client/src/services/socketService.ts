@@ -21,6 +21,17 @@ export interface TypingUser {
   roomId: string;
 }
 
+export interface NotificationEvent {
+  id: string;
+  type: string;
+  priority: string;
+  title: string;
+  message: string;
+  data: any;
+  actionUrl?: string;
+  actionText?: string;
+}
+
 class SocketService {
   private socket: Socket | null = null;
   private connected = false;
@@ -143,6 +154,19 @@ class SocketService {
   onError(callback: (error: { message: string }) => void): void {
     if (this.socket) {
       this.socket.on('error', callback);
+    }
+  }
+
+  // Notification event listeners
+  onNotification(callback: (notification: NotificationEvent) => void): void {
+    if (this.socket) {
+      this.socket.on('notification', callback);
+    }
+  }
+
+  onNotificationRead(callback: (data: { notificationId: string }) => void): void {
+    if (this.socket) {
+      this.socket.on('notification-read', callback);
     }
   }
 

@@ -197,7 +197,7 @@ router.post('/sessions/:sessionId/messages', authenticateToken, async (req: Auth
       id: aiMessageId,
       sessionId,
       content: aiResponse.content,
-      role: 'ai',
+      role: 'assistant', // Fixed: Changed from 'ai' to 'assistant' to match OpenAI API requirements
       timestamp: aiTimestamp,
       metadata: JSON.stringify({
         suggestions: aiResponse.suggestions,

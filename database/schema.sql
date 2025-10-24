@@ -398,6 +398,42 @@ CREATE TABLE dbo.Bookmarks (
     UNIQUE(UserId, CourseId) -- Prevent duplicate bookmarks
 );
 
+-- Notifications Table - Real-time notification system for progress tracking and intervention alerts
+CREATE TABLE dbo.Notifications (
+    Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    UserId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id) ON DELETE CASCADE,
+    Type NVARCHAR(50) NOT NULL, -- 'progress', 'risk', 'achievement', 'intervention', 'assignment', 'course'
+    Priority NVARCHAR(20) NOT NULL DEFAULT 'normal' CHECK (Priority IN ('low', 'normal', 'high', 'urgent')),
+    Title NVARCHAR(200) NOT NULL,
+    Message NVARCHAR(MAX) NOT NULL,
+    Data NVARCHAR(MAX) NULL, -- JSON data for additional context
+    IsRead BIT NOT NULL DEFAULT 0,
+    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    ReadAt DATETIME2 NULL,
+    ExpiresAt DATETIME2 NULL, -- Optional expiration for temporary notifications
+    ActionUrl NVARCHAR(500) NULL, -- Deep link to relevant page
+    ActionText NVARCHAR(100) NULL, -- Button text for action
+    RelatedEntityId UNIQUEIDENTIFIER NULL, -- Course, Lesson, Assessment ID etc
+    RelatedEntityType NVARCHAR(50) NULL -- 'course', 'lesson', 'assessment', 'student'
+);
+
+-- NotificationPreferences Table - User preferences for notification delivery
+CREATE TABLE dbo.NotificationPreferences (
+    Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    UserId UNIQUEIDENTIFIER NOT NULL UNIQUE FOREIGN KEY REFERENCES dbo.Users(Id) ON DELETE CASCADE,
+    EnableProgressNotifications BIT NOT NULL DEFAULT 1,
+    EnableRiskAlerts BIT NOT NULL DEFAULT 1,
+    EnableAchievementNotifications BIT NOT NULL DEFAULT 1,
+    EnableCourseUpdates BIT NOT NULL DEFAULT 1,
+    EnableAssignmentReminders BIT NOT NULL DEFAULT 1,
+    EnableEmailNotifications BIT NOT NULL DEFAULT 1,
+    EmailDigestFrequency NVARCHAR(20) NOT NULL DEFAULT 'daily' CHECK (EmailDigestFrequency IN ('none', 'realtime', 'daily', 'weekly')),
+    QuietHoursStart TIME NULL, -- e.g., 22:00:00
+    QuietHoursEnd TIME NULL, -- e.g., 08:00:00
+    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    UpdatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE()
+);
+
 -- Performance Indexes
 CREATE NONCLUSTERED INDEX IX_CourseProgress_UserId_CourseId ON dbo.CourseProgress (UserId, CourseId);
 CREATE NONCLUSTERED INDEX IX_LearningActivities_UserId_CreatedAt ON dbo.LearningActivities (UserId, CreatedAt DESC);
@@ -408,6 +444,12 @@ CREATE NONCLUSTERED INDEX IX_PeerComparison_UserId_CourseId ON dbo.PeerCompariso
 CREATE NONCLUSTERED INDEX IX_Bookmarks_UserId ON dbo.Bookmarks(UserId);
 CREATE NONCLUSTERED INDEX IX_Bookmarks_CourseId ON dbo.Bookmarks(CourseId);
 CREATE NONCLUSTERED INDEX IX_Bookmarks_BookmarkedAt ON dbo.Bookmarks(BookmarkedAt);
+CREATE NONCLUSTERED INDEX IX_Notifications_UserId ON dbo.Notifications(UserId);
+CREATE NONCLUSTERED INDEX IX_Notifications_IsRead ON dbo.Notifications(IsRead);
+CREATE NONCLUSTERED INDEX IX_Notifications_CreatedAt ON dbo.Notifications(CreatedAt DESC);
+CREATE NONCLUSTERED INDEX IX_Notifications_Type ON dbo.Notifications(Type);
+CREATE NONCLUSTERED INDEX IX_Notifications_Priority ON dbo.Notifications(Priority);
+CREATE NONCLUSTERED INDEX IX_NotificationPreferences_UserId ON dbo.NotificationPreferences(UserId);
 
 -- ========================================
 -- SAMPLE DATA
@@ -424,7 +466,8 @@ PRINT '✅ Mishin Learn Database Schema created successfully!';
 PRINT '📊 Core Tables: Users, Courses, Lessons, Enrollments, UserProgress, Resources, Assessments, Questions, AssessmentSubmissions';
 PRINT '📊 Communication: LiveSessions, LiveSessionAttendees, ChatRooms, ChatMessages, TutoringSessions, TutoringMessages';
 PRINT '🧠 AI Progress Integration: CourseProgress, LearningActivities, StudentRecommendations, StudentRiskAssessment, PeerComparison';
-PRINT '� User Features: Bookmarks, FileUploads';
+PRINT '📚 User Features: Bookmarks, FileUploads';
+PRINT '🔔 Real-time Notifications: Notifications, NotificationPreferences';
 PRINT '�🔐 Sample accounts created:';
 PRINT '   - Admin: admin@mishinlearn.com (password: password123)';
 PRINT '   - Instructor: instructor@mishinlearn.com (password: password123)';  

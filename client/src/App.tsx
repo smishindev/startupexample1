@@ -28,6 +28,7 @@ import StudentManagement from './pages/Instructor/StudentManagement';
 import CourseAnalyticsDashboard from './pages/Instructor/CourseAnalyticsDashboard';
 import { EnhancedAssessmentAnalyticsPage } from './pages/Instructor/EnhancedAssessmentAnalyticsPage';
 import { AnalyticsHubPage } from './pages/Instructor/AnalyticsHubPage';
+import { InterventionDashboard } from './pages/Instructor/InterventionDashboard';
 import { InstructorStudentAnalytics } from './pages/Instructor/InstructorStudentAnalytics';
 import LandingPage from './pages/Landing/LandingPage';
 import MyLearningPage from './pages/Learning/MyLearningPage';
@@ -177,6 +178,15 @@ function App() {
           element={
             <ProtectedRoute requireRole="instructor">
               <InstructorDashboard />
+            </ProtectedRoute>
+          }
+        />
+        
+        <Route
+          path="/instructor/interventions"
+          element={
+            <ProtectedRoute requireRole="instructor">
+              <InterventionDashboard />
             </ProtectedRoute>
           }
         />

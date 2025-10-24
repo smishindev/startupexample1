@@ -10,7 +10,6 @@ import {
   Menu,
   MenuItem,
   InputBase,
-  Badge,
   useTheme,
   useMediaQuery,
   Drawer,
@@ -22,7 +21,6 @@ import {
 } from '@mui/material';
 import {
   Search as SearchIcon,
-  Notifications as NotificationsIcon,
   AccountCircle,
   Menu as MenuIcon,
   School as SchoolIcon,
@@ -39,6 +37,7 @@ import {
 import { styled, alpha } from '@mui/material/styles';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore';
+import { NotificationBell } from '../Notifications/NotificationBell';
 
 const Search = styled('div')(({ theme }) => ({
   position: 'relative',
@@ -265,15 +264,7 @@ export const Header: React.FC<HeaderProps> = () => {
           </Search>
 
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <IconButton
-              size="large"
-              color="inherit"
-              onClick={() => navigate('/notifications')}
-            >
-              <Badge badgeContent={3} color="error">
-                <NotificationsIcon />
-              </Badge>
-            </IconButton>
+            <NotificationBell />
 
             <IconButton
               size="large"

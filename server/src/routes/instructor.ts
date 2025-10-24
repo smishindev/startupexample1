@@ -306,4 +306,134 @@ router.post('/courses/:id/publish', authenticateToken, authorize(['instructor', 
   }
 });
 
+// Get at-risk students for intervention dashboard
+router.get('/at-risk-students', authenticateToken, authorize(['instructor', 'admin']), async (req: AuthRequest, res) => {
+  try {
+    const userId = req.user!.userId;
+    
+    const result = await db.query(`
+      SELECT 
+        sr.UserId,
+        sr.CourseId,
+        sr.RiskLevel,
+        sr.RiskScore,
+        sr.RiskFactors,
+        sr.RecommendedInterventions,
+        sr.LastUpdated,
+        c.Title as CourseName,
+        u.FirstName,
+        u.LastName,
+        u.Email
+      FROM StudentRiskAssessment sr
+      JOIN Courses c ON sr.CourseId = c.Id
+      JOIN Users u ON sr.UserId = u.Id
+      WHERE c.InstructorId = @instructorId
+        AND sr.RiskLevel IN ('high', 'critical')
+      ORDER BY 
+        CASE sr.RiskLevel 
+          WHEN 'critical' THEN 1 
+          WHEN 'high' THEN 2 
+          WHEN 'medium' THEN 3 
+          ELSE 4 
+        END,
+        sr.RiskScore DESC
+    `, { instructorId: userId });
+
+    const students = result.map((student: any) => ({
+      ...student,
+      RiskFactors: student.RiskFactors ? JSON.parse(student.RiskFactors) : [],
+      RecommendedInterventions: student.RecommendedInterventions ? JSON.parse(student.RecommendedInterventions) : []
+    }));
+
+    res.json({ students });
+  } catch (error) {
+    console.error('Failed to fetch at-risk students:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get low progress students for intervention dashboard
+router.get('/low-progress-students', authenticateToken, authorize(['instructor', 'admin']), async (req: AuthRequest, res) => {
+  try {
+    const userId = req.user!.userId;
+    
+    const result = await db.query(`
+      SELECT 
+        cp.UserId,
+        cp.CourseId,
+        cp.OverallProgress,
+        cp.LastAccessedAt,
+        DATEDIFF(day, cp.LastAccessedAt, GETUTCDATE()) as DaysSinceAccess,
+        c.Title as CourseName,
+        u.FirstName,
+        u.LastName,
+        u.Email
+      FROM CourseProgress cp
+      JOIN Courses c ON cp.CourseId = c.Id
+      JOIN Users u ON cp.UserId = u.Id
+      JOIN Enrollments e ON cp.UserId = e.UserId AND cp.CourseId = e.CourseId
+      WHERE c.InstructorId = @instructorId
+        AND cp.OverallProgress < 30
+        AND DATEDIFF(day, cp.LastAccessedAt, GETUTCDATE()) >= 7
+        AND e.Status = 'active'
+      ORDER BY DaysSinceAccess DESC, cp.OverallProgress ASC
+    `, { instructorId: userId });
+
+    res.json({ students: result });
+  } catch (error) {
+    console.error('Failed to fetch low progress students:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get pending assessments with low attempts remaining
+router.get('/pending-assessments', authenticateToken, authorize(['instructor', 'admin']), async (req: AuthRequest, res) => {
+  try {
+    const userId = req.user!.userId;
+    
+    const result = await db.query(`
+      SELECT DISTINCT
+        e.UserId,
+        u.FirstName,
+        u.LastName,
+        u.Email,
+        a.Id as AssessmentId,
+        a.Title as AssessmentTitle,
+        c.Title as CourseName,
+        a.MaxAttempts,
+        COALESCE(
+          (SELECT COUNT(*) FROM AssessmentSubmissions 
+           WHERE AssessmentId = a.Id AND UserId = e.UserId AND Status = 'completed'), 
+          0
+        ) as AttemptsUsed,
+        a.MaxAttempts - COALESCE(
+          (SELECT COUNT(*) FROM AssessmentSubmissions 
+           WHERE AssessmentId = a.Id AND UserId = e.UserId AND Status = 'completed'), 
+          0
+        ) as AttemptsLeft
+      FROM Enrollments e
+      JOIN Courses c ON e.CourseId = c.Id
+      JOIN Lessons l ON l.CourseId = c.Id
+      JOIN Assessments a ON a.LessonId = l.Id
+      JOIN Users u ON e.UserId = u.Id
+      WHERE c.InstructorId = @instructorId
+        AND e.Status = 'active'
+        AND NOT EXISTS (
+          SELECT 1 FROM AssessmentSubmissions asub
+          WHERE asub.AssessmentId = a.Id 
+            AND asub.UserId = e.UserId 
+            AND asub.Status = 'completed'
+            AND asub.Score >= a.PassingScore
+        )
+      HAVING AttemptsLeft > 0 AND AttemptsLeft <= 2
+      ORDER BY AttemptsLeft ASC, u.LastName, u.FirstName
+    `, { instructorId: userId });
+
+    res.json({ assessments: result });
+  } catch (error) {
+    console.error('Failed to fetch pending assessments:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 export default router;

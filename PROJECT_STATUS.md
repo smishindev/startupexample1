@@ -69,6 +69,16 @@
 - ✅ **Database Integration**: 5 new tables (CourseProgress, LearningActivities, StudentRecommendations, StudentRiskAssessment, PeerComparison)
 - ✅ **Navigation Integration**: Smart Progress menu item accessible to both students and instructors
 
+### 🔔 Real-time Notifications System (COMPLETED - October 24, 2025)
+- ✅ **Database Schema**: Notifications and NotificationPreferences tables integrated into main schema.sql
+- ✅ **NotificationService**: Comprehensive service for notification CRUD operations with preferences, quiet hours, and Socket.io integration
+- ✅ **API Routes**: Complete REST API for notifications (/api/notifications) with 8 endpoints
+- ✅ **InterventionService**: Automated triggers for at-risk students, low progress, assessment deadlines, and achievements
+- ✅ **Frontend Components**: NotificationBell with dropdown menu, real-time badge updates, integrated in Header
+- ✅ **Socket.io Integration**: Real-time notification delivery via WebSockets with automatic fallback polling
+- ✅ **Instructor Dashboard**: Intervention alert dashboard at /instructor/interventions with three tabs (At-Risk, Low Progress, Pending Assessments)
+- ✅ **Backend APIs**: Three new instructor endpoints for dashboard data (/at-risk-students, /low-progress-students, /pending-assessments)
+
 ### 🤖 AI Tutoring/Chat System (MAJOR FEATURE - COMPLETED)
 - ✅ **AI Model Selection**: Users can choose between GPT-4 Turbo, GPT-4 Mini, and GPT-3.5 Turbo
 - ✅ **Session Management**: Create, view, and manage tutoring sessions with conversation history
@@ -178,29 +188,38 @@
 - `README.md` - Project documentation with copyright
 
 ### Core Backend Files
-- `server/src/index.ts` - Main server entry point
+- `server/src/index.ts` - Main server entry point with Socket.io and NotificationService initialization
 - `server/src/routes/assessments.ts` - Assessment API routes
 - `server/src/routes/assessment-analytics.ts` - **NEW**: Enhanced cross-assessment analytics APIs
 - `server/src/routes/student-progress.ts` - **NEW**: Student Progress Integration APIs with AI recommendations
 - `server/src/routes/tutoring.ts` - **UPDATED**: AI Tutoring API routes with model selection support (October 24, 2025)
-- `server/src/routes/instructor.ts` - Instructor dashboard APIs
+- `server/src/routes/notifications.ts` - **NEW**: Real-time notification API routes (October 24, 2025)
+- `server/src/routes/instructor.ts` - **UPDATED**: Instructor dashboard APIs with intervention endpoints (October 24, 2025)
 - `server/src/routes/courses.ts` - Course management APIs with dynamic filtering and real statistics
 - `server/src/routes/progress.ts` - **UPDATED**: Progress tracking APIs with aligned enrollment verification
 - `server/src/services/DatabaseService.ts` - SQL Server connection
 - `server/src/services/AssessmentFeedbackService.ts` - **NEW**: AI-powered assessment feedback service with OpenAI integration (October 23, 2025)
 - `server/src/services/AITutoringService.ts` - **UPDATED**: AI tutoring service with dynamic model selection (October 24, 2025)
+- `server/src/services/NotificationService.ts` - **NEW**: Notification management with Socket.io integration (October 24, 2025)
+- `server/src/services/InterventionService.ts` - **NEW**: Automated intervention triggers for at-risk students (October 24, 2025)
+- `server/src/sockets.ts` - **UPDATED**: Socket.io handlers with notification support (October 24, 2025)
 
 ### Core Frontend Files
-- `client/src/App.tsx` - Main React app with routing (includes analytics and smart progress routes)
+- `client/src/App.tsx` - **UPDATED**: Main React app with routing (includes analytics, smart progress, and intervention routes)
 - `client/src/pages/Instructor/InstructorDashboard.tsx` - Instructor interface (enhanced with analytics button)
 - `client/src/pages/Instructor/AnalyticsHubPage.tsx` - **NEW**: Central analytics hub landing page
 - `client/src/pages/Instructor/EnhancedAssessmentAnalyticsPage.tsx` - **NEW**: Enhanced analytics page
 - `client/src/pages/Instructor/InstructorStudentAnalytics.tsx` - **NEW**: Instructor student progress monitoring
+- `client/src/pages/Instructor/InterventionDashboard.tsx` - **NEW**: Instructor intervention dashboard (October 24, 2025)
 - `client/src/pages/Progress/StudentProgressPage.tsx` - **NEW**: Student smart progress dashboard
 - `client/src/pages/Tutoring/Tutoring.tsx` - **UPDATED**: AI Tutoring page with model selection dropdown (October 24, 2025)
 - `client/src/components/Progress/StudentProgressDashboard.tsx` - **NEW**: AI-powered progress analytics interface
+- `client/src/components/Notifications/NotificationBell.tsx` - **NEW**: Real-time notification bell component (October 24, 2025)
+- `client/src/components/Navigation/Header.tsx` - **UPDATED**: Header with NotificationBell integration (October 24, 2025)
 - `client/src/services/studentProgressApi.ts` - **NEW**: Student Progress Integration API service
 - `client/src/services/tutoringApi.ts` - **UPDATED**: Tutoring API with model parameter support (October 24, 2025)
+- `client/src/services/notificationApi.ts` - **NEW**: Notification API service (October 24, 2025)
+- `client/src/services/socketService.ts` - **UPDATED**: Socket.io service with notification events (October 24, 2025)
 - `client/src/components/Assessment/EnhancedAssessmentAnalyticsDashboard.tsx` - **NEW**: Comprehensive analytics dashboard
 - `client/src/components/Assessment/AIEnhancedAssessmentResults.tsx` - **NEW**: AI-powered assessment results with intelligent feedback (October 23, 2025)
 - `client/src/components/Assessment/AdaptiveQuizTaker.tsx` - **UPDATED**: Enhanced with AIEnhancedAssessmentResults integration, improved data structure, and accurate score calculations (October 24, 2025)
@@ -218,10 +237,10 @@
 - `client/src/services/assessmentApi.ts` - Assessment API service with validation fixes
 
 ### Database
-- `database/schema.sql` - Complete database schema with Student Progress Integration tables
-- `database/migrate_user_progress.sql` - **NEW**: Data migration script (UserProgress → CourseProgress)
+- `database/schema.sql` - **PRIMARY DATABASE SCHEMA** - Complete database schema with all tables including Student Progress Integration and Real-time Notifications. **IMPORTANT: Always add new tables to this file, not separate schema files.**
+- `database/migrate_user_progress.sql` - Data migration script (UserProgress → CourseProgress)
 - `scripts/create-test-assessments.js` - Test data generation
-- `server/src/scripts/check-progress-data.ts` - **NEW**: Database integrity verification script
+- `server/src/scripts/check-progress-data.ts` - Database integrity verification script
 
 ---
 
@@ -270,6 +289,16 @@
 - `GET /api/tutoring/sessions/:sessionId/messages` - **NEW**: Get tutoring session messages (October 24, 2025)
 - `POST /api/tutoring/sessions/:sessionId/messages` - **UPDATED**: Send message to AI tutor with model selection (October 24, 2025)
 - `GET /api/tutoring/recommendations` - **NEW**: Get AI-generated learning recommendations (October 24, 2025)
+- `GET /api/notifications` - **NEW**: Get user notifications (October 24, 2025)
+- `GET /api/notifications/unread-count` - **NEW**: Get unread notification count (October 24, 2025)
+- `PATCH /api/notifications/:id/read` - **NEW**: Mark notification as read (October 24, 2025)
+- `PATCH /api/notifications/read-all` - **NEW**: Mark all notifications as read (October 24, 2025)
+- `DELETE /api/notifications/:id` - **NEW**: Delete notification (October 24, 2025)
+- `GET /api/notifications/preferences` - **NEW**: Get notification preferences (October 24, 2025)
+- `PATCH /api/notifications/preferences` - **NEW**: Update notification preferences (October 24, 2025)
+- `GET /api/instructor/at-risk-students` - **NEW**: Get at-risk students for intervention (October 24, 2025)
+- `GET /api/instructor/low-progress-students` - **NEW**: Get low progress students (October 24, 2025)
+- `GET /api/instructor/pending-assessments` - **NEW**: Get pending assessments with low attempts (October 24, 2025)
 
 ### Known Working Lesson ID for Testing
 - **Lesson ID**: `C2CCA540-3BD0-4FDA-9CF0-03071935D58A`
@@ -280,6 +309,14 @@
 ## 📋 TODO / NEXT STEPS
 
 ### Immediate Priorities
+- [✅] **COMPLETED**: Real-time Progress Tracking & Intervention Alerts (October 24, 2025)
+  - [✅] Database schema updated with Notifications and NotificationPreferences tables in main schema.sql
+  - [✅] Backend notification service implementation with Socket.io integration
+  - [✅] API routes for notification management (8 endpoints)
+  - [✅] Frontend NotificationBell and dropdown components integrated in Header
+  - [✅] Socket.io integration for real-time delivery with fallback polling
+  - [✅] Automated intervention triggers for at-risk students (InterventionService)
+  - [✅] Instructor intervention dashboard at /instructor/interventions with three tabs
 - [✅] **COMPLETED**: Comprehensive regression testing of core features (October 23, 2025)
   - Course search optimization with debouncing
   - Dynamic filtering system with real API data

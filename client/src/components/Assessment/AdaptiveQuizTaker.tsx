@@ -24,10 +24,9 @@ import {
 import {
   Quiz as QuizIcon,
   Timer as TimerIcon,
-  Check as CheckIcon,
-  TrendingUp as ScoreIcon,
   Psychology as AdaptiveIcon
 } from '@mui/icons-material';
+import { AIEnhancedAssessmentResults } from './AIEnhancedAssessmentResults';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { assessmentApi, Assessment, AssessmentSubmission } from '../../services/assessmentApi';
 
@@ -52,6 +51,14 @@ interface AnsweredQuestion {
   difficulty: number;
   answer: any;
   timeSpent: number;
+  // Add full question data for enhanced results
+  id: string;
+  question: string;
+  type: string;
+  options?: string[];
+  correctAnswer?: any;
+  explanation?: string;
+  userAnswer: any;
 }
 
 const AdaptiveQuizTaker: React.FC<AdaptiveQuizTakerProps> = ({ assessmentId: propAssessmentId, onComplete }) => {
@@ -111,6 +118,17 @@ const AdaptiveQuizTaker: React.FC<AdaptiveQuizTakerProps> = ({ assessmentId: pro
     try {
       setLoading(true);
       const data = await assessmentApi.getAssessmentWithProgress(assessmentId!);
+      
+      // Debug: Log assessment data for troubleshooting
+      console.log('Adaptive assessment loaded:', {
+        id: data.id,
+        title: data.title,
+        maxAttempts: data.maxAttempts,
+        userSubmissions: data.userSubmissions?.length || 0,
+        attemptsLeft: data.attemptsLeft,
+        canTakeAssessment: data.canTakeAssessment
+      });
+      
       setAssessment(data);
       setCanTakeAssessment(isPreviewMode || data.canTakeAssessment);
       
@@ -197,13 +215,21 @@ const AdaptiveQuizTaker: React.FC<AdaptiveQuizTakerProps> = ({ assessmentId: pro
         timeSpent
       );
 
-      // Track the answered question
+      // Track the answered question with full details for enhanced results
       const answeredQuestion: AnsweredQuestion = {
         questionId: currentQuestion.id,
         correct: response.correct,
         difficulty: response.difficulty,
         answer: currentAnswer,
-        timeSpent
+        timeSpent,
+        // Add full question data for enhanced results
+        id: currentQuestion.id,
+        question: currentQuestion.question,
+        type: currentQuestion.type,
+        options: currentQuestion.options,
+        correctAnswer: response.correctAnswer || 'Not available in adaptive mode', // Fallback if not provided
+        explanation: response.explanation || 'Explanation available after assessment completion', // Fallback if not provided
+        userAnswer: currentAnswer
       };
 
       setAnsweredQuestions(prev => [...prev, answeredQuestion]);
@@ -395,77 +421,96 @@ const AdaptiveQuizTaker: React.FC<AdaptiveQuizTakerProps> = ({ assessmentId: pro
 
   if (showResults && results) {
     return (
-      <Card sx={{ maxWidth: 800, mx: 'auto', mt: 4 }}>
-        <CardContent>
-          <Box display="flex" alignItems="center" mb={3}>
-            <CheckIcon color="success" sx={{ mr: 2, fontSize: 32 }} />
-            <Typography variant="h4" color="success.main">
-              Assessment Complete!
-            </Typography>
-          </Box>
-
-          <Grid container spacing={3}>
-            <Grid item xs={12} sm={6}>
-              <Paper sx={{ p: 2, textAlign: 'center' }}>
-                <ScoreIcon color="primary" sx={{ fontSize: 40, mb: 1 }} />
-                <Typography variant="h3" color="primary">
-                  {results.score}%
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Final Score
-                </Typography>
-              </Paper>
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <Paper sx={{ p: 2, textAlign: 'center' }}>
-                <Typography variant="h3" color={results.passed ? 'success.main' : 'error.main'}>
-                  {results.passed ? 'PASSED' : 'FAILED'}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Status (Required: {assessment.passingScore}%)
-                </Typography>
-              </Paper>
-            </Grid>
-          </Grid>
-
-          {results.adaptiveInfo && (
-            <Box mt={3}>
-              <Typography variant="h6" gutterBottom>
-                Adaptive Assessment Details
-              </Typography>
-              <Paper sx={{ p: 2 }}>
-                <Typography variant="body2">
-                  <strong>Questions Answered:</strong> {answeredQuestions.length}
-                </Typography>
-                <Typography variant="body2">
-                  <strong>Average Difficulty:</strong> {(answeredQuestions.reduce((sum, q) => sum + q.difficulty, 0) / answeredQuestions.length).toFixed(1)}/10
-                </Typography>
-                <Typography variant="body2">
-                  <strong>Accuracy:</strong> {((answeredQuestions.filter(q => q.correct).length / answeredQuestions.length) * 100).toFixed(1)}%
-                </Typography>
-              </Paper>
-            </Box>
-          )}
-
-          <Box mt={3}>
-            <Button
-              variant="contained"
-              onClick={() => {
-                // Call the onComplete callback to handle navigation properly
-                if (onComplete && submissionDetails) {
-                  onComplete(submissionDetails);
-                } else {
-                  // Fallback navigation if no callback provided
-                  navigate('/my-learning');
-                }
-              }}
-              fullWidth
-            >
-              Continue Learning
-            </Button>
-          </Box>
-        </CardContent>
-      </Card>
+      <AIEnhancedAssessmentResults
+        results={{
+          score: results.score,
+          maxScore: results.maxScore || 100,
+          passed: results.passed,
+          timeSpent: results.timeSpent,
+          attemptNumber: results.attemptNumber || 1,
+          feedback: results.feedback,
+          submissionId: submissionId || undefined // Pass submission ID for AI feedback
+        }}
+        assessment={{
+          id: assessment?.id || '',
+          title: assessment?.title || 'Adaptive Assessment',
+          type: assessment?.type || 'quiz',
+          passingScore: assessment?.passingScore || 70,
+          maxAttempts: assessment?.maxAttempts || 3,
+          isAdaptive: assessment?.isAdaptive || true
+        }}
+        questions={answeredQuestions.map((q: AnsweredQuestion) => ({
+          id: q.id,
+          type: q.type,
+          question: q.question,
+          correctAnswer: q.correctAnswer,
+          explanation: q.explanation,
+          difficulty: q.difficulty || 1,
+          userAnswer: q.userAnswer,
+          isCorrect: q.correct
+        }))}
+        userProgress={(() => {
+          // Calculate attempts left using the actual completed attempts count
+          const userSubmissions = assessment?.userSubmissions || [];
+          const completedAttempts = userSubmissions.filter((sub: any) => sub.status === 'completed').length;
+          const maxAttempts = assessment?.maxAttempts || 3;
+          const attemptsLeft = Math.max(0, maxAttempts - completedAttempts);
+          
+          // Calculate previous best score (excluding current attempt)
+          const currentAttemptNumber = results.attemptNumber || 1;
+          const previousSubmissions = userSubmissions.filter((sub: any) => 
+            sub.status === 'completed' && sub.attemptNumber !== currentAttemptNumber
+          );
+          const previousScores = previousSubmissions.map((sub: any) => sub.score || 0);
+          const previousBestScore = previousScores.length > 0 ? Math.max(...previousScores) : 0;
+          
+          const currentScore = results.score || 0;
+          const bestScore = Math.max(previousBestScore, currentScore);
+          
+          // Calculate score change (current score vs previous best)
+          const scoreChange = currentScore - previousBestScore;
+          
+          console.log('Adaptive assessment user progress calculation:', {
+            maxAttempts,
+            totalSubmissions: userSubmissions.length,
+            completedAttempts,
+            attemptsLeft,
+            currentAttemptNumber,
+            previousSubmissions: previousSubmissions.length,
+            previousScores,
+            previousBestScore,
+            currentScore,
+            bestScore,
+            scoreChange
+          });
+          
+          return {
+            attemptsLeft,
+            bestScore,
+            canRetake: !results.passed && completedAttempts < maxAttempts,
+            scoreChange // Add score change for display
+          };
+        })()}
+        onRetake={() => {
+          // Reset state for retake
+          setShowResults(false);
+          setResults(null);
+          setCurrentAnswer('');
+          setCurrentQuestion(null);
+          setAnsweredQuestions([]);
+          setAssessmentStarted(false);
+          setSubmissionId(null);
+        }}
+        onBackToCourse={async () => {
+          // Call the original onComplete callback with submission details before navigating
+          if (onComplete && submissionDetails) {
+            onComplete(submissionDetails);
+          } else {
+            // Fallback navigation if no callback provided
+            navigate('/my-learning');
+          }
+        }}
+      />
     );
   }
 

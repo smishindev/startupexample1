@@ -42,9 +42,16 @@ export class AITutoringService {
    */
   async generateResponse(
     message: string,
-    context: TutoringContext
+    context: TutoringContext,
+    model: string = 'gpt-4o-mini' // Default model
   ): Promise<AIResponse> {
     try {
+      // Validate and sanitize model selection
+      const validModels = ['gpt-4o', 'gpt-4o-mini', 'gpt-3.5-turbo'];
+      const selectedModel = validModels.includes(model) ? model : 'gpt-4o-mini';
+      
+      console.log(`🤖 Generating AI response using model: ${selectedModel}`);
+      
       // Build context-aware system prompt
       const systemPrompt = await this.buildSystemPrompt(context);
       
@@ -60,7 +67,7 @@ export class AITutoringService {
 
       // Generate AI response
       const completion = await this.openai.chat.completions.create({
-        model: 'gpt-4o-mini', // Cost-effective model for tutoring
+        model: selectedModel, // Use selected model
         messages,
         max_tokens: 1000,
         temperature: 0.7,

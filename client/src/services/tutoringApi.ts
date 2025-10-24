@@ -57,6 +57,7 @@ export interface CreateSessionRequest {
 
 export interface SendMessageRequest {
   content: string;
+  model?: string; // AI model to use (e.g., 'gpt-4o', 'gpt-4o-mini', 'gpt-3.5-turbo')
 }
 
 export interface SendMessageResponse {

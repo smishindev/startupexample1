@@ -69,6 +69,16 @@
 - ✅ **Database Integration**: 5 new tables (CourseProgress, LearningActivities, StudentRecommendations, StudentRiskAssessment, PeerComparison)
 - ✅ **Navigation Integration**: Smart Progress menu item accessible to both students and instructors
 
+### 🤖 AI Tutoring/Chat System (MAJOR FEATURE - COMPLETED)
+- ✅ **AI Model Selection**: Users can choose between GPT-4 Turbo, GPT-4 Mini, and GPT-3.5 Turbo
+- ✅ **Session Management**: Create, view, and manage tutoring sessions with conversation history
+- ✅ **Context-Aware AI**: AI tutor uses course, lesson, and student progress context for personalized responses
+- ✅ **Interactive Features**: Quick suggestions, follow-up questions, and code formatting support
+- ✅ **Model Persistence**: Selected AI model saved per session in database context
+- ✅ **Real-time Messaging**: Live chat interface with message history and timestamps
+- ✅ **Learning Recommendations**: AI-generated personalized learning suggestions based on progress
+- ✅ **Navigation Integration**: AI Tutoring menu item accessible from main navigation
+
 ---
 
 ## 🚧 CURRENT STATUS & RECENT FIXES
@@ -109,6 +119,16 @@
 29. ✅ **Adaptive Assessment Score Calculation Fix**: Resolved critical score change calculation showing 0% instead of expected values (e.g., +40%), implemented proper exclusion of current attempt from previous best score calculation
 30. ✅ **User Progress Calculation Accuracy**: Fixed attempts left calculation and best score determination using proper filtering of completed attempts vs current attempt
 31. ✅ **Assessment Progress Data Integrity**: Enhanced debugging and validation of user progress calculations with comprehensive logging for score tracking, attempt counting, and progress determination
+
+### AI Tutoring/Chat System Implementation (October 24, 2025):
+32. ✅ **AI Model Selection UI**: Added dropdown in Tutoring page to choose between GPT-4 Turbo, GPT-4 Mini, and GPT-3.5 Turbo models
+33. ✅ **AITutoringService Enhancement**: Updated generateResponse() method to accept and validate model parameter, with whitelist validation
+34. ✅ **Tutoring API Enhancement**: Modified POST /api/tutoring/sessions/:sessionId/messages to accept model parameter and persist in session context
+35. ✅ **Model Persistence**: Implemented session-level model preference storage in TutoringSessions.Context JSON field
+36. ✅ **Message Metadata**: Store model information in TutoringMessages.Metadata for tracking and analytics
+37. ✅ **Dynamic Model Switching**: Users can change AI model per message without session interruption
+38. ✅ **Cost-Effective Defaults**: Set gpt-4o-mini as default model for balanced performance and cost
+39. ✅ **Implementation Documentation**: Created comprehensive AI_TUTORING_IMPLEMENTATION.md guide
 
 ### Enhanced Assessment Results & Feedback System Implementation (October 23, 2025):
 26. ✅ **AI Feedback Service**: Created comprehensive AssessmentFeedbackService with OpenAI integration for intelligent assessment analysis
@@ -162,11 +182,13 @@
 - `server/src/routes/assessments.ts` - Assessment API routes
 - `server/src/routes/assessment-analytics.ts` - **NEW**: Enhanced cross-assessment analytics APIs
 - `server/src/routes/student-progress.ts` - **NEW**: Student Progress Integration APIs with AI recommendations
+- `server/src/routes/tutoring.ts` - **UPDATED**: AI Tutoring API routes with model selection support (October 24, 2025)
 - `server/src/routes/instructor.ts` - Instructor dashboard APIs
 - `server/src/routes/courses.ts` - Course management APIs with dynamic filtering and real statistics
 - `server/src/routes/progress.ts` - **UPDATED**: Progress tracking APIs with aligned enrollment verification
 - `server/src/services/DatabaseService.ts` - SQL Server connection
 - `server/src/services/AssessmentFeedbackService.ts` - **NEW**: AI-powered assessment feedback service with OpenAI integration (October 23, 2025)
+- `server/src/services/AITutoringService.ts` - **UPDATED**: AI tutoring service with dynamic model selection (October 24, 2025)
 
 ### Core Frontend Files
 - `client/src/App.tsx` - Main React app with routing (includes analytics and smart progress routes)
@@ -175,14 +197,16 @@
 - `client/src/pages/Instructor/EnhancedAssessmentAnalyticsPage.tsx` - **NEW**: Enhanced analytics page
 - `client/src/pages/Instructor/InstructorStudentAnalytics.tsx` - **NEW**: Instructor student progress monitoring
 - `client/src/pages/Progress/StudentProgressPage.tsx` - **NEW**: Student smart progress dashboard
+- `client/src/pages/Tutoring/Tutoring.tsx` - **UPDATED**: AI Tutoring page with model selection dropdown (October 24, 2025)
 - `client/src/components/Progress/StudentProgressDashboard.tsx` - **NEW**: AI-powered progress analytics interface
 - `client/src/services/studentProgressApi.ts` - **NEW**: Student Progress Integration API service
+- `client/src/services/tutoringApi.ts` - **UPDATED**: Tutoring API with model parameter support (October 24, 2025)
 - `client/src/components/Assessment/EnhancedAssessmentAnalyticsDashboard.tsx` - **NEW**: Comprehensive analytics dashboard
 - `client/src/components/Assessment/AIEnhancedAssessmentResults.tsx` - **NEW**: AI-powered assessment results with intelligent feedback (October 23, 2025)
 - `client/src/components/Assessment/AdaptiveQuizTaker.tsx` - **UPDATED**: Enhanced with AIEnhancedAssessmentResults integration, improved data structure, and accurate score calculations (October 24, 2025)
 - `client/src/services/assessmentAnalyticsApi.ts` - **NEW**: Enhanced analytics API service
 - `client/src/services/aiFeedbackApi.ts` - **NEW**: AI feedback API service with OpenAI integration (October 23, 2025)
-- `client/src/components/Navigation/Header.tsx` - Updated with Smart Progress menu item
+- `client/src/components/Navigation/Header.tsx` - Updated with Smart Progress and AI Tutoring menu items
 - `client/src/pages/Course/CourseDetailPage.tsx` - **UPDATED**: Course viewing with real API data integration (eliminated hardcoded mock values)
 - `client/src/pages/Courses/CoursesPage.tsx` - **UPDATED**: Course listing with debounced search and dynamic filtering
 - `client/src/pages/Course/LessonDetailPage.tsx` - **UPDATED**: Lesson completion with proper progress tracking
@@ -201,7 +225,7 @@
 
 ---
 
-## 🔧 TECHNICAL DETAILS
+### 🔧 TECHNICAL DETAILS
 
 ### Database Connection
 - **Server**: localhost\SQLEXPRESS or localhost:61299
@@ -214,6 +238,16 @@
 - **Start Both Servers**: 
   - Backend: `cd server; npm run dev`
   - Frontend: `cd client; npm run dev`
+
+### OpenAI API Configuration (REQUIRED for AI Tutoring)
+- **API Key Location**: `server/.env`
+- **Environment Variable**: `OPENAI_API_KEY=your-actual-api-key-here`
+- **Get API Key**: https://platform.openai.com/api-keys
+- **Default Model**: `gpt-4o-mini` (balanced performance and cost)
+- **Available Models**: 
+  - `gpt-4o` - Most capable, $10/1M input tokens
+  - `gpt-4o-mini` - Recommended, $0.15/1M input tokens
+  - `gpt-3.5-turbo` - Fast, $0.50/1M input tokens
 
 ### API Endpoints (Working)
 - `GET /api/instructor/courses` - Get instructor's courses
@@ -231,6 +265,11 @@
 - `GET /api/progress/course/:courseId` - **UPDATED**: Course progress with consistent access logic
 - `GET /api/assessments/submissions/:submissionId/ai-feedback` - **NEW**: AI-powered assessment feedback with personalized insights (October 23, 2025)
 - `POST /api/assessments/submissions/:submissionId/request-ai-insights` - **NEW**: Request additional AI insights for specific focus areas (October 23, 2025)
+- `GET /api/tutoring/sessions` - **NEW**: Get user's tutoring sessions (October 24, 2025)
+- `POST /api/tutoring/sessions` - **NEW**: Create new tutoring session (October 24, 2025)
+- `GET /api/tutoring/sessions/:sessionId/messages` - **NEW**: Get tutoring session messages (October 24, 2025)
+- `POST /api/tutoring/sessions/:sessionId/messages` - **UPDATED**: Send message to AI tutor with model selection (October 24, 2025)
+- `GET /api/tutoring/recommendations` - **NEW**: Get AI-generated learning recommendations (October 24, 2025)
 
 ### Known Working Lesson ID for Testing
 - **Lesson ID**: `C2CCA540-3BD0-4FDA-9CF0-03071935D58A`
@@ -254,6 +293,12 @@
   - Performance insights and learning velocity assessment
   - Interactive UI with tabbed interface and expandable sections
   - Motivational messaging and personalized study plans
+- [✅] **COMPLETED**: AI Tutoring/Chat System with model selection (October 24, 2025)
+  - Dynamic AI model selection (GPT-4, GPT-4 Mini, GPT-3.5)
+  - Session management with conversation history
+  - Context-aware responses using course/lesson data
+  - Model persistence in session context
+  - Interactive suggestions and follow-up questions
 - [⏸️] Test complete adaptive assessment workflow per ADAPTIVE_TESTING_GUIDE.md (PAUSED - working but needs comprehensive testing)
 - [✅] **COMPLETED**: Student assessment taking from lesson pages - Enhanced UI, navigation flow, and completion integration
 - [✅] **COMPLETED**: Assessment analytics & student progress integration
@@ -269,11 +314,10 @@
   - Enhanced lesson locking mechanism based on assessment completion status
   - UI updates to show locked lessons with assessment requirements
   - *Note: Current flexible system allows progression without assessments - user indicated this is not critical for now*
-- [ ] Student progress tracking and analytics
-- [ ] AI tutoring integration (OpenAI API setup exists)
-- [ ] Real-time chat and collaboration features
-- [ ] File upload system for course materials
-- [ ] Course marketplace and enrollment system
+- [ ] Real-time collaboration features with enhanced chat rooms
+- [ ] Video lesson system with interactive transcripts and progress tracking
+- [ ] File upload system enhancement for course materials
+- [ ] Course marketplace and enrollment system with payments
 
 ### Long-term Vision
 - [ ] Mobile app development
@@ -345,6 +389,13 @@
 - ✅ **UI Testing Completed** - Student Progress Dashboard tested and working correctly
 - ✅ **AI-Enhanced Assessment Results System COMPLETED** - OpenAI-powered feedback and insights fully functional
 - ✅ **React Key Warnings FIXED** - Course deduplication implemented, clean console output
+- ✅ **AI TUTORING/CHAT SYSTEM IMPLEMENTED** - Full model selection feature ready (October 24, 2025):
+  - Model selection dropdown (GPT-4, GPT-4 Mini, GPT-3.5)
+  - Dynamic model switching per message
+  - Session context persistence
+  - Interactive suggestions and follow-ups
+  - **REQUIRES**: OpenAI API key configuration in server/.env
+  - **STATUS**: Implementation complete, ready for testing with valid API key
 - ✅ **REGRESSION TESTING COMPLETED** - All core functionality verified and optimized (October 23, 2025):
   - Course search with debouncing (no more flickering)
   - Dynamic filtering system (real API data, not hardcoded)

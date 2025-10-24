@@ -118,8 +118,10 @@ router.get('/sessions/:sessionId/messages', authenticateToken, async (req: AuthR
 router.post('/sessions/:sessionId/messages', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
     const { sessionId } = req.params;
-    const { content } = req.body;
+    const { content, model } = req.body; // Accept model parameter
     const userId = req.user?.userId;
+
+    console.log(`📨 Processing tutoring message with model: ${model || 'default'}`);
 
     // Verify user owns the session and get session context
     const sessionData = await db.query(`
@@ -133,6 +135,23 @@ router.post('/sessions/:sessionId/messages', authenticateToken, async (req: Auth
 
     const session = sessionData[0];
     const now = new Date().toISOString();
+    
+    // Update session context with selected model
+    let sessionContext = {};
+    try {
+      sessionContext = JSON.parse(session.Context || '{}');
+    } catch (e) {
+      console.error('Error parsing session context:', e);
+    }
+    
+    if (model) {
+      sessionContext = { ...sessionContext, preferredModel: model };
+      await db.execute(`
+        UPDATE dbo.TutoringSessions 
+        SET Context = @context 
+        WHERE Id = @sessionId
+      `, { sessionId, context: JSON.stringify(sessionContext) });
+    }
     
     // Store user message
     const userMessageId = uuidv4();
@@ -165,10 +184,10 @@ router.post('/sessions/:sessionId/messages', authenticateToken, async (req: Auth
       }))
     };
 
-    // Generate AI response
-    const aiResponse = await aiService.generateResponse(content, tutoringContext);
+    // Generate AI response with selected model
+    const aiResponse = await aiService.generateResponse(content, tutoringContext, model);
     
-    // Store AI response
+    // Store AI response with model info in metadata
     const aiMessageId = uuidv4();
     const aiTimestamp = new Date().toISOString();
     await db.execute(`
@@ -182,7 +201,8 @@ router.post('/sessions/:sessionId/messages', authenticateToken, async (req: Auth
       timestamp: aiTimestamp,
       metadata: JSON.stringify({
         suggestions: aiResponse.suggestions,
-        followUpQuestions: aiResponse.followUpQuestions
+        followUpQuestions: aiResponse.followUpQuestions,
+        model: model || 'gpt-4o-mini' // Store which model was used
       })
     });
 

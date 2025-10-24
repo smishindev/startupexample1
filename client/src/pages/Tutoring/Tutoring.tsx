@@ -61,8 +61,16 @@ const Tutoring: React.FC = () => {
   const [recommendations, setRecommendations] = useState<string[]>([]);
   const [currentSuggestions, setCurrentSuggestions] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [selectedModel, setSelectedModel] = useState<string>('gpt-4o-mini'); // Default model
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Available AI models with descriptions
+  const availableModels = [
+    { value: 'gpt-4o', label: 'GPT-4 Turbo', description: 'Most capable, best for complex problems' },
+    { value: 'gpt-4o-mini', label: 'GPT-4 Mini', description: 'Balanced performance and speed (recommended)' },
+    { value: 'gpt-3.5-turbo', label: 'GPT-3.5 Turbo', description: 'Fast and efficient for simple queries' },
+  ];
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -76,6 +84,9 @@ const Tutoring: React.FC = () => {
   useEffect(() => {
     if (selectedSession) {
       loadMessages(selectedSession.Id);
+      // Reset model selection to default when switching sessions
+      // In future, could load preferred model from session context
+      setSelectedModel('gpt-4o-mini');
     }
   }, [selectedSession]);
 
@@ -123,7 +134,8 @@ const Tutoring: React.FC = () => {
     setSending(true);
     try {
       const response = await tutoringApi.sendMessage(selectedSession.Id, {
-        content: newMessage.trim()
+        content: newMessage.trim(),
+        model: selectedModel // Send selected AI model
       });
 
       // Add both user and AI messages to the display
@@ -302,10 +314,33 @@ const Tutoring: React.FC = () => {
             <Paper sx={{ height: '70vh', display: 'flex', flexDirection: 'column' }}>
               {/* Header */}
               <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
-                <Typography variant="h6">{selectedSession.Title}</Typography>
-                <Typography variant="caption" color="text.secondary">
-                  AI-powered learning assistance
-                </Typography>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                  <Box>
+                    <Typography variant="h6">{selectedSession.Title}</Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      AI-powered learning assistance
+                    </Typography>
+                  </Box>
+                  <FormControl size="small" sx={{ minWidth: 200 }}>
+                    <InputLabel>AI Model</InputLabel>
+                    <Select
+                      value={selectedModel}
+                      label="AI Model"
+                      onChange={(e) => setSelectedModel(e.target.value)}
+                    >
+                      {availableModels.map((model) => (
+                        <MenuItem key={model.value} value={model.value}>
+                          <Box>
+                            <Typography variant="body2">{model.label}</Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              {model.description}
+                            </Typography>
+                          </Box>
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Box>
               </Box>
 
               {/* Messages */}

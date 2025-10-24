@@ -668,7 +668,7 @@ export const LessonDetailPage: React.FC = () => {
                           </Button>
                         )}
                         
-                        <Box sx={{ textAlign: 'center' }}>
+                        <Box sx={{ textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                           {assessment.isAdaptive && (
                             <Typography variant="caption" color="text.secondary">
                               🧠 AI-powered difficulty

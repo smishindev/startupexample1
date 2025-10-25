@@ -316,33 +316,19 @@ export const InstructorDashboard: React.FC = () => {
           </Button>
           <Button 
             variant="outlined" 
+            startIcon={<AnalyticsIcon />}
+            onClick={() => navigate('/instructor/analytics-hub')}
+            color="primary"
+          >
+            Analytics Hub
+          </Button>
+          <Button 
+            variant="outlined" 
             startIcon={<InterventionIcon />}
             onClick={() => navigate('/instructor/interventions')}
             color="error"
           >
             Intervention Dashboard
-          </Button>
-          <Button 
-            variant="outlined" 
-            startIcon={<AnalyticsIcon />}
-            onClick={() => navigate('/instructor/analytics')}
-          >
-            Course Analytics
-          </Button>
-          <Button 
-            variant="outlined" 
-            startIcon={<AssignmentIcon />}
-            onClick={() => navigate('/instructor/assessment-analytics')}
-            color="primary"
-          >
-            Assessment Analytics
-          </Button>
-          <Button 
-            variant="outlined" 
-            startIcon={<PeopleIcon />}
-            onClick={() => navigate('/instructor/students')}
-          >
-            Manage Students
           </Button>
           <Button 
             variant="outlined" 

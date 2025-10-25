@@ -5,6 +5,8 @@ USE [startUp1]
 GO
 
 -- Drop tables if they exist (for fresh setup)
+IF OBJECT_ID('dbo.VideoProgress', 'U') IS NOT NULL DROP TABLE dbo.VideoProgress;
+IF OBJECT_ID('dbo.VideoLessons', 'U') IS NOT NULL DROP TABLE dbo.VideoLessons;
 IF OBJECT_ID('dbo.FileUploads', 'U') IS NOT NULL DROP TABLE dbo.FileUploads;
 IF OBJECT_ID('dbo.TutoringMessages', 'U') IS NOT NULL DROP TABLE dbo.TutoringMessages;
 IF OBJECT_ID('dbo.TutoringSessions', 'U') IS NOT NULL DROP TABLE dbo.TutoringSessions;
@@ -434,6 +436,56 @@ CREATE TABLE dbo.NotificationPreferences (
     UpdatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE()
 );
 
+-- ========================================
+-- VIDEO LESSON SYSTEM
+-- ========================================
+
+-- VideoLessons Table - Stores video content associated with lessons
+CREATE TABLE dbo.VideoLessons (
+    Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    LessonId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Lessons(Id) ON DELETE CASCADE,
+    VideoURL NVARCHAR(1000) NOT NULL, -- Path to video file or external URL
+    Duration INT NOT NULL DEFAULT 0, -- Video duration in seconds
+    Thumbnail NVARCHAR(500) NULL, -- Video thumbnail/poster image
+    TranscriptURL NVARCHAR(1000) NULL, -- Path to VTT/SRT transcript file
+    TranscriptText NVARCHAR(MAX) NULL, -- Full transcript text for search/display
+    VideoMetadata NVARCHAR(MAX) NULL, -- JSON: {quality, format, size, resolution, codec, bitrate}
+    ProcessingStatus NVARCHAR(20) NOT NULL DEFAULT 'processing' CHECK (ProcessingStatus IN ('processing', 'ready', 'failed')),
+    FileSize BIGINT NULL, -- File size in bytes
+    UploadedBy UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id),
+    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    UpdatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE()
+);
+
+-- VideoProgress Table - Tracks individual user progress on video lessons
+CREATE TABLE dbo.VideoProgress (
+    Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    UserId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id) ON DELETE CASCADE,
+    VideoLessonId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.VideoLessons(Id) ON DELETE CASCADE,
+    WatchedDuration INT NOT NULL DEFAULT 0, -- Total seconds watched (including rewatches)
+    LastPosition INT NOT NULL DEFAULT 0, -- Last playback position in seconds
+    CompletionPercentage DECIMAL(5,2) NOT NULL DEFAULT 0.00, -- Percentage of video watched
+    IsCompleted BIT NOT NULL DEFAULT 0, -- Marked complete when >= 90% watched
+    PlaybackSpeed DECIMAL(3,2) NOT NULL DEFAULT 1.00, -- User's preferred playback speed
+    LastWatchedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    CompletedAt DATETIME2 NULL,
+    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    UpdatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    UNIQUE(UserId, VideoLessonId)
+);
+
+-- VideoAnalytics Table - Detailed viewing analytics for instructors
+CREATE TABLE dbo.VideoAnalytics (
+    Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    VideoLessonId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.VideoLessons(Id) ON DELETE CASCADE,
+    UserId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id),
+    SessionId UNIQUEIDENTIFIER NOT NULL, -- Unique per viewing session
+    EventType NVARCHAR(20) NOT NULL CHECK (EventType IN ('play', 'pause', 'seek', 'complete', 'speed_change', 'quality_change')),
+    Timestamp INT NOT NULL, -- Position in video when event occurred (seconds)
+    EventData NVARCHAR(MAX) NULL, -- JSON with additional event details
+    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE()
+);
+
 -- Performance Indexes
 CREATE NONCLUSTERED INDEX IX_CourseProgress_UserId_CourseId ON dbo.CourseProgress (UserId, CourseId);
 CREATE NONCLUSTERED INDEX IX_LearningActivities_UserId_CreatedAt ON dbo.LearningActivities (UserId, CreatedAt DESC);
@@ -450,6 +502,13 @@ CREATE NONCLUSTERED INDEX IX_Notifications_CreatedAt ON dbo.Notifications(Create
 CREATE NONCLUSTERED INDEX IX_Notifications_Type ON dbo.Notifications(Type);
 CREATE NONCLUSTERED INDEX IX_Notifications_Priority ON dbo.Notifications(Priority);
 CREATE NONCLUSTERED INDEX IX_NotificationPreferences_UserId ON dbo.NotificationPreferences(UserId);
+CREATE NONCLUSTERED INDEX IX_VideoLessons_LessonId ON dbo.VideoLessons(LessonId);
+CREATE NONCLUSTERED INDEX IX_VideoProgress_UserId ON dbo.VideoProgress(UserId);
+CREATE NONCLUSTERED INDEX IX_VideoProgress_VideoLessonId ON dbo.VideoProgress(VideoLessonId);
+CREATE NONCLUSTERED INDEX IX_VideoProgress_IsCompleted ON dbo.VideoProgress(IsCompleted);
+CREATE NONCLUSTERED INDEX IX_VideoAnalytics_VideoLessonId ON dbo.VideoAnalytics(VideoLessonId);
+CREATE NONCLUSTERED INDEX IX_VideoAnalytics_UserId ON dbo.VideoAnalytics(UserId);
+CREATE NONCLUSTERED INDEX IX_VideoAnalytics_SessionId ON dbo.VideoAnalytics(SessionId);
 
 -- ========================================
 -- SAMPLE DATA
@@ -468,8 +527,9 @@ PRINT '📊 Communication: LiveSessions, LiveSessionAttendees, ChatRooms, ChatMe
 PRINT '🧠 AI Progress Integration: CourseProgress, LearningActivities, StudentRecommendations, StudentRiskAssessment, PeerComparison';
 PRINT '📚 User Features: Bookmarks, FileUploads';
 PRINT '🔔 Real-time Notifications: Notifications, NotificationPreferences';
-PRINT '�🔐 Sample accounts created:';
+PRINT '🎥 Video Lesson System: VideoLessons, VideoProgress, VideoAnalytics';
+PRINT '🔐 Sample accounts created:';
 PRINT '   - Admin: admin@mishinlearn.com (password: password123)';
 PRINT '   - Instructor: instructor@mishinlearn.com (password: password123)';  
 PRINT '   - Student: student@mishinlearn.com (password: password123)';
-PRINT '🚀 Database is ready for Mishin Learn Platform with AI-powered Student Progress Integration!';
+PRINT '🚀 Database is ready for Mishin Learn Platform with AI-powered Student Progress Integration and Video Lessons!';

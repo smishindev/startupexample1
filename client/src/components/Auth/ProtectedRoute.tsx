@@ -15,7 +15,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   redirectTo = '/login'
 }) => {
   const location = useLocation();
-  const { isAuthenticated, user, isLoading, validateToken } = useAuthStore();
+  const { isAuthenticated, user, isLoading, validateToken, logout } = useAuthStore();
   const [isValidating, setIsValidating] = useState(true);
   const [isValid, setIsValid] = useState(false);
 
@@ -31,16 +31,22 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
       try {
         const valid = await validateToken();
         setIsValid(valid);
+        
+        // If validation failed, ensure we logout
+        if (!valid) {
+          logout();
+        }
       } catch (error) {
         console.error('Token validation failed:', error);
         setIsValid(false);
+        logout(); // Clear invalid auth state
       } finally {
         setIsValidating(false);
       }
     };
 
     performTokenValidation();
-  }, [isAuthenticated, user, validateToken, location.pathname]);
+  }, [isAuthenticated, user, validateToken, logout, location.pathname]);
 
   // Show loading spinner while checking authentication or validating token
   if (isLoading || isValidating) {

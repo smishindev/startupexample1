@@ -45,13 +45,22 @@ import { ContentUploadDemo } from './components/Demo/ContentUploadDemo';
 import { useAuthStore } from './stores/authStore';
 
 function App() {
-  const { isAuthenticated, token, validateToken } = useAuthStore();
+  const { isAuthenticated, token, validateToken, logout } = useAuthStore();
 
   // Validate token on app startup
   useEffect(() => {
     const initializeAuth = async () => {
-      if (token) {
-        await validateToken();
+      if (token && isAuthenticated) {
+        try {
+          const isValid = await validateToken();
+          if (!isValid) {
+            console.warn('Token validation failed on app startup, logging out...');
+            logout();
+          }
+        } catch (error) {
+          console.error('Auth initialization error:', error);
+          logout();
+        }
       }
     };
 

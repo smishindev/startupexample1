@@ -386,4 +386,63 @@ router.post('/logout', authenticateToken, (req: AuthRequest, res) => {
   });
 });
 
+// GET /api/auth/verify - Verify token and return user data
+router.get('/verify', authenticateToken, async (req: AuthRequest, res) => {
+  try {
+    const userId = req.user?.userId;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        error: { message: 'Invalid token' }
+      });
+    }
+
+    // Fetch fresh user data from database
+    const result = await db.query(
+      `SELECT 
+        Id, Email, Username, FirstName, LastName, Role, 
+        LearningStyle, Avatar, Preferences, EmailVerified, 
+        CreatedAt, LastLoginAt
+      FROM dbo.Users 
+      WHERE Id = @userId`,
+      { userId }
+    );
+
+    if (!result.length) {
+      logger.warn(`Token verification failed: User not found (ID: ${userId})`);
+      return res.status(401).json({
+        success: false,
+        error: { message: 'User not found' }
+      });
+    }
+
+    const user = result[0];
+
+    res.json({
+      success: true,
+      user: {
+        id: user.Id,
+        email: user.Email,
+        username: user.Username,
+        firstName: user.FirstName,
+        lastName: user.LastName,
+        role: user.Role,
+        learningStyle: user.LearningStyle,
+        avatar: user.Avatar,
+        preferences: user.Preferences ? JSON.parse(user.Preferences) : null,
+        emailVerified: user.EmailVerified,
+        createdAt: user.CreatedAt,
+        lastLoginAt: user.LastLoginAt,
+      }
+    });
+  } catch (error) {
+    logger.error('Token verification error:', error);
+    res.status(500).json({
+      success: false,
+      error: { message: 'Token verification failed' }
+    });
+  }
+});
+
 export { router as authRoutes };

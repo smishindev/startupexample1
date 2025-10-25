@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { isTokenExpired, shouldRefreshToken } from '../utils/jwtUtils';
+import { isTokenExpired } from '../utils/jwtUtils';
 
 export interface User {
   id: string;
@@ -233,7 +233,7 @@ export const useAuthStore = create<AuthState>()(
       },
 
       validateToken: async (): Promise<boolean> => {
-        const { token, refreshToken } = get();
+        const { token, refreshToken, logout } = get();
         
         if (!token) {
           set({ isAuthenticated: false, user: null });
@@ -242,9 +242,10 @@ export const useAuthStore = create<AuthState>()(
 
         const expired = isTokenExpired(token);
         
-        // If token is invalid, logout
+        // If token is invalid, logout immediately
         if (expired === null) {
-          get().logout();
+          console.warn('Invalid token detected, logging out...');
+          logout();
           return false;
         }
 
@@ -258,13 +259,34 @@ export const useAuthStore = create<AuthState>()(
           return true;
         }
 
-        // If token expires soon, proactively refresh
-        if (shouldRefreshToken(token)) {
-          console.log('Token expiring soon, proactively refreshing...');
-          await refreshToken(); // Don't fail if proactive refresh fails
-        }
+        // Token is valid but verify with backend
+        try {
+          const response = await fetch(`${API_BASE_URL}/auth/verify`, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            },
+          });
 
-        return true;
+          if (!response.ok) {
+            // Backend says token is invalid (user deleted, etc.)
+            console.warn('Token verification failed with backend, logging out...');
+            logout();
+            return false;
+          }
+
+          // Optional: Update user data from verify response
+          const data = await response.json();
+          if (data.user) {
+            set({ user: data.user });
+          }
+
+          return true;
+        } catch (error) {
+          console.error('Token verification error:', error);
+          // Network error - don't logout, assume token is still valid
+          return true;
+        }
       },
     }),
     {

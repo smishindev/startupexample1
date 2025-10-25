@@ -33,6 +33,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Header } from '../../components/Navigation/Header';
 import { VideoPlayer } from '../../components/Video/VideoPlayer';
 import { VideoTranscript, TranscriptSegment } from '../../components/Video/VideoTranscript';
+import { VideoErrorBoundary } from '../../components/Video/VideoErrorBoundary';
 import { VideoProgressTracker } from '../../components/Video/VideoProgressTracker';
 import { lessonApi, Lesson } from '../../services/lessonApi';
 import { progressApi } from '../../services/progressApi';
@@ -441,27 +442,35 @@ export const LessonDetailPage: React.FC = () => {
           </Box>
         </Paper>
 
-        <Box sx={{ display: 'flex', gap: 3 }}>
+        <Box sx={{ 
+          display: 'flex', 
+          flexDirection: { xs: 'column', md: 'row' },
+          gap: 3 
+        }}>
           {/* Main Content */}
-          <Box sx={{ flex: videoLesson && transcript.length > 0 ? 2 : 3 }}>
+          <Box sx={{ 
+            flex: videoLesson && transcript.length > 0 ? { xs: 1, md: 2 } : { xs: 1, md: 3 },
+            minWidth: 0 // Prevent flex item overflow
+          }}>
             {/* Video Lesson with Integrated Player */}
             {videoLesson && (
               <Paper sx={{ mb: 3, overflow: 'hidden' }}>
-                <VideoPlayer
-                  src={videoLesson.videoUrl}
-                  title={lesson.title}
-                  videoLessonId={videoLesson.id}
-                  initialTime={videoProgress?.currentPosition || 0}
-                  enableProgressTracking={true}
-                  onProgress={(currentTime, duration, percentWatched) => {
-                    console.log('Video progress:', { currentTime, duration, percentWatched });
-                  }}
-                  onComplete={async () => {
-                    console.log('Video completed!');
-                    try {
-                      await markVideoComplete(videoLesson.id);
-                      // Update lesson state to show completion
-                      setLesson(prev => prev ? { ...prev, completed: true, progress: 100 } : null);
+                <VideoErrorBoundary onRetry={() => window.location.reload()}>
+                  <VideoPlayer
+                    src={videoLesson.videoUrl}
+                    title={lesson.title}
+                    videoLessonId={videoLesson.id}
+                    initialTime={videoProgress?.currentPosition || 0}
+                    enableProgressTracking={true}
+                    onProgress={(currentTime, duration, percentWatched) => {
+                      console.log('Video progress:', { currentTime, duration, percentWatched });
+                    }}
+                    onComplete={async () => {
+                      console.log('Video completed!');
+                      try {
+                        await markVideoComplete(videoLesson.id);
+                        // Update lesson state to show completion
+                        setLesson(prev => prev ? { ...prev, completed: true, progress: 100 } : null);
                       
                       // Ask user if they want to go to next lesson
                       if (lesson.nextLessonId) {
@@ -480,6 +489,7 @@ export const LessonDetailPage: React.FC = () => {
                     setCurrentVideoTime(currentTime);
                   }}
                 />
+                </VideoErrorBoundary>
                 
                 {/* Video Info */}
                 <Box sx={{ p: 2, borderTop: 1, borderColor: 'divider' }}>
@@ -870,7 +880,12 @@ export const LessonDetailPage: React.FC = () => {
           </Box>
 
           {/* Sidebar */}
-          <Box sx={{ flex: 1 }}>
+          <Box sx={{ 
+            flex: 1,
+            display: { xs: 'block', md: 'block' },
+            minWidth: { xs: '100%', md: 300, lg: 350 },
+            maxWidth: { xs: '100%', md: 400 }
+          }}>
             {/* Video Transcript */}
             {videoLesson && transcript.length > 0 && (
               <Box sx={{ mb: 3 }}>

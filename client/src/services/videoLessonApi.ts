@@ -33,7 +33,7 @@ export const getVideoLessonByLessonId = async (lessonId: string): Promise<VideoL
         },
       }
     );
-    return response.data;
+    return response.data.videoLesson;
   } catch (error: any) {
     if (error.response?.status === 404) {
       return null; // No video lesson for this lesson
@@ -55,7 +55,7 @@ export const getVideoLesson = async (videoLessonId: string): Promise<VideoLesson
       },
     }
   );
-  return response.data;
+  return response.data.videoLesson;
 };
 
 /**

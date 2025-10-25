@@ -102,7 +102,7 @@ export const trackVideoEvent = async (
 ): Promise<void> => {
   const token = localStorage.getItem('token');
   await axios.post(
-    `${API_URL}/api/video-progress/${videoLessonId}/events`,
+    `${API_URL}/api/video-progress/${videoLessonId}/event`,
     event,
     {
       headers: {

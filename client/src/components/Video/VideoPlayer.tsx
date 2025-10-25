@@ -7,6 +7,16 @@ import {
   Menu,
   MenuItem,
   Tooltip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  Table,
+  TableBody,
+  TableRow,
+  TableCell,
+  CircularProgress,
+  Snackbar,
+  Alert,
 } from '@mui/material';
 import {
   PlayArrow,
@@ -19,6 +29,7 @@ import {
   Forward10,
   Replay10,
   PictureInPicture,
+  Help,
 } from '@mui/icons-material';
 import { updateVideoProgress, trackVideoEvent } from '../../services/videoProgressApi';
 
@@ -59,6 +70,8 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const [showControls, setShowControls] = useState(true);
   const [playbackRate, setPlaybackRate] = useState(1);
   const [settingsAnchorEl, setSettingsAnchorEl] = useState<null | HTMLElement>(null);
+  const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
+  const [showSaveNotification, setShowSaveNotification] = useState(false);
 
   const controlsTimeoutRef = useRef<NodeJS.Timeout>();
 
@@ -124,6 +137,9 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           updateVideoProgress(videoLessonId, currentPos, video.duration)
             .then(() => {
               lastSavedPosition.current = currentPos;
+              // Show subtle notification
+              setShowSaveNotification(true);
+              setTimeout(() => setShowSaveNotification(false), 2000);
             })
             .catch(err => console.error('Failed to auto-save progress:', err));
         }
@@ -136,6 +152,65 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       }
     };
   }, [videoLessonId, enableProgressTracking, isPlaying]);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      // Ignore if user is typing in an input
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+
+      switch (e.key.toLowerCase()) {
+        case ' ':
+        case 'k':
+          e.preventDefault();
+          togglePlay();
+          break;
+        case 'arrowleft':
+          e.preventDefault();
+          skip(-10);
+          break;
+        case 'arrowright':
+          e.preventDefault();
+          skip(10);
+          break;
+        case 'j':
+          e.preventDefault();
+          skip(-10);
+          break;
+        case 'l':
+          e.preventDefault();
+          skip(10);
+          break;
+        case 'm':
+          e.preventDefault();
+          toggleMute();
+          break;
+        case 'f':
+          e.preventDefault();
+          toggleFullscreen();
+          break;
+        case 'arrowup':
+          e.preventDefault();
+          setVolume(Math.min(1, volume + 0.1));
+          break;
+        case 'arrowdown':
+          e.preventDefault();
+          setVolume(Math.max(0, volume - 0.1));
+          break;
+        case '?':
+          e.preventDefault();
+          setShowKeyboardShortcuts(true);
+          break;
+        default:
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [isPlaying, volume]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -277,7 +352,11 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       sx={{
         position: 'relative',
         backgroundColor: '#000',
-        aspectRatio: '16/9',
+        width: '100%',
+        paddingTop: '56.25%', // 16:9 aspect ratio
+        '@media (max-width: 600px)': {
+          paddingTop: '75%', // Taller aspect on mobile for better viewing
+        },
         cursor: showControls ? 'default' : 'none',
         '&:hover': {
           cursor: 'default',
@@ -286,10 +365,21 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       onMouseMove={handleMouseMove}
       onMouseLeave={() => setShowControls(true)}
     >
+      <Box
+        sx={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+        }}
+      >
       <video
         ref={videoRef}
         src={src}
         title={title}
+        aria-label={`Video player: ${title}`}
+        aria-describedby="video-keyboard-shortcuts"
         style={{
           width: '100%',
           height: '100%',
@@ -306,10 +396,14 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
             top: '50%',
             left: '50%',
             transform: 'translate(-50%, -50%)',
-            color: 'white',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 2,
           }}
         >
-          <Typography>Loading...</Typography>
+          <CircularProgress sx={{ color: 'white' }} size={60} />
+          <Typography sx={{ color: 'white' }}>Loading video...</Typography>
         </Box>
       )}
 
@@ -429,6 +523,12 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
             </IconButton>
           </Tooltip>
 
+          <Tooltip title="Keyboard Shortcuts (?)">
+            <IconButton size="small" onClick={() => setShowKeyboardShortcuts(true)} sx={{ color: 'white' }}>
+              <Help />
+            </IconButton>
+          </Tooltip>
+
           <Tooltip title="Picture in Picture">
             <IconButton size="small" onClick={togglePictureInPicture} sx={{ color: 'white' }}>
               <PictureInPicture />
@@ -477,6 +577,77 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           </MenuItem>
         ))}
       </Menu>
+
+      {/* Keyboard Shortcuts Dialog */}
+      <Dialog
+        open={showKeyboardShortcuts}
+        onClose={() => setShowKeyboardShortcuts(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Keyboard Shortcuts</DialogTitle>
+        <DialogContent>
+          <Box id="video-keyboard-shortcuts" sx={{ pt: 1 }}>
+            <Table size="small">
+              <TableBody>
+                <TableRow>
+                  <TableCell><strong>Space / K</strong></TableCell>
+                  <TableCell>Play/Pause</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell><strong>← / J</strong></TableCell>
+                  <TableCell>Rewind 10 seconds</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell><strong>→ / L</strong></TableCell>
+                  <TableCell>Forward 10 seconds</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell><strong>↑</strong></TableCell>
+                  <TableCell>Volume up</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell><strong>↓</strong></TableCell>
+                  <TableCell>Volume down</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell><strong>M</strong></TableCell>
+                  <TableCell>Mute/Unmute</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell><strong>F</strong></TableCell>
+                  <TableCell>Fullscreen</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell><strong>?</strong></TableCell>
+                  <TableCell>Show shortcuts</TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          </Box>
+        </DialogContent>
+      </Dialog>
+
+      {/* Auto-save Notification */}
+      <Snackbar
+        open={showSaveNotification}
+        autoHideDuration={2000}
+        onClose={() => setShowSaveNotification(false)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert 
+          severity="success" 
+          variant="filled"
+          sx={{ 
+            '& .MuiAlert-icon': { fontSize: 16 },
+            fontSize: '0.875rem',
+            py: 0.5
+          }}
+        >
+          Progress saved
+        </Alert>
+      </Snackbar>
+      </Box>
     </Box>
   );
 };

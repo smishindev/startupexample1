@@ -32,10 +32,13 @@ import {
 import { useParams, useNavigate } from 'react-router-dom';
 import { Header } from '../../components/Navigation/Header';
 import { VideoPlayer } from '../../components/Video/VideoPlayer';
+import { VideoTranscript, TranscriptSegment } from '../../components/Video/VideoTranscript';
 import { VideoProgressTracker } from '../../components/Video/VideoProgressTracker';
 import { lessonApi, Lesson } from '../../services/lessonApi';
 import { progressApi } from '../../services/progressApi';
 import { assessmentApi, AssessmentWithProgress } from '../../services/assessmentApi';
+import { getVideoLessonByLessonId, parseVTTTranscript, VideoLesson } from '../../services/videoLessonApi';
+import { getVideoProgress, markVideoComplete } from '../../services/videoProgressApi';
 
 interface ExtendedLessonContent {
   id: string;
@@ -121,6 +124,10 @@ export const LessonDetailPage: React.FC = () => {
   const [allLessons, setAllLessons] = useState<Lesson[]>([]);
   const [assessments, setAssessments] = useState<AssessmentWithProgress[]>([]);
   const [progress, setProgress] = useState<any>(null);
+  const [videoLesson, setVideoLesson] = useState<VideoLesson | null>(null);
+  const [transcript, setTranscript] = useState<TranscriptSegment[]>([]);
+  const [currentVideoTime, setCurrentVideoTime] = useState(0);
+  const [videoProgress, setVideoProgress] = useState<any>(null);
   const [newComment, setNewComment] = useState('');
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -183,6 +190,27 @@ export const LessonDetailPage: React.FC = () => {
         setAllLessons(lessonsData);
         setAssessments(assessmentsData);
         setProgress(progressData);
+
+        // Fetch video lesson data if this is a video lesson
+        try {
+          const videoLessonData = await getVideoLessonByLessonId(lessonId);
+          if (videoLessonData) {
+            setVideoLesson(videoLessonData);
+            
+            // Fetch video progress
+            const videoProgressData = await getVideoProgress(videoLessonData.id);
+            setVideoProgress(videoProgressData);
+            
+            // Load transcript if available
+            if (videoLessonData.transcriptUrl) {
+              const transcriptSegments = await parseVTTTranscript(videoLessonData.transcriptUrl);
+              setTranscript(transcriptSegments);
+            }
+          }
+        } catch (error) {
+          console.error('Failed to load video lesson data:', error);
+          // Not a critical error, continue without video data
+        }
 
         // Debug: Log progress data (can be removed in production)
         if (progressData) {
@@ -415,9 +443,61 @@ export const LessonDetailPage: React.FC = () => {
 
         <Box sx={{ display: 'flex', gap: 3 }}>
           {/* Main Content */}
-          <Box sx={{ flex: 2 }}>
-            {/* Lesson Content */}
-            {lesson.extendedContent?.map((content) => (
+          <Box sx={{ flex: videoLesson && transcript.length > 0 ? 2 : 3 }}>
+            {/* Video Lesson with Integrated Player */}
+            {videoLesson && (
+              <Paper sx={{ mb: 3, overflow: 'hidden' }}>
+                <VideoPlayer
+                  src={videoLesson.videoUrl}
+                  title={lesson.title}
+                  videoLessonId={videoLesson.id}
+                  initialTime={videoProgress?.currentPosition || 0}
+                  enableProgressTracking={true}
+                  onProgress={(currentTime, duration, percentWatched) => {
+                    console.log('Video progress:', { currentTime, duration, percentWatched });
+                  }}
+                  onComplete={async () => {
+                    console.log('Video completed!');
+                    try {
+                      await markVideoComplete(videoLesson.id);
+                      // Update lesson state to show completion
+                      setLesson(prev => prev ? { ...prev, completed: true, progress: 100 } : null);
+                      
+                      // Ask user if they want to go to next lesson
+                      if (lesson.nextLessonId) {
+                        setTimeout(() => {
+                          const shouldAutoNavigate = confirm('Video completed! Would you like to go to the next lesson?');
+                          if (shouldAutoNavigate) {
+                            navigate(`/courses/${courseId}/lessons/${lesson.nextLessonId}`);
+                          }
+                        }, 1000);
+                      }
+                    } catch (error) {
+                      console.error('Failed to mark video complete:', error);
+                    }
+                  }}
+                  onTimeUpdate={(currentTime) => {
+                    setCurrentVideoTime(currentTime);
+                  }}
+                />
+                
+                {/* Video Info */}
+                <Box sx={{ p: 2, borderTop: 1, borderColor: 'divider' }}>
+                  <Typography variant="body2" color="text.secondary">
+                    Duration: {Math.floor(videoLesson.duration / 60)}:{(videoLesson.duration % 60).toString().padStart(2, '0')}
+                    {videoProgress && (
+                      <> • Progress: {Math.round(videoProgress.watchedPercentage)}% watched</>
+                    )}
+                    {videoProgress?.completed && (
+                      <> • <Chip label="Completed" size="small" color="success" sx={{ ml: 1 }} /></>
+                    )}
+                  </Typography>
+                </Box>
+              </Paper>
+            )}
+
+            {/* Fallback to legacy video content blocks */}
+            {!videoLesson && lesson.extendedContent?.map((content) => (
               <Paper key={content.id} sx={{ mb: 3 }}>
                 {content.type === 'video' && (
                   <VideoProgressTracker
@@ -505,6 +585,18 @@ export const LessonDetailPage: React.FC = () => {
                 )}
               </Paper>
             ))}
+
+            {/* Text Content for lessons without legacy video blocks */}
+            {!videoLesson && !lesson.extendedContent?.some(c => c.type === 'video') && lesson.content && (
+              <Paper sx={{ p: 3, mb: 3 }}>
+                <Typography variant="h6" sx={{ mb: 2 }}>
+                  Lesson Content
+                </Typography>
+                <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
+                  {lesson.description}
+                </Typography>
+              </Paper>
+            )}
 
             {/* Assessments Section */}
             {assessments.length > 0 && (
@@ -779,6 +871,26 @@ export const LessonDetailPage: React.FC = () => {
 
           {/* Sidebar */}
           <Box sx={{ flex: 1 }}>
+            {/* Video Transcript */}
+            {videoLesson && transcript.length > 0 && (
+              <Box sx={{ mb: 3 }}>
+                <VideoTranscript
+                  segments={transcript}
+                  currentTime={currentVideoTime}
+                  onSeek={(time) => {
+                    // Find the video element and seek to the specified time
+                    const video = document.querySelector('video') as HTMLVideoElement;
+                    if (video) {
+                      video.currentTime = time;
+                      // Update the current time state
+                      setCurrentVideoTime(time);
+                    }
+                  }}
+                  height={500}
+                />
+              </Box>
+            )}
+
             {/* Resources */}
             <Paper sx={{ p: 3, mb: 3 }}>
               <Typography variant="h6" sx={{ mb: 2 }}>

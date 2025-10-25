@@ -99,6 +99,8 @@
 - ✅ **VideoPlayer Component**: Enhanced with auto-save, analytics tracking, PiP support, 90% auto-complete
 - ✅ **Video Progress Service**: Full API integration (update, get, complete, events, course progress)
 - ✅ **VideoTranscript Component**: Interactive transcript with click-to-seek, search/highlight, auto-scroll, timestamp navigation
+- ✅ **Lesson Page Integration**: Video lessons display in LessonDetailPage with transcript sidebar, progress tracking, and completion
+- ⏳ **Instructor Interface**: Video upload UI, preview, transcript upload - IN PROGRESS
 - ⏳ **Lesson Integration**: Video display in lesson pages with progress indicators - PENDING
 - ⏳ **Instructor Interface**: Video upload UI, preview, transcript upload - PENDING
 - ⏳ **Analytics Dashboard**: Engagement metrics, completion rates, drop-off analysis visualizations - PENDING
@@ -217,6 +219,15 @@
 76. ✅ **Auto-scroll Transcript**: Active segment tracking with smooth scrolling during playback
 77. ✅ **Transcript Search**: Real-time search with highlighted matches and result count
 
+### Video Lesson System Lesson Integration (October 25, 2025):
+78. ✅ **Video Lesson API Service**: Created videoLessonApi.ts for video lesson data retrieval and VTT transcript parsing
+79. ✅ **LessonDetailPage Video Integration**: Updated to detect and display video lessons with new VideoPlayer
+80. ✅ **Transcript Sidebar**: Added VideoTranscript component to lesson sidebar with click-to-seek functionality
+81. ✅ **Video Progress Display**: Real-time progress display showing watched percentage and completion status
+82. ✅ **Auto-complete Integration**: 90% threshold triggers lesson completion with next lesson navigation prompt
+83. ✅ **Dual Video Support**: Backward compatibility with legacy video content blocks while supporting new video lesson system
+84. ✅ **VTT Transcript Parser**: Implemented VTT timestamp parsing (HH:MM:SS.mmm and MM:SS.mmm formats)
+
 ### Current Working State:
 - ✅ **Backend Server**: Running on localhost:3001 with SQL Server connection
 - ✅ **Frontend Client**: Running on localhost:5173 with Vite dev server
@@ -289,8 +300,10 @@
 - `client/src/components/Navigation/Header.tsx` - **UPDATED**: Header with NotificationBell integration (October 24, 2025)
 - `client/src/components/Video/VideoPlayer.tsx` - **ENHANCED**: Video player with progress tracking, analytics, PiP (October 25, 2025)
 - `client/src/components/Video/VideoTranscript.tsx` - **NEW**: Interactive transcript with search and navigation (October 25, 2025)
+- `client/src/pages/Course/LessonDetailPage.tsx` - **UPDATED**: Video lesson integration with transcript sidebar (October 25, 2025)
 - `client/src/services/studentProgressApi.ts` - **NEW**: Student Progress Integration API service
 - `client/src/services/videoProgressApi.ts` - **NEW**: Video progress API integration with auto-save (October 25, 2025)
+- `client/src/services/videoLessonApi.ts` - **NEW**: Video lesson API and VTT transcript parser (October 25, 2025)
 - `client/src/services/tutoringApi.ts` - **UPDATED**: Tutoring API with model parameter support (October 24, 2025)
 - `client/src/services/notificationApi.ts` - **NEW**: Notification API service (October 24, 2025)
 - `client/src/services/socketService.ts` - **UPDATED**: Socket.io service with notification events (October 24, 2025)

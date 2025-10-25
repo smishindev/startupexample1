@@ -38,9 +38,8 @@ import {
   CheckCircle as CheckCircleIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
-
-const API_URL = 'http://localhost:3001/api';
+import { instructorApi } from '../../services/instructorApi';
+import { Header } from '../../components/Navigation/Header';
 
 interface AtRiskStudent {
   UserId: string;
@@ -95,25 +94,17 @@ export const InterventionDashboard: React.FC = () => {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
       
-      // Fetch at-risk students
-      const riskResponse = await axios.get(`${API_URL}/instructor/at-risk-students`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setAtRiskStudents(riskResponse.data.students || []);
+      // Fetch all data using instructorApi
+      const [atRisk, lowProgress, pending] = await Promise.all([
+        instructorApi.getAtRiskStudents(),
+        instructorApi.getLowProgressStudents(),
+        instructorApi.getPendingAssessments()
+      ]);
 
-      // Fetch low progress students
-      const progressResponse = await axios.get(`${API_URL}/instructor/low-progress-students`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setLowProgressStudents(progressResponse.data.students || []);
-
-      // Fetch pending assessments
-      const assessmentResponse = await axios.get(`${API_URL}/instructor/pending-assessments`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setPendingAssessments(assessmentResponse.data.assessments || []);
+      setAtRiskStudents(atRisk);
+      setLowProgressStudents(lowProgress);
+      setPendingAssessments(pending);
 
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
@@ -148,23 +139,28 @@ export const InterventionDashboard: React.FC = () => {
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
-        <CircularProgress />
-      </Box>
+      <>
+        <Header />
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
+          <CircularProgress />
+        </Box>
+      </>
     );
   }
 
   return (
-    <Box sx={{ p: 3 }}>
-      {/* Header */}
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold' }}>
-          🚨 Intervention Dashboard
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
-          Monitor at-risk students and take proactive interventions to improve learning outcomes
-        </Typography>
-      </Box>
+    <>
+      <Header />
+      <Box sx={{ p: 3 }}>
+        {/* Header */}
+        <Box sx={{ mb: 4 }}>
+          <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold' }}>
+            🚨 Intervention Dashboard
+          </Typography>
+          <Typography variant="body1" color="text.secondary">
+            Monitor at-risk students and take proactive interventions to improve learning outcomes
+          </Typography>
+        </Box>
 
       {/* Summary Cards */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
@@ -387,14 +383,14 @@ export const InterventionDashboard: React.FC = () => {
                           </Typography>
                         }
                         secondary={
-                          <Stack spacing={0.5} sx={{ mt: 0.5 }}>
-                            <Typography variant="body2" color="text.secondary">
+                          <React.Fragment>
+                            <Typography variant="body2" color="text.secondary" component="span" display="block">
                               📧 {student.Email}
                             </Typography>
-                            <Typography variant="body2">
+                            <Typography variant="body2" component="span" display="block">
                               📚 {student.CourseName}
                             </Typography>
-                            <Stack direction="row" spacing={2}>
+                            <Box component="span" sx={{ mt: 0.5, display: 'flex', gap: 2 }}>
                               <Chip
                                 label={`${student.OverallProgress}% Complete`}
                                 size="small"
@@ -405,9 +401,10 @@ export const InterventionDashboard: React.FC = () => {
                                 size="small"
                                 icon={<TimeIcon />}
                               />
-                            </Stack>
-                          </Stack>
+                            </Box>
+                          </React.Fragment>
                         }
+                        secondaryTypographyProps={{ component: 'div' }}
                       />
                       <ListItemSecondaryAction>
                         <Stack direction="row" spacing={1}>
@@ -463,17 +460,17 @@ export const InterventionDashboard: React.FC = () => {
                           </Typography>
                         }
                         secondary={
-                          <Stack spacing={0.5} sx={{ mt: 0.5 }}>
-                            <Typography variant="body2" color="text.secondary">
+                          <React.Fragment>
+                            <Typography variant="body2" color="text.secondary" component="span" display="block">
                               📧 {assessment.Email}
                             </Typography>
-                            <Typography variant="body2">
+                            <Typography variant="body2" component="span" display="block">
                               📝 {assessment.AssessmentTitle}
                             </Typography>
-                            <Typography variant="body2" color="text.secondary">
+                            <Typography variant="body2" color="text.secondary" component="span" display="block">
                               📚 {assessment.CourseName}
                             </Typography>
-                            <Stack direction="row" spacing={1}>
+                            <Box component="span" sx={{ mt: 0.5, display: 'flex', gap: 1 }}>
                               <Chip
                                 label={`${assessment.AttemptsLeft} attempt${assessment.AttemptsLeft !== 1 ? 's' : ''} left`}
                                 size="small"
@@ -484,9 +481,10 @@ export const InterventionDashboard: React.FC = () => {
                                 size="small"
                                 variant="outlined"
                               />
-                            </Stack>
-                          </Stack>
+                            </Box>
+                          </React.Fragment>
                         }
+                        secondaryTypographyProps={{ component: 'div' }}
                       />
                       <ListItemSecondaryAction>
                         <Tooltip title="Send Reminder">
@@ -506,6 +504,7 @@ export const InterventionDashboard: React.FC = () => {
           )}
         </Box>
       )}
-    </Box>
+      </Box>
+    </>
   );
 };

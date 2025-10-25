@@ -1,6 +1,21 @@
 import axios from 'axios';
+import { useAuthStore } from '../stores/authStore';
 
-const API_URL = 'http://localhost:3001/api';
+const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3001';
+
+// Create axios instance with default config
+const api = axios.create({
+  baseURL: API_BASE_URL,
+});
+
+// Add auth interceptor
+api.interceptors.request.use((config) => {
+  const authStore = useAuthStore.getState();
+  if (authStore.token) {
+    config.headers.Authorization = `Bearer ${authStore.token}`;
+  }
+  return config;
+});
 
 export interface Notification {
   Id: string;
@@ -38,9 +53,7 @@ export const notificationApi = {
    * Get all notifications for the authenticated user
    */
   getNotifications: async (includeRead: boolean = true): Promise<Notification[]> => {
-    const token = localStorage.getItem('token');
-    const response = await axios.get(`${API_URL}/notifications`, {
-      headers: { Authorization: `Bearer ${token}` },
+    const response = await api.get('/api/notifications', {
       params: { includeRead }
     });
     return response.data.notifications;
@@ -50,10 +63,7 @@ export const notificationApi = {
    * Get unread notification count
    */
   getUnreadCount: async (): Promise<number> => {
-    const token = localStorage.getItem('token');
-    const response = await axios.get(`${API_URL}/notifications/unread-count`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
+    const response = await api.get('/api/notifications/unread-count');
     return response.data.count;
   },
 
@@ -61,24 +71,14 @@ export const notificationApi = {
    * Mark a notification as read
    */
   markAsRead: async (notificationId: string): Promise<void> => {
-    const token = localStorage.getItem('token');
-    await axios.patch(
-      `${API_URL}/notifications/${notificationId}/read`,
-      {},
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
+    await api.patch(`/api/notifications/${notificationId}/read`);
   },
 
   /**
    * Mark all notifications as read
    */
   markAllAsRead: async (): Promise<number> => {
-    const token = localStorage.getItem('token');
-    const response = await axios.patch(
-      `${API_URL}/notifications/read-all`,
-      {},
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
+    const response = await api.patch('/api/notifications/read-all');
     return response.data.count;
   },
 
@@ -86,20 +86,14 @@ export const notificationApi = {
    * Delete a notification
    */
   deleteNotification: async (notificationId: string): Promise<void> => {
-    const token = localStorage.getItem('token');
-    await axios.delete(`${API_URL}/notifications/${notificationId}`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
+    await api.delete(`/api/notifications/${notificationId}`);
   },
 
   /**
    * Get notification preferences
    */
   getPreferences: async (): Promise<NotificationPreferences> => {
-    const token = localStorage.getItem('token');
-    const response = await axios.get(`${API_URL}/notifications/preferences`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
+    const response = await api.get('/api/notifications/preferences');
     return response.data.preferences;
   },
 
@@ -107,11 +101,6 @@ export const notificationApi = {
    * Update notification preferences
    */
   updatePreferences: async (preferences: Partial<NotificationPreferences>): Promise<void> => {
-    const token = localStorage.getItem('token');
-    await axios.patch(
-      `${API_URL}/notifications/preferences`,
-      preferences,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
+    await api.patch('/api/notifications/preferences', preferences);
   }
 };

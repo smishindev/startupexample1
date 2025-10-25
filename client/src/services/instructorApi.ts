@@ -186,6 +186,39 @@ export const instructorApi = {
       console.error('Failed to fetch course analytics:', error);
       throw error;
     }
+  },
+
+  // Get at-risk students for intervention dashboard
+  getAtRiskStudents: async () => {
+    try {
+      const response = await api.get('/instructor/at-risk-students');
+      return response.data.students || [];
+    } catch (error) {
+      console.error('Failed to fetch at-risk students:', error);
+      throw error;
+    }
+  },
+
+  // Get low progress students
+  getLowProgressStudents: async () => {
+    try {
+      const response = await api.get('/instructor/low-progress-students');
+      return response.data.students || [];
+    } catch (error) {
+      console.error('Failed to fetch low progress students:', error);
+      throw error;
+    }
+  },
+
+  // Get pending assessments
+  getPendingAssessments: async () => {
+    try {
+      const response = await api.get('/instructor/pending-assessments');
+      return response.data.assessments || [];
+    } catch (error) {
+      console.error('Failed to fetch pending assessments:', error);
+      throw error;
+    }
   }
 };
 

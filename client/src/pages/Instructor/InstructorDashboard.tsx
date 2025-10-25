@@ -33,7 +33,8 @@ import {
   Analytics as AnalyticsIcon,
   Settings as SettingsIcon,
   Publish as PublishIcon,
-  Drafts as DraftIcon
+  Drafts as DraftIcon,
+  NotificationImportant as InterventionIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { Header } from '../../components/Navigation/Header';
@@ -312,6 +313,14 @@ export const InstructorDashboard: React.FC = () => {
             onClick={() => setCreateDialogOpen(true)}
           >
             Create New Course
+          </Button>
+          <Button 
+            variant="outlined" 
+            startIcon={<InterventionIcon />}
+            onClick={() => navigate('/instructor/interventions')}
+            color="error"
+          >
+            Intervention Dashboard
           </Button>
           <Button 
             variant="outlined" 

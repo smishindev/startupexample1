@@ -392,41 +392,54 @@ router.get('/pending-assessments', authenticateToken, authorize(['instructor', '
     const userId = req.user!.userId;
     
     const result = await db.query(`
-      SELECT DISTINCT
-        e.UserId,
-        u.FirstName,
-        u.LastName,
-        u.Email,
-        a.Id as AssessmentId,
-        a.Title as AssessmentTitle,
-        c.Title as CourseName,
-        a.MaxAttempts,
-        COALESCE(
-          (SELECT COUNT(*) FROM AssessmentSubmissions 
-           WHERE AssessmentId = a.Id AND UserId = e.UserId AND Status = 'completed'), 
-          0
-        ) as AttemptsUsed,
-        a.MaxAttempts - COALESCE(
-          (SELECT COUNT(*) FROM AssessmentSubmissions 
-           WHERE AssessmentId = a.Id AND UserId = e.UserId AND Status = 'completed'), 
-          0
-        ) as AttemptsLeft
-      FROM Enrollments e
-      JOIN Courses c ON e.CourseId = c.Id
-      JOIN Lessons l ON l.CourseId = c.Id
-      JOIN Assessments a ON a.LessonId = l.Id
-      JOIN Users u ON e.UserId = u.Id
-      WHERE c.InstructorId = @instructorId
-        AND e.Status = 'active'
-        AND NOT EXISTS (
-          SELECT 1 FROM AssessmentSubmissions asub
-          WHERE asub.AssessmentId = a.Id 
-            AND asub.UserId = e.UserId 
-            AND asub.Status = 'completed'
-            AND asub.Score >= a.PassingScore
-        )
-      HAVING AttemptsLeft > 0 AND AttemptsLeft <= 2
-      ORDER BY AttemptsLeft ASC, u.LastName, u.FirstName
+      SELECT 
+        UserId,
+        FirstName,
+        LastName,
+        Email,
+        AssessmentId,
+        AssessmentTitle,
+        CourseName,
+        MaxAttempts,
+        AttemptsUsed,
+        AttemptsLeft
+      FROM (
+        SELECT DISTINCT
+          e.UserId,
+          u.FirstName,
+          u.LastName,
+          u.Email,
+          a.Id as AssessmentId,
+          a.Title as AssessmentTitle,
+          c.Title as CourseName,
+          a.MaxAttempts,
+          COALESCE(
+            (SELECT COUNT(*) FROM AssessmentSubmissions 
+             WHERE AssessmentId = a.Id AND UserId = e.UserId AND Status = 'completed'), 
+            0
+          ) as AttemptsUsed,
+          a.MaxAttempts - COALESCE(
+            (SELECT COUNT(*) FROM AssessmentSubmissions 
+             WHERE AssessmentId = a.Id AND UserId = e.UserId AND Status = 'completed'), 
+            0
+          ) as AttemptsLeft
+        FROM Enrollments e
+        JOIN Courses c ON e.CourseId = c.Id
+        JOIN Lessons l ON l.CourseId = c.Id
+        JOIN Assessments a ON a.LessonId = l.Id
+        JOIN Users u ON e.UserId = u.Id
+        WHERE c.InstructorId = @instructorId
+          AND e.Status = 'active'
+          AND NOT EXISTS (
+            SELECT 1 FROM AssessmentSubmissions asub
+            WHERE asub.AssessmentId = a.Id 
+              AND asub.UserId = e.UserId 
+              AND asub.Status = 'completed'
+              AND asub.Score >= a.PassingScore
+          )
+      ) AS PendingAssessments
+      WHERE AttemptsLeft > 0 AND AttemptsLeft <= 2
+      ORDER BY AttemptsLeft ASC, LastName, FirstName
     `, { instructorId: userId });
 
     res.json({ assessments: result });

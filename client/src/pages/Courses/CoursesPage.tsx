@@ -366,6 +366,16 @@ export const CoursesPage: React.FC = () => {
     try {
       const enrollments = await enrollmentApi.getMyEnrollments();
       
+      console.log('Raw enrollments from API:', enrollments);
+      console.log('Number of enrollments:', enrollments.length);
+      
+      // Check for duplicate courseIds
+      const courseIds = enrollments.map((e: any) => e.courseId);
+      const duplicates = courseIds.filter((id: string, index: number) => courseIds.indexOf(id) !== index);
+      if (duplicates.length > 0) {
+        console.warn('Duplicate courseIds detected in enrollments:', duplicates);
+      }
+      
       // Convert enrollment data to course format
       const enrolledCoursesData: Course[] = enrollments.map(enrollment => ({
         id: enrollment.courseId,
@@ -390,7 +400,39 @@ export const CoursesPage: React.FC = () => {
         lastAccessedAt: enrollment.LastAccessedAt,
       }));
       
-      setEnrolledCourses(enrolledCoursesData);
+      // Remove duplicates based on course ID (keep the most recent enrollment)
+      const uniqueCoursesMap = new Map<string, Course>();
+      enrolledCoursesData.forEach(course => {
+        if (!uniqueCoursesMap.has(course.id)) {
+          uniqueCoursesMap.set(course.id, course);
+        }
+      });
+      const uniqueEnrolledCourses = Array.from(uniqueCoursesMap.values());
+      
+      console.log('Converted enrolledCoursesData:', enrolledCoursesData);
+      console.log('Unique enrolled courses:', uniqueEnrolledCourses);
+      
+      // Fetch bookmark statuses for enrolled courses (only if user is logged in)
+      if (isAuthenticated && uniqueEnrolledCourses.length > 0) {
+        try {
+          const courseIds = uniqueEnrolledCourses.map(course => course.id);
+          const bookmarkStatuses = await BookmarkApi.getBookmarkStatuses(courseIds);
+          
+          // Update courses with bookmark status
+          const coursesWithBookmarks = uniqueEnrolledCourses.map(course => ({
+            ...course,
+            isBookmarked: bookmarkStatuses[course.id] || false
+          }));
+          
+          setEnrolledCourses(coursesWithBookmarks);
+        } catch (error) {
+          console.warn('Failed to load bookmark statuses for enrolled courses:', error);
+          // Set enrolled courses without bookmark data
+          setEnrolledCourses(uniqueEnrolledCourses);
+        }
+      } else {
+        setEnrolledCourses(uniqueEnrolledCourses);
+      }
     } catch (err) {
       console.error('Error loading enrolled courses:', err);
       setEnrolledCourses([]);

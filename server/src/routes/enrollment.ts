@@ -45,7 +45,7 @@ router.get('/my-enrollments', authenticateToken, async (req: AuthRequest, res: R
     } else {
       // For students, return their enrollments
       const enrollments = await db.query(`
-        SELECT 
+        SELECT DISTINCT
           e.Id as enrollmentId,
           e.EnrolledAt,
           e.Status,
@@ -59,13 +59,17 @@ router.get('/my-enrollments', authenticateToken, async (req: AuthRequest, res: R
           c.Price,
           u.FirstName as instructorFirstName,
           u.LastName as instructorLastName,
-          up.OverallProgress,
-          up.TimeSpent,
+          COALESCE(up.OverallProgress, 0) as OverallProgress,
+          COALESCE(up.TimeSpent, 0) as TimeSpent,
           up.LastAccessedAt
         FROM dbo.Enrollments e
         INNER JOIN dbo.Courses c ON e.CourseId = c.Id
         INNER JOIN dbo.Users u ON c.InstructorId = u.Id
-        LEFT JOIN dbo.UserProgress up ON e.UserId = up.UserId AND e.CourseId = up.CourseId
+        LEFT JOIN (
+          SELECT UserId, CourseId, OverallProgress, TimeSpent, LastAccessedAt,
+                 ROW_NUMBER() OVER (PARTITION BY UserId, CourseId ORDER BY LastAccessedAt DESC) as rn
+          FROM dbo.UserProgress
+        ) up ON e.UserId = up.UserId AND e.CourseId = up.CourseId AND up.rn = 1
         WHERE e.UserId = @userId
         ORDER BY e.EnrolledAt DESC
       `, { userId });

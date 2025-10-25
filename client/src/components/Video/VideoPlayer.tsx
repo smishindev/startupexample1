@@ -18,29 +18,37 @@ import {
   Settings,
   Forward10,
   Replay10,
+  PictureInPicture,
 } from '@mui/icons-material';
+import { updateVideoProgress, trackVideoEvent } from '../../services/videoProgressApi';
 
 interface VideoPlayerProps {
   src: string;
   title: string;
+  videoLessonId?: string; // For progress tracking
   onProgress?: (currentTime: number, duration: number, percentWatched: number) => void;
   onComplete?: () => void;
   onTimeUpdate?: (currentTime: number) => void;
   autoPlay?: boolean;
   initialTime?: number; // Start time in seconds
+  enableProgressTracking?: boolean; // Auto-save progress every 5 seconds
 }
 
 export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   src,
   title,
+  videoLessonId,
   onProgress,
   onComplete,
   onTimeUpdate,
   autoPlay = false,
   initialTime = 0,
+  enableProgressTracking = true,
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const progressSaveIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const lastSavedPosition = useRef<number>(0);
   
   const [isPlaying, setIsPlaying] = useState(autoPlay);
   const [currentTime, setCurrentTime] = useState(0);
@@ -72,11 +80,24 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       const progress = (video.currentTime / video.duration) * 100;
       onProgress?.(video.currentTime, video.duration, progress);
       onTimeUpdate?.(video.currentTime);
+
+      // Auto-complete at 90%
+      if (video.currentTime / video.duration >= 0.9 && !video.ended) {
+        handleComplete();
+      }
     };
 
     const handleEnded = () => {
       setIsPlaying(false);
+      handleComplete();
+    };
+
+    const handleComplete = () => {
       onComplete?.();
+      if (videoLessonId && enableProgressTracking) {
+        updateVideoProgress(videoLessonId, Math.floor(video.currentTime), video.duration)
+          .catch(err => console.error('Failed to save completion:', err));
+      }
     };
 
     video.addEventListener('loadedmetadata', handleLoadedMetadata);
@@ -88,7 +109,33 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       video.removeEventListener('timeupdate', handleTimeUpdate);
       video.removeEventListener('ended', handleEnded);
     };
-  }, [onProgress, onComplete, onTimeUpdate, initialTime]);
+  }, [onProgress, onComplete, onTimeUpdate, initialTime, videoLessonId, enableProgressTracking]);
+
+  // Auto-save progress every 5 seconds
+  useEffect(() => {
+    if (!videoLessonId || !enableProgressTracking) return;
+
+    progressSaveIntervalRef.current = setInterval(() => {
+      const video = videoRef.current;
+      if (video && isPlaying && !video.ended) {
+        const currentPos = Math.floor(video.currentTime);
+        // Only save if position changed by at least 1 second
+        if (Math.abs(currentPos - lastSavedPosition.current) >= 1) {
+          updateVideoProgress(videoLessonId, currentPos, video.duration)
+            .then(() => {
+              lastSavedPosition.current = currentPos;
+            })
+            .catch(err => console.error('Failed to auto-save progress:', err));
+        }
+      }
+    }, 5000);
+
+    return () => {
+      if (progressSaveIntervalRef.current) {
+        clearInterval(progressSaveIntervalRef.current);
+      }
+    };
+  }, [videoLessonId, enableProgressTracking, isPlaying]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -117,6 +164,17 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
   const togglePlay = () => {
     setIsPlaying(!isPlaying);
+    
+    // Track play/pause events
+    if (videoLessonId) {
+      const video = videoRef.current;
+      if (video) {
+        trackVideoEvent(videoLessonId, {
+          eventType: isPlaying ? 'pause' : 'play',
+          timestamp: video.currentTime,
+        }).catch(err => console.error('Failed to track event:', err));
+      }
+    }
   };
 
   const handleSeek = (_event: Event, newValue: number | number[]) => {
@@ -126,6 +184,14 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     const time = (newValue / 100) * duration;
     video.currentTime = time;
     setCurrentTime(time);
+
+    // Track seek event
+    if (videoLessonId) {
+      trackVideoEvent(videoLessonId, {
+        eventType: 'seek',
+        timestamp: time,
+      }).catch(err => console.error('Failed to track seek:', err));
+    }
   };
 
   const handleVolumeChange = (_event: Event, newValue: number | number[]) => {
@@ -180,6 +246,21 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
   const handleSettingsClose = () => {
     setSettingsAnchorEl(null);
+  };
+
+  const togglePictureInPicture = async () => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    try {
+      if (document.pictureInPictureElement) {
+        await document.exitPictureInPicture();
+      } else {
+        await video.requestPictureInPicture();
+      }
+    } catch (error) {
+      console.error('Picture-in-Picture error:', error);
+    }
   };
 
   const formatTime = (time: number) => {
@@ -348,6 +429,12 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
             </IconButton>
           </Tooltip>
 
+          <Tooltip title="Picture in Picture">
+            <IconButton size="small" onClick={togglePictureInPicture} sx={{ color: 'white' }}>
+              <PictureInPicture />
+            </IconButton>
+          </Tooltip>
+
           <Tooltip title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}>
             <IconButton size="small" onClick={toggleFullscreen} sx={{ color: 'white' }}>
               {isFullscreen ? <FullscreenExit /> : <Fullscreen />}
@@ -375,6 +462,15 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
             onClick={() => {
               setPlaybackRate(rate);
               handleSettingsClose();
+              
+              // Track speed change
+              if (videoLessonId && videoRef.current) {
+                trackVideoEvent(videoLessonId, {
+                  eventType: 'speed_change',
+                  timestamp: videoRef.current.currentTime,
+                  data: { speed: rate },
+                }).catch(err => console.error('Failed to track speed change:', err));
+              }
             }}
           >
             {rate}x

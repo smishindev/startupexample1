@@ -30,6 +30,8 @@ import bookmarkRoutes from './routes/bookmarks';
 import assessmentRoutes from './routes/assessments';
 import assessmentAnalyticsRoutes from './routes/assessment-analytics';
 import notificationRoutes from './routes/notifications';
+import { videoLessonRoutes } from './routes/videoLessons';
+import { videoProgressRoutes } from './routes/videoProgress';
 const studentProgressRoutes = require('./routes/student-progress');
 import { DatabaseService } from './services/DatabaseService';
 import { setupSocketHandlers } from './sockets';
@@ -135,6 +137,8 @@ app.use('/api/assessments', assessmentRoutes);
 app.use('/api/assessment-analytics', assessmentAnalyticsRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/student-progress', studentProgressRoutes);
+app.use('/api/video-lessons', videoLessonRoutes);
+app.use('/api/video-progress', videoProgressRoutes);
 
 // Serve static files
 app.use('/uploads', express.static('uploads'));

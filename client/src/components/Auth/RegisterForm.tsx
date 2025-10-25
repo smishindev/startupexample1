@@ -33,7 +33,12 @@ const learningStyles = [
   { value: 'visual', label: 'Visual (I learn best with images and diagrams)' },
   { value: 'auditory', label: 'Auditory (I learn best by listening)' },
   { value: 'kinesthetic', label: 'Kinesthetic (I learn best through hands-on activities)' },
-  { value: 'reading', label: 'Reading/Writing (I learn best through text)' },
+  { value: 'reading_writing', label: 'Reading/Writing (I learn best through text)' },
+];
+
+const userRoles = [
+  { value: 'student', label: 'Student - I want to learn' },
+  { value: 'instructor', label: 'Instructor - I want to teach' },
 ];
 
 const steps = ['Basic Information', 'Account Security', 'Learning Preferences'];
@@ -53,6 +58,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
     firstName: '',
     lastName: '',
     password: '',
+    role: 'student', // Default to student
     learningStyle: '',
   });
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -227,6 +233,26 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
                 ),
               }}
             />
+
+            <TextField
+              fullWidth
+              select
+              id="role"
+              label="I am a..."
+              value={formData.role || 'student'}
+              onChange={handleChange('role')}
+              error={!!validationErrors.role}
+              helperText={validationErrors.role || 'Choose your role'}
+              margin="normal"
+              required
+              disabled={isLoading}
+            >
+              {userRoles.map((option) => (
+                <MenuItem key={option.value} value={option.value}>
+                  {option.label}
+                </MenuItem>
+              ))}
+            </TextField>
 
             <TextField
               fullWidth

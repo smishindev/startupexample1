@@ -46,6 +46,8 @@ CREATE TABLE dbo.Users (
     PreferencesJson NVARCHAR(MAX) NULL, -- JSON string for user preferences
     IsActive BIT NOT NULL DEFAULT 1,
     EmailVerified BIT NOT NULL DEFAULT 0,
+    PasswordResetToken NVARCHAR(10) NULL, -- For password reset functionality
+    PasswordResetExpiry DATETIME2 NULL, -- Expiry time for reset token
     CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
     UpdatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
     LastLoginAt DATETIME2 NULL

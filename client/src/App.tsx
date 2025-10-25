@@ -5,7 +5,10 @@ import { Box } from '@mui/material';
 // Auth Components
 import { LoginForm } from './components/Auth/LoginForm';
 import { RegisterForm } from './components/Auth/RegisterForm';
+import { ForgotPasswordForm } from './components/Auth/ForgotPasswordForm';
+import { ResetPasswordForm } from './components/Auth/ResetPasswordForm';
 import { ProtectedRoute } from './components/Auth/ProtectedRoute';
+import { TokenExpirationWarning } from './components/Auth/TokenExpirationWarning';
 
 // Main Pages
 import { DashboardLayout } from './components/Layout/DashboardLayout';
@@ -69,6 +72,9 @@ function App() {
 
   return (
     <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
+      {/* Token expiration warning */}
+      {isAuthenticated && <TokenExpirationWarning />}
+      
       <Routes>
         {/* Public Routes */}
         <Route path="/" element={<LandingPage />} />
@@ -84,6 +90,8 @@ function App() {
             isAuthenticated ? <Navigate to="/dashboard" replace /> : <RegisterForm />
           } 
         />
+        <Route path="/forgot-password" element={<ForgotPasswordForm />} />
+        <Route path="/reset-password" element={<ResetPasswordForm />} />
 
         {/* Protected Routes */}
         <Route

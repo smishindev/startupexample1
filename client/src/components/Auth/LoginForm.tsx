@@ -12,6 +12,8 @@ import {
   IconButton,
   CircularProgress,
   Divider,
+  FormControlLabel,
+  Checkbox,
 } from '@mui/material';
 import { Visibility, VisibilityOff, Email, Lock, Login as LoginIcon } from '@mui/icons-material';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
@@ -28,6 +30,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
+    rememberMe: false,
   });
   const [showPassword, setShowPassword] = useState(false);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
@@ -74,7 +77,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
     
     if (!validateForm()) return;
     
-    const success = await login(formData.email.trim(), formData.password);
+    const success = await login(formData.email.trim(), formData.password, formData.rememberMe);
     
     if (success) {
       onSuccess?.();
@@ -175,6 +178,23 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
                   </InputAdornment>
                 ),
               }}
+            />
+
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={formData.rememberMe}
+                  onChange={(e) => setFormData(prev => ({ ...prev, rememberMe: e.target.checked }))}
+                  disabled={isLoading}
+                  color="primary"
+                />
+              }
+              label={
+                <Typography variant="body2" color="text.secondary">
+                  Keep me signed in for 30 days
+                </Typography>
+              }
+              sx={{ mt: 1 }}
             />
 
             <Button

@@ -37,20 +37,26 @@ const validatePassword = (password: string): { valid: boolean; message?: string 
 };
 
 // Generate JWT token
-const generateToken = (userId: string, email: string, role: string): string => {
-  const secret = process.env.JWT_SECRET || 'fallback-secret-key';
+const generateToken = (userId: string, email: string, role: string, rememberMe: boolean = false): string => {
+  const secret = process.env.JWT_SECRET;
+  
+  if (!secret) {
+    throw new Error('JWT_SECRET environment variable is not configured');
+  }
+  
+  const expiresIn = rememberMe ? '30d' : '24h'; // 30 days if remember me, otherwise 24 hours
   
   return jwt.sign(
     { userId, email, role }, 
     secret, 
-    { expiresIn: '24h' }
+    { expiresIn }
   );
 };
 
 // POST /api/auth/register
 router.post('/register', async (req, res, next) => {
   try {
-    const { email, username, firstName, lastName, password, learningStyle } = req.body;
+    const { email, username, firstName, lastName, password, role, learningStyle } = req.body;
 
     // Basic validation
     if (!email || !username || !firstName || !lastName || !password) {
@@ -117,18 +123,22 @@ router.post('/register', async (req, res, next) => {
     const saltRounds = 12;
     const passwordHash = await bcrypt.hash(password, saltRounds);
 
+    // Validate and set role (default to 'student')
+    const userRole = role && ['student', 'instructor', 'admin'].includes(role) ? role : 'student';
+
     // Create user
     const result = await db.execute(
       `INSERT INTO dbo.Users (Email, Username, FirstName, LastName, PasswordHash, LearningStyle, Role, IsActive, EmailVerified, CreatedAt, UpdatedAt)
        OUTPUT INSERTED.Id, INSERTED.Email, INSERTED.Username, INSERTED.FirstName, INSERTED.LastName, INSERTED.Role, INSERTED.LearningStyle, INSERTED.CreatedAt
-       VALUES (@email, @username, @firstName, @lastName, @passwordHash, @learningStyle, 'student', 1, 0, GETUTCDATE(), GETUTCDATE())`,
+       VALUES (@email, @username, @firstName, @lastName, @passwordHash, @learningStyle, @role, 1, 0, GETUTCDATE(), GETUTCDATE())`,
       { 
         email: email.toLowerCase(), 
         username, 
         firstName, 
         lastName, 
         passwordHash,
-        learningStyle: learningStyle || null
+        learningStyle: learningStyle || null,
+        role: userRole
       }
     );
 
@@ -137,7 +147,10 @@ router.post('/register', async (req, res, next) => {
     // Generate JWT token
     const token = generateToken(newUser.Id, newUser.Email, newUser.Role);
 
-    logger.info(`User registered successfully: ${email}`);
+    logger.info(`User registered successfully: ${email} (Email verified: false)`);
+    
+    // TODO: Send verification email in production
+    console.log(`[EMAIL VERIFICATION] User ${email} needs to verify their email`);
 
     res.status(201).json({
       success: true,
@@ -150,10 +163,12 @@ router.post('/register', async (req, res, next) => {
           lastName: newUser.LastName,
           role: newUser.Role,
           learningStyle: newUser.LearningStyle,
-          createdAt: newUser.CreatedAt
+          createdAt: newUser.CreatedAt,
+          emailVerified: false // Indicate email is not verified
         },
         token
-      }
+      },
+      message: 'Account created successfully. Please check your email to verify your account.'
     });
   } catch (error) {
     logger.error('Registration error:', error);
@@ -164,7 +179,7 @@ router.post('/register', async (req, res, next) => {
 // POST /api/auth/login
 router.post('/login', async (req, res, next) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, rememberMe } = req.body;
 
     // Basic validation
     if (!email || !password) {
@@ -226,10 +241,10 @@ router.post('/login', async (req, res, next) => {
       { userId: user.Id }
     );
 
-    // Generate JWT token
-    const token = generateToken(user.Id, user.Email, user.Role);
+    // Generate JWT token (with remember me option)
+    const token = generateToken(user.Id, user.Email, user.Role, !!rememberMe);
 
-    logger.info(`User logged in successfully: ${email}`);
+    logger.info(`User logged in successfully: ${email} (Remember Me: ${!!rememberMe})`);
 
     res.json({
       success: true,
@@ -244,7 +259,8 @@ router.post('/login', async (req, res, next) => {
           learningStyle: user.LearningStyle,
           emailVerified: user.EmailVerified
         },
-        token
+        token,
+        expiresIn: rememberMe ? '30d' : '24h'
       }
     });
   } catch (error) {
@@ -270,7 +286,13 @@ router.post('/refresh', async (req, res, next) => {
 
     // Verify the current token (even if expired, we can refresh)
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret-key', {
+      const secret = process.env.JWT_SECRET;
+      
+      if (!secret) {
+        throw new Error('JWT_SECRET environment variable is not configured');
+      }
+      
+      const decoded = jwt.verify(token, secret, {
         ignoreExpiration: true
       }) as TokenPayload;
 
@@ -402,18 +424,18 @@ router.get('/verify', authenticateToken, async (req: AuthRequest, res) => {
     const result = await db.query(
       `SELECT 
         Id, Email, Username, FirstName, LastName, Role, 
-        LearningStyle, Avatar, Preferences, EmailVerified, 
+        LearningStyle, Avatar, PreferencesJson, EmailVerified, 
         CreatedAt, LastLoginAt
       FROM dbo.Users 
-      WHERE Id = @userId`,
+      WHERE Id = @userId AND IsActive = 1`,
       { userId }
     );
 
     if (!result.length) {
-      logger.warn(`Token verification failed: User not found (ID: ${userId})`);
+      logger.warn(`Token verification failed: User not found or inactive (ID: ${userId})`);
       return res.status(401).json({
         success: false,
-        error: { message: 'User not found' }
+        error: { message: 'User not found or account inactive' }
       });
     }
 
@@ -421,19 +443,21 @@ router.get('/verify', authenticateToken, async (req: AuthRequest, res) => {
 
     res.json({
       success: true,
-      user: {
-        id: user.Id,
-        email: user.Email,
-        username: user.Username,
-        firstName: user.FirstName,
-        lastName: user.LastName,
-        role: user.Role,
-        learningStyle: user.LearningStyle,
-        avatar: user.Avatar,
-        preferences: user.Preferences ? JSON.parse(user.Preferences) : null,
-        emailVerified: user.EmailVerified,
-        createdAt: user.CreatedAt,
-        lastLoginAt: user.LastLoginAt,
+      data: {
+        user: {
+          id: user.Id,
+          email: user.Email,
+          username: user.Username,
+          firstName: user.FirstName,
+          lastName: user.LastName,
+          role: user.Role,
+          learningStyle: user.LearningStyle,
+          avatar: user.Avatar,
+          preferences: user.PreferencesJson ? JSON.parse(user.PreferencesJson) : null,
+          emailVerified: user.EmailVerified,
+          createdAt: user.CreatedAt,
+          lastLoginAt: user.LastLoginAt,
+        }
       }
     });
   } catch (error) {
@@ -442,6 +466,241 @@ router.get('/verify', authenticateToken, async (req: AuthRequest, res) => {
       success: false,
       error: { message: 'Token verification failed' }
     });
+  }
+});
+
+// POST /api/auth/forgot-password - Request password reset
+router.post('/forgot-password', async (req, res, next) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Email address is required'
+        }
+      });
+    }
+
+    if (!validateEmail(email)) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'INVALID_EMAIL',
+          message: 'Please provide a valid email address'
+        }
+      });
+    }
+
+    // Check if user exists
+    const users = await db.query(
+      'SELECT Id, Email, FirstName FROM dbo.Users WHERE Email = @email AND IsActive = 1',
+      { email: email.toLowerCase() }
+    );
+
+    // Always return success to prevent email enumeration
+    if (users.length === 0) {
+      logger.info(`Password reset requested for non-existent email: ${email}`);
+      return res.json({
+        success: true,
+        message: 'If an account exists with this email, you will receive password reset instructions.'
+      });
+    }
+
+    const user = users[0];
+
+    // Generate reset token (6-digit code for simplicity, valid for 1 hour)
+    const resetToken = Math.floor(100000 + Math.random() * 900000).toString();
+    const resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+    // Store reset token in database
+    await db.execute(
+      `UPDATE dbo.Users 
+       SET PasswordResetToken = @token, 
+           PasswordResetExpiry = @expiry,
+           UpdatedAt = GETUTCDATE()
+       WHERE Id = @userId`,
+      { 
+        token: resetToken,
+        expiry: resetTokenExpiry,
+        userId: user.Id 
+      }
+    );
+
+    logger.info(`Password reset requested for: ${email}`);
+    
+    // TODO: Send email with reset token
+    // For now, log it (in production, use email service)
+    console.log(`[PASSWORD RESET] Token for ${email}: ${resetToken}`);
+
+    res.json({
+      success: true,
+      message: 'If an account exists with this email, you will receive password reset instructions.',
+      // REMOVE IN PRODUCTION - only for development
+      _devToken: process.env.NODE_ENV === 'development' ? resetToken : undefined
+    });
+  } catch (error) {
+    logger.error('Forgot password error:', error);
+    next(error);
+  }
+});
+
+// POST /api/auth/verify-reset-token - Verify reset token is valid
+router.post('/verify-reset-token', async (req, res, next) => {
+  try {
+    const { email, token } = req.body;
+
+    if (!email || !token) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Email and reset code are required'
+        }
+      });
+    }
+
+    const users = await db.query(
+      `SELECT Id, PasswordResetToken, PasswordResetExpiry 
+       FROM dbo.Users 
+       WHERE Email = @email AND IsActive = 1`,
+      { email: email.toLowerCase() }
+    );
+
+    if (users.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'INVALID_TOKEN',
+          message: 'Invalid or expired reset code'
+        }
+      });
+    }
+
+    const user = users[0];
+
+    if (!user.PasswordResetToken || user.PasswordResetToken !== token) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'INVALID_TOKEN',
+          message: 'Invalid or expired reset code'
+        }
+      });
+    }
+
+    if (!user.PasswordResetExpiry || new Date(user.PasswordResetExpiry) < new Date()) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'TOKEN_EXPIRED',
+          message: 'Reset code has expired. Please request a new one.'
+        }
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Reset code verified successfully'
+    });
+  } catch (error) {
+    logger.error('Verify reset token error:', error);
+    next(error);
+  }
+});
+
+// POST /api/auth/reset-password - Reset password with token
+router.post('/reset-password', async (req, res, next) => {
+  try {
+    const { email, token, newPassword } = req.body;
+
+    if (!email || !token || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Email, reset code, and new password are required'
+        }
+      });
+    }
+
+    // Validate new password
+    const passwordValidation = validatePassword(newPassword);
+    if (!passwordValidation.valid) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'WEAK_PASSWORD',
+          message: passwordValidation.message
+        }
+      });
+    }
+
+    const users = await db.query(
+      `SELECT Id, PasswordResetToken, PasswordResetExpiry 
+       FROM dbo.Users 
+       WHERE Email = @email AND IsActive = 1`,
+      { email: email.toLowerCase() }
+    );
+
+    if (users.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'INVALID_TOKEN',
+          message: 'Invalid or expired reset code'
+        }
+      });
+    }
+
+    const user = users[0];
+
+    if (!user.PasswordResetToken || user.PasswordResetToken !== token) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'INVALID_TOKEN',
+          message: 'Invalid or expired reset code'
+        }
+      });
+    }
+
+    if (!user.PasswordResetExpiry || new Date(user.PasswordResetExpiry) < new Date()) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'TOKEN_EXPIRED',
+          message: 'Reset code has expired. Please request a new one.'
+        }
+      });
+    }
+
+    // Hash new password
+    const saltRounds = 12;
+    const passwordHash = await bcrypt.hash(newPassword, saltRounds);
+
+    // Update password and clear reset token
+    await db.execute(
+      `UPDATE dbo.Users 
+       SET PasswordHash = @passwordHash,
+           PasswordResetToken = NULL,
+           PasswordResetExpiry = NULL,
+           UpdatedAt = GETUTCDATE()
+       WHERE Id = @userId`,
+      { passwordHash, userId: user.Id }
+    );
+
+    logger.info(`Password reset successful for: ${email}`);
+
+    res.json({
+      success: true,
+      message: 'Password has been reset successfully. You can now log in with your new password.'
+    });
+  } catch (error) {
+    logger.error('Reset password error:', error);
+    next(error);
   }
 });
 

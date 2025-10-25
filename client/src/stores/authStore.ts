@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { isTokenExpired } from '../utils/jwtUtils';
+import { getFriendlyErrorMessage } from '../utils/errorMessages';
 
 export interface User {
   id: string;
@@ -26,7 +27,7 @@ export interface AuthState {
   error: string | null;
 
   // Actions
-  login: (email: string, password: string) => Promise<boolean>;
+  login: (email: string, password: string, rememberMe?: boolean) => Promise<boolean>;
   register: (userData: RegisterData) => Promise<boolean>;
   logout: () => void;
   refreshToken: () => Promise<boolean>;
@@ -45,6 +46,7 @@ export interface RegisterData {
   firstName: string;
   lastName: string;
   password: string;
+  role?: 'student' | 'instructor';
   learningStyle?: string;
 }
 
@@ -73,7 +75,7 @@ export const useAuthStore = create<AuthState>()(
       error: null,
 
       // Actions
-      login: async (email: string, password: string): Promise<boolean> => {
+      login: async (email: string, password: string, rememberMe: boolean = false): Promise<boolean> => {
         set({ isLoading: true, error: null });
         
         try {
@@ -82,7 +84,7 @@ export const useAuthStore = create<AuthState>()(
             headers: {
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ email, password }),
+            body: JSON.stringify({ email, password, rememberMe }),
           });
 
           const data: LoginResponse = await response.json();
@@ -97,16 +99,19 @@ export const useAuthStore = create<AuthState>()(
             });
             return true;
           } else {
+            const friendlyError = getFriendlyErrorMessage(
+              data.error?.code,
+              data.error?.message
+            );
             set({
-              error: data.error?.message || 'Login failed',
+              error: friendlyError,
               isLoading: false,
             });
             return false;
           }
         } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : 'Network error';
           set({
-            error: errorMessage,
+            error: getFriendlyErrorMessage('NETWORK_ERROR'),
             isLoading: false,
           });
           return false;
@@ -137,16 +142,19 @@ export const useAuthStore = create<AuthState>()(
             });
             return true;
           } else {
+            const friendlyError = getFriendlyErrorMessage(
+              data.error?.code,
+              data.error?.message
+            );
             set({
-              error: data.error?.message || 'Registration failed',
+              error: friendlyError,
               isLoading: false,
             });
             return false;
           }
         } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : 'Network error';
           set({
-            error: errorMessage,
+            error: getFriendlyErrorMessage('NETWORK_ERROR'),
             isLoading: false,
           });
           return false;
@@ -190,9 +198,27 @@ export const useAuthStore = create<AuthState>()(
           const data = await response.json();
 
           if (data.success && data.data?.token) {
-            set({
-              token: data.data.token,
-            });
+            const newToken = data.data.token;
+            set({ token: newToken });
+            
+            // Fetch fresh user data with new token
+            try {
+              const userResponse = await fetch(`${API_BASE_URL}/auth/verify`, {
+                method: 'GET',
+                headers: {
+                  'Authorization': `Bearer ${newToken}`,
+                },
+              });
+              
+              const userData = await userResponse.json();
+              if (userData.success && userData.data?.user) {
+                set({ user: userData.data.user });
+              }
+            } catch (userError) {
+              console.warn('Failed to fetch updated user data after token refresh:', userError);
+              // Continue anyway, token was refreshed successfully
+            }
+            
             return true;
           } else {
             // Refresh failed, logout user
@@ -270,15 +296,15 @@ export const useAuthStore = create<AuthState>()(
 
           if (!response.ok) {
             // Backend says token is invalid (user deleted, etc.)
-            console.warn('Token verification failed with backend, logging out...');
+            console.warn('Your session has ended. Please sign in again.');
             logout();
             return false;
           }
 
-          // Optional: Update user data from verify response
+          // Update user data from verify response
           const data = await response.json();
-          if (data.user) {
-            set({ user: data.user });
+          if (data.success && data.data?.user) {
+            set({ user: data.data.user });
           }
 
           return true;

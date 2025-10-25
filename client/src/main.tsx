@@ -8,6 +8,7 @@ import { Toaster } from 'react-hot-toast'
 import App from './App'
 import { theme } from './theme'
 import './index.css'
+import './utils/axiosConfig' // Initialize axios interceptors
 
 // Create a client
 const queryClient = new QueryClient({

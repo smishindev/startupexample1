@@ -37,11 +37,22 @@ export const authenticateToken = async (
       return;
     }
 
+    const secret = process.env.JWT_SECRET;
+    
+    if (!secret) {
+      logger.error('JWT_SECRET environment variable is not configured');
+      res.status(500).json({
+        success: false,
+        error: {
+          code: 'SERVER_CONFIG_ERROR',
+          message: 'Server authentication configuration error'
+        }
+      });
+      return;
+    }
+
     // Verify JWT token
-    const decoded = jwt.verify(
-      token,
-      process.env.JWT_SECRET || 'fallback-secret-key'
-    ) as TokenPayload;
+    const decoded = jwt.verify(token, secret) as TokenPayload;
 
     console.log(`[AUTH] JWT decoded - userId: ${decoded.userId}, email: ${decoded.email}, role: ${decoded.role}`);
 

@@ -1,6 +1,6 @@
 # Mishin Learn Platform - Project Status & Memory
 
-**Last Updated**: October 24, 2025  
+**Last Updated**: October 25, 2025  
 **Developer**: Sergey Mishin (s.mishin.dev@gmail.com)  
 **AI Assistant Context**: This file serves as project memory for continuity across chat sessions
 
@@ -153,6 +153,27 @@
 35. ✅ **Time Display Corruption Fix**: Enhanced formatTime function with smart corruption detection for values >10,000 seconds
 36. ✅ **Attempt Count Accuracy Fix**: Corrected calculation logic using completedAttempts count for precise remaining attempts display
 
+### Real-time Notifications System Implementation (October 24, 2025):
+40. ✅ **NotificationService Integration**: Complete notification system with database schema, Socket.io real-time delivery, and quiet hours support
+41. ✅ **InterventionService**: Automated triggers for at-risk students, low progress, assessment deadlines, and achievement notifications
+42. ✅ **Notification API**: 8 REST endpoints for notification management (/api/notifications)
+43. ✅ **Intervention Dashboard**: Three-tab dashboard at /instructor/interventions showing at-risk students, low progress, and pending assessments
+44. ✅ **Header Notification Bell**: Real-time notification bell with badge, dropdown menu, and mark-as-read functionality
+45. ✅ **Backend Instructor APIs**: Three new endpoints for intervention data (/at-risk-students, /low-progress-students, /pending-assessments)
+
+### Instructor Dashboard UX Optimization (October 25, 2025):
+46. ✅ **Navigation Hierarchy Improvement**: Removed redundant Quick Action buttons (Course Analytics, Assessment Analytics, Manage Students) from Instructor Dashboard
+47. ✅ **Analytics Hub Consolidation**: Replaced 3 redundant buttons with single "Analytics Hub" button establishing clear navigation hierarchy: Dashboard → Analytics Hub → Specific Tools
+48. ✅ **Quick Actions Streamlining**: Reduced from 6 to 4 focused buttons (Create Course, Analytics Hub, Intervention Dashboard, Settings)
+
+### Courses Page Data Integrity Fixes (October 25, 2025):
+49. ✅ **Duplicate Enrollment Prevention**: Fixed duplicate course display in "My Courses" tab by adding DISTINCT and ROW_NUMBER() to SQL query
+50. ✅ **UserProgress Join Optimization**: Implemented subquery with ROW_NUMBER() PARTITION BY to handle multiple UserProgress records per user-course pair
+51. ✅ **Frontend Deduplication**: Added Map-based deduplication safeguard in loadEnrolledCourses() to ensure unique courses by ID
+52. ✅ **Duplicate Detection Logging**: Added comprehensive console logging to identify and debug duplicate course data
+53. ✅ **Bookmark Status Consistency**: Fixed bookmark status mismatch between tabs by fetching bookmark statuses for enrolled courses
+54. ✅ **React Key Warnings Resolution**: Eliminated "Encountered two children with the same key" warnings through deduplication
+
 ### Current Working State:
 - ✅ **Backend Server**: Running on localhost:3001 with SQL Server connection
 - ✅ **Frontend Client**: Running on localhost:5173 with Vite dev server
@@ -162,7 +183,7 @@
   - "JavaScript Programming Assignment" (80% pass, 3 questions)
 - ✅ **Assessment Taking**: Complete flow from question display to results with correct score calculation
 - ✅ **Property Name Handling**: Systematic approach for database capitalized vs frontend lowercase fields
-- ✅ **Clean Console**: All React warnings eliminated (keys, DOM nesting, Tooltips)
+- ✅ **Clean Console**: All React warnings eliminated (keys, DOM nesting, Tooltips, duplicate keys)
 - ✅ **Student Progress Integration**: Fully functional AI-powered progress system with real database integration
   - Smart Progress Dashboard accessible via main navigation
   - AI recommendations and risk assessment working with real data
@@ -175,6 +196,8 @@
 - ✅ **Progress Calculation**: Verified lesson completion flow with accurate percentage tracking (tested with 3-lesson course)
 - ✅ **AI-Enhanced Assessment Results**: Complete AI-powered feedback system with OpenAI integration providing personalized analysis, study plans, and learning insights
 - ✅ **Adaptive Assessment Enhancement**: Fully integrated AI-enhanced results into adaptive assessments with proper data structure and score calculation accuracy
+- ✅ **Real-time Notifications**: Working notification system with Socket.io, intervention alerts, and instructor dashboard
+- ✅ **Courses Page Data Integrity**: No duplicate courses, consistent bookmark status across all tabs (All Courses, My Courses, Bookmarked)
 
 ---
 
@@ -195,6 +218,7 @@
 - `server/src/routes/tutoring.ts` - **UPDATED**: AI Tutoring API routes with model selection support (October 24, 2025)
 - `server/src/routes/notifications.ts` - **NEW**: Real-time notification API routes (October 24, 2025)
 - `server/src/routes/instructor.ts` - **UPDATED**: Instructor dashboard APIs with intervention endpoints (October 24, 2025)
+- `server/src/routes/enrollment.ts` - **UPDATED**: Enrollment APIs with duplicate prevention and bookmark integration (October 25, 2025)
 - `server/src/routes/courses.ts` - Course management APIs with dynamic filtering and real statistics
 - `server/src/routes/progress.ts` - **UPDATED**: Progress tracking APIs with aligned enrollment verification
 - `server/src/services/DatabaseService.ts` - SQL Server connection
@@ -206,7 +230,8 @@
 
 ### Core Frontend Files
 - `client/src/App.tsx` - **UPDATED**: Main React app with routing (includes analytics, smart progress, and intervention routes)
-- `client/src/pages/Instructor/InstructorDashboard.tsx` - Instructor interface (enhanced with analytics button)
+- `client/src/pages/Instructor/InstructorDashboard.tsx` - **UPDATED**: Instructor interface with optimized Quick Actions (October 25, 2025)
+- `client/src/pages/Courses/CoursesPage.tsx` - **UPDATED**: Courses page with duplicate prevention and bookmark consistency (October 25, 2025)
 - `client/src/pages/Instructor/AnalyticsHubPage.tsx` - **NEW**: Central analytics hub landing page
 - `client/src/pages/Instructor/EnhancedAssessmentAnalyticsPage.tsx` - **NEW**: Enhanced analytics page
 - `client/src/pages/Instructor/InstructorStudentAnalytics.tsx` - **NEW**: Instructor student progress monitoring

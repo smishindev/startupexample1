@@ -34,7 +34,8 @@ import {
   Settings as SettingsIcon,
   Publish as PublishIcon,
   Drafts as DraftIcon,
-  NotificationImportant as InterventionIcon
+  NotificationImportant as InterventionIcon,
+  VideoLibrary as VideoLibraryIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { Header } from '../../components/Navigation/Header';
@@ -321,6 +322,14 @@ export const InstructorDashboard: React.FC = () => {
             color="primary"
           >
             Analytics Hub
+          </Button>
+          <Button 
+            variant="outlined" 
+            startIcon={<VideoLibraryIcon />}
+            onClick={() => navigate('/instructor/video-analytics')}
+            color="secondary"
+          >
+            Video Analytics
           </Button>
           <Button 
             variant="outlined" 

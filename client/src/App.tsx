@@ -30,6 +30,7 @@ import { EnhancedAssessmentAnalyticsPage } from './pages/Instructor/EnhancedAsse
 import { AnalyticsHubPage } from './pages/Instructor/AnalyticsHubPage';
 import { InterventionDashboard } from './pages/Instructor/InterventionDashboard';
 import { InstructorStudentAnalytics } from './pages/Instructor/InstructorStudentAnalytics';
+import { VideoAnalyticsPage } from './pages/Instructor/VideoAnalyticsPage';
 import LandingPage from './pages/Landing/LandingPage';
 import MyLearningPage from './pages/Learning/MyLearningPage';
 
@@ -187,6 +188,15 @@ function App() {
           element={
             <ProtectedRoute requireRole="instructor">
               <InterventionDashboard />
+            </ProtectedRoute>
+          }
+        />
+        
+        <Route
+          path="/instructor/video-analytics"
+          element={
+            <ProtectedRoute requireRole="instructor">
+              <VideoAnalyticsPage />
             </ProtectedRoute>
           }
         />

@@ -100,7 +100,8 @@
 - ✅ **Video Progress Service**: Full API integration (update, get, complete, events, course progress)
 - ✅ **VideoTranscript Component**: Interactive transcript with click-to-seek, search/highlight, auto-scroll, timestamp navigation
 - ✅ **Lesson Page Integration**: Video lessons display in LessonDetailPage with transcript sidebar, progress tracking, and completion
-- ⏳ **Instructor Interface**: Video upload UI, preview, transcript upload - IN PROGRESS
+- ✅ **Instructor Interface**: Video upload, preview, transcript upload (VTT/SRT), visual indicators for video/transcript status
+- ⏳ **Analytics Dashboard**: Engagement metrics visualization - IN PROGRESS
 - ⏳ **Lesson Integration**: Video display in lesson pages with progress indicators - PENDING
 - ⏳ **Instructor Interface**: Video upload UI, preview, transcript upload - PENDING
 - ⏳ **Analytics Dashboard**: Engagement metrics, completion rates, drop-off analysis visualizations - PENDING
@@ -227,6 +228,14 @@
 82. ✅ **Auto-complete Integration**: 90% threshold triggers lesson completion with next lesson navigation prompt
 83. ✅ **Dual Video Support**: Backward compatibility with legacy video content blocks while supporting new video lesson system
 84. ✅ **VTT Transcript Parser**: Implemented VTT timestamp parsing (HH:MM:SS.mmm and MM:SS.mmm formats)
+
+### Video Lesson System Instructor Interface (October 25, 2025):
+85. ✅ **Instructor Video Upload**: Enhanced CourseCreationForm with video file upload for lessons
+86. ✅ **Video Preview**: Added real-time video preview in lesson creation dialog
+87. ✅ **Transcript Upload**: Implemented transcript file upload (VTT/SRT formats) in lesson dialog
+88. ✅ **Lesson List Indicators**: Added visual indicators for video files and transcript status in curriculum
+89. ✅ **API Integration**: Updated saveDraft and publishCourse functions to include transcript data
+90. ✅ **Lesson Interface Updates**: Added transcriptFile and thumbnailUrl fields to Lesson interface
 
 ### Current Working State:
 - ✅ **Backend Server**: Running on localhost:3001 with SQL Server connection

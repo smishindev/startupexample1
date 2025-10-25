@@ -56,6 +56,8 @@ interface Lesson {
   content?: string;
   videoUrl?: string;
   videoFile?: UploadedFile;
+  transcriptFile?: UploadedFile;
+  thumbnailUrl?: string;
   useFileUpload?: boolean;
   duration?: number;
   order: number;
@@ -177,6 +179,20 @@ export const CourseCreationForm: React.FC = () => {
     }));
   };
 
+  const handleTranscriptFileUploaded = (file: UploadedFile) => {
+    setCurrentLesson(prev => ({ 
+      ...prev, 
+      transcriptFile: file
+    }));
+  };
+
+  const handleTranscriptFileDeleted = () => {
+    setCurrentLesson(prev => ({ 
+      ...prev, 
+      transcriptFile: undefined
+    }));
+  };
+
   const saveLesson = () => {
     if (currentLesson.title && currentLesson.description) {
       const lesson: Lesson = {
@@ -187,6 +203,8 @@ export const CourseCreationForm: React.FC = () => {
         content: currentLesson.content,
         videoUrl: currentLesson.videoUrl,
         videoFile: currentLesson.videoFile,
+        transcriptFile: currentLesson.transcriptFile,
+        thumbnailUrl: currentLesson.thumbnailUrl,
         useFileUpload: currentLesson.useFileUpload,
         duration: currentLesson.duration,
         order: currentLesson.order || lessons.length + 1
@@ -239,6 +257,13 @@ export const CourseCreationForm: React.FC = () => {
           originalName: lesson.videoFile.originalName,
           mimeType: lesson.videoFile.mimetype
         } : undefined,
+        transcriptFile: lesson.transcriptFile ? {
+          id: lesson.transcriptFile.id,
+          url: lesson.transcriptFile.url,
+          originalName: lesson.transcriptFile.originalName,
+          mimeType: lesson.transcriptFile.mimetype
+        } : undefined,
+        thumbnailUrl: lesson.thumbnailUrl,
         useFileUpload: lesson.useFileUpload,
         duration: lesson.duration,
         order: lesson.order
@@ -283,6 +308,13 @@ export const CourseCreationForm: React.FC = () => {
           originalName: lesson.videoFile.originalName,
           mimeType: lesson.videoFile.mimetype
         } : undefined,
+        transcriptFile: lesson.transcriptFile ? {
+          id: lesson.transcriptFile.id,
+          url: lesson.transcriptFile.url,
+          originalName: lesson.transcriptFile.originalName,
+          mimeType: lesson.transcriptFile.mimetype
+        } : undefined,
+        thumbnailUrl: lesson.thumbnailUrl,
         useFileUpload: lesson.useFileUpload,
         duration: lesson.duration,
         order: lesson.order
@@ -535,16 +567,27 @@ export const CourseCreationForm: React.FC = () => {
                                 {lesson.type.charAt(0).toUpperCase() + lesson.type.slice(1)} - {lesson.description}
                               </Typography>
                               {lesson.type === 'video' && (
-                                <Typography variant="caption" color="text.secondary" component="span" display="block">
-                                  {lesson.useFileUpload 
-                                    ? (lesson.videoFile 
-                                        ? `📁 File: ${lesson.videoFile.originalName}`
-                                        : '📁 File upload (no file selected)')
-                                    : (lesson.videoUrl 
-                                        ? `🔗 URL: ${lesson.videoUrl}`
-                                        : '🔗 URL (not specified)')
-                                  }
-                                </Typography>
+                                <>
+                                  <Typography variant="caption" color="text.secondary" component="span" display="block">
+                                    {lesson.useFileUpload 
+                                      ? (lesson.videoFile 
+                                          ? `📁 Video: ${lesson.videoFile.originalName}`
+                                          : '📁 File upload (no file selected)')
+                                      : (lesson.videoUrl 
+                                          ? `🔗 URL: ${lesson.videoUrl}`
+                                          : '🔗 URL (not specified)')
+                                    }
+                                  </Typography>
+                                  {lesson.transcriptFile && (
+                                    <Chip 
+                                      label={`📝 Transcript: ${lesson.transcriptFile.originalName}`}
+                                      size="small" 
+                                      color="info" 
+                                      variant="outlined"
+                                      sx={{ mt: 0.5 }}
+                                    />
+                                  )}
+                                </>
                               )}
                             </Box>
                           }
@@ -880,29 +923,71 @@ export const CourseCreationForm: React.FC = () => {
                 </Grid>
 
                 {currentLesson.useFileUpload ? (
-                  <Grid item xs={12}>
-                    <Typography variant="body2" color="text.secondary" gutterBottom>
-                      Upload a video file for this lesson:
-                    </Typography>
-                    <FileUpload
-                      fileType="video"
-                      // Don't pass courseId for draft uploads - it will be null in database
-                      onFileUploaded={handleVideoFileUploaded}
-                      onFileDeleted={handleVideoFileDeleted}
-                      maxFiles={1}
-                      showLibrary={false}
-                      title="Lesson Video"
-                      description="Upload MP4, AVI, MOV files"
-                    />
+                  <>
+                    <Grid item xs={12}>
+                      <Typography variant="body2" color="text.secondary" gutterBottom>
+                        Upload a video file for this lesson:
+                      </Typography>
+                      <FileUpload
+                        fileType="video"
+                        // Don't pass courseId for draft uploads - it will be null in database
+                        onFileUploaded={handleVideoFileUploaded}
+                        onFileDeleted={handleVideoFileDeleted}
+                        maxFiles={1}
+                        showLibrary={false}
+                        title="Lesson Video"
+                        description="Upload MP4, AVI, MOV files (max 500MB)"
+                      />
+                      
+                      {currentLesson.videoFile && (
+                        <Paper sx={{ p: 2, mt: 2, bgcolor: 'success.light' }}>
+                          <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <VideoIcon />
+                            ✓ Selected video: {currentLesson.videoFile.originalName}
+                          </Typography>
+                          {currentLesson.videoFile.url && (
+                            <Box sx={{ mt: 2 }}>
+                              <Typography variant="caption" gutterBottom>Video Preview:</Typography>
+                              <Box sx={{ mt: 1, borderRadius: 1, overflow: 'hidden' }}>
+                                <video
+                                  src={currentLesson.videoFile.url}
+                                  controls
+                                  style={{ width: '100%', maxHeight: '300px' }}
+                                />
+                              </Box>
+                            </Box>
+                          )}
+                        </Paper>
+                      )}
+                    </Grid>
                     
-                    {currentLesson.videoFile && (
-                      <Paper sx={{ p: 2, mt: 2, bgcolor: 'success.light', color: 'success.contrastText' }}>
-                        <Typography variant="body2">
-                          ✓ Selected video: {currentLesson.videoFile.originalName}
-                        </Typography>
-                      </Paper>
-                    )}
-                  </Grid>
+                    <Grid item xs={12}>
+                      <Divider sx={{ my: 1 }} />
+                      <Typography variant="body2" color="text.secondary" gutterBottom sx={{ mt: 2 }}>
+                        Upload transcript file (optional):
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
+                        Transcripts improve accessibility and allow students to search video content. Accepted formats: VTT, SRT
+                      </Typography>
+                      <FileUpload
+                        fileType="document"
+                        onFileUploaded={handleTranscriptFileUploaded}
+                        onFileDeleted={handleTranscriptFileDeleted}
+                        maxFiles={1}
+                        showLibrary={false}
+                        title="Video Transcript"
+                        description="Upload VTT or SRT subtitle files"
+                      />
+                      
+                      {currentLesson.transcriptFile && (
+                        <Paper sx={{ p: 2, mt: 2, bgcolor: 'info.light' }}>
+                          <Typography variant="body2">
+                            ✓ Transcript: {currentLesson.transcriptFile.originalName}
+                          </Typography>
+                        </Paper>
+                      )}
+                    </Grid>
+                  </>
                 ) : (
                   <Grid item xs={12}>
                     <TextField

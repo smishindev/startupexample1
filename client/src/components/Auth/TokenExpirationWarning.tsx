@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Snackbar, Alert, Button } from '@mui/material';
 import { useAuthStore } from '../../stores/authStore';
+import { useNavigate } from 'react-router-dom';
 
 interface TokenPayload {
   exp: number;
@@ -10,9 +11,11 @@ interface TokenPayload {
 }
 
 export const TokenExpirationWarning: React.FC = () => {
-  const { token, refreshToken } = useAuthStore();
+  const { token, refreshToken, logout } = useAuthStore();
+  const navigate = useNavigate();
   const [showWarning, setShowWarning] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState<string>('');
+  const [hasLoggedOut, setHasLoggedOut] = useState(false);
 
   useEffect(() => {
     if (!token) return;
@@ -34,14 +37,24 @@ export const TokenExpirationWarning: React.FC = () => {
         const currentTime = Date.now();
         const timeLeft = expiryTime - currentTime;
 
-        // Show warning if less than 5 minutes remaining
-        const fiveMinutes = 5 * 60 * 1000;
+        // Show warning if less than 5 minutes remaining (for 10-minute testing tokens)
+        const warningThreshold = 5 * 60 * 1000; // 5 minutes
         
-        if (timeLeft > 0 && timeLeft <= fiveMinutes) {
+        if (timeLeft > 0 && timeLeft <= warningThreshold) {
           const minutes = Math.floor(timeLeft / 60000);
           const seconds = Math.floor((timeLeft % 60000) / 1000);
           setTimeRemaining(`${minutes}:${seconds.toString().padStart(2, '0')}`);
           setShowWarning(true);
+          setHasLoggedOut(false); // Reset if user gets a new token
+        } else if (timeLeft <= 0 && !hasLoggedOut) {
+          // Token expired - automatic logout
+          console.warn('Token has expired. Logging out...');
+          setShowWarning(false);
+          setHasLoggedOut(true);
+          logout();
+          navigate('/login', { 
+            state: { message: 'Your session has expired. Please login again.' } 
+          });
         } else {
           setShowWarning(false);
         }
@@ -53,11 +66,11 @@ export const TokenExpirationWarning: React.FC = () => {
     // Check immediately
     checkTokenExpiration();
 
-    // Check every 30 seconds
-    const interval = setInterval(checkTokenExpiration, 30000);
+    // Check more frequently (every 5 seconds) for accurate countdown and logout
+    const interval = setInterval(checkTokenExpiration, 5000);
 
     return () => clearInterval(interval);
-  }, [token]);
+  }, [token, hasLoggedOut]);
 
   const handleRefresh = async () => {
     const success = await refreshToken();

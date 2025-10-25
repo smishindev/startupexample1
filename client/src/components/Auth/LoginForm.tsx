@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Card,
@@ -16,7 +16,7 @@ import {
   Checkbox,
 } from '@mui/material';
 import { Visibility, VisibilityOff, Email, Lock, Login as LoginIcon } from '@mui/icons-material';
-import { Link as RouterLink, useNavigate } from 'react-router-dom';
+import { Link as RouterLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore';
 
 interface LoginFormProps {
@@ -25,6 +25,7 @@ interface LoginFormProps {
 
 export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login, isLoading, error, clearError } = useAuthStore();
   
   const [formData, setFormData] = useState({
@@ -34,6 +35,16 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [sessionMessage, setSessionMessage] = useState<string | null>(null);
+
+  // Check for session expiry message from navigation state
+  useEffect(() => {
+    if (location.state && (location.state as any).message) {
+      setSessionMessage((location.state as any).message);
+      // Clear the message from location state
+      window.history.replaceState({}, document.title);
+    }
+  }, [location]);
 
   const handleChange = (field: string) => (event: React.ChangeEvent<HTMLInputElement>) => {
     setFormData(prev => ({
@@ -115,6 +126,12 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
               Sign in to your Smart Learning account
             </Typography>
           </Box>
+
+          {sessionMessage && (
+            <Alert severity="warning" sx={{ mb: 3 }} onClose={() => setSessionMessage(null)}>
+              {sessionMessage}
+            </Alert>
+          )}
 
           {error && (
             <Alert severity="error" sx={{ mb: 3 }}>

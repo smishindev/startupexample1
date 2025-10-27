@@ -69,7 +69,10 @@ const Chat: React.FC = () => {
       }
     } catch (error) {
       console.error('Failed to load rooms:', error);
-      setError('Failed to load chat rooms');
+      // Only show error if we have rooms (indicates real error, not empty state)
+      if (rooms.length > 0) {
+        setError('Failed to load chat rooms');
+      }
     }
   };
 
@@ -349,36 +352,47 @@ const Chat: React.FC = () => {
           </Box>
           
           <List sx={{ flex: 1, overflow: 'auto' }}>
-            {rooms.map((room) => (
-              <ListItem key={room.roomId} disablePadding>
-                <ListItemButton
-                  selected={selectedRoom?.roomId === room.roomId}
-                  onClick={() => setSelectedRoom(room)}
-                >
-                  <ListItemAvatar>
-                    <Avatar>
-                      <GroupIcon />
-                    </Avatar>
-                  </ListItemAvatar>
-                  <ListItemText
-                    primary={room.roomName}
-                    secondary={
-                      <React.Fragment>
-                        <Typography variant="caption" component="span" display="block" noWrap>
-                          {room.lastMessage || 'No messages yet'}
-                        </Typography>
-                        {room.lastMessageTime && (
-                          <Typography variant="caption" color="text.secondary" component="span" display="block">
-                            {formatDistanceToNow(new Date(room.lastMessageTime), { addSuffix: true })}
+            {rooms.length === 0 ? (
+              <Box sx={{ p: 3, textAlign: 'center' }}>
+                <Typography variant="body2" color="text.secondary" gutterBottom>
+                  No chat rooms yet
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Create a new room to start chatting with your peers!
+                </Typography>
+              </Box>
+            ) : (
+              rooms.map((room) => (
+                <ListItem key={room.roomId} disablePadding>
+                  <ListItemButton
+                    selected={selectedRoom?.roomId === room.roomId}
+                    onClick={() => setSelectedRoom(room)}
+                  >
+                    <ListItemAvatar>
+                      <Avatar>
+                        <GroupIcon />
+                      </Avatar>
+                    </ListItemAvatar>
+                    <ListItemText
+                      primary={room.roomName}
+                      secondary={
+                        <React.Fragment>
+                          <Typography variant="caption" component="span" display="block" noWrap>
+                            {room.lastMessage || 'No messages yet'}
                           </Typography>
-                        )}
-                      </React.Fragment>
-                    }
-                  />
-                  <Chip label={room.roomType} size="small" variant="outlined" />
-                </ListItemButton>
-              </ListItem>
-            ))}
+                          {room.lastMessageTime && (
+                            <Typography variant="caption" color="text.secondary" component="span" display="block">
+                              {formatDistanceToNow(new Date(room.lastMessageTime), { addSuffix: true })}
+                            </Typography>
+                          )}
+                        </React.Fragment>
+                      }
+                    />
+                    <Chip label={room.roomType} size="small" variant="outlined" />
+                  </ListItemButton>
+                </ListItem>
+              ))
+            )}
           </List>
         </Box>
 

@@ -103,7 +103,10 @@ const Tutoring: React.FC = () => {
       }
     } catch (error) {
       console.error('Failed to load sessions:', error);
-      setError('Failed to load tutoring sessions');
+      // Only show error if we have sessions (indicates real error, not empty state)
+      if (sessions.length > 0) {
+        setError('Failed to load tutoring sessions');
+      }
     } finally {
       setLoading(false);
     }
@@ -260,31 +263,42 @@ const Tutoring: React.FC = () => {
             </Box>
             
             <List sx={{ flexGrow: 1, overflow: 'auto' }}>
-              {sessions.map((session) => (
-                <ListItem key={session.Id} disablePadding>
-                  <ListItemButton
-                    selected={selectedSession?.Id === session.Id}
-                    onClick={() => setSelectedSession(session)}
-                  >
-                    <ListItemIcon>
-                      <ChatIcon />
-                    </ListItemIcon>
-                    <ListItemText
-                      primary={session.Title}
-                      secondary={
-                        <React.Fragment>
-                          <Typography variant="caption" display="block" component="span">
-                            {session.MessageCount} messages
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary" component="span">
-                            {formatDistanceToNow(new Date(session.UpdatedAt), { addSuffix: true })}
-                          </Typography>
-                        </React.Fragment>
-                      }
-                    />
-                  </ListItemButton>
-                </ListItem>
-              ))}
+              {sessions.length === 0 ? (
+                <Box sx={{ p: 3, textAlign: 'center' }}>
+                  <Typography variant="body2" color="text.secondary" gutterBottom>
+                    No tutoring sessions yet
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Start a new session to get AI-powered help with your learning!
+                  </Typography>
+                </Box>
+              ) : (
+                sessions.map((session) => (
+                  <ListItem key={session.Id} disablePadding>
+                    <ListItemButton
+                      selected={selectedSession?.Id === session.Id}
+                      onClick={() => setSelectedSession(session)}
+                    >
+                      <ListItemIcon>
+                        <ChatIcon />
+                      </ListItemIcon>
+                      <ListItemText
+                        primary={session.Title}
+                        secondary={
+                          <React.Fragment>
+                            <Typography variant="caption" display="block" component="span">
+                              {session.MessageCount} messages
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary" component="span">
+                              {formatDistanceToNow(new Date(session.UpdatedAt), { addSuffix: true })}
+                            </Typography>
+                          </React.Fragment>
+                        }
+                      />
+                    </ListItemButton>
+                  </ListItem>
+                ))
+              )}
             </List>
           </Paper>
 

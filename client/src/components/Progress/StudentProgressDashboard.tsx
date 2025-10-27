@@ -82,9 +82,15 @@ export const StudentProgressDashboard: React.FC = () => {
       
       setAnalytics(analyticsData);
       setRecommendations(recommendationsData);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error loading progress data:', err);
-      setError('Failed to load progress data. Please try again.');
+      
+      // Don't show error for empty data (404 or empty response)
+      if (err?.response?.status === 404 || err?.response?.status === 204) {
+        setAnalytics(null); // Will show empty state
+      } else {
+        setError('Failed to load progress data. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -149,8 +155,20 @@ export const StudentProgressDashboard: React.FC = () => {
 
   if (!analytics) {
     return (
-      <Box sx={{ p: 3 }}>
-        <Alert severity="info">No progress data available yet. Start taking some courses!</Alert>
+      <Box sx={{ p: 3, textAlign: 'center', py: 8 }}>
+        <Typography variant="h5" color="text.secondary" gutterBottom>
+          No Progress Data Yet
+        </Typography>
+        <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+          Start enrolling in courses and completing assessments to see your personalized learning insights here!
+        </Typography>
+        <Button 
+          variant="contained" 
+          onClick={() => window.location.href = '/courses'}
+          sx={{ minWidth: 120 }}
+        >
+          Browse Courses
+        </Button>
       </Box>
     );
   }

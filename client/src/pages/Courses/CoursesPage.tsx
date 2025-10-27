@@ -889,20 +889,33 @@ export const CoursesPage: React.FC = () => {
                 )}
               </Box>
 
-              <Grid container spacing={3}>
-                {allCourses.map((course) => (
-                  <Grid item xs={12} sm={6} md={4} key={course.id}>
-                    <CourseCard
-                      course={course}
-                      currentUserId={user?.id}
-                      onEnroll={handleEnroll}
-                      onBookmark={handleBookmark}
-                      onShare={handleShare}
-                      onClick={handleCourseClick}
-                    />
-                  </Grid>
-                ))}
-              </Grid>
+              {allCourses.length === 0 ? (
+                <Box sx={{ textAlign: 'center', py: 8 }}>
+                  <Typography variant="h6" color="text.secondary" sx={{ mb: 2 }}>
+                    No courses available yet
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {searchQuery || selectedCategory || selectedLevel
+                      ? 'Try adjusting your filters or search terms.'
+                      : 'New courses will appear here as they are added.'}
+                  </Typography>
+                </Box>
+              ) : (
+                <Grid container spacing={3}>
+                  {allCourses.map((course) => (
+                    <Grid item xs={12} sm={6} md={4} key={course.id}>
+                      <CourseCard
+                        course={course}
+                        currentUserId={user?.id}
+                        onEnroll={handleEnroll}
+                        onBookmark={handleBookmark}
+                        onShare={handleShare}
+                        onClick={handleCourseClick}
+                      />
+                    </Grid>
+                  ))}
+                </Grid>
+              )}
 
               {/* Pagination */}
               {pagination.pages > 1 && (
@@ -928,20 +941,38 @@ export const CoursesPage: React.FC = () => {
             My Enrolled Courses ({enrolledCourses.length})
           </Typography>
           
-          <Grid container spacing={3}>
-            {enrolledCourses.map((course) => (
-              <Grid item xs={12} sm={6} md={4} key={course.id}>
-                <CourseCard
-                  course={course}
-                  variant="enrolled"
-                  currentUserId={user?.id}
-                  onBookmark={handleBookmark}
-                  onShare={handleShare}
-                  onClick={handleCourseClick}
-                />
-              </Grid>
-            ))}
-          </Grid>
+          {enrolledCourses.length === 0 ? (
+            <Box sx={{ textAlign: 'center', py: 8 }}>
+              <Typography variant="h6" color="text.secondary" sx={{ mb: 2 }}>
+                No enrolled courses yet
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                Browse the course catalog and enroll in courses to start learning!
+              </Typography>
+              <Button 
+                variant="contained" 
+                onClick={() => setTabValue(0)}
+                sx={{ minWidth: 120 }}
+              >
+                Browse Courses
+              </Button>
+            </Box>
+          ) : (
+            <Grid container spacing={3}>
+              {enrolledCourses.map((course) => (
+                <Grid item xs={12} sm={6} md={4} key={course.id}>
+                  <CourseCard
+                    course={course}
+                    variant="enrolled"
+                    currentUserId={user?.id}
+                    onBookmark={handleBookmark}
+                    onShare={handleShare}
+                    onClick={handleCourseClick}
+                  />
+                </Grid>
+              ))}
+            </Grid>
+          )}
         </TabPanel>
 
         {/* Bookmarked Tab */}

@@ -274,16 +274,27 @@ const DashboardView: React.FC<{ data: DashboardAnalytics }> = ({ data }) => {
               Monthly Enrollment Trends
             </Typography>
             <Box height={300}>
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={monthlyTrends}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="month" />
-                  <YAxis />
-                  <Tooltip />
-                  <Line type="monotone" dataKey="enrollments" stroke="#2196f3" name="Enrollments" />
-                  <Line type="monotone" dataKey="uniqueStudents" stroke="#4caf50" name="Unique Students" />
-                </LineChart>
-              </ResponsiveContainer>
+              {monthlyTrends && monthlyTrends.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={monthlyTrends}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="month" />
+                    <YAxis />
+                    <Tooltip />
+                    <Line type="monotone" dataKey="enrollments" stroke="#2196f3" name="Enrollments" />
+                    <Line type="monotone" dataKey="uniqueStudents" stroke="#4caf50" name="Unique Students" />
+                  </LineChart>
+                </ResponsiveContainer>
+              ) : (
+                <Box display="flex" flexDirection="column" alignItems="center" justifyContent="center" height="100%">
+                  <Typography variant="body1" color="text.secondary" gutterBottom>
+                    No enrollment data available
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Enrollment trends will appear once students start enrolling in courses
+                  </Typography>
+                </Box>
+              )}
             </Box>
           </CardContent>
         </Card>
@@ -296,21 +307,32 @@ const DashboardView: React.FC<{ data: DashboardAnalytics }> = ({ data }) => {
             <Typography variant="h6" gutterBottom>
               Top Performing Courses
             </Typography>
-            <List dense>
-              {topCourses.map((course, index) => (
-                <ListItem key={index}>
-                  <ListItemAvatar>
-                    <Avatar sx={{ bgcolor: 'primary.main' }}>
-                      {index + 1}
-                    </Avatar>
-                  </ListItemAvatar>
-                  <ListItemText
-                    primary={course.Title}
-                    secondary={`${course.enrollments} enrollments • ${Math.round(course.avgProgress)}% avg progress`}
-                  />
-                </ListItem>
-              ))}
-            </List>
+            {topCourses && topCourses.length > 0 ? (
+              <List dense>
+                {topCourses.map((course, index) => (
+                  <ListItem key={index}>
+                    <ListItemAvatar>
+                      <Avatar sx={{ bgcolor: 'primary.main' }}>
+                        {index + 1}
+                      </Avatar>
+                    </ListItemAvatar>
+                    <ListItemText
+                      primary={course.Title}
+                      secondary={`${course.enrollments} enrollments • ${Math.round(course.avgProgress)}% avg progress`}
+                    />
+                  </ListItem>
+                ))}
+              </List>
+            ) : (
+              <Box py={4} textAlign="center">
+                <Typography variant="body2" color="text.secondary" gutterBottom>
+                  No course performance data yet
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Top courses will appear here based on completion rates
+                </Typography>
+              </Box>
+            )}
           </CardContent>
         </Card>
       </Grid>
@@ -322,44 +344,55 @@ const DashboardView: React.FC<{ data: DashboardAnalytics }> = ({ data }) => {
             <Typography variant="h6" gutterBottom>
               Course Performance Overview
             </Typography>
-            <Box overflow="auto">
-              <Grid container spacing={2}>
-                {coursePerformance.map((course) => (
-                  <Grid item xs={12} sm={6} md={4} key={course.Id}>
-                    <Paper sx={{ p: 2 }}>
-                      <Typography variant="subtitle1" fontWeight="medium" noWrap>
-                        {course.Title}
-                      </Typography>
-                      <Box mt={1}>
-                        <Box display="flex" justifyContent="space-between" mb={1}>
-                          <Typography variant="body2">Students:</Typography>
-                          <Typography variant="body2" fontWeight="medium">
-                            {course.enrolledStudents}
-                          </Typography>
+            {coursePerformance && coursePerformance.length > 0 ? (
+              <Box overflow="auto">
+                <Grid container spacing={2}>
+                  {coursePerformance.map((course) => (
+                    <Grid item xs={12} sm={6} md={4} key={course.Id}>
+                      <Paper sx={{ p: 2 }}>
+                        <Typography variant="subtitle1" fontWeight="medium" noWrap>
+                          {course.Title}
+                        </Typography>
+                        <Box mt={1}>
+                          <Box display="flex" justifyContent="space-between" mb={1}>
+                            <Typography variant="body2">Students:</Typography>
+                            <Typography variant="body2" fontWeight="medium">
+                              {course.enrolledStudents}
+                            </Typography>
+                          </Box>
+                          <Box display="flex" justifyContent="space-between" mb={1}>
+                            <Typography variant="body2">Avg Progress:</Typography>
+                            <Typography variant="body2" fontWeight="medium">
+                              {Math.round(course.avgProgress || 0)}%
+                            </Typography>
+                          </Box>
+                          <Box display="flex" justifyContent="space-between" mb={1}>
+                            <Typography variant="body2">Completed:</Typography>
+                            <Typography variant="body2" fontWeight="medium">
+                              {course.completedStudents}
+                            </Typography>
+                          </Box>
+                          <LinearProgress
+                            variant="determinate"
+                            value={course.avgProgress || 0}
+                            sx={{ mt: 1 }}
+                          />
                         </Box>
-                        <Box display="flex" justifyContent="space-between" mb={1}>
-                          <Typography variant="body2">Avg Progress:</Typography>
-                          <Typography variant="body2" fontWeight="medium">
-                            {Math.round(course.avgProgress || 0)}%
-                          </Typography>
-                        </Box>
-                        <Box display="flex" justifyContent="space-between" mb={1}>
-                          <Typography variant="body2">Completed:</Typography>
-                          <Typography variant="body2" fontWeight="medium">
-                            {course.completedStudents}
-                          </Typography>
-                        </Box>
-                        <LinearProgress
-                          variant="determinate"
-                          value={course.avgProgress || 0}
-                          sx={{ mt: 1 }}
-                        />
-                      </Box>
-                    </Paper>
-                  </Grid>
-                ))}
-              </Grid>
-            </Box>
+                      </Paper>
+                    </Grid>
+                  ))}
+                </Grid>
+              </Box>
+            ) : (
+              <Box py={6} textAlign="center">
+                <Typography variant="body1" color="text.secondary" gutterBottom>
+                  No course performance data available
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Create courses and enroll students to see performance metrics
+                </Typography>
+              </Box>
+            )}
           </CardContent>
         </Card>
       </Grid>

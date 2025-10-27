@@ -130,7 +130,7 @@ class StudentProgressIntegrationApi {
   private baseUrl = '/api/student-progress';
 
   // Get comprehensive student progress analytics
-  async getStudentProgressAnalytics(studentId?: string): Promise<StudentProgressAnalytics> {
+  async getStudentProgressAnalytics(studentId?: string): Promise<StudentProgressAnalytics | null> {
     const endpoint = studentId 
       ? `${this.baseUrl}/analytics/${studentId}`
       : `${this.baseUrl}/analytics/me`;

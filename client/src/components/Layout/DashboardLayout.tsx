@@ -24,6 +24,7 @@ import {
 import { Header } from '../Navigation/Header';
 import { useAuthStore } from '../../stores/authStore';
 import { enrollmentApi } from '../../services/enrollmentApi';
+import { dashboardApi } from '../../services/dashboardApi';
 
 // Helper function to format last accessed date
 const formatLastAccessed = (dateString: string | null): string => {
@@ -79,20 +80,28 @@ export const DashboardLayout: React.FC = () => {
   const { user } = useAuthStore();
 
   // Real data from API
-  const [stats] = useState<DashboardStats>({
-    totalCourses: 12,
-    completedCourses: 3,
-    hoursLearned: 47.5,
-    currentStreak: 7,
+  const [stats, setStats] = useState<DashboardStats>({
+    totalCourses: 0,
+    completedCourses: 0,
+    hoursLearned: 0,
+    currentStreak: 0,
   });
 
   const [recentCourses, setRecentCourses] = useState<RecentCourse[]>([]);
+  const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchEnrolledCourses = async () => {
+    const fetchDashboardData = async () => {
       try {
         setLoading(true);
+        
+        // Fetch dashboard stats
+        const statsData = await dashboardApi.getStats();
+        setStats(statsData);
+        setAchievements(statsData.achievements || []);
+        
+        // Fetch enrolled courses
         const enrollments = await enrollmentApi.getMyEnrollments();
         
         // Create a Map to deduplicate courses by courseId and keep the most recent enrollment
@@ -122,45 +131,25 @@ export const DashboardLayout: React.FC = () => {
         const courses = Array.from(courseMap.values()).slice(0, 3);
         setRecentCourses(courses);
       } catch (error) {
-        console.error('Failed to fetch enrolled courses:', error);
+        console.error('Failed to fetch dashboard data:', error);
         setRecentCourses([]);
+        setStats({
+          totalCourses: 0,
+          completedCourses: 0,
+          hoursLearned: 0,
+          currentStreak: 0,
+        });
+        setAchievements([]);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchEnrolledCourses();
+    fetchDashboardData();
   }, []);
 
   // Use real enrolled courses data
   const displayCourses = recentCourses;
-
-  const [achievements] = useState<Achievement[]>([
-    {
-      id: '1',
-      title: 'First Steps',
-      description: 'Completed your first course',
-      icon: '🎯',
-      unlockedAt: '2 weeks ago',
-      type: 'bronze',
-    },
-    {
-      id: '2',
-      title: 'Streak Master',
-      description: '7-day learning streak',
-      icon: '🔥',
-      unlockedAt: 'Today',
-      type: 'silver',
-    },
-    {
-      id: '3',
-      title: 'Knowledge Seeker',
-      description: 'Completed 3 courses',
-      icon: '📚',
-      unlockedAt: '1 week ago',
-      type: 'gold',
-    },
-  ]);
 
   const StatCard: React.FC<{ title: string; value: string | number; subtitle: string; icon: React.ReactNode }> = ({
     title,
@@ -411,13 +400,24 @@ export const DashboardLayout: React.FC = () => {
           <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 3 }}>
             Your Achievements
           </Typography>
-          <Grid container spacing={3}>
-            {achievements.map((achievement) => (
-              <Grid item xs={12} sm={6} md={4} key={achievement.id}>
-                <AchievementBadge achievement={achievement} />
-              </Grid>
-            ))}
-          </Grid>
+          {achievements.length > 0 ? (
+            <Grid container spacing={3}>
+              {achievements.map((achievement) => (
+                <Grid item xs={12} sm={6} md={4} key={achievement.id}>
+                  <AchievementBadge achievement={achievement} />
+                </Grid>
+              ))}
+            </Grid>
+          ) : (
+            <Box textAlign="center" py={4}>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                No achievements yet
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Start learning to unlock achievements! 🎯
+              </Typography>
+            </Box>
+          )}
         </Box>
       </Container>
     </Box>

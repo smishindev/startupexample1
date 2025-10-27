@@ -29,6 +29,13 @@ router.get('/analytics/me', authenticateToken, async (req: AuthRequest, res) => 
 
     const basicProgress = await dbService.query(basicProgressQuery, { userId });
 
+    // Check if user has any enrollments - if not, return empty/null to show proper empty state
+    const totalCourses = basicProgress[0]?.totalCourses || 0;
+    if (totalCourses === 0) {
+      // No enrollments - return null to trigger empty state in UI
+      return res.status(200).json(null);
+    }
+
     // Get performance insights
     const performanceQuery = `
       SELECT 
@@ -235,6 +242,11 @@ router.post('/recommendations', authenticateToken, async (req: AuthRequest, res)
     const recentPerformance = await dbService.query(performanceQuery, 
       courseId ? { userId, courseId } : { userId }
     );
+
+    // If no performance data exists, return empty recommendations
+    if (recentPerformance.length === 0) {
+      return res.json([]);
+    }
 
     // Generate recommendations based on performance patterns
     const recommendations = [];

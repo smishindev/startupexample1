@@ -41,8 +41,8 @@ router.get('/stats', authenticateToken, authorize(['instructor', 'admin']), asyn
       totalEnrollments: studentStats[0]?.totalEnrollments || 0,
       avgRating: courseStats[0]?.avgRating || 0,
       totalRevenue: courseStats[0]?.totalRevenue || 0,
-      monthlyGrowth: 12.5,
-      completionRate: 78
+      monthlyGrowth: 0, // TODO: Calculate from historical data
+      completionRate: 0 // TODO: Calculate from course progress data
     };
 
     res.json(stats);

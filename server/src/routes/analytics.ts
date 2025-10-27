@@ -123,7 +123,7 @@ router.get('/dashboard', authenticateToken, authorize(['instructor']), async (re
           COUNT(DISTINCT c.Id) as totalCourses,
           COUNT(DISTINCT e.UserId) as totalStudents,
           COUNT(e.Id) as totalEnrollments,
-          AVG(CAST(up.OverallProgress as FLOAT)) as avgProgress,
+          AVG(CAST(up.ProgressPercentage as FLOAT)) as avgProgress,
           SUM(CAST(up.TimeSpent as FLOAT)) as totalTimeSpent
         FROM dbo.Courses c
         LEFT JOIN dbo.Enrollments e ON c.Id = e.CourseId
@@ -137,8 +137,8 @@ router.get('/dashboard', authenticateToken, authorize(['instructor']), async (re
           c.Id,
           c.Title,
           COUNT(DISTINCT e.UserId) as enrolledStudents,
-          AVG(CAST(up.OverallProgress as FLOAT)) as avgProgress,
-          COUNT(CASE WHEN up.OverallProgress = 100 THEN 1 END) as completedStudents,
+          AVG(CAST(up.ProgressPercentage as FLOAT)) as avgProgress,
+          COUNT(CASE WHEN up.ProgressPercentage = 100 THEN 1 END) as completedStudents,
           AVG(CAST(up.TimeSpent as FLOAT)) as avgTimeSpent
         FROM dbo.Courses c
         LEFT JOIN dbo.Enrollments e ON c.Id = e.CourseId
@@ -167,14 +167,14 @@ router.get('/dashboard', authenticateToken, authorize(['instructor']), async (re
         SELECT TOP 5
           c.Title,
           COUNT(DISTINCT e.UserId) as enrollments,
-          AVG(CAST(up.OverallProgress as FLOAT)) as avgProgress,
-          COUNT(CASE WHEN up.OverallProgress = 100 THEN 1 END) as completions
+          AVG(CAST(up.ProgressPercentage as FLOAT)) as avgProgress,
+          COUNT(CASE WHEN up.ProgressPercentage = 100 THEN 1 END) as completions
         FROM dbo.Courses c
         JOIN dbo.Enrollments e ON c.Id = e.CourseId
         JOIN dbo.UserProgress up ON e.UserId = up.UserId AND e.CourseId = up.CourseId
         WHERE c.InstructorId = @instructorId
         GROUP BY c.Id, c.Title
-        ORDER BY (COUNT(CASE WHEN up.OverallProgress = 100 THEN 1 END) * 100.0 / COUNT(DISTINCT e.UserId)) DESC
+        ORDER BY (COUNT(CASE WHEN up.ProgressPercentage = 100 THEN 1 END) * 100.0 / COUNT(DISTINCT e.UserId)) DESC
       `, { instructorId })
     ]);
 

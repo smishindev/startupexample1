@@ -96,69 +96,19 @@ export const InstructorDashboard: React.FC = () => {
         return;
       }
       
-      // Fallback to mock data if API fails for other reasons
-      const mockStats: InstructorStats = {
-        totalCourses: 8,
-        publishedCourses: 5,
-        draftCourses: 3,
-        totalStudents: 1247,
-        totalEnrollments: 1247,
-        totalRevenue: 15420,
-        avgRating: 4.6,
-        completionRate: 78,
-        monthlyGrowth: 12.5
-      };
-
-      const mockCourses: InstructorCourse[] = [
-        {
-          id: '1',
-          title: 'Advanced React Development',
-          description: 'Learn modern React patterns, hooks, and state management',
-          thumbnail: '/api/placeholder/300/200',
-          status: 'published',
-          students: 324,
-          lessons: 24,
-          rating: 4.8,
-          revenue: 5480,
-          progress: 100,
-          createdAt: '2024-01-15',
-          lastUpdated: '2024-02-20',
-          price: 89.99
-        },
-        {
-          id: '2',
-          title: 'TypeScript Masterclass',
-          description: 'Complete guide to TypeScript for professional development',
-          thumbnail: '/api/placeholder/300/200',
-          status: 'published',
-          students: 256,
-          lessons: 18,
-          rating: 4.7,
-          revenue: 4320,
-          progress: 100,
-          createdAt: '2024-02-01',
-          lastUpdated: '2024-03-15',
-          price: 79.99
-        },
-        {
-          id: '3',
-          title: 'Node.js Backend Development',
-          description: 'Build scalable backend applications with Node.js',
-          thumbnail: '/api/placeholder/300/200',
-          status: 'draft',
-          students: 0,
-          lessons: 12,
-          rating: 0,
-          revenue: 0,
-          progress: 65,
-          createdAt: '2024-03-01',
-          lastUpdated: '2024-03-25',
-          price: 99.99
-        }
-      ];
-
-      setStats(mockStats);
-      setCourses(mockCourses);
+      // Set empty data on error
+      setStats({
+        totalCourses: 0,
+        publishedCourses: 0,
+        draftCourses: 0,
+        totalStudents: 0,
+        totalEnrollments: 0,
+        totalRevenue: 0,
+        avgRating: 0,
+        completionRate: 0,
+        monthlyGrowth: 0
+      });
+      setCourses([]);
     }
   };
 
@@ -357,17 +307,37 @@ export const InstructorDashboard: React.FC = () => {
       </Box>
       
       <Grid container spacing={3}>
-        {(() => {
-          console.log('Rendering courses, current courses state:', courses);
-          console.log('First course in render:', courses[0]);
-          return courses;
-        })().map((course) => (
-          <Grid item xs={12} sm={6} md={4} key={course.id}>
-            <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-              <Box
-                sx={{
-                  height: 200,
-                  backgroundImage: `url(${course.thumbnail})`,
+        {courses.length === 0 ? (
+          <Grid item xs={12}>
+            <Paper sx={{ p: 6, textAlign: 'center' }}>
+              <Typography variant="h6" color="text.secondary" gutterBottom>
+                No courses created yet
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                Create your first course to start teaching and sharing your knowledge!
+              </Typography>
+              <Button 
+                variant="contained" 
+                startIcon={<AddIcon />}
+                onClick={() => setCreateDialogOpen(true)}
+                size="large"
+              >
+                Create Your First Course
+              </Button>
+            </Paper>
+          </Grid>
+        ) : (
+          (() => {
+            console.log('Rendering courses, current courses state:', courses);
+            console.log('First course in render:', courses[0]);
+            return courses;
+          })().map((course) => (
+            <Grid item xs={12} sm={6} md={4} key={course.id}>
+              <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                <Box
+                  sx={{
+                    height: 200,
+                    backgroundImage: `url(${course.thumbnail})`,
                   backgroundSize: 'cover',
                   backgroundPosition: 'center',
                   position: 'relative'
@@ -484,7 +454,8 @@ export const InstructorDashboard: React.FC = () => {
               </CardContent>
             </Card>
           </Grid>
-        ))}
+          ))
+        )}
       </Grid>
 
       {/* Floating Action Button */}

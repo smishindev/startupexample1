@@ -63,9 +63,16 @@ const MyLearningPage: React.FC = () => {
       const uniqueEnrollments = Array.from(courseMap.values());
       setEnrollments(uniqueEnrollments);
       setError(null); // Clear any previous errors
-    } catch (error) {
-      console.error('Failed to load data:', error);
-      setError(isInstructor ? 'Failed to load your courses' : 'Failed to load your enrolled courses');
+    } catch (err) {
+      console.error('Failed to load enrollments:', err);
+      // Only set error if it's an actual API failure, not just empty results
+      if (err && typeof err === 'object' && 'response' in err) {
+        setError(isInstructor ? 'Failed to load your courses' : 'Failed to load your enrolled courses');
+      } else {
+        // Network or other errors
+        setError('Failed to connect to server. Please check your connection and try again.');
+      }
+      setEnrollments([]); // Set empty array on error
     } finally {
       setLoading(false);
     }
@@ -172,7 +179,7 @@ const MyLearningPage: React.FC = () => {
           {isInstructor ? 'My Teaching' : 'My Learning'}
         </Typography>
 
-        {error && (
+        {error && enrollments.length > 0 && (
           <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
             {error}
           </Alert>

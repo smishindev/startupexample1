@@ -1,6 +1,21 @@
 import axios from 'axios';
+import { useAuthStore } from '../stores/authStore';
 
-const API_URL = 'http://localhost:3001';
+const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3001';
+
+// Create axios instance with default config
+const api = axios.create({
+  baseURL: API_BASE_URL,
+});
+
+// Add auth interceptor
+api.interceptors.request.use((config) => {
+  const authStore = useAuthStore.getState();
+  if (authStore.token) {
+    config.headers.Authorization = `Bearer ${authStore.token}`;
+  }
+  return config;
+});
 
 export interface DashboardStats {
   totalCourses: number;
@@ -24,7 +39,7 @@ export const dashboardApi = {
    * Get dashboard statistics for the authenticated user
    */
   async getStats(): Promise<DashboardStats> {
-    const response = await axios.get(`${API_URL}/api/dashboard/stats`);
+    const response = await api.get('/api/dashboard/stats');
     return response.data.data;
   },
 };

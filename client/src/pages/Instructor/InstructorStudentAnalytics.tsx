@@ -71,50 +71,15 @@ export const InstructorStudentAnalytics: React.FC = () => {
       // Get instructor's courses and enrolled students
       await instructorApi.getStats();
       
-      // Mock data for demonstration - in real implementation, 
-      // this would come from the student progress API
-      const mockStudentData: StudentRiskData[] = [
-        {
-          studentId: '1',
-          studentName: 'Alice Johnson',
-          email: 'alice@example.com',
-          courseId: 'course1',
-          courseName: 'Introduction to Programming',
-          riskLevel: 'high',
-          currentProgress: 35,
-          lastActivity: '3 days ago',
-          strugglingAreas: ['Loops', 'Functions'],
-          recommendedActions: ['Schedule tutoring session', 'Provide additional practice exercises']
-        },
-        {
-          studentId: '2',
-          studentName: 'Bob Smith',
-          email: 'bob@example.com',
-          courseId: 'course1',
-          courseName: 'Introduction to Programming',
-          riskLevel: 'medium',
-          currentProgress: 68,
-          lastActivity: '1 day ago',
-          strugglingAreas: ['Object-Oriented Programming'],
-          recommendedActions: ['Review OOP concepts', 'Complete practice project']
-        },
-        {
-          studentId: '3',
-          studentName: 'Carol Davis',
-          email: 'carol@example.com',
-          courseId: 'course2',
-          courseName: 'Advanced Mathematics',
-          riskLevel: 'low',
-          currentProgress: 89,
-          lastActivity: '12 hours ago',
-          strugglingAreas: [],
-          recommendedActions: ['Consider advanced challenges', 'Peer tutoring opportunities']
-        }
-      ];
-
-      setStudents(mockStudentData);
+      // TODO: Implement real student risk analytics from API
+      // const studentData = await studentAnalyticsApi.getStudentRiskData();
+      // setStudents(studentData);
+      
+      // For now, set empty array until API is implemented
+      setStudents([]);
     } catch (error) {
       console.error('Error loading student data:', error);
+      setStudents([]);
     }
   };
 
@@ -312,81 +277,96 @@ export const InstructorStudentAnalytics: React.FC = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {filteredStudents.map((student) => (
-                <TableRow key={student.studentId}>
-                  <TableCell>
-                    <Box>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
-                        {student.studentName}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {student.email}
-                      </Typography>
-                    </Box>
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="body2">
-                      {student.courseName}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Chip
-                      icon={getRiskIcon(student.riskLevel)}
-                      label={student.riskLevel.toUpperCase()}
-                      color={getRiskColor(student.riskLevel) as any}
-                      size="small"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Typography variant="body2">
-                        {student.currentProgress}%
-                      </Typography>
-                      {student.currentProgress < 50 && (
-                        <RiskIcon color="error" fontSize="small" />
-                      )}
-                    </Box>
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="body2">
-                      {student.lastActivity}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
-                    {student.strugglingAreas.length > 0 ? (
+              {filteredStudents.length > 0 ? (
+                filteredStudents.map((student) => (
+                  <TableRow key={student.studentId}>
+                    <TableCell>
                       <Box>
-                        {student.strugglingAreas.slice(0, 2).map((area, index) => (
-                          <Chip
-                            key={index}
-                            label={area}
-                            size="small"
-                            color="warning"
-                            sx={{ mr: 0.5, mb: 0.5 }}
-                          />
-                        ))}
-                        {student.strugglingAreas.length > 2 && (
-                          <Typography variant="caption" color="text.secondary">
-                            +{student.strugglingAreas.length - 2} more
-                          </Typography>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
+                          {student.studentName}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {student.email}
+                        </Typography>
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2">
+                        {student.courseName}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        icon={getRiskIcon(student.riskLevel)}
+                        label={student.riskLevel.toUpperCase()}
+                        color={getRiskColor(student.riskLevel) as any}
+                        size="small"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Typography variant="body2">
+                          {student.currentProgress}%
+                        </Typography>
+                        {student.currentProgress < 50 && (
+                          <RiskIcon color="error" fontSize="small" />
                         )}
                       </Box>
-                    ) : (
-                      <Typography variant="body2" color="success.main">
-                        No issues detected
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2">
+                        {student.lastActivity}
                       </Typography>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <IconButton
-                      onClick={() => handleViewStudentDetails(student.studentId)}
-                      color="primary"
-                      size="small"
-                    >
-                      <ViewIcon />
-                    </IconButton>
+                    </TableCell>
+                    <TableCell>
+                      {student.strugglingAreas.length > 0 ? (
+                        <Box>
+                          {student.strugglingAreas.slice(0, 2).map((area, index) => (
+                            <Chip
+                              key={index}
+                              label={area}
+                              size="small"
+                              color="warning"
+                              sx={{ mr: 0.5, mb: 0.5 }}
+                            />
+                          ))}
+                          {student.strugglingAreas.length > 2 && (
+                            <Typography variant="caption" color="text.secondary">
+                              +{student.strugglingAreas.length - 2} more
+                            </Typography>
+                          )}
+                        </Box>
+                      ) : (
+                        <Typography variant="body2" color="success.main">
+                          No issues detected
+                        </Typography>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <IconButton
+                        onClick={() => handleViewStudentDetails(student.studentId)}
+                        color="primary"
+                        size="small"
+                      >
+                        <ViewIcon />
+                      </IconButton>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={7} align="center" sx={{ py: 8 }}>
+                    <Box>
+                      <Typography variant="h6" color="text.secondary" gutterBottom>
+                        No student analytics data available
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Student risk analytics and AI-powered insights will appear here once courses have enrolled students with progress data
+                      </Typography>
+                    </Box>
                   </TableCell>
                 </TableRow>
-              ))}
+              )}
             </TableBody>
           </Table>
         </TableContainer>

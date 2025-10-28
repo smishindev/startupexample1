@@ -272,29 +272,42 @@ export const EnhancedAssessmentAnalyticsDashboard: React.FC = () => {
               <Card>
                 <CardContent>
                   <Typography variant="h6" gutterBottom>Performance Trends (Last 6 Months)</Typography>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <LineChart data={formatTrendData()}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="monthName" />
-                      <YAxis />
-                      <ChartTooltip />
-                      <Legend />
-                      <Line 
-                        type="monotone" 
-                        dataKey="avgScore" 
-                        stroke="#8884d8" 
-                        name="Avg Score %" 
-                        strokeWidth={2}
-                      />
-                      <Line 
-                        type="monotone" 
-                        dataKey="passRate" 
-                        stroke="#82ca9d" 
-                        name="Pass Rate %" 
-                        strokeWidth={2}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
+                  <Box height={300}>
+                    {crossAnalytics.performanceTrends && crossAnalytics.performanceTrends.length > 0 ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={formatTrendData()}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="monthName" />
+                          <YAxis />
+                          <ChartTooltip />
+                          <Legend />
+                          <Line 
+                            type="monotone" 
+                            dataKey="avgScore" 
+                            stroke="#8884d8" 
+                            name="Avg Score %" 
+                            strokeWidth={2}
+                          />
+                          <Line 
+                            type="monotone" 
+                            dataKey="passRate" 
+                            stroke="#82ca9d" 
+                            name="Pass Rate %" 
+                            strokeWidth={2}
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <Box display="flex" flexDirection="column" alignItems="center" justifyContent="center" height="100%">
+                        <Typography variant="body1" color="text.secondary" gutterBottom>
+                          No performance trend data available
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Trends will appear as students complete assessments over time
+                        </Typography>
+                      </Box>
+                    )}
+                  </Box>
                 </CardContent>
               </Card>
             </Grid>
@@ -304,25 +317,38 @@ export const EnhancedAssessmentAnalyticsDashboard: React.FC = () => {
               <Card>
                 <CardContent>
                   <Typography variant="h6" gutterBottom>Assessment Types</Typography>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <PieChart>
-                      <Pie
-                        data={formatTypeData()}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        label={({ displayType, count }) => `${displayType}: ${count}`}
-                        outerRadius={80}
-                        fill="#8884d8"
-                        dataKey="count"
-                      >
-                        {formatTypeData().map((_entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <ChartTooltip />
-                    </PieChart>
-                  </ResponsiveContainer>
+                  <Box height={300}>
+                    {crossAnalytics.assessmentTypes && crossAnalytics.assessmentTypes.length > 0 ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={formatTypeData()}
+                            cx="50%"
+                            cy="50%"
+                            labelLine={false}
+                            label={({ displayType, count }) => `${displayType}: ${count}`}
+                            outerRadius={80}
+                            fill="#8884d8"
+                            dataKey="count"
+                          >
+                            {formatTypeData().map((_entry, index) => (
+                              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                            ))}
+                          </Pie>
+                          <ChartTooltip />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <Box display="flex" flexDirection="column" alignItems="center" justifyContent="center" height="100%">
+                        <Typography variant="body2" color="text.secondary" gutterBottom>
+                          No assessment types data
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Create different types of assessments to see distribution
+                        </Typography>
+                      </Box>
+                    )}
+                  </Box>
                 </CardContent>
               </Card>
             </Grid>
@@ -335,44 +361,55 @@ export const EnhancedAssessmentAnalyticsDashboard: React.FC = () => {
                     <CheckCircleIcon sx={{ mr: 1, color: 'success.main' }} />
                     Top Performing Assessments
                   </Typography>
-                  <List>
-                    {crossAnalytics.topPerformingAssessments.map((assessment, index) => (
-                      <React.Fragment key={assessment.Id}>
-                        <ListItem sx={{ px: 0 }}>
-                          <ListItemText
-                            primary={
-                              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <Typography variant="subtitle1" sx={{ fontWeight: 'medium' }}>
-                                  {assessment.Title}
-                                </Typography>
-                                <Chip 
-                                  label={`${assessment.passRate}%`}
-                                  color="success"
-                                  size="small"
-                                />
-                              </Box>
-                            }
-                            secondary={
-                              <React.Fragment>
-                                <span style={{ display: 'block', fontSize: '0.75rem', color: 'rgba(0, 0, 0, 0.6)' }}>
-                                  {assessment.courseTitle} • {assessmentAnalyticsApi.formatAssessmentType(assessment.Type)}
-                                </span>
-                                <LinearProgress 
-                                  variant="determinate" 
-                                  value={assessment.passRate} 
-                                  sx={{ mt: 1, height: 4, borderRadius: 2, display: 'block' }}
-                                />
-                                <span style={{ display: 'block', fontSize: '0.75rem', color: 'rgba(0, 0, 0, 0.6)' }}>
-                                  {assessment.submissions} submissions • Avg: {assessment.avgScore}%
-                                </span>
-                              </React.Fragment>
-                            }
-                          />
-                        </ListItem>
-                        {index < crossAnalytics.topPerformingAssessments.length - 1 && <Divider />}
-                      </React.Fragment>
-                    ))}
-                  </List>
+                  {crossAnalytics.topPerformingAssessments && crossAnalytics.topPerformingAssessments.length > 0 ? (
+                    <List>
+                      {crossAnalytics.topPerformingAssessments.map((assessment, index) => (
+                        <React.Fragment key={assessment.Id}>
+                          <ListItem sx={{ px: 0 }}>
+                            <ListItemText
+                              primary={
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                  <Typography variant="subtitle1" sx={{ fontWeight: 'medium' }}>
+                                    {assessment.Title}
+                                  </Typography>
+                                  <Chip 
+                                    label={`${assessment.passRate}%`}
+                                    color="success"
+                                    size="small"
+                                  />
+                                </Box>
+                              }
+                              secondary={
+                                <React.Fragment>
+                                  <span style={{ display: 'block', fontSize: '0.75rem', color: 'rgba(0, 0, 0, 0.6)' }}>
+                                    {assessment.courseTitle} • {assessmentAnalyticsApi.formatAssessmentType(assessment.Type)}
+                                  </span>
+                                  <LinearProgress 
+                                    variant="determinate" 
+                                    value={assessment.passRate} 
+                                    sx={{ mt: 1, height: 4, borderRadius: 2, display: 'block' }}
+                                  />
+                                  <span style={{ display: 'block', fontSize: '0.75rem', color: 'rgba(0, 0, 0, 0.6)' }}>
+                                    {assessment.submissions} submissions • Avg: {assessment.avgScore}%
+                                  </span>
+                                </React.Fragment>
+                              }
+                            />
+                          </ListItem>
+                          {index < crossAnalytics.topPerformingAssessments.length - 1 && <Divider />}
+                        </React.Fragment>
+                      ))}
+                    </List>
+                  ) : (
+                    <Box py={4} textAlign="center">
+                      <Typography variant="body2" color="text.secondary" gutterBottom>
+                        No assessment data available
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        Create assessments and have students complete them to see top performers
+                      </Typography>
+                    </Box>
+                  )}
                 </CardContent>
               </Card>
             </Grid>
@@ -385,52 +422,63 @@ export const EnhancedAssessmentAnalyticsDashboard: React.FC = () => {
                     <WarningIcon sx={{ mr: 1, color: 'error.main' }} />
                     Areas Needing Attention
                   </Typography>
-                  <List>
-                    {crossAnalytics.strugglingAreas.map((area, index) => (
-                      <React.Fragment key={area.Id}>
-                        <ListItem sx={{ px: 0 }}>
-                          <ListItemText
-                            primary={
-                              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <Typography variant="subtitle1" sx={{ fontWeight: 'medium' }}>
-                                  {area.Title}
-                                </Typography>
-                                <Chip 
-                                  label={`${area.passRate}%`}
-                                  color="error"
-                                  size="small"
-                                />
-                              </Box>
-                            }
-                            secondary={
-                              <React.Fragment>
-                                <span style={{ display: 'block', fontSize: '0.75rem', color: 'rgba(0, 0, 0, 0.6)' }}>
-                                  {area.courseTitle} • {assessmentAnalyticsApi.formatAssessmentType(area.Type)}
-                                </span>
-                                <LinearProgress 
-                                  variant="determinate" 
-                                  value={area.passRate} 
-                                  sx={{ 
-                                    mt: 1, 
-                                    height: 4, 
-                                    borderRadius: 2,
-                                    display: 'block',
-                                    '& .MuiLinearProgress-bar': {
-                                      backgroundColor: 'error.main'
-                                    }
-                                  }}
-                                />
-                                <span style={{ display: 'block', fontSize: '0.75rem', color: 'rgba(0, 0, 0, 0.6)' }}>
-                                  {area.failedAttempts} failures • {area.submissions} submissions
-                                </span>
-                              </React.Fragment>
-                            }
-                          />
-                        </ListItem>
-                        {index < crossAnalytics.strugglingAreas.length - 1 && <Divider />}
-                      </React.Fragment>
-                    ))}
-                  </List>
+                  {crossAnalytics.strugglingAreas && crossAnalytics.strugglingAreas.length > 0 ? (
+                    <List>
+                      {crossAnalytics.strugglingAreas.map((area, index) => (
+                        <React.Fragment key={area.Id}>
+                          <ListItem sx={{ px: 0 }}>
+                            <ListItemText
+                              primary={
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                  <Typography variant="subtitle1" sx={{ fontWeight: 'medium' }}>
+                                    {area.Title}
+                                  </Typography>
+                                  <Chip 
+                                    label={`${area.passRate}%`}
+                                    color="error"
+                                    size="small"
+                                  />
+                                </Box>
+                              }
+                              secondary={
+                                <React.Fragment>
+                                  <span style={{ display: 'block', fontSize: '0.75rem', color: 'rgba(0, 0, 0, 0.6)' }}>
+                                    {area.courseTitle} • {assessmentAnalyticsApi.formatAssessmentType(area.Type)}
+                                  </span>
+                                  <LinearProgress 
+                                    variant="determinate" 
+                                    value={area.passRate} 
+                                    sx={{ 
+                                      mt: 1, 
+                                      height: 4, 
+                                      borderRadius: 2,
+                                      display: 'block',
+                                      '& .MuiLinearProgress-bar': {
+                                        backgroundColor: 'error.main'
+                                      }
+                                    }}
+                                  />
+                                  <span style={{ display: 'block', fontSize: '0.75rem', color: 'rgba(0, 0, 0, 0.6)' }}>
+                                    {area.failedAttempts} failures • {area.submissions} submissions
+                                  </span>
+                                </React.Fragment>
+                              }
+                            />
+                          </ListItem>
+                          {index < crossAnalytics.strugglingAreas.length - 1 && <Divider />}
+                        </React.Fragment>
+                      ))}
+                    </List>
+                  ) : (
+                    <Box py={4} textAlign="center">
+                      <Typography variant="body2" color="text.secondary" gutterBottom>
+                        No struggling areas identified
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        Assessment data will highlight areas where students need additional support
+                      </Typography>
+                    </Box>
+                  )}
                 </CardContent>
               </Card>
             </Grid>
@@ -444,17 +492,28 @@ export const EnhancedAssessmentAnalyticsDashboard: React.FC = () => {
               <Card>
                 <CardContent>
                   <Typography variant="h6" gutterBottom>Assessment Type Performance</Typography>
-                  <ResponsiveContainer width="100%" height={400}>
-                    <BarChart data={formatTypeData()}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="displayType" />
-                      <YAxis />
-                      <ChartTooltip />
-                      <Legend />
-                      <Bar dataKey="avgScore" fill="#8884d8" name="Avg Score %" />
-                      <Bar dataKey="passRate" fill="#82ca9d" name="Pass Rate %" />
-                    </BarChart>
-                  </ResponsiveContainer>
+                  {crossAnalytics.assessmentTypes && crossAnalytics.assessmentTypes.length > 0 ? (
+                    <ResponsiveContainer width="100%" height={400}>
+                      <BarChart data={formatTypeData()}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="displayType" />
+                        <YAxis />
+                        <ChartTooltip />
+                        <Legend />
+                        <Bar dataKey="avgScore" fill="#8884d8" name="Avg Score %" />
+                        <Bar dataKey="passRate" fill="#82ca9d" name="Pass Rate %" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <Box height={400} display="flex" flexDirection="column" alignItems="center" justifyContent="center">
+                      <Typography variant="body1" color="text.secondary" gutterBottom>
+                        No assessment type data available
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Create and assign assessments to see performance comparison by type
+                      </Typography>
+                    </Box>
+                  )}
                 </CardContent>
               </Card>
             </Grid>
@@ -468,37 +527,39 @@ export const EnhancedAssessmentAnalyticsDashboard: React.FC = () => {
               <Card>
                 <CardContent>
                   <Typography variant="h6" gutterBottom>Course Selection for Detailed Analysis</Typography>
-                  <Grid container spacing={2}>
-                    {courses.map((course) => (
-                      <Grid item xs={12} md={6} lg={4} key={course.id}>
-                        <Paper 
-                          sx={{ 
-                            p: 2, 
-                            cursor: 'pointer',
-                            border: selectedCourseId === course.id ? 2 : 1,
-                            borderColor: selectedCourseId === course.id ? 'primary.main' : 'divider',
-                            '&:hover': { borderColor: 'primary.main' }
-                          }}
-                          onClick={() => setSelectedCourseId(course.id)}
-                        >
-                          <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
-                            {course.title}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {course.students} students • {course.status}
-                          </Typography>
-                        </Paper>
+                  {courses && courses.length > 0 ? (
+                    <>
+                      <Grid container spacing={2}>
+                        {courses.map((course) => (
+                          <Grid item xs={12} md={6} lg={4} key={course.id}>
+                            <Paper 
+                              sx={{ 
+                                p: 2, 
+                                cursor: 'pointer',
+                                border: selectedCourseId === course.id ? 2 : 1,
+                                borderColor: selectedCourseId === course.id ? 'primary.main' : 'divider',
+                                '&:hover': { borderColor: 'primary.main' }
+                              }}
+                              onClick={() => setSelectedCourseId(course.id)}
+                            >
+                              <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
+                                {course.title}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                {course.students} students • {course.status}
+                              </Typography>
+                            </Paper>
+                          </Grid>
+                        ))}
                       </Grid>
-                    ))}
-                  </Grid>
 
-                  {selectedCoursePerformance && (
-                    <Box sx={{ mt: 3 }}>
-                      <Typography variant="h6" gutterBottom>
-                        Student Performance Analysis
-                      </Typography>
-                      <List>
-                        {selectedCoursePerformance.studentPerformance.slice(0, 10).map((student) => (
+                      {selectedCoursePerformance && (
+                        <Box sx={{ mt: 3 }}>
+                          <Typography variant="h6" gutterBottom>
+                            Student Performance Analysis
+                          </Typography>
+                          <List>
+                            {selectedCoursePerformance.studentPerformance.slice(0, 10).map((student) => (
                           <ListItem key={student.userId}>
                             <ListItemText
                               primary={
@@ -535,6 +596,17 @@ export const EnhancedAssessmentAnalyticsDashboard: React.FC = () => {
                           </ListItem>
                         ))}
                       </List>
+                    </Box>
+                  )}
+                    </>
+                  ) : (
+                    <Box py={6} textAlign="center">
+                      <Typography variant="body1" color="text.secondary" gutterBottom>
+                        No courses available
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Create courses to view detailed student performance analytics
+                      </Typography>
                     </Box>
                   )}
                 </CardContent>

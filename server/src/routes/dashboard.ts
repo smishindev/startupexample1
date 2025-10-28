@@ -26,7 +26,7 @@ router.get('/stats', authenticateToken, async (req: Request, res: Response) => {
       .query(`
         SELECT COUNT(DISTINCT CourseId) as TotalCourses
         FROM Enrollments
-        WHERE UserId = @userId AND IsActive = 1
+        WHERE UserId = @userId AND Status = 'active'
       `);
 
     const totalCourses = enrollmentResult.recordset[0]?.TotalCourses || 0;
@@ -66,9 +66,9 @@ router.get('/stats', authenticateToken, async (req: Request, res: Response) => {
           FROM LearningActivities
           WHERE UserId = @userId
           UNION
-          SELECT DISTINCT CAST(LastAccessedAt AS DATE) as ActivityDate
+          SELECT DISTINCT CAST(EnrolledAt AS DATE) as ActivityDate
           FROM Enrollments
-          WHERE UserId = @userId AND LastAccessedAt IS NOT NULL
+          WHERE UserId = @userId AND EnrolledAt IS NOT NULL
         ),
         OrderedDates AS (
           SELECT 

@@ -17,7 +17,6 @@ import {
   Assessment as AssessmentIcon,
   School as CourseIcon,
   People as StudentsIcon,
-  TrendingUp as ProgressIcon,
   TrendingUp as TrendingUpIcon,
   Speed as PerformanceIcon,
   Refresh as RefreshIcon,
@@ -102,17 +101,6 @@ export const AnalyticsHubPage: React.FC = () => {
       stats: {
         primary: stats?.totalStudents || 0,
         secondary: 'Total Students'
-      }
-    },
-    {
-      title: 'Smart Progress Dashboard',
-      description: 'AI-powered progress analytics, completion rates, and learning outcome insights.',
-      icon: <ProgressIcon sx={{ fontSize: 40 }} />,
-      path: '/smart-progress',
-      color: '#9c27b0',
-      stats: {
-        primary: `${stats?.completionRate || 0}%`,
-        secondary: 'Avg Completion'
       }
     }
   ];

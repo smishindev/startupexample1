@@ -30,7 +30,7 @@ router.get('/my-enrollments', authenticateToken, async (req: AuthRequest, res: R
           c.Price,
           'You' as instructorFirstName,
           'are teaching' as instructorLastName,
-          COALESCE(AVG(CAST(up.OverallProgress as FLOAT)), 0) as OverallProgress,
+          COALESCE(AVG(CAST(up.ProgressPercentage as FLOAT)), 0) as OverallProgress,
           COUNT(DISTINCT e.UserId) as TimeSpent,
           MAX(COALESCE(up.LastAccessedAt, GETUTCDATE())) as LastAccessedAt
         FROM dbo.Courses c
@@ -59,14 +59,14 @@ router.get('/my-enrollments', authenticateToken, async (req: AuthRequest, res: R
           c.Price,
           u.FirstName as instructorFirstName,
           u.LastName as instructorLastName,
-          COALESCE(up.OverallProgress, 0) as OverallProgress,
+          COALESCE(up.ProgressPercentage, 0) as OverallProgress,
           COALESCE(up.TimeSpent, 0) as TimeSpent,
           up.LastAccessedAt
         FROM dbo.Enrollments e
         INNER JOIN dbo.Courses c ON e.CourseId = c.Id
         INNER JOIN dbo.Users u ON c.InstructorId = u.Id
         LEFT JOIN (
-          SELECT UserId, CourseId, OverallProgress, TimeSpent, LastAccessedAt,
+          SELECT UserId, CourseId, ProgressPercentage, TimeSpent, LastAccessedAt,
                  ROW_NUMBER() OVER (PARTITION BY UserId, CourseId ORDER BY LastAccessedAt DESC) as rn
           FROM dbo.UserProgress
         ) up ON e.UserId = up.UserId AND e.CourseId = up.CourseId AND up.rn = 1
@@ -223,15 +223,15 @@ router.post('/courses/:courseId/enroll', authenticateToken, async (req: AuthRequ
 
     // Initialize user progress
     await db.execute(`
-      INSERT INTO dbo.UserProgress (UserId, CourseId, OverallProgress, TimeSpent, LastAccessedAt, StartedAt)
-      VALUES (@userId, @courseId, @progress, @timeSpent, @lastAccessed, @startedAt)
+      INSERT INTO dbo.UserProgress (UserId, CourseId, ProgressPercentage, TimeSpent, LastAccessedAt, Status)
+      VALUES (@userId, @courseId, @progress, @timeSpent, @lastAccessed, @status)
     `, {
       userId,
       courseId,
       progress: 0,
       timeSpent: 0,
       lastAccessed: now,
-      startedAt: now
+      status: 'in_progress'
     });
 
     // Update course enrollment count
@@ -313,7 +313,7 @@ router.get('/courses/:courseId/stats', async (req: AuthRequest, res: Response) =
         COUNT(CASE WHEN Status = 'active' THEN 1 END) as activeEnrollments,
         COUNT(CASE WHEN Status = 'completed' THEN 1 END) as completedEnrollments,
         COUNT(CASE WHEN Status = 'dropped' THEN 1 END) as droppedEnrollments,
-        AVG(CASE WHEN up.OverallProgress IS NOT NULL THEN CAST(up.OverallProgress as FLOAT) END) as avgProgress
+        AVG(CASE WHEN up.ProgressPercentage IS NOT NULL THEN CAST(up.ProgressPercentage as FLOAT) END) as avgProgress
       FROM dbo.Enrollments e
       LEFT JOIN dbo.UserProgress up ON e.UserId = up.UserId AND e.CourseId = up.CourseId
       WHERE e.CourseId = @courseId

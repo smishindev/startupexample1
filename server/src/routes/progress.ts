@@ -21,12 +21,12 @@ router.get('/my-progress', authenticateToken, async (req: AuthRequest, res: Resp
         SELECT 
           COUNT(DISTINCT c.Id) as totalCourses,
           COUNT(DISTINCT e.UserId) as totalStudents,
-          COALESCE(AVG(CAST(up.OverallProgress as FLOAT)), 0) as avgStudentProgress,
-          COUNT(DISTINCT CASE WHEN up.OverallProgress = 100 THEN e.UserId END) as studentsCompleted,
-          COUNT(DISTINCT CASE WHEN up.OverallProgress > 0 AND up.OverallProgress < 100 THEN e.UserId END) as studentsInProgress
+          COALESCE(AVG(CAST(cp.OverallProgress as FLOAT)), 0) as avgStudentProgress,
+          COUNT(DISTINCT CASE WHEN cp.OverallProgress = 100 THEN e.UserId END) as studentsCompleted,
+          COUNT(DISTINCT CASE WHEN cp.OverallProgress > 0 AND cp.OverallProgress < 100 THEN e.UserId END) as studentsInProgress
         FROM dbo.Courses c
         LEFT JOIN dbo.Enrollments e ON c.Id = e.CourseId AND e.Status = 'active'
-        LEFT JOIN dbo.UserProgress up ON e.UserId = up.UserId AND e.CourseId = up.CourseId
+        LEFT JOIN dbo.CourseProgress cp ON e.UserId = cp.UserId AND e.CourseId = cp.CourseId
         WHERE c.InstructorId = @userId AND c.IsPublished = 1
       `, { userId });
 
@@ -35,14 +35,14 @@ router.get('/my-progress', authenticateToken, async (req: AuthRequest, res: Resp
           c.Id as CourseId,
           c.Title as courseTitle,
           COUNT(e.UserId) as enrolledStudents,
-          COALESCE(AVG(CAST(up.OverallProgress as FLOAT)), 0) as OverallProgress,
+          COALESCE(AVG(CAST(cp.OverallProgress as FLOAT)), 0) as OverallProgress,
           c.UpdatedAt as LastAccessedAt,
           'Instructor' as instructorFirstName,
           'Dashboard' as instructorLastName,
           0 as TimeSpent
         FROM dbo.Courses c
         LEFT JOIN dbo.Enrollments e ON c.Id = e.CourseId AND e.Status = 'active'
-        LEFT JOIN dbo.UserProgress up ON e.UserId = up.UserId AND e.CourseId = up.CourseId
+        LEFT JOIN dbo.CourseProgress cp ON e.UserId = cp.UserId AND e.CourseId = cp.CourseId
         WHERE c.InstructorId = @userId AND c.IsPublished = 1
         GROUP BY c.Id, c.Title, c.UpdatedAt
         ORDER BY c.UpdatedAt DESC
@@ -63,31 +63,31 @@ router.get('/my-progress', authenticateToken, async (req: AuthRequest, res: Resp
       // For students, show learning progress
       const progressOverview = await db.query(`
         SELECT 
-          COUNT(DISTINCT up.CourseId) as totalCourses,
-          AVG(CAST(up.OverallProgress as FLOAT)) as avgProgress,
-          SUM(up.TimeSpent) as totalTimeSpent,
-          COUNT(CASE WHEN up.OverallProgress = 100 THEN 1 END) as completedCourses,
-          COUNT(CASE WHEN up.OverallProgress > 0 AND up.OverallProgress < 100 THEN 1 END) as inProgressCourses
-        FROM dbo.UserProgress up
-        INNER JOIN dbo.Enrollments e ON up.UserId = e.UserId AND up.CourseId = e.CourseId
-        WHERE up.UserId = @userId AND e.Status = 'active'
+          COUNT(DISTINCT cp.CourseId) as totalCourses,
+          AVG(CAST(cp.OverallProgress as FLOAT)) as avgProgress,
+          SUM(cp.TimeSpent) as totalTimeSpent,
+          COUNT(CASE WHEN cp.OverallProgress = 100 THEN 1 END) as completedCourses,
+          COUNT(CASE WHEN cp.OverallProgress > 0 AND cp.OverallProgress < 100 THEN 1 END) as inProgressCourses
+        FROM dbo.CourseProgress cp
+        INNER JOIN dbo.Enrollments e ON cp.UserId = e.UserId AND cp.CourseId = e.CourseId
+        WHERE cp.UserId = @userId AND e.Status = 'active'
       `, { userId });
 
       const recentActivity = await db.query(`
         SELECT TOP 10
-          up.CourseId,
+          cp.CourseId,
           c.Title as courseTitle,
-          up.OverallProgress,
-          up.LastAccessedAt,
-          up.TimeSpent,
+          cp.OverallProgress,
+          cp.LastAccessedAt,
+          cp.TimeSpent,
           u.FirstName as instructorFirstName,
           u.LastName as instructorLastName
-        FROM dbo.UserProgress up
-        INNER JOIN dbo.Courses c ON up.CourseId = c.Id
+        FROM dbo.CourseProgress cp
+        INNER JOIN dbo.Courses c ON cp.CourseId = c.Id
         INNER JOIN dbo.Users u ON c.InstructorId = u.Id
-        INNER JOIN dbo.Enrollments e ON up.UserId = e.UserId AND up.CourseId = e.CourseId
-        WHERE up.UserId = @userId AND e.Status = 'active'
-        ORDER BY up.LastAccessedAt DESC
+        INNER JOIN dbo.Enrollments e ON cp.UserId = e.UserId AND cp.CourseId = e.CourseId
+        WHERE cp.UserId = @userId AND e.Status = 'active'
+        ORDER BY cp.LastAccessedAt DESC
       `, { userId });
 
       res.json({
@@ -131,12 +131,13 @@ router.get('/courses/:courseId', authenticateToken, async (req: AuthRequest, res
     const courseProgress = await db.query(`
       SELECT 
         OverallProgress,
+        CompletedLessons,
         TimeSpent,
         LastAccessedAt,
-        StartedAt,
-        CompletedAt
-      FROM dbo.UserProgress
-      WHERE UserId = @userId AND CourseId = @courseId AND LessonId IS NULL
+        CompletedAt,
+        CreatedAt
+      FROM dbo.CourseProgress
+      WHERE UserId = @userId AND CourseId = @courseId
     `, { userId, courseId });
 
     // Get lesson progress
@@ -147,8 +148,8 @@ router.get('/courses/:courseId', authenticateToken, async (req: AuthRequest, res
         l.OrderIndex,
         up.CompletedAt,
         up.TimeSpent as lessonTimeSpent,
-        up.OverallProgress as ProgressPercentage,
-        up.PerformanceMetrics as Notes
+        up.ProgressPercentage,
+        up.NotesJson as Notes
       FROM dbo.UserProgress up
       INNER JOIN dbo.Lessons l ON up.LessonId = l.Id
       WHERE up.UserId = @userId AND l.CourseId = @courseId AND up.LessonId IS NOT NULL
@@ -166,10 +167,11 @@ router.get('/courses/:courseId', authenticateToken, async (req: AuthRequest, res
     res.json({
       courseProgress: courseProgress[0] || {
         OverallProgress: 0,
+        CompletedLessons: 0,
         TimeSpent: 0,
         LastAccessedAt: null,
-        StartedAt: null,
-        CompletedAt: null
+        CompletedAt: null,
+        CreatedAt: null
       },
       lessonProgress,
       allLessons,
@@ -230,14 +232,14 @@ router.post('/lessons/:lessonId/complete', authenticateToken, async (req: AuthRe
       await db.execute(`
         UPDATE dbo.UserProgress
         SET CompletedAt = @completedAt, TimeSpent = @timeSpent, 
-            OverallProgress = 100, PerformanceMetrics = @notes, LastAccessedAt = @updatedAt
+            ProgressPercentage = 100, NotesJson = @notes, LastAccessedAt = @updatedAt, Status = @status
         WHERE UserId = @userId AND LessonId = @lessonId
-      `, { userId, lessonId, completedAt: now, timeSpent, notes, updatedAt: now });
+      `, { userId, lessonId, completedAt: now, timeSpent, notes, updatedAt: now, status: 'completed' });
     } else {
       // Create new progress record
       await db.execute(`
-        INSERT INTO dbo.UserProgress (Id, UserId, CourseId, LessonId, CompletedAt, TimeSpent, OverallProgress, PerformanceMetrics, StartedAt, LastAccessedAt)
-        VALUES (@id, @userId, @courseId, @lessonId, @completedAt, @timeSpent, @progressPercentage, @notes, @startedAt, @lastAccessedAt)
+        INSERT INTO dbo.UserProgress (Id, UserId, CourseId, LessonId, CompletedAt, TimeSpent, ProgressPercentage, NotesJson, LastAccessedAt, Status)
+        VALUES (@id, @userId, @courseId, @lessonId, @completedAt, @timeSpent, @progressPercentage, @notes, @lastAccessedAt, @status)
       `, {
         id: uuidv4(),
         userId,
@@ -247,8 +249,8 @@ router.post('/lessons/:lessonId/complete', authenticateToken, async (req: AuthRe
         timeSpent,
         progressPercentage: 100,
         notes,
-        startedAt: now,
-        lastAccessedAt: now
+        lastAccessedAt: now,
+        status: 'completed'
       });
     }
 
@@ -311,15 +313,15 @@ router.put('/lessons/:lessonId/progress', authenticateToken, async (req: AuthReq
       // Update existing progress
       await db.execute(`
         UPDATE dbo.UserProgress
-        SET OverallProgress = @progressPercentage, TimeSpent = @timeSpent, 
-            CompletedAt = @completedAt, PerformanceMetrics = @notes, LastAccessedAt = @updatedAt
+        SET ProgressPercentage = @progressPercentage, TimeSpent = @timeSpent, 
+            CompletedAt = @completedAt, NotesJson = @notes, LastAccessedAt = @updatedAt, Status = @status
         WHERE UserId = @userId AND LessonId = @lessonId
-      `, { userId, lessonId, progressPercentage, timeSpent, completedAt, notes, updatedAt: now });
+      `, { userId, lessonId, progressPercentage, timeSpent, completedAt, notes, updatedAt: now, status: progressPercentage >= 100 ? 'completed' : 'in-progress' });
     } else {
       // Create new progress record
       await db.execute(`
-        INSERT INTO dbo.UserProgress (Id, UserId, CourseId, LessonId, OverallProgress, TimeSpent, CompletedAt, PerformanceMetrics, StartedAt, LastAccessedAt)
-        VALUES (@id, @userId, @courseId, @lessonId, @progressPercentage, @timeSpent, @completedAt, @notes, @startedAt, @lastAccessedAt)
+        INSERT INTO dbo.UserProgress (Id, UserId, CourseId, LessonId, ProgressPercentage, TimeSpent, CompletedAt, NotesJson, LastAccessedAt, Status)
+        VALUES (@id, @userId, @courseId, @lessonId, @progressPercentage, @timeSpent, @completedAt, @notes, @lastAccessedAt, @status)
       `, {
         id: uuidv4(),
         userId,
@@ -329,8 +331,8 @@ router.put('/lessons/:lessonId/progress', authenticateToken, async (req: AuthReq
         timeSpent,
         completedAt,
         notes,
-        startedAt: now,
-        lastAccessedAt: now
+        lastAccessedAt: now,
+        status: progressPercentage >= 100 ? 'completed' : 'in-progress'
       });
     }
 
@@ -355,13 +357,16 @@ async function updateCourseProgress(userId: string, courseId: string) {
 
     // Get completed lessons
     const completedLessons = await db.query(`
-      SELECT LessonId, OverallProgress as ProgressPercentage, TimeSpent
+      SELECT LessonId, ProgressPercentage, TimeSpent
       FROM dbo.UserProgress
       WHERE UserId = @userId AND LessonId IS NOT NULL AND CourseId = @courseId
     `, { userId, courseId });
 
     const totalLessons = allLessons.length;
     const totalTimeSpent = completedLessons.reduce((sum, lesson) => sum + (lesson.TimeSpent || 0), 0);
+    const completedLessonIds = completedLessons
+      .filter(l => l.ProgressPercentage >= 100)
+      .map(l => l.LessonId);
     
     // Calculate progress based on lesson completion percentage
     const avgProgress = totalLessons > 0 
@@ -370,30 +375,33 @@ async function updateCourseProgress(userId: string, courseId: string) {
 
     const now = new Date().toISOString();
 
-    // Update or create user progress record
+    // Update or create course progress record
     const existingProgress = await db.query(`
-      SELECT Id FROM dbo.UserProgress
-      WHERE UserId = @userId AND CourseId = @courseId AND LessonId IS NULL
+      SELECT Id FROM dbo.CourseProgress
+      WHERE UserId = @userId AND CourseId = @courseId
     `, { userId, courseId });
 
     if (existingProgress.length > 0) {
       await db.execute(`
-        UPDATE dbo.UserProgress
-        SET OverallProgress = @progress, TimeSpent = @timeSpent, LastAccessedAt = @lastAccessed
-        WHERE UserId = @userId AND CourseId = @courseId AND LessonId IS NULL
-      `, { userId, courseId, progress: Math.round(avgProgress), timeSpent: totalTimeSpent, lastAccessed: now });
+        UPDATE dbo.CourseProgress
+        SET OverallProgress = @progress, TimeSpent = @timeSpent, LastAccessedAt = @lastAccessed, 
+            CompletedLessons = @completedLessonsJson, UpdatedAt = @updatedAt
+        WHERE UserId = @userId AND CourseId = @courseId
+      `, { userId, courseId, progress: Math.round(avgProgress), timeSpent: totalTimeSpent, lastAccessed: now, completedLessonsJson: JSON.stringify(completedLessonIds), updatedAt: now });
     } else {
       await db.execute(`
-        INSERT INTO dbo.UserProgress (Id, UserId, CourseId, LessonId, OverallProgress, TimeSpent, LastAccessedAt, StartedAt)
-        VALUES (@id, @userId, @courseId, NULL, @progress, @timeSpent, @lastAccessed, @startedAt)
+        INSERT INTO dbo.CourseProgress (Id, UserId, CourseId, OverallProgress, CompletedLessons, TimeSpent, LastAccessedAt, CreatedAt, UpdatedAt)
+        VALUES (@id, @userId, @courseId, @progress, @completedLessonsJson, @timeSpent, @lastAccessed, @createdAt, @updatedAt)
       `, { 
         id: uuidv4(),
         userId, 
         courseId, 
-        progress: Math.round(avgProgress), 
+        progress: Math.round(avgProgress),
+        completedLessonsJson: JSON.stringify(completedLessonIds),
         timeSpent: totalTimeSpent, 
         lastAccessed: now, 
-        startedAt: now 
+        createdAt: now,
+        updatedAt: now
       });
     }
 
@@ -423,12 +431,12 @@ router.get('/achievements', authenticateToken, async (req: AuthRequest, res: Res
         SELECT 
           COUNT(DISTINCT c.Id) as coursesCreated,
           COUNT(DISTINCT e.UserId) as totalStudents,
-          COUNT(DISTINCT CASE WHEN up.OverallProgress = 100 THEN e.UserId END) as studentsCompleted,
-          COALESCE(SUM(up.TimeSpent), 0) as totalTeachingTime,
+          COUNT(DISTINCT CASE WHEN cp.OverallProgress = 100 THEN e.UserId END) as studentsCompleted,
+          COALESCE(SUM(cp.TimeSpent), 0) as totalTeachingTime,
           MAX(c.UpdatedAt) as lastActivity
         FROM dbo.Courses c
         LEFT JOIN dbo.Enrollments e ON c.Id = e.CourseId AND e.Status = 'active'
-        LEFT JOIN dbo.UserProgress up ON e.UserId = up.UserId AND e.CourseId = up.CourseId
+        LEFT JOIN dbo.CourseProgress cp ON e.UserId = cp.UserId AND e.CourseId = cp.CourseId
         WHERE c.InstructorId = @userId AND c.IsPublished = 1
       `, { userId });
 
@@ -484,13 +492,13 @@ router.get('/achievements', authenticateToken, async (req: AuthRequest, res: Res
       // Get achievement stats
       const achievements = await db.query(`
         SELECT 
-          COUNT(DISTINCT up.CourseId) as coursesStarted,
-          COUNT(DISTINCT CASE WHEN up.OverallProgress = 100 THEN up.CourseId END) as coursesCompleted,
-          COALESCE(SUM(up.TimeSpent), 0) as totalTimeSpent,
-          COUNT(DISTINCT CASE WHEN up.LessonId IS NOT NULL THEN up.LessonId END) as lessonsCompleted,
-          MAX(up.LastAccessedAt) as lastActivity
-        FROM dbo.UserProgress up
-        WHERE up.UserId = @userId
+          COUNT(DISTINCT cp.CourseId) as coursesStarted,
+          COUNT(DISTINCT CASE WHEN cp.OverallProgress = 100 THEN cp.CourseId END) as coursesCompleted,
+          COALESCE(SUM(cp.TimeSpent), 0) as totalTimeSpent,
+          (SELECT COUNT(DISTINCT LessonId) FROM dbo.UserProgress WHERE UserId = @userId AND LessonId IS NOT NULL AND ProgressPercentage >= 100) as lessonsCompleted,
+          MAX(cp.LastAccessedAt) as lastActivity
+        FROM dbo.CourseProgress cp
+        WHERE cp.UserId = @userId
       `, { userId });
 
       const currentStreak = streakData[0]?.CurrentStreak || 0;
@@ -643,16 +651,18 @@ router.post('/create-test-data', authenticateToken, async (req: AuthRequest, res
           // Create progress record
           const progressId = uuidv4();
           const progress = Math.floor(Math.random() * 100); // Random progress 0-100
+          const completedLessonsJson = JSON.stringify([]); // Empty array for now - could generate fake lesson IDs
           const timeSpent = Math.floor(Math.random() * 180) + 30; // Random time 30-210 minutes
           
           await db.query(`
-            INSERT INTO dbo.UserProgress (Id, UserId, CourseId, OverallProgress, TimeSpent, LastAccessedAt, CreatedAt)
-            VALUES (@progressId, @userId, @courseId, @progress, @timeSpent, GETDATE(), GETDATE())
+            INSERT INTO dbo.CourseProgress (Id, UserId, CourseId, OverallProgress, CompletedLessons, TimeSpent, LastAccessedAt, CreatedAt, UpdatedAt)
+            VALUES (@progressId, @userId, @courseId, @progress, @completedLessonsJson, @timeSpent, GETDATE(), GETDATE(), GETDATE())
           `, {
             progressId,
             userId: studentId,
             courseId: course.Id,
             progress,
+            completedLessonsJson,
             timeSpent
           });
         }

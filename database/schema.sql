@@ -104,17 +104,14 @@ CREATE TABLE dbo.Enrollments (
 CREATE TABLE dbo.UserProgress (
     Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
     UserId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id),
+    LessonId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Lessons(Id) ON DELETE NO ACTION,
     CourseId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Courses(Id) ON DELETE CASCADE,
-    LessonId UNIQUEIDENTIFIER NULL FOREIGN KEY REFERENCES dbo.Lessons(Id) ON DELETE NO ACTION,
-    OverallProgress INT NOT NULL DEFAULT 0 CHECK (OverallProgress >= 0 AND OverallProgress <= 100),
-    CompletedLessons NVARCHAR(MAX) NULL, -- JSON array of lesson IDs
-    CurrentLesson UNIQUEIDENTIFIER NULL,
-    TimeSpent INT NOT NULL DEFAULT 0, -- in minutes
+    Status NVARCHAR(20) NOT NULL DEFAULT 'in_progress' CHECK (Status IN ('not_started', 'in_progress', 'completed')),
+    ProgressPercentage DECIMAL(5,2) NOT NULL DEFAULT 0 CHECK (ProgressPercentage >= 0 AND ProgressPercentage <= 100),
     LastAccessedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
-    StartedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
     CompletedAt DATETIME2 NULL,
-    PerformanceMetrics NVARCHAR(MAX) NULL, -- JSON object for performance data
-    CertificateUrl NVARCHAR(500) NULL,
+    TimeSpent INT NOT NULL DEFAULT 0, -- in minutes
+    NotesJson NVARCHAR(MAX) NULL, -- JSON object for user notes
     UNIQUE(UserId, CourseId, LessonId)
 );
 
@@ -210,15 +207,11 @@ CREATE TABLE dbo.LiveSessionAttendees (
 -- Chat Rooms Table
 CREATE TABLE dbo.ChatRooms (
     Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    CourseId UNIQUEIDENTIFIER NULL FOREIGN KEY REFERENCES dbo.Courses(Id) ON DELETE CASCADE,
     Name NVARCHAR(100) NOT NULL,
     Type NVARCHAR(20) NOT NULL CHECK (Type IN ('course_general', 'course_qa', 'study_group', 'direct_message', 'ai_tutoring')),
-    CourseId UNIQUEIDENTIFIER NULL FOREIGN KEY REFERENCES dbo.Courses(Id) ON DELETE CASCADE,
     CreatedBy UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id),
-    ParticipantsJson NVARCHAR(MAX) NOT NULL, -- JSON array of user IDs
-    IsActive BIT NOT NULL DEFAULT 1,
-    Metadata NVARCHAR(MAX) NULL, -- JSON object for room settings
-    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
-    UpdatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE()
+    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE()
 );
 
 -- Chat Messages Table
@@ -241,11 +234,11 @@ CREATE TABLE dbo.TutoringSessions (
     UserId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id),
     CourseId UNIQUEIDENTIFIER NULL FOREIGN KEY REFERENCES dbo.Courses(Id) ON DELETE SET NULL,
     LessonId UNIQUEIDENTIFIER NULL FOREIGN KEY REFERENCES dbo.Lessons(Id) ON DELETE NO ACTION,
-    StartedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
-    EndedAt DATETIME2 NULL,
-    Context NVARCHAR(MAX) NOT NULL, -- JSON object for session context
-    Outcome NVARCHAR(MAX) NULL, -- JSON object for session outcome
-    SatisfactionScore INT NULL CHECK (SatisfactionScore >= 1 AND SatisfactionScore <= 5)
+    Title NVARCHAR(255) NOT NULL,
+    Context NVARCHAR(MAX) NULL, -- JSON object for session context
+    Status NVARCHAR(20) NOT NULL DEFAULT 'active' CHECK (Status IN ('active', 'completed', 'cancelled')),
+    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    UpdatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE()
 );
 
 -- Tutoring Messages Table
@@ -272,6 +265,96 @@ CREATE TABLE dbo.FileUploads (
     Url NVARCHAR(500) NOT NULL,
     ThumbnailUrl NVARCHAR(500) NULL,
     Metadata NVARCHAR(MAX) NULL, -- JSON object for file metadata
+    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE()
+);
+
+-- Bookmarks Table
+CREATE TABLE dbo.Bookmarks (
+    Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    UserId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id),
+    CourseId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Courses(Id) ON DELETE CASCADE,
+    Notes NVARCHAR(MAX) NULL,
+    BookmarkedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE()
+);
+
+-- Notifications Table
+CREATE TABLE dbo.Notifications (
+    Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    UserId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id),
+    Type NVARCHAR(50) NOT NULL,
+    Priority NVARCHAR(20) NOT NULL DEFAULT 'normal' CHECK (Priority IN ('low', 'normal', 'high', 'urgent')),
+    Title NVARCHAR(200) NOT NULL,
+    Message NVARCHAR(MAX) NOT NULL,
+    Data NVARCHAR(MAX) NULL, -- JSON object for notification data
+    IsRead BIT NOT NULL DEFAULT 0,
+    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    ReadAt DATETIME2 NULL,
+    ExpiresAt DATETIME2 NULL,
+    ActionUrl NVARCHAR(500) NULL,
+    ActionText NVARCHAR(100) NULL,
+    RelatedEntityId UNIQUEIDENTIFIER NULL,
+    RelatedEntityType NVARCHAR(50) NULL
+);
+
+-- Notification Preferences Table
+CREATE TABLE dbo.NotificationPreferences (
+    Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    UserId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id),
+    EnableProgressNotifications BIT NOT NULL DEFAULT 1,
+    EnableRiskAlerts BIT NOT NULL DEFAULT 1,
+    EnableAchievementNotifications BIT NOT NULL DEFAULT 1,
+    EnableCourseUpdates BIT NOT NULL DEFAULT 1,
+    EnableAssignmentReminders BIT NOT NULL DEFAULT 1,
+    EnableEmailNotifications BIT NOT NULL DEFAULT 1,
+    EmailDigestFrequency NVARCHAR(20) NOT NULL DEFAULT 'daily' CHECK (EmailDigestFrequency IN ('none', 'daily', 'weekly', 'monthly')),
+    QuietHoursStart TIME NULL,
+    QuietHoursEnd TIME NULL,
+    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    UpdatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE()
+);
+
+-- Video Lessons Table
+CREATE TABLE dbo.VideoLessons (
+    Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    LessonId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Lessons(Id) ON DELETE CASCADE,
+    VideoURL NVARCHAR(1000) NOT NULL,
+    Duration INT NOT NULL DEFAULT 0, -- in seconds
+    Thumbnail NVARCHAR(500) NULL,
+    TranscriptURL NVARCHAR(1000) NULL,
+    TranscriptText NVARCHAR(MAX) NULL,
+    VideoMetadata NVARCHAR(MAX) NULL, -- JSON object for video metadata
+    ProcessingStatus NVARCHAR(20) NOT NULL DEFAULT 'processing' CHECK (ProcessingStatus IN ('processing', 'ready', 'failed')),
+    FileSize BIGINT NULL,
+    UploadedBy UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id),
+    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    UpdatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE()
+);
+
+-- Video Progress Table
+CREATE TABLE dbo.VideoProgress (
+    Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    UserId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id),
+    VideoLessonId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.VideoLessons(Id) ON DELETE CASCADE,
+    WatchedDuration INT NOT NULL DEFAULT 0, -- in seconds
+    LastPosition INT NOT NULL DEFAULT 0, -- in seconds
+    CompletionPercentage DECIMAL(5,2) NOT NULL DEFAULT 0.00,
+    IsCompleted BIT NOT NULL DEFAULT 0,
+    PlaybackSpeed DECIMAL(3,2) NOT NULL DEFAULT 1.00,
+    LastWatchedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    CompletedAt DATETIME2 NULL,
+    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    UpdatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    UNIQUE(UserId, VideoLessonId)
+);
+
+-- Video Analytics Table
+CREATE TABLE dbo.VideoAnalytics (
+    Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    VideoLessonId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.VideoLessons(Id) ON DELETE CASCADE,
+    UserId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id),
+    EventType NVARCHAR(20) NOT NULL CHECK (EventType IN ('play', 'pause', 'seek', 'complete', 'buffer', 'error')),
+    Timestamp INT NOT NULL, -- Video timestamp in seconds
+    EventData NVARCHAR(MAX) NULL, -- JSON object for event data
     CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE()
 );
 

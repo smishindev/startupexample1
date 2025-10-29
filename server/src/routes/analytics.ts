@@ -53,7 +53,7 @@ router.get('/courses/:courseId', authenticateToken, authorize(['instructor']), a
           COUNT(CASE WHEN OverallProgress = 100 THEN 1 END) as completedStudents,
           COUNT(CASE WHEN OverallProgress > 0 AND OverallProgress < 100 THEN 1 END) as inProgressStudents,
           COUNT(CASE WHEN OverallProgress = 0 THEN 1 END) as notStartedStudents
-        FROM dbo.UserProgress 
+        FROM dbo.CourseProgress 
         WHERE CourseId = @courseId
       `, { courseId }),
 
@@ -64,7 +64,7 @@ router.get('/courses/:courseId', authenticateToken, authorize(['instructor']), a
           COUNT(CASE WHEN LastAccessedAt >= DATEADD(day, -7, GETUTCDATE()) THEN 1 END) as weeklyActiveUsers,
           COUNT(CASE WHEN LastAccessedAt >= DATEADD(day, -30, GETUTCDATE()) THEN 1 END) as monthlyActiveUsers,
           AVG(CAST(TimeSpent as FLOAT)) as avgSessionTime
-        FROM dbo.UserProgress 
+        FROM dbo.CourseProgress 
         WHERE CourseId = @courseId AND LastAccessedAt IS NOT NULL
       `, { courseId }),
 
@@ -74,14 +74,14 @@ router.get('/courses/:courseId', authenticateToken, authorize(['instructor']), a
           u.FirstName,
           u.LastName,
           u.Email,
-          up.OverallProgress,
-          up.LastAccessedAt,
+          cp.OverallProgress,
+          cp.LastAccessedAt,
           e.Status as EnrollmentStatus
-        FROM dbo.UserProgress up
-        JOIN dbo.Users u ON up.UserId = u.Id
-        JOIN dbo.Enrollments e ON up.UserId = e.UserId AND up.CourseId = e.CourseId
-        WHERE up.CourseId = @courseId
-        ORDER BY up.LastAccessedAt DESC
+        FROM dbo.CourseProgress cp
+        JOIN dbo.Users u ON cp.UserId = u.Id
+        JOIN dbo.Enrollments e ON cp.UserId = e.UserId AND cp.CourseId = e.CourseId
+        WHERE cp.CourseId = @courseId
+        ORDER BY cp.LastAccessedAt DESC
       `, { courseId })
     ]);
 
@@ -211,15 +211,15 @@ router.get('/courses/:courseId/trends', authenticateToken, authorize(['instructo
     // Get weekly progress trends
     const trends = await db.query(`
       SELECT 
-        DATEPART(week, up.LastAccessedAt) as week,
-        DATEPART(year, up.LastAccessedAt) as year,
-        AVG(CAST(up.OverallProgress as FLOAT)) as avgProgress,
-        COUNT(DISTINCT up.UserId) as activeStudents,
-        SUM(CAST(up.TimeSpent as FLOAT)) as totalTimeSpent
-      FROM dbo.UserProgress up
-      WHERE up.CourseId = @courseId 
-        AND up.LastAccessedAt >= DATEADD(week, -12, GETUTCDATE())
-      GROUP BY DATEPART(week, up.LastAccessedAt), DATEPART(year, up.LastAccessedAt)
+        DATEPART(week, cp.LastAccessedAt) as week,
+        DATEPART(year, cp.LastAccessedAt) as year,
+        AVG(CAST(cp.OverallProgress as FLOAT)) as avgProgress,
+        COUNT(DISTINCT cp.UserId) as activeStudents,
+        SUM(CAST(cp.TimeSpent as FLOAT)) as totalTimeSpent
+      FROM dbo.CourseProgress cp
+      WHERE cp.CourseId = @courseId 
+        AND cp.LastAccessedAt >= DATEADD(week, -12, GETUTCDATE())
+      GROUP BY DATEPART(week, cp.LastAccessedAt), DATEPART(year, cp.LastAccessedAt)
       ORDER BY year, week
     `, { courseId });
 
@@ -266,7 +266,7 @@ router.get('/courses/:courseId/performance-distribution', authenticateToken, aut
           WHEN OverallProgress BETWEEN 76 AND 99 THEN 5
           WHEN OverallProgress = 100 THEN 6
         END as sortOrder
-      FROM dbo.UserProgress
+      FROM dbo.CourseProgress
       WHERE CourseId = @courseId
       GROUP BY 
         CASE 

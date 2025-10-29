@@ -17,17 +17,17 @@ router.get('/sessions', authenticateToken, async (req: AuthRequest, res: Respons
     const sessions = await db.query(`
       SELECT 
         ts.Id,
-        COALESCE(c.Title, 'General Tutoring Session') as Title,
-        ts.StartedAt as CreatedAt,
-        COALESCE(ts.EndedAt, ts.StartedAt) as UpdatedAt,
-        CASE WHEN ts.EndedAt IS NULL THEN 'active' ELSE 'completed' END as Status,
+        COALESCE(ts.Title, c.Title, 'General Tutoring Session') as Title,
+        ts.CreatedAt,
+        ts.UpdatedAt,
+        ts.Status,
         COUNT(tm.Id) as MessageCount
       FROM dbo.TutoringSessions ts
       LEFT JOIN dbo.TutoringMessages tm ON ts.Id = tm.SessionId
       LEFT JOIN dbo.Courses c ON ts.CourseId = c.Id
       WHERE ts.UserId = @userId
-      GROUP BY ts.Id, c.Title, ts.StartedAt, ts.EndedAt
-      ORDER BY ts.StartedAt DESC
+      GROUP BY ts.Id, ts.Title, c.Title, ts.CreatedAt, ts.UpdatedAt, ts.Status
+      ORDER BY ts.CreatedAt DESC
     `, { userId });
 
     res.json(sessions);
@@ -55,14 +55,17 @@ router.post('/sessions', authenticateToken, async (req: AuthRequest, res: Respon
     };
 
     await db.execute(`
-      INSERT INTO dbo.TutoringSessions (Id, UserId, CourseId, LessonId, StartedAt, Context)
-      VALUES (@id, @userId, @courseId, @lessonId, @startedAt, @context)
+      INSERT INTO dbo.TutoringSessions (Id, UserId, CourseId, LessonId, Title, Status, CreatedAt, UpdatedAt, Context)
+      VALUES (@id, @userId, @courseId, @lessonId, @title, @status, @createdAt, @updatedAt, @context)
     `, {
       id: sessionId,
       userId,
       courseId: courseId || null,
       lessonId: lessonId || null,
-      startedAt: now,
+      title: title || 'New Tutoring Session',
+      status: 'active',
+      createdAt: now,
+      updatedAt: now,
       context: JSON.stringify(context)
     });
 

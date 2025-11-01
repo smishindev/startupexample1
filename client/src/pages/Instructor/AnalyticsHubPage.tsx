@@ -20,7 +20,8 @@ import {
   TrendingUp as TrendingUpIcon,
   Speed as PerformanceIcon,
   Refresh as RefreshIcon,
-  ArrowForward as ArrowForwardIcon
+  ArrowForward as ArrowForwardIcon,
+  VideoLibrary as VideoLibraryIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { Header } from '../../components/Navigation/Header';
@@ -91,6 +92,17 @@ export const AnalyticsHubPage: React.FC = () => {
         secondary: 'AI Insights'
       },
       isNew: true
+    },
+    {
+      title: 'Video Analytics',
+      description: 'Track video engagement, completion rates, and viewer behavior across all your video lessons.',
+      icon: <VideoLibraryIcon sx={{ fontSize: 40 }} />,
+      path: '/instructor/video-analytics',
+      color: '#9c27b0',
+      stats: {
+        primary: '📹',
+        secondary: 'Video Insights'
+      }
     },
     {
       title: 'Student Management',

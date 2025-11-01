@@ -21,6 +21,7 @@ import {
   MenuItem,
   CircularProgress,
   Alert,
+  Button,
 } from '@mui/material';
 import {
   PlayCircleOutline,
@@ -31,8 +32,27 @@ import {
 import { useSearchParams } from 'react-router-dom';
 import { Header } from '../../components/Navigation/Header';
 import axios from 'axios';
+import { instructorApi } from '../../services/instructorApi';
+import { useAuthStore } from '../../stores/authStore';
 
 const API_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3001';
+
+// Create axios instance with auth
+const createAuthAxios = () => {
+  const instance = axios.create({
+    baseURL: API_URL,
+  });
+  
+  instance.interceptors.request.use((config) => {
+    const token = useAuthStore.getState().token;
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  });
+  
+  return instance;
+};
 
 interface VideoAnalyticsSummary {
   videoLessonId: string;
@@ -75,15 +95,12 @@ export const VideoAnalyticsPage: React.FC = () => {
   useEffect(() => {
     const fetchCourses = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const response = await axios.get(`${API_URL}/api/instructor/courses`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setCourses(response.data);
+        const coursesData = await instructorApi.getCourses();
+        setCourses(coursesData);
         
         // Set first course as selected if none selected
-        if (!selectedCourseId && response.data.length > 0) {
-          setSelectedCourseId(response.data[0].id);
+        if (!selectedCourseId && coursesData.length > 0) {
+          setSelectedCourseId(coursesData[0].id);
         }
       } catch (error) {
         console.error('Failed to fetch courses:', error);
@@ -104,24 +121,18 @@ export const VideoAnalyticsPage: React.FC = () => {
       try {
         setLoading(true);
         setError(null);
-        const token = localStorage.getItem('token');
+        const authAxios = createAuthAxios();
 
         // Fetch course video analytics
-        const analyticsResponse = await axios.get(
-          `${API_URL}/api/video-analytics/course/${selectedCourseId}`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
+        const analyticsResponse = await authAxios.get(
+          `/api/video-analytics/course/${selectedCourseId}`
         );
 
         setAnalytics(analyticsResponse.data);
 
         // Fetch event analytics
-        const eventsResponse = await axios.get(
-          `${API_URL}/api/video-analytics/course/${selectedCourseId}/events`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
+        const eventsResponse = await authAxios.get(
+          `/api/video-analytics/course/${selectedCourseId}/events`
         );
 
         setEventAnalytics(eventsResponse.data || []);
@@ -197,13 +208,31 @@ export const VideoAnalyticsPage: React.FC = () => {
           </Alert>
         )}
 
-        {!selectedCourseId && (
-          <Alert severity="info" sx={{ mb: 3 }}>
-            Please select a course to view video analytics
-          </Alert>
-        )}
+        {courses.length === 0 ? (
+          <Paper sx={{ p: 6, textAlign: 'center' }}>
+            <VideoLibrary sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+            <Typography variant="h6" color="text.secondary" gutterBottom>
+              No courses with video lessons yet
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+              Create a course and add video lessons to start tracking video analytics and viewer engagement!
+            </Typography>
+            <Button 
+              variant="contained" 
+              onClick={() => window.location.href = '/instructor/dashboard'}
+            >
+              Go to Dashboard
+            </Button>
+          </Paper>
+        ) : (
+          <>
+            {!selectedCourseId && (
+              <Alert severity="info" sx={{ mb: 3 }}>
+                Please select a course to view video analytics
+              </Alert>
+            )}
 
-        {analytics && (
+            {analytics && (
           <>
             {/* Summary Cards */}
             <Grid container spacing={3} sx={{ mb: 3 }}>
@@ -408,6 +437,8 @@ export const VideoAnalyticsPage: React.FC = () => {
               </Grid>
             </Paper>
           </>
+        )}
+        </>
         )}
       </Container>
     </Box>

@@ -534,7 +534,7 @@ const Chat: React.FC = () => {
       </Paper>
 
       {/* Create Room Dialog */}
-      <Dialog open={createRoomOpen} onClose={() => setCreateRoomOpen(false)} maxWidth="sm" fullWidth>
+      <Dialog open={createRoomOpen} onClose={() => setCreateRoomOpen(false)} maxWidth="sm" fullWidth disableEnforceFocus>
         <DialogTitle>Create New Chat Room</DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>

@@ -470,7 +470,7 @@ const Tutoring: React.FC = () => {
       </Grid>
 
       {/* Create Session Dialog */}
-      <Dialog open={createSessionOpen} onClose={() => setCreateSessionOpen(false)} maxWidth="sm" fullWidth>
+      <Dialog open={createSessionOpen} onClose={() => setCreateSessionOpen(false)} maxWidth="sm" fullWidth disableEnforceFocus>
         <DialogTitle>Start New Tutoring Session</DialogTitle>
         <DialogContent>
           <TextField

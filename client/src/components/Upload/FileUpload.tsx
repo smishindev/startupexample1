@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, forwardRef, useImperativeHandle } from 'react';
 import {
   Box,
   Button,
@@ -19,12 +19,20 @@ import {
 } from '@mui/material';
 import { fileUploadApi, UploadedFile, UploadProgress, UploadOptions } from '../../services/fileUploadApi';
 
+// Export methods that can be called via ref
+export interface FileUploadHandle {
+  uploadPendingFile: (options?: Partial<UploadOptions>) => Promise<UploadedFile | null>;
+  getPendingFile: () => File | null;
+}
+
 interface FileUploadProps {
   fileType: 'video' | 'image' | 'document';
   courseId?: string;
   lessonId?: string;
   onFileUploaded?: (file: UploadedFile) => void;
   onFileDeleted?: (fileId: string) => void;
+  onFileSelected?: (file: File | null) => void; // FIXED: Allow null when file is removed
+  deferUpload?: boolean; // If true, don't upload immediately
   maxFiles?: number;
   showLibrary?: boolean;
   title?: string;
@@ -51,17 +59,21 @@ const fileTypeColors = {
   document: '#4caf50'
 } as const;
 
-export const FileUpload: React.FC<FileUploadProps> = ({
+export const FileUpload = forwardRef<FileUploadHandle, FileUploadProps>(({
   fileType,
   courseId,
   lessonId,
   onFileUploaded,
   onFileDeleted,
+  onFileSelected,
+  deferUpload = false,
   maxFiles = 10,
   showLibrary = true,
   title,
   description
-}) => {
+}, ref) => {
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null); // NEW: Preview URL
   const [uploadingFiles, setUploadingFiles] = useState<UploadingFile[]>([]);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [dragOver, setDragOver] = useState(false);
@@ -78,6 +90,57 @@ export const FileUpload: React.FC<FileUploadProps> = ({
       loadFiles();
     }
   }, [fileType, courseId, lessonId, showLibrary]);
+
+  // Cleanup preview URL on unmount
+  React.useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
+
+  // Expose methods to parent via ref
+  useImperativeHandle(ref, () => ({
+    uploadPendingFile: async (options?: Partial<UploadOptions>) => {
+      if (!pendingFile) {
+        return null;
+      }
+
+      try {
+        const uploadOptions: UploadOptions = {
+          fileType,
+          courseId: options?.courseId || courseId,
+          lessonId: options?.lessonId || lessonId,
+          description: options?.description || '',
+          onProgress: (progress) => {
+            // Could add progress tracking if needed
+            console.log('Upload progress:', progress.percentage);
+          }
+        };
+
+        const uploadedFile = await fileUploadApi.uploadFile(pendingFile, uploadOptions);
+        
+        // Clear pending file after successful upload
+        setPendingFile(null);
+        if (previewUrl) {
+          URL.revokeObjectURL(previewUrl);
+          setPreviewUrl(null);
+        }
+
+        // Notify parent
+        if (onFileUploaded) {
+          onFileUploaded(uploadedFile);
+        }
+
+        return uploadedFile;
+      } catch (error) {
+        console.error('Failed to upload pending file:', error);
+        throw error;
+      }
+    },
+    getPendingFile: () => pendingFile
+  }));
 
   const loadFiles = async () => {
     try {
@@ -127,6 +190,27 @@ export const FileUpload: React.FC<FileUploadProps> = ({
     }
 
     setError(null);
+
+    // NEW: If deferUpload is true, store file locally and notify parent
+    if (deferUpload && validFiles.length > 0) {
+      const file = validFiles[0]; // For now, handle single file
+      setPendingFile(file);
+      
+      // Create preview URL for videos/images
+      if (fileType === 'video' || fileType === 'image') {
+        const url = URL.createObjectURL(file);
+        setPreviewUrl(url);
+      }
+      
+      // Notify parent that file was selected
+      if (onFileSelected) {
+        onFileSelected(file);
+      }
+      
+      return;
+    }
+
+    // Original behavior: upload immediately
     startUploads(validFiles);
   };
 
@@ -417,6 +501,58 @@ export const FileUpload: React.FC<FileUploadProps> = ({
       {/* Upload Area */}
       {renderUploadArea()}
 
+      {/* Pending File Preview (deferred upload mode) */}
+      {deferUpload && pendingFile && (
+        <Paper sx={{ p: 2, mt: 2, bgcolor: 'info.light' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            {fileType === 'video' && previewUrl && (
+              <Box sx={{ width: 200, height: 112, bgcolor: 'black', borderRadius: 1, overflow: 'hidden' }}>
+                <video 
+                  src={previewUrl} 
+                  controls 
+                  style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                />
+              </Box>
+            )}
+            {fileType === 'image' && previewUrl && (
+              <Box sx={{ width: 112, height: 112, borderRadius: 1, overflow: 'hidden' }}>
+                <img 
+                  src={previewUrl} 
+                  alt="Preview" 
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
+              </Box>
+            )}
+            <Box sx={{ flex: 1 }}>
+              <Typography variant="body1" fontWeight="medium">
+                {pendingFile.name}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {fileUploadApi.formatFileSize(pendingFile.size)}
+              </Typography>
+              <Typography variant="caption" color="info.dark" sx={{ mt: 1, display: 'block' }}>
+                ✓ File selected. Will be uploaded when you publish.
+              </Typography>
+            </Box>
+            <IconButton 
+              onClick={() => {
+                setPendingFile(null);
+                if (previewUrl) {
+                  URL.revokeObjectURL(previewUrl);
+                  setPreviewUrl(null);
+                }
+                if (onFileSelected) {
+                  onFileSelected(null as any); // Notify parent file was removed
+                }
+              }}
+              size="small"
+            >
+              ❌
+            </IconButton>
+          </Box>
+        </Paper>
+      )}
+
       {/* Uploading Files Progress */}
       {uploadingFiles.length > 0 && (
         <Box sx={{ mt: 2 }}>
@@ -452,7 +588,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
       )}
 
       {/* Upload Dialog */}
-      <Dialog open={uploadDialogOpen} onClose={() => setUploadDialogOpen(false)} maxWidth="sm" fullWidth>
+      <Dialog open={uploadDialogOpen} onClose={() => setUploadDialogOpen(false)} maxWidth="sm" fullWidth disableEnforceFocus>
         <DialogTitle>Upload {fileType}</DialogTitle>
         <DialogContent>
           <TextField
@@ -486,4 +622,4 @@ export const FileUpload: React.FC<FileUploadProps> = ({
       </Dialog>
     </Box>
   );
-};
+});

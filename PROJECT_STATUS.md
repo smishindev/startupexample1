@@ -10,9 +10,86 @@
 
 **Mishin Learn Platform** - Smart Learning Platform with AI Tutoring, Adaptive Assessments, and Progress Analytics
 
-- **Status**: Development Phase - Database Schema Validated & Code Fixed
+- **Status**: Development Phase - File Upload System Enhanced with Deferred Upload Architecture
 - **License**: Proprietary (All Rights Reserved to Sergey Mishin)
 - **Architecture**: React/TypeScript frontend + Node.js/Express backend + SQL Server database
+
+---
+
+## 🔥 LATEST UPDATE - November 4, 2025
+
+### Deferred File Upload Architecture Implementation
+
+**Complete refactoring to prevent orphaned files** - Files no longer uploaded until course/lesson is published
+
+#### Problem Solved
+- ❌ **Old Behavior**: Files uploaded immediately on selection → saved to server/DB even if user cancels → orphaned files accumulate
+- ✅ **New Behavior**: Files stored locally in memory → preview shown → uploaded only when user publishes course → no orphans on cancel
+
+#### Implementation Details
+
+1. **FileUpload Component Enhancement** (`client/src/components/Upload/FileUpload.tsx`)
+   - ✅ Added `forwardRef` with `useImperativeHandle` to expose upload method
+   - ✅ New interface: `FileUploadHandle` with `uploadPendingFile()` and `getPendingFile()` methods
+   - ✅ Added props: `deferUpload?: boolean`, `onFileSelected?: (file: File | null) => void`
+   - ✅ Added state: `pendingFile: File | null`, `previewUrl: string | null`
+   - ✅ Modified `handleFileSelect()`: If `deferUpload={true}`, stores file locally instead of uploading
+   - ✅ Preview rendering: Shows video player or image preview with file info and "Will be uploaded when you publish" message
+   - ✅ Cleanup: `URL.revokeObjectURL()` in useEffect to prevent memory leaks
+
+2. **CourseCreationForm Updates** (`client/src/pages/Instructor/CourseCreationForm.tsx`)
+   - ✅ Imported `FileUploadHandle` and `fileUploadApi`
+   - ✅ Added `pendingVideoFile` and `pendingTranscriptFile` to `Lesson` interface
+   - ✅ Added refs: `videoFileUploadRef`, `transcriptFileUploadRef` (shared for dialog, works because modal)
+   - ✅ Added callbacks: `handleVideoFileSelected`, `handleTranscriptFileSelected`
+   - ✅ Updated FileUpload components with `deferUpload={true}`, `ref={videoFileUploadRef}`, `onFileSelected={handleVideoFileSelected}`
+   - ✅ Modified `saveDraft()` and `publishCourse()`:
+     - Upload all pending files using `fileUploadApi.uploadFile()` with `Promise.all()`
+     - Sequential processing per lesson (video first, then transcript)
+     - Error handling: Fails entire operation if video upload fails (by design)
+     - Transcript upload failures logged but don't stop process (optional field)
+
+3. **Database Column Name Fixes** (`server/src/routes/upload.ts`)
+   - ✅ **GET /upload/files**: Fixed all old column names to new schema
+     - `UserId` → `UploadedBy`
+     - `CourseId/LessonId` → `RelatedEntityType/RelatedEntityId`
+     - `OriginalName` → `FileName`
+     - `Url` → `FilePath`
+     - `Size` → `FileSize`
+     - `CreatedAt` → `UploadedAt`
+   - ✅ **DELETE /upload/:fileId**: Updated column references and file path extraction
+   - ✅ POST endpoint was already correct (fixed in previous session)
+
+4. **Accessibility Fixes** - Resolved aria-hidden warnings
+   - ✅ Added `disableEnforceFocus` prop to all Dialog components:
+     - `CourseCreationForm.tsx`
+     - `LessonEditor.tsx` (pages/Instructor)
+     - `FileUpload.tsx`
+     - `StudentManagement.tsx`
+     - `Tutoring.tsx`
+     - `Chat.tsx`
+     - `AIEnhancedAssessmentResults.tsx`
+   - ✅ Prevents MUI accessibility warning: "Blocked aria-hidden on element with descendant focus"
+
+#### Architecture Benefits
+- ✅ **No Orphaned Files**: Files only saved if course/lesson actually created
+- ✅ **Better UX**: Users can preview files before upload
+- ✅ **Cleaner Database**: No orphaned FileUploads records
+- ✅ **Storage Efficiency**: No wasted disk space on unused videos
+- ✅ **Clear User Intent**: Upload happens on explicit publish action
+
+#### LessonEditor Components - No Changes Needed
+- ℹ️ `pages/Instructor/LessonEditor.tsx` and `components/Lessons/LessonEditor.tsx` already have `courseId` available
+- ℹ️ Immediate upload is acceptable for editing existing lessons (course already exists)
+- ℹ️ Only CourseCreationForm needed deferred upload (files uploaded before course exists)
+
+#### Testing Status
+- ✅ Backend rebuilt with updated upload.ts (port 3001)
+- ✅ Frontend running with deferred upload (port 5173)
+- ✅ No TypeScript errors
+- ✅ Database schema aligned
+- ✅ CORS configured correctly
+- ✅ All accessibility warnings resolved
 
 ---
 

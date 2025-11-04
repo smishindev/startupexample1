@@ -512,7 +512,7 @@ const StudentManagement: React.FC = () => {
       </Menu>
 
       {/* Message Dialog */}
-      <Dialog open={messageDialogOpen} onClose={() => setMessageDialogOpen(false)} maxWidth="md" fullWidth>
+      <Dialog open={messageDialogOpen} onClose={() => setMessageDialogOpen(false)} maxWidth="md" fullWidth disableEnforceFocus>
         <DialogTitle>
           Send {messageForm.type === 'announcement' ? 'Announcement' : 'Message'}
           {selectedStudent && ` to ${selectedStudent.firstName} ${selectedStudent.lastName}`}

@@ -827,7 +827,7 @@ export const AIEnhancedAssessmentResults: React.FC<AssessmentResultsProps> = ({
       </Paper>
 
       {/* AI Insight Request Dialog */}
-      <Dialog open={insightDialog} onClose={() => setInsightDialog(false)} maxWidth="sm" fullWidth>
+      <Dialog open={insightDialog} onClose={() => setInsightDialog(false)} maxWidth="sm" fullWidth disableEnforceFocus>
         <DialogTitle>Request Additional AI Insights</DialogTitle>
         <DialogContent>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>

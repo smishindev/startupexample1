@@ -433,7 +433,7 @@ export const LessonEditor: React.FC<LessonEditorProps> = ({
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth disableEnforceFocus>
       <DialogTitle>
         {lesson ? 'Edit Lesson' : 'Create New Lesson'}
       </DialogTitle>

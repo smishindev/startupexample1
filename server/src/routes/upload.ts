@@ -265,10 +265,10 @@ router.get('/files', authenticateToken, async (req: Request, res: Response) => {
     const { fileType, courseId, lessonId, limit = 50, offset = 0 } = req.query;
 
     let query = `
-      SELECT Id, UserId, CourseId, LessonId, OriginalName, Filename, MimeType, 
-             Size, FileType, Url, ThumbnailUrl, Metadata, CreatedAt
+      SELECT Id, UploadedBy, RelatedEntityType, RelatedEntityId, FileName, FilePath, 
+             MimeType, FileSize, FileType, UploadedAt
       FROM dbo.FileUploads 
-      WHERE UserId = @userId
+      WHERE UploadedBy = @userId
     `;
     
     const params: any = { userId };
@@ -279,16 +279,16 @@ router.get('/files', authenticateToken, async (req: Request, res: Response) => {
     }
 
     if (courseId) {
-      query += ` AND CourseId = @courseId`;
+      query += ` AND RelatedEntityType = 'Course' AND RelatedEntityId = @courseId`;
       params.courseId = courseId;
     }
 
     if (lessonId) {
-      query += ` AND LessonId = @lessonId`;
+      query += ` AND RelatedEntityType = 'Lesson' AND RelatedEntityId = @lessonId`;
       params.lessonId = lessonId;
     }
 
-    query += ` ORDER BY CreatedAt DESC OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY`;
+    query += ` ORDER BY UploadedAt DESC OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY`;
     params.offset = parseInt(offset as string);
     params.limit = parseInt(limit as string);
 
@@ -296,18 +296,18 @@ router.get('/files', authenticateToken, async (req: Request, res: Response) => {
 
     const files = result.map((row: any) => ({
       id: row.Id,
-      userId: row.UserId,
-      courseId: row.CourseId,
-      lessonId: row.LessonId,
-      originalName: row.OriginalName,
-      filename: row.Filename,
+      userId: row.UploadedBy,
+      courseId: row.RelatedEntityType === 'Course' ? row.RelatedEntityId : null,
+      lessonId: row.RelatedEntityType === 'Lesson' ? row.RelatedEntityId : null,
+      originalName: row.FileName,
+      filename: row.FileName,
       mimetype: row.MimeType,
-      size: row.Size,
+      size: row.FileSize,
       fileType: row.FileType,
-      url: row.Url,
-      thumbnailUrl: row.ThumbnailUrl,
-      metadata: row.Metadata ? JSON.parse(row.Metadata) : null,
-      createdAt: row.CreatedAt
+      url: row.FilePath,
+      thumbnailUrl: null,
+      metadata: null,
+      createdAt: row.UploadedAt
     }));
 
     res.json({ files });
@@ -326,8 +326,8 @@ router.delete('/:fileId', authenticateToken, async (req: Request, res: Response)
 
     // Get file info from database
     const fileResult = await db.query(
-      `SELECT Filename, FileType, Url, ThumbnailUrl FROM dbo.FileUploads 
-       WHERE Id = @fileId AND UserId = @userId`,
+      `SELECT FileName, FileType, FilePath FROM dbo.FileUploads 
+       WHERE Id = @fileId AND UploadedBy = @userId`,
       { fileId, userId }
     );
 
@@ -340,26 +340,17 @@ router.delete('/:fileId', authenticateToken, async (req: Request, res: Response)
     // Delete physical files
     try {
       const config = fileTypeConfig[fileInfo.FileType as keyof typeof fileTypeConfig];
-      const filePath = path.join(UPLOAD_DIR, config.subfolder, fileInfo.Filename);
+      // Extract filename from the full URL path
+      const filename = path.basename(fileInfo.FilePath);
+      const filePath = path.join(UPLOAD_DIR, config.subfolder, filename);
       await fs.unlink(filePath);
-
-      // Delete thumbnail if it exists
-      if (fileInfo.ThumbnailUrl) {
-        const thumbnailFilename = path.basename(fileInfo.ThumbnailUrl);
-        const thumbnailPath = path.join(UPLOAD_DIR, 'thumbnails', thumbnailFilename);
-        try {
-          await fs.unlink(thumbnailPath);
-        } catch (error) {
-          console.warn('Failed to delete thumbnail:', error);
-        }
-      }
     } catch (error) {
       console.warn('Failed to delete physical file:', error);
     }
 
     // Delete from database
     await db.execute(
-      'DELETE FROM dbo.FileUploads WHERE Id = @fileId AND UserId = @userId',
+      'DELETE FROM dbo.FileUploads WHERE Id = @fileId AND UploadedBy = @userId',
       { fileId, userId }
     );
 

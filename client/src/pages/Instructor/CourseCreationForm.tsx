@@ -45,8 +45,8 @@ import {
 } from '@mui/icons-material';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { instructorApi, CourseFormData } from '../../services/instructorApi';
-import { FileUpload } from '../../components/Upload/FileUpload';
-import { UploadedFile } from '../../services/fileUploadApi';
+import { FileUpload, FileUploadHandle } from '../../components/Upload/FileUpload';
+import { UploadedFile, fileUploadApi } from '../../services/fileUploadApi';
 
 interface Lesson {
   id: string;
@@ -61,6 +61,8 @@ interface Lesson {
   useFileUpload?: boolean;
   duration?: number;
   order: number;
+  pendingVideoFile?: File;
+  pendingTranscriptFile?: File;
 }
 
 const steps = ['Basic Info', 'Course Content', 'Settings', 'Preview & Publish'];
@@ -85,6 +87,8 @@ export const CourseCreationForm: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const videoFileUploadRef = useRef<FileUploadHandle>(null);
+  const transcriptFileUploadRef = useRef<FileUploadHandle>(null);
   
   const [activeStep, setActiveStep] = useState(0);
   const [courseData, setCourseData] = useState<CourseFormData>({
@@ -171,11 +175,19 @@ export const CourseCreationForm: React.FC = () => {
     }));
   };
 
+  const handleVideoFileSelected = (file: File | null) => {
+    setCurrentLesson(prev => ({ 
+      ...prev, 
+      pendingVideoFile: file || undefined
+    }));
+  };
+
   const handleVideoFileDeleted = () => {
     setCurrentLesson(prev => ({ 
       ...prev, 
       videoFile: undefined,
-      videoUrl: '' 
+      videoUrl: '',
+      pendingVideoFile: undefined
     }));
   };
 
@@ -186,10 +198,18 @@ export const CourseCreationForm: React.FC = () => {
     }));
   };
 
+  const handleTranscriptFileSelected = (file: File | null) => {
+    setCurrentLesson(prev => ({ 
+      ...prev, 
+      pendingTranscriptFile: file || undefined
+    }));
+  };
+
   const handleTranscriptFileDeleted = () => {
     setCurrentLesson(prev => ({ 
       ...prev, 
-      transcriptFile: undefined
+      transcriptFile: undefined,
+      pendingTranscriptFile: undefined
     }));
   };
 
@@ -207,7 +227,9 @@ export const CourseCreationForm: React.FC = () => {
         thumbnailUrl: currentLesson.thumbnailUrl,
         useFileUpload: currentLesson.useFileUpload,
         duration: currentLesson.duration,
-        order: currentLesson.order || lessons.length + 1
+        order: currentLesson.order || lessons.length + 1,
+        pendingVideoFile: currentLesson.pendingVideoFile,
+        pendingTranscriptFile: currentLesson.pendingTranscriptFile
       };
       setLessons([...lessons, lesson]);
       setLessonDialogOpen(false);
@@ -243,14 +265,56 @@ export const CourseCreationForm: React.FC = () => {
   const saveDraft = async () => {
     setSaving(true);
     try {
+      // Upload pending files first
+      const uploadedLessons = await Promise.all(
+        lessons.map(async (lesson) => {
+          let uploadedVideoFile = lesson.videoFile;
+          let uploadedTranscriptFile = lesson.transcriptFile;
+
+          // Upload pending video file if exists
+          if (lesson.pendingVideoFile) {
+            try {
+              const result = await fileUploadApi.uploadFile(lesson.pendingVideoFile, {
+                fileType: 'video',
+                description: `Video for lesson: ${lesson.title}`
+              });
+              uploadedVideoFile = result;
+            } catch (error) {
+              console.error('Failed to upload video for lesson:', lesson.title, error);
+              throw new Error(`Failed to upload video for lesson "${lesson.title}"`);
+            }
+          }
+
+          // Upload pending transcript file if exists
+          if (lesson.pendingTranscriptFile) {
+            try {
+              const result = await fileUploadApi.uploadFile(lesson.pendingTranscriptFile, {
+                fileType: 'document',
+                description: `Transcript for lesson: ${lesson.title}`
+              });
+              uploadedTranscriptFile = result;
+            } catch (error) {
+              console.error('Failed to upload transcript for lesson:', lesson.title, error);
+              // Transcript is optional, so we don't throw here
+            }
+          }
+
+          return {
+            ...lesson,
+            videoFile: uploadedVideoFile,
+            transcriptFile: uploadedTranscriptFile
+          };
+        })
+      );
+
       // Convert frontend lesson format to API format
-      const apiLessons = lessons.map(lesson => ({
+      const apiLessons = uploadedLessons.map(lesson => ({
         id: lesson.id,
         title: lesson.title,
         description: lesson.description,
         type: lesson.type,
         content: lesson.content,
-        videoUrl: lesson.videoUrl,
+        videoUrl: lesson.videoFile?.url || lesson.videoUrl,
         videoFile: lesson.videoFile ? {
           id: lesson.videoFile.id,
           url: lesson.videoFile.url,
@@ -294,14 +358,56 @@ export const CourseCreationForm: React.FC = () => {
   const publishCourse = async () => {
     setSaving(true);
     try {
+      // Upload pending files first
+      const uploadedLessons = await Promise.all(
+        lessons.map(async (lesson) => {
+          let uploadedVideoFile = lesson.videoFile;
+          let uploadedTranscriptFile = lesson.transcriptFile;
+
+          // Upload pending video file if exists
+          if (lesson.pendingVideoFile) {
+            try {
+              const result = await fileUploadApi.uploadFile(lesson.pendingVideoFile, {
+                fileType: 'video',
+                description: `Video for lesson: ${lesson.title}`
+              });
+              uploadedVideoFile = result;
+            } catch (error) {
+              console.error('Failed to upload video for lesson:', lesson.title, error);
+              throw new Error(`Failed to upload video for lesson "${lesson.title}"`);
+            }
+          }
+
+          // Upload pending transcript file if exists
+          if (lesson.pendingTranscriptFile) {
+            try {
+              const result = await fileUploadApi.uploadFile(lesson.pendingTranscriptFile, {
+                fileType: 'document',
+                description: `Transcript for lesson: ${lesson.title}`
+              });
+              uploadedTranscriptFile = result;
+            } catch (error) {
+              console.error('Failed to upload transcript for lesson:', lesson.title, error);
+              // Transcript is optional, so we don't throw here
+            }
+          }
+
+          return {
+            ...lesson,
+            videoFile: uploadedVideoFile,
+            transcriptFile: uploadedTranscriptFile
+          };
+        })
+      );
+
       // Convert frontend lesson format to API format
-      const apiLessons = lessons.map(lesson => ({
+      const apiLessons = uploadedLessons.map(lesson => ({
         id: lesson.id,
         title: lesson.title,
         description: lesson.description,
         type: lesson.type,
         content: lesson.content,
-        videoUrl: lesson.videoUrl,
+        videoUrl: lesson.videoFile?.url || lesson.videoUrl,
         videoFile: lesson.videoFile ? {
           id: lesson.videoFile.id,
           url: lesson.videoFile.url,
@@ -854,6 +960,7 @@ export const CourseCreationForm: React.FC = () => {
         onClose={() => setLessonDialogOpen(false)}
         maxWidth="md"
         fullWidth
+        disableEnforceFocus
       >
         <DialogTitle>Add New Lesson</DialogTitle>
         <DialogContent>
@@ -929,8 +1036,10 @@ export const CourseCreationForm: React.FC = () => {
                         Upload a video file for this lesson:
                       </Typography>
                       <FileUpload
+                        ref={videoFileUploadRef}
                         fileType="video"
-                        // Don't pass courseId for draft uploads - it will be null in database
+                        deferUpload={true}
+                        onFileSelected={handleVideoFileSelected}
                         onFileUploaded={handleVideoFileUploaded}
                         onFileDeleted={handleVideoFileDeleted}
                         maxFiles={1}
@@ -970,7 +1079,10 @@ export const CourseCreationForm: React.FC = () => {
                         Transcripts improve accessibility and allow students to search video content. Accepted formats: VTT, SRT
                       </Typography>
                       <FileUpload
+                        ref={transcriptFileUploadRef}
                         fileType="document"
+                        deferUpload={true}
+                        onFileSelected={handleTranscriptFileSelected}
                         onFileUploaded={handleTranscriptFileUploaded}
                         onFileDeleted={handleTranscriptFileDeleted}
                         maxFiles={1}

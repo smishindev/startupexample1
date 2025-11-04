@@ -254,18 +254,15 @@ CREATE TABLE dbo.TutoringMessages (
 -- File Uploads Table
 CREATE TABLE dbo.FileUploads (
     Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
-    UserId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id),
-    CourseId UNIQUEIDENTIFIER NULL FOREIGN KEY REFERENCES dbo.Courses(Id) ON DELETE NO ACTION,
-    LessonId UNIQUEIDENTIFIER NULL FOREIGN KEY REFERENCES dbo.Lessons(Id) ON DELETE NO ACTION,
-    OriginalName NVARCHAR(255) NOT NULL,
-    Filename NVARCHAR(255) NOT NULL,
-    MimeType NVARCHAR(100) NOT NULL,
-    Size BIGINT NOT NULL,
+    UploadedBy UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id),
+    FileName NVARCHAR(255) NOT NULL,
+    FilePath NVARCHAR(500) NOT NULL,
     FileType NVARCHAR(20) NOT NULL CHECK (FileType IN ('video', 'image', 'document')),
-    Url NVARCHAR(500) NOT NULL,
-    ThumbnailUrl NVARCHAR(500) NULL,
-    Metadata NVARCHAR(MAX) NULL, -- JSON object for file metadata
-    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE()
+    FileSize BIGINT NOT NULL,
+    MimeType NVARCHAR(100) NULL,
+    RelatedEntityType NVARCHAR(50) NULL CHECK (RelatedEntityType IN ('Course', 'Lesson')),
+    RelatedEntityId UNIQUEIDENTIFIER NULL,
+    UploadedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE()
 );
 
 -- Bookmarks Table
@@ -386,11 +383,11 @@ CREATE INDEX IX_ChatMessages_CreatedAt ON dbo.ChatMessages(CreatedAt);
 CREATE INDEX IX_TutoringMessages_SessionId ON dbo.TutoringMessages(SessionId);
 CREATE INDEX IX_TutoringMessages_Timestamp ON dbo.TutoringMessages(Timestamp);
 
-CREATE INDEX IX_FileUploads_UserId ON dbo.FileUploads(UserId);
-CREATE INDEX IX_FileUploads_CourseId ON dbo.FileUploads(CourseId);
-CREATE INDEX IX_FileUploads_LessonId ON dbo.FileUploads(LessonId);
+CREATE INDEX IX_FileUploads_UploadedBy ON dbo.FileUploads(UploadedBy);
 CREATE INDEX IX_FileUploads_FileType ON dbo.FileUploads(FileType);
-CREATE INDEX IX_FileUploads_CreatedAt ON dbo.FileUploads(CreatedAt);
+CREATE INDEX IX_FileUploads_RelatedEntityType ON dbo.FileUploads(RelatedEntityType);
+CREATE INDEX IX_FileUploads_RelatedEntityId ON dbo.FileUploads(RelatedEntityId);
+CREATE INDEX IX_FileUploads_UploadedAt ON dbo.FileUploads(UploadedAt);
 
 -- ========================================
 -- STUDENT PROGRESS INTEGRATION TABLES

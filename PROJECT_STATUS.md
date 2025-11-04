@@ -1,6 +1,6 @@
 # Mishin Learn Platform - Project Status & Memory
 
-**Last Updated**: October 29, 2025  
+**Last Updated**: November 4, 2025  
 **Developer**: Sergey Mishin (s.mishin.dev@gmail.com)  
 **AI Assistant Context**: This file serves as project memory for continuity across chat sessions
 
@@ -13,6 +13,32 @@
 - **Status**: Development Phase - Database Schema Validated & Code Fixed
 - **License**: Proprietary (All Rights Reserved to Sergey Mishin)
 - **Architecture**: React/TypeScript frontend + Node.js/Express backend + SQL Server database
+
+---
+
+## ⚠️ CRITICAL RULES - DO NOT VIOLATE
+
+### Port Configuration (NEVER CHANGE)
+- **Backend Server**: ALWAYS port 3001
+- **Frontend Client**: ALWAYS port 5173
+- **CORS Configuration**: Backend configured for http://localhost:5173
+- **NEVER** move or suggest moving to different ports (5174, 5175, etc.)
+- **If port in use**: Kill the conflicting process, DO NOT change port numbers
+- **Reason**: Port changes cause CORS mismatches and API connection failures
+
+### Starting Servers
+```bash
+# ALWAYS kill all node processes first if ports are in use
+taskkill /F /IM node.exe
+
+# Start backend on 3001
+cd D:\exampleProjects\startupexample1\server
+npm run dev
+
+# Start frontend on 5173
+cd D:\exampleProjects\startupexample1\client
+npm run dev
+```
 
 ---
 

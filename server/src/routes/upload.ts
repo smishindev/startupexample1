@@ -149,7 +149,9 @@ router.post('/', authenticateToken, upload.single('file'), async (req: Request, 
     const newFilePath = path.join(correctDestination, file.filename);
     await fs.rename(file.path, newFilePath);
     
-    const fileUrl = `/uploads/${config.subfolder}/${file.filename}`;
+    // Return full backend URL so frontend can access the file
+    const backendUrl = process.env.BACKEND_URL || 'http://localhost:3001';
+    const fileUrl = `${backendUrl}/uploads/${config.subfolder}/${file.filename}`;
     let thumbnailUrl: string | undefined;
     let metadata: any = {
       description: description || '',
@@ -165,7 +167,7 @@ router.post('/', authenticateToken, upload.single('file'), async (req: Request, 
           .resize(300, 300, { fit: 'cover' })
           .webp({ quality: 80 })
           .toFile(thumbnailPath);
-        thumbnailUrl = `/uploads/thumbnails/thumb_${file.filename}.webp`;
+        thumbnailUrl = `${backendUrl}/uploads/thumbnails/thumb_${file.filename}.webp`;
         
         // Get image dimensions
         const imageMetadata = await sharp(newFilePath).metadata();
@@ -201,23 +203,20 @@ router.post('/', authenticateToken, upload.single('file'), async (req: Request, 
     const request = await db.getRequest();
 
     request.input('id', sql.UniqueIdentifier, fileId);
-    request.input('userId', sql.UniqueIdentifier, userId);
-    request.input('courseId', sql.UniqueIdentifier, validCourseId);
-    request.input('lessonId', sql.UniqueIdentifier, validLessonId);
-    request.input('originalName', sql.NVarChar(255), file.originalname);
-    request.input('filename', sql.NVarChar(255), file.filename);
+    request.input('uploadedBy', sql.UniqueIdentifier, userId);
+    request.input('relatedEntityType', sql.NVarChar(50), lessonId ? 'Lesson' : (courseId ? 'Course' : null));
+    request.input('relatedEntityId', sql.UniqueIdentifier, validLessonId || validCourseId);
+    request.input('fileName', sql.NVarChar(255), file.originalname);
+    request.input('filePath', sql.NVarChar(500), fileUrl);
     request.input('mimetype', sql.NVarChar(100), file.mimetype);
-    request.input('size', sql.BigInt, file.size);
-    request.input('fileType', sql.NVarChar(20), fileType);
-    request.input('url', sql.NVarChar(500), fileUrl);
-    request.input('thumbnailUrl', sql.NVarChar(500), thumbnailUrl);
-    request.input('metadata', sql.NVarChar(sql.MAX), JSON.stringify(metadata));
-    request.input('createdAt', sql.DateTime2, new Date());
+    request.input('fileSize', sql.BigInt, file.size);
+    request.input('fileType', sql.NVarChar(50), fileType);
+    request.input('uploadedAt', sql.DateTime2, new Date());
 
     await request.query(`
       INSERT INTO dbo.FileUploads 
-      (Id, UserId, CourseId, LessonId, OriginalName, Filename, MimeType, Size, FileType, Url, ThumbnailUrl, Metadata, CreatedAt)
-      VALUES (@id, @userId, @courseId, @lessonId, @originalName, @filename, @mimetype, @size, @fileType, @url, @thumbnailUrl, @metadata, @createdAt)
+      (Id, UploadedBy, RelatedEntityType, RelatedEntityId, FileName, FilePath, MimeType, FileSize, FileType, UploadedAt)
+      VALUES (@id, @uploadedBy, @relatedEntityType, @relatedEntityId, @fileName, @filePath, @mimetype, @fileSize, @fileType, @uploadedAt)
     `);
 
     const uploadedFile: FileUpload = {

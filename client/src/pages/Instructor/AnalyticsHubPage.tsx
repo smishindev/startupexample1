@@ -21,7 +21,8 @@ import {
   Speed as PerformanceIcon,
   Refresh as RefreshIcon,
   ArrowForward as ArrowForwardIcon,
-  VideoLibrary as VideoLibraryIcon
+  VideoLibrary as VideoLibraryIcon,
+  NotificationImportant as AlertIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { Header } from '../../components/Navigation/Header';
@@ -102,6 +103,17 @@ export const AnalyticsHubPage: React.FC = () => {
       stats: {
         primary: '📹',
         secondary: 'Video Insights'
+      }
+    },
+    {
+      title: 'Intervention Dashboard',
+      description: 'Monitor at-risk students, low progress learners, and pending assessments requiring immediate attention.',
+      icon: <AlertIcon sx={{ fontSize: 40 }} />,
+      path: '/instructor/interventions',
+      color: '#f44336',
+      stats: {
+        primary: '🚨',
+        secondary: 'Early Alerts'
       }
     },
     {

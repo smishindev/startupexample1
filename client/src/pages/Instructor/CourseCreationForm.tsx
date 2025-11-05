@@ -30,7 +30,12 @@ import {
   Divider,
   Switch,
   FormControlLabel,
-  InputAdornment
+  InputAdornment,
+  LinearProgress,
+  Alert,
+  CircularProgress,
+  Fade,
+  Zoom
 } from '@mui/material';
 import {
   CloudUpload as CloudUploadIcon,
@@ -41,7 +46,8 @@ import {
   Quiz as QuizIcon,
   DragIndicator as DragIcon,
   Save as SaveIcon,
-  Publish as PublishIcon
+  Publish as PublishIcon,
+  CheckCircle as CheckCircleIcon
 } from '@mui/icons-material';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { instructorApi, CourseFormData } from '../../services/instructorApi';
@@ -115,6 +121,29 @@ export const CourseCreationForm: React.FC = () => {
   const [currentLesson, setCurrentLesson] = useState<Partial<Lesson>>({});
   const [thumbnailPreview, setThumbnailPreview] = useState<string>('');
   const [saving, setSaving] = useState(false);
+  
+  // Upload progress state
+  const [uploadProgress, setUploadProgress] = useState<{
+    isOpen: boolean;
+    current: number;
+    total: number;
+    currentFileName: string;
+    currentFileProgress: number;
+    status: 'uploading' | 'processing' | 'completed' | 'error';
+    errorMessage?: string;
+    failedUploads: Array<{ lessonTitle: string; fileName: string; error: string; lessonIndex: number }>;
+    onComplete?: () => void;
+  }>({
+    isOpen: false,
+    current: 0,
+    total: 0,
+    currentFileName: '',
+    currentFileProgress: 0,
+    status: 'uploading',
+    failedUploads: []
+  });
+  
+  const [cancelUpload, setCancelUpload] = useState(false);
 
   const handleInputChange = (field: keyof CourseFormData, value: any) => {
     setCourseData(prev => ({ ...prev, [field]: value }));
@@ -264,48 +293,137 @@ export const CourseCreationForm: React.FC = () => {
 
   const saveDraft = async () => {
     setSaving(true);
+    setCancelUpload(false);
+    
     try {
-      // Upload pending files first
-      const uploadedLessons = await Promise.all(
-        lessons.map(async (lesson) => {
-          let uploadedVideoFile = lesson.videoFile;
-          let uploadedTranscriptFile = lesson.transcriptFile;
+      // Count total files to upload
+      const totalFilesToUpload = lessons.reduce((count, lesson) => {
+        if (lesson.pendingVideoFile) count++;
+        if (lesson.pendingTranscriptFile) count++;
+        return count;
+      }, 0);
 
-          // Upload pending video file if exists
-          if (lesson.pendingVideoFile) {
-            try {
-              const result = await fileUploadApi.uploadFile(lesson.pendingVideoFile, {
-                fileType: 'video',
-                description: `Video for lesson: ${lesson.title}`
-              });
-              uploadedVideoFile = result;
-            } catch (error) {
-              console.error('Failed to upload video for lesson:', lesson.title, error);
-              throw new Error(`Failed to upload video for lesson "${lesson.title}"`);
-            }
+      if (totalFilesToUpload > 0) {
+        // Show upload progress dialog
+        setUploadProgress({
+          isOpen: true,
+          current: 0,
+          total: totalFilesToUpload,
+          currentFileName: '',
+          currentFileProgress: 0,
+          status: 'uploading',
+          failedUploads: []
+        });
+      }
+
+      // Upload files sequentially with progress tracking
+      const uploadedLessons: Lesson[] = [];
+      let uploadedCount = 0;
+
+      for (let i = 0; i < lessons.length; i++) {
+        if (cancelUpload) {
+          throw new Error('Upload cancelled by user');
+        }
+
+        const lesson = lessons[i];
+        let uploadedVideoFile = lesson.videoFile;
+        let uploadedTranscriptFile = lesson.transcriptFile;
+
+        // Upload pending video file if exists
+        if (lesson.pendingVideoFile) {
+          uploadedCount++;
+          setUploadProgress(prev => ({
+            ...prev,
+            current: uploadedCount,
+            currentFileName: lesson.pendingVideoFile?.name || 'Video',
+            currentFileProgress: 0
+          }));
+
+          try {
+            const result = await fileUploadApi.uploadFile(lesson.pendingVideoFile, {
+              fileType: 'video',
+              description: `Video for lesson: ${lesson.title}`,
+              onProgress: (progress) => {
+                setUploadProgress(prev => ({
+                  ...prev,
+                  currentFileProgress: progress.percentage
+                }));
+              }
+            });
+            uploadedVideoFile = result;
+            
+            setUploadProgress(prev => ({
+              ...prev,
+              currentFileProgress: 100
+            }));
+          } catch (error) {
+            console.error('Failed to upload video for lesson:', lesson.title, error);
+            throw new Error(`Failed to upload video for lesson "${lesson.title}"`);
+          }
+        }
+
+        // Upload pending transcript file if exists
+        if (lesson.pendingTranscriptFile) {
+          if (cancelUpload) {
+            throw new Error('Upload cancelled by user');
           }
 
-          // Upload pending transcript file if exists
-          if (lesson.pendingTranscriptFile) {
-            try {
-              const result = await fileUploadApi.uploadFile(lesson.pendingTranscriptFile, {
-                fileType: 'document',
-                description: `Transcript for lesson: ${lesson.title}`
-              });
-              uploadedTranscriptFile = result;
-            } catch (error) {
-              console.error('Failed to upload transcript for lesson:', lesson.title, error);
-              // Transcript is optional, so we don't throw here
-            }
-          }
+          uploadedCount++;
+          setUploadProgress(prev => ({
+            ...prev,
+            current: uploadedCount,
+            currentFileName: lesson.pendingTranscriptFile?.name || 'Transcript',
+            currentFileProgress: 0
+          }));
 
-          return {
-            ...lesson,
-            videoFile: uploadedVideoFile,
-            transcriptFile: uploadedTranscriptFile
-          };
-        })
-      );
+          try {
+            const result = await fileUploadApi.uploadFile(lesson.pendingTranscriptFile, {
+              fileType: 'document',
+              description: `Transcript for lesson: ${lesson.title}`,
+              onProgress: (progress) => {
+                setUploadProgress(prev => ({
+                  ...prev,
+                  currentFileProgress: progress.percentage
+                }));
+              }
+            });
+            uploadedTranscriptFile = result;
+            
+            setUploadProgress(prev => ({
+              ...prev,
+              currentFileProgress: 100
+            }));
+          } catch (error) {
+            console.error('Failed to upload transcript for lesson:', lesson.title, error);
+            // Transcript is optional, so we don't throw here
+          }
+        }
+
+        uploadedLessons.push({
+          ...lesson,
+          videoFile: uploadedVideoFile,
+          transcriptFile: uploadedTranscriptFile
+        });
+      }
+
+      // Show upload success
+      if (totalFilesToUpload > 0) {
+        setUploadProgress(prev => ({
+          ...prev,
+          status: 'completed',
+          currentFileName: 'All files uploaded successfully!',
+          currentFileProgress: 100
+        }));
+        
+        // Wait a moment to show success
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
+        // Show processing state
+        setUploadProgress(prev => ({
+          ...prev,
+          status: 'processing'
+        }));
+      }
 
       // Convert frontend lesson format to API format
       const apiLessons = uploadedLessons.map(lesson => ({
@@ -338,7 +456,11 @@ export const CourseCreationForm: React.FC = () => {
         lessons: apiLessons
         // TODO: Handle thumbnail upload separately
       });
-      // Navigate back to instructor dashboard
+      
+      // Close dialog and navigate
+      if (totalFilesToUpload > 0) {
+        setUploadProgress(prev => ({ ...prev, isOpen: false }));
+      }
       navigate('/instructor/dashboard');
     } catch (error: any) {
       console.error('Failed to save draft:', error);
@@ -357,48 +479,162 @@ export const CourseCreationForm: React.FC = () => {
 
   const publishCourse = async () => {
     setSaving(true);
+    setCancelUpload(false);
+    
     try {
-      // Upload pending files first
-      const uploadedLessons = await Promise.all(
-        lessons.map(async (lesson) => {
-          let uploadedVideoFile = lesson.videoFile;
-          let uploadedTranscriptFile = lesson.transcriptFile;
+      // Count total files to upload
+      const totalFilesToUpload = lessons.reduce((count, lesson) => {
+        if (lesson.pendingVideoFile) count++;
+        if (lesson.pendingTranscriptFile) count++;
+        return count;
+      }, 0);
 
-          // Upload pending video file if exists
-          if (lesson.pendingVideoFile) {
-            try {
-              const result = await fileUploadApi.uploadFile(lesson.pendingVideoFile, {
-                fileType: 'video',
-                description: `Video for lesson: ${lesson.title}`
-              });
-              uploadedVideoFile = result;
-            } catch (error) {
-              console.error('Failed to upload video for lesson:', lesson.title, error);
-              throw new Error(`Failed to upload video for lesson "${lesson.title}"`);
-            }
+      if (totalFilesToUpload > 0) {
+        // Show upload progress dialog
+        setUploadProgress({
+          isOpen: true,
+          current: 0,
+          total: totalFilesToUpload,
+          currentFileName: '',
+          currentFileProgress: 0,
+          status: 'uploading',
+          failedUploads: []
+        });
+      }
+
+      // Upload files sequentially with progress tracking
+      const uploadedLessons: Lesson[] = [];
+      let uploadedCount = 0;
+      const failedUploads: Array<{ lessonTitle: string; fileName: string; error: string; lessonIndex: number }> = [];
+
+      for (let i = 0; i < lessons.length; i++) {
+        if (cancelUpload) {
+          throw new Error('Upload cancelled by user');
+        }
+
+        const lesson = lessons[i];
+        let uploadedVideoFile = lesson.videoFile;
+        let uploadedTranscriptFile = lesson.transcriptFile;
+
+        // Upload pending video file if exists
+        if (lesson.pendingVideoFile) {
+          uploadedCount++;
+          setUploadProgress(prev => ({
+            ...prev,
+            current: uploadedCount,
+            currentFileName: lesson.pendingVideoFile?.name || 'Video',
+            currentFileProgress: 0
+          }));
+
+          try {
+            const result = await fileUploadApi.uploadFile(lesson.pendingVideoFile, {
+              fileType: 'video',
+              description: `Video for lesson: ${lesson.title}`,
+              onProgress: (progress) => {
+                setUploadProgress(prev => ({
+                  ...prev,
+                  currentFileProgress: progress.percentage
+                }));
+              }
+            });
+            uploadedVideoFile = result;
+            
+            setUploadProgress(prev => ({
+              ...prev,
+              currentFileProgress: 100
+            }));
+          } catch (error: any) {
+            console.error('Failed to upload video for lesson:', lesson.title, error);
+            failedUploads.push({
+              lessonTitle: lesson.title,
+              fileName: lesson.pendingVideoFile.name,
+              error: error.message || 'Upload failed',
+              lessonIndex: i
+            });
+          }
+        }
+
+        // Upload pending transcript file if exists
+        if (lesson.pendingTranscriptFile) {
+          if (cancelUpload) {
+            throw new Error('Upload cancelled by user');
           }
 
-          // Upload pending transcript file if exists
-          if (lesson.pendingTranscriptFile) {
-            try {
-              const result = await fileUploadApi.uploadFile(lesson.pendingTranscriptFile, {
-                fileType: 'document',
-                description: `Transcript for lesson: ${lesson.title}`
-              });
-              uploadedTranscriptFile = result;
-            } catch (error) {
-              console.error('Failed to upload transcript for lesson:', lesson.title, error);
-              // Transcript is optional, so we don't throw here
-            }
-          }
+          uploadedCount++;
+          setUploadProgress(prev => ({
+            ...prev,
+            current: uploadedCount,
+            currentFileName: lesson.pendingTranscriptFile?.name || 'Transcript',
+            currentFileProgress: 0
+          }));
 
-          return {
-            ...lesson,
-            videoFile: uploadedVideoFile,
-            transcriptFile: uploadedTranscriptFile
-          };
-        })
-      );
+          try {
+            const result = await fileUploadApi.uploadFile(lesson.pendingTranscriptFile, {
+              fileType: 'document',
+              description: `Transcript for lesson: ${lesson.title}`,
+              onProgress: (progress) => {
+                setUploadProgress(prev => ({
+                  ...prev,
+                  currentFileProgress: progress.percentage
+                }));
+              }
+            });
+            uploadedTranscriptFile = result;
+            
+            setUploadProgress(prev => ({
+              ...prev,
+              currentFileProgress: 100
+            }));
+          } catch (error: any) {
+            console.error('Failed to upload transcript for lesson:', lesson.title, error);
+            // Transcript is optional, log but continue
+            failedUploads.push({
+              lessonTitle: lesson.title,
+              fileName: lesson.pendingTranscriptFile.name,
+              error: error.message || 'Upload failed',
+              lessonIndex: i
+            });
+          }
+        }
+
+        uploadedLessons.push({
+          ...lesson,
+          videoFile: uploadedVideoFile,
+          transcriptFile: uploadedTranscriptFile
+        });
+      }
+
+      // Check for failed video uploads (critical)
+      const failedVideoUploads = failedUploads.filter(f => f.fileName.match(/\.(mp4|avi|mov|webm)$/i));
+      
+      if (failedVideoUploads.length > 0) {
+        setUploadProgress(prev => ({
+          ...prev,
+          status: 'error',
+          failedUploads: failedUploads,
+          errorMessage: `${failedVideoUploads.length} video upload(s) failed. Please retry.`
+        }));
+        return; // Don't proceed with course creation
+      }
+
+      // Show upload success
+      if (totalFilesToUpload > 0) {
+        setUploadProgress(prev => ({
+          ...prev,
+          status: 'completed',
+          currentFileName: 'All files uploaded successfully!',
+          currentFileProgress: 100
+        }));
+        
+        // Wait a moment to show success
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
+        // Show processing state
+        setUploadProgress(prev => ({
+          ...prev,
+          status: 'processing'
+        }));
+      }
 
       // Convert frontend lesson format to API format
       const apiLessons = uploadedLessons.map(lesson => ({
@@ -437,7 +673,10 @@ export const CourseCreationForm: React.FC = () => {
         await instructorApi.publishCourse(result.id);
       }
       
-      // Navigate back to instructor dashboard
+      // Close dialog and navigate
+      if (totalFilesToUpload > 0) {
+        setUploadProgress(prev => ({ ...prev, isOpen: false }));
+      }
       navigate('/instructor/dashboard');
     } catch (error: any) {
       console.error('Failed to publish course:', error);
@@ -1133,6 +1372,138 @@ export const CourseCreationForm: React.FC = () => {
           <Button onClick={saveLesson} variant="contained">
             Add Lesson
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Upload Progress Dialog */}
+      <Dialog 
+        open={uploadProgress.isOpen} 
+        onClose={() => uploadProgress.status !== 'uploading' && setUploadProgress(prev => ({ ...prev, isOpen: false }))}
+        maxWidth="sm"
+        fullWidth
+        disableEnforceFocus
+      >
+        <DialogTitle>
+          {uploadProgress.status === 'uploading' && '📤 Uploading Files'}
+          {uploadProgress.status === 'completed' && '✓ Upload Complete'}
+          {uploadProgress.status === 'processing' && '⚙️ Creating Course'}
+          {uploadProgress.status === 'error' && '⚠ Upload Errors'}
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ py: 2 }}>
+            {uploadProgress.status === 'uploading' && (
+              <>
+                <Typography variant="body2" color="text.secondary" gutterBottom>
+                  Uploading {uploadProgress.current} of {uploadProgress.total} files
+                </Typography>
+                <Typography variant="body1" sx={{ mb: 2, fontWeight: 500 }}>
+                  {uploadProgress.currentFileName}
+                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <LinearProgress 
+                    variant="determinate" 
+                    value={uploadProgress.currentFileProgress} 
+                    sx={{ flexGrow: 1, height: 8, borderRadius: 4 }}
+                  />
+                  <Typography variant="body2" color="text.secondary" sx={{ minWidth: 45 }}>
+                    {uploadProgress.currentFileProgress}%
+                  </Typography>
+                </Box>
+                <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1 }}>
+                  Please don't close this window while files are uploading
+                </Typography>
+              </>
+            )}
+
+            {uploadProgress.status === 'completed' && (
+              <Zoom in={true}>
+                <Box sx={{ textAlign: 'center', py: 3 }}>
+                  <CheckCircleIcon 
+                    sx={{ 
+                      fontSize: 80, 
+                      color: 'success.main',
+                      mb: 2
+                    }} 
+                  />
+                  <Typography variant="h6" color="success.main" gutterBottom sx={{ fontWeight: 600 }}>
+                    All Files Uploaded Successfully!
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {uploadProgress.total} {uploadProgress.total === 1 ? 'file' : 'files'} uploaded
+                  </Typography>
+                </Box>
+              </Zoom>
+            )}
+
+            {uploadProgress.status === 'processing' && (
+              <Fade in={true}>
+                <Box sx={{ textAlign: 'center', py: 3 }}>
+                  <CircularProgress size={60} sx={{ mb: 2 }} />
+                  <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+                    Creating Your Course
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Setting up lessons and publishing...
+                  </Typography>
+                </Box>
+              </Fade>
+            )}
+
+            {uploadProgress.status === 'error' && (
+              <>
+                <Alert severity="error" sx={{ mb: 2 }}>
+                  {uploadProgress.errorMessage}
+                </Alert>
+                <Typography variant="subtitle2" gutterBottom>
+                  Failed Uploads:
+                </Typography>
+                <List dense>
+                  {uploadProgress.failedUploads.map((failed, index) => (
+                    <ListItem key={index}>
+                      <ListItemText
+                        primary={`${failed.lessonTitle}: ${failed.fileName}`}
+                        secondary={failed.error}
+                      />
+                    </ListItem>
+                  ))}
+                </List>
+              </>
+            )}
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          {uploadProgress.status === 'uploading' && (
+            <Button 
+              onClick={() => {
+                setCancelUpload(true);
+                setUploadProgress(prev => ({ ...prev, isOpen: false }));
+                setSaving(false);
+              }}
+              color="error"
+            >
+              Cancel Upload
+            </Button>
+          )}
+          {uploadProgress.status === 'error' && (
+            <>
+              <Button onClick={() => setUploadProgress(prev => ({ ...prev, isOpen: false }))}>
+                Close
+              </Button>
+              <Button 
+                onClick={() => {
+                  // Retry failed uploads
+                  const failedLessons = uploadProgress.failedUploads.map(f => f.lessonIndex);
+                  console.log('Retrying lessons:', failedLessons);
+                  setUploadProgress(prev => ({ ...prev, isOpen: false, failedUploads: [] }));
+                  publishCourse();
+                }}
+                variant="contained"
+                color="primary"
+              >
+                Retry Failed Uploads
+              </Button>
+            </>
+          )}
         </DialogActions>
       </Dialog>
     </Box>

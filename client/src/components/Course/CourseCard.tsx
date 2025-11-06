@@ -11,6 +11,7 @@ import {
   Button,
   Rating,
   useTheme,
+  alpha,
 } from '@mui/material';
 import {
   PlayCircleOutline,
@@ -21,6 +22,7 @@ import {
   People,
   TrendingUp,
 } from '@mui/icons-material';
+import { formatCategory, getCategoryGradient as getCategoryGradientUtil, getLevelColor as getLevelColorUtil } from '../../utils/courseHelpers';
 
 export interface Course {
   id: string;
@@ -93,12 +95,11 @@ export const CourseCard: React.FC<CourseCardProps> = ({
   };
 
   const getLevelColor = () => {
-    switch (course.level) {
-      case 'Beginner': return theme.palette.success.main;
-      case 'Intermediate': return theme.palette.warning.main;
-      case 'Advanced': return theme.palette.error.main;
-      default: return theme.palette.grey[500];
-    }
+    return getLevelColorUtil(course.level, theme);
+  };
+
+  const getCategoryGradient = () => {
+    return getCategoryGradientUtil(course.category);
   };
 
   const getDiscountPercentage = () => {
@@ -125,13 +126,46 @@ export const CourseCard: React.FC<CourseCardProps> = ({
           sx={{
             width: 120,
             height: 80,
-            backgroundImage: `linear-gradient(45deg, ${theme.palette.primary.main} 30%, ${theme.palette.secondary.main} 90%)`,
+            backgroundImage: course.thumbnail 
+              ? `url(${course.thumbnail})`
+              : getCategoryGradient(),
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
+            position: 'relative',
+            overflow: 'hidden',
+            flexShrink: 0,
+            '&::before': {
+              content: '""',
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: 'rgba(0, 0, 0, 0.05)',
+              transition: 'opacity 0.3s ease',
+            },
+            '&:hover::before': {
+              opacity: 0,
+            },
           }}
         >
-          <PlayCircleOutline sx={{ fontSize: 32, color: 'white' }} />
+          {!course.thumbnail && (
+            <PlayCircleOutline 
+              sx={{ 
+                fontSize: 32, 
+                color: 'white',
+                opacity: 0.9,
+                filter: 'drop-shadow(0px 2px 4px rgba(0,0,0,0.3))',
+                transition: 'transform 0.3s ease',
+                '.MuiCard-root:hover &': {
+                  transform: 'scale(1.1)',
+                },
+              }} 
+            />
+          )}
         </Box>
         <CardContent sx={{ flex: 1, py: 1 }}>
           <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 0.5 }}>
@@ -159,11 +193,27 @@ export const CourseCard: React.FC<CourseCardProps> = ({
         display: 'flex',
         flexDirection: 'column',
         cursor: 'pointer',
-        transition: 'all 0.3s ease-in-out',
+        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
         position: 'relative',
+        overflow: 'hidden',
         '&:hover': {
-          transform: 'translateY(-4px)',
-          boxShadow: theme.shadows[8],
+          transform: 'translateY(-8px)',
+          boxShadow: '0 12px 24px rgba(0,0,0,0.15)',
+        },
+        '&::after': {
+          content: '""',
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 50%)',
+          opacity: 0,
+          transition: 'opacity 0.3s ease',
+          pointerEvents: 'none',
+        },
+        '&:hover::after': {
+          opacity: 1,
         },
       }}
       onClick={handleCardClick}
@@ -179,6 +229,16 @@ export const CourseCard: React.FC<CourseCardProps> = ({
               color: 'white',
               fontWeight: 'bold',
               mr: 1,
+              boxShadow: '0 2px 8px rgba(76, 175, 80, 0.4)',
+              animation: 'pulse 2s ease-in-out infinite',
+              '@keyframes pulse': {
+                '0%, 100%': {
+                  boxShadow: '0 2px 8px rgba(76, 175, 80, 0.4)',
+                },
+                '50%': {
+                  boxShadow: '0 4px 16px rgba(76, 175, 80, 0.6)',
+                },
+              },
             }}
           />
         )}
@@ -191,6 +251,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({
               backgroundColor: theme.palette.warning.main,
               color: 'white',
               fontWeight: 'bold',
+              boxShadow: '0 2px 8px rgba(255, 152, 0, 0.4)',
             }}
           />
         )}
@@ -231,22 +292,116 @@ export const CourseCard: React.FC<CourseCardProps> = ({
       <Box
         sx={{
           height: 200,
-          background: `linear-gradient(45deg, ${theme.palette.primary.main} 30%, ${theme.palette.secondary.main} 90%)`,
+          backgroundImage: course.thumbnail 
+            ? `url(${course.thumbnail})`
+            : getCategoryGradient(),
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           position: 'relative',
+          overflow: 'hidden',
+          '&::before': !course.thumbnail ? {
+            content: '""',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.1)',
+            transition: 'opacity 0.3s ease',
+          } : {},
+          '&:hover::before': !course.thumbnail ? {
+            opacity: 0,
+          } : {},
+          '&:hover .play-icon': {
+            transform: 'scale(1.2)',
+            opacity: 1,
+          },
         }}
       >
-        <PlayCircleOutline 
-          sx={{ 
-            fontSize: 60, 
-            color: 'white', 
-            opacity: 0.8,
-            transition: 'all 0.3s ease',
-            '&:hover': { opacity: 1, transform: 'scale(1.1)' },
-          }} 
-        />
+        {!course.thumbnail && (
+          <>
+            {/* Animated gradient overlay on hover */}
+            <Box
+              sx={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                background: 'radial-gradient(circle at center, rgba(255,255,255,0.1) 0%, transparent 70%)',
+                opacity: 0,
+                transition: 'opacity 0.3s ease',
+                '.MuiCard-root:hover &': {
+                  opacity: 1,
+                },
+              }}
+            />
+            <PlayCircleOutline 
+              className="play-icon"
+              sx={{ 
+                fontSize: 60, 
+                color: 'white', 
+                opacity: 0.85,
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                filter: 'drop-shadow(0px 4px 8px rgba(0,0,0,0.3))',
+                zIndex: 1,
+              }} 
+            />
+            {/* Category badge on gradient background */}
+            <Chip
+              label={formatCategory(course.category)}
+              size="small"
+              sx={{
+                position: 'absolute',
+                bottom: 12,
+                left: 12,
+                backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                backdropFilter: 'blur(10px)',
+                fontWeight: 600,
+                fontSize: '0.7rem',
+                zIndex: 1,
+              }}
+            />
+          </>
+        )}
+        {course.thumbnail && (
+          <>
+            {/* Dark overlay on hover for better contrast */}
+            <Box
+              sx={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                background: 'linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.4) 100%)',
+                opacity: 0,
+                transition: 'opacity 0.3s ease',
+                '.MuiCard-root:hover &': {
+                  opacity: 1,
+                },
+              }}
+            />
+            {/* Play button appears on hover for thumbnails */}
+            <PlayCircleOutline 
+              className="play-icon"
+              sx={{ 
+                fontSize: 60, 
+                color: 'white', 
+                opacity: 0,
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                filter: 'drop-shadow(0px 4px 8px rgba(0,0,0,0.5))',
+                zIndex: 1,
+                '.MuiCard-root:hover &': {
+                  opacity: 1,
+                },
+              }} 
+            />
+          </>
+        )}
       </Box>
 
       <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
@@ -309,15 +464,12 @@ export const CourseCard: React.FC<CourseCardProps> = ({
             label={course.level}
             size="small"
             sx={{
-              backgroundColor: `${getLevelColor()}15`,
+              backgroundColor: alpha(getLevelColor(), 0.15),
               color: getLevelColor(),
-              fontWeight: 'medium',
+              fontWeight: 600,
+              border: `1.5px solid ${alpha(getLevelColor(), 0.4)}`,
+              fontSize: '0.7rem',
             }}
-          />
-          <Chip
-            label={course.category}
-            size="small"
-            variant="outlined"
           />
         </Box>
 
@@ -325,24 +477,38 @@ export const CourseCard: React.FC<CourseCardProps> = ({
         {variant === 'enrolled' && course.progress !== undefined && (
           <Box sx={{ mb: 2 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-              <Typography variant="body2">Progress</Typography>
-              <Typography variant="body2">{course.progress}%</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary' }}>
+                Your Progress
+              </Typography>
+              <Typography variant="body2" sx={{ fontWeight: 700, color: theme.palette.primary.main }}>
+                {course.progress}%
+              </Typography>
             </Box>
             <LinearProgress
               variant="determinate"
               value={course.progress}
               sx={{
-                height: 8,
-                borderRadius: 4,
+                height: 10,
+                borderRadius: 5,
                 backgroundColor: '#e0e0e0',
+                boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.1)',
                 '& .MuiLinearProgress-bar': {
-                  borderRadius: 4,
-                  background: 'linear-gradient(45deg, #667eea 30%, #764ba2 90%)',
+                  borderRadius: 5,
+                  background: 'linear-gradient(90deg, #667eea 0%, #764ba2 100%)',
+                  boxShadow: '0 2px 4px rgba(102, 126, 234, 0.4)',
                 },
               }}
             />
             {course.lastAccessed && (
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+              <Typography 
+                variant="caption" 
+                color="text.secondary" 
+                sx={{ 
+                  mt: 1,
+                  display: 'block',
+                  fontStyle: 'italic',
+                }}
+              >
                 Last accessed: {course.lastAccessed}
               </Typography>
             )}
@@ -355,37 +521,72 @@ export const CourseCard: React.FC<CourseCardProps> = ({
             display: 'flex', 
             justifyContent: 'space-between', 
             alignItems: 'center', 
-            mt: 'auto' 
+            mt: 'auto',
+            pt: 2,
+            borderTop: '1px solid',
+            borderColor: 'divider',
           }}
         >
           <Box>
             {course.price === 0 ? (
-              <Typography variant="h6" sx={{ fontWeight: 'bold', color: theme.palette.success.main }}>
+              <Typography 
+                variant="h6" 
+                sx={{ 
+                  fontWeight: 'bold', 
+                  color: theme.palette.success.main,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 0.5,
+                }}
+              >
                 Free
+                <Box 
+                  component="span" 
+                  sx={{ 
+                    fontSize: '0.7rem',
+                    backgroundColor: theme.palette.success.light,
+                    color: theme.palette.success.dark,
+                    px: 1,
+                    py: 0.25,
+                    borderRadius: 1,
+                    fontWeight: 600,
+                  }}
+                >
+                  100% OFF
+                </Box>
               </Typography>
             ) : (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+              <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1 }}>
+                <Typography variant="h5" sx={{ fontWeight: 'bold', color: theme.palette.primary.main }}>
                   ${course.price}
                 </Typography>
                 {course.originalPrice && course.originalPrice > course.price && (
-                  <>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
                     <Typography
-                      variant="body2"
-                      sx={{ textDecoration: 'line-through', color: 'text.secondary' }}
+                      variant="caption"
+                      sx={{ 
+                        textDecoration: 'line-through', 
+                        color: 'text.secondary',
+                        lineHeight: 1,
+                      }}
                     >
                       ${course.originalPrice}
                     </Typography>
                     <Chip
-                      label={`${getDiscountPercentage()}% OFF`}
+                      label={`-${getDiscountPercentage()}%`}
                       size="small"
                       sx={{
+                        height: 18,
                         backgroundColor: theme.palette.error.main,
                         color: 'white',
                         fontWeight: 'bold',
+                        fontSize: '0.65rem',
+                        '& .MuiChip-label': {
+                          px: 0.75,
+                        },
                       }}
                     />
-                  </>
+                  </Box>
                 )}
               </Box>
             )}
@@ -402,12 +603,19 @@ export const CourseCard: React.FC<CourseCardProps> = ({
               sx={{
                 textTransform: 'none',
                 fontWeight: 'bold',
-                px: 3,
+                px: 2.5,
+                py: 0.75,
+                borderRadius: 2,
                 borderColor: theme.palette.info.main,
                 color: theme.palette.info.main,
+                borderWidth: 2,
+                transition: 'all 0.2s ease',
                 '&:hover': {
                   backgroundColor: theme.palette.info.main,
                   color: 'white',
+                  borderWidth: 2,
+                  transform: 'translateY(-2px)',
+                  boxShadow: '0 4px 8px rgba(0,0,0,0.1)',
                 },
               }}
             >
@@ -422,9 +630,18 @@ export const CourseCard: React.FC<CourseCardProps> = ({
                 textTransform: 'none',
                 fontWeight: 'bold',
                 px: 3,
+                py: 0.75,
+                borderRadius: 2,
+                background: `linear-gradient(45deg, ${theme.palette.primary.main} 30%, ${theme.palette.primary.dark} 90%)`,
+                boxShadow: '0 3px 5px 2px rgba(33, 150, 243, .3)',
+                transition: 'all 0.2s ease',
+                '&:hover': {
+                  transform: 'translateY(-2px)',
+                  boxShadow: '0 6px 10px 4px rgba(33, 150, 243, .3)',
+                },
               }}
             >
-              Enroll
+              Enroll Now
             </Button>
           ) : variant === 'enrolled' ? (
             <Button
@@ -435,18 +652,29 @@ export const CourseCard: React.FC<CourseCardProps> = ({
                 textTransform: 'none',
                 fontWeight: 'bold',
                 px: 3,
+                py: 0.75,
+                borderRadius: 2,
+                borderWidth: 2,
+                transition: 'all 0.2s ease',
+                '&:hover': {
+                  borderWidth: 2,
+                  transform: 'translateY(-2px)',
+                  boxShadow: '0 4px 8px rgba(0,0,0,0.1)',
+                },
               }}
             >
               Continue
             </Button>
           ) : (
             <Chip
-              label="Enrolled"
+              label="✓ Enrolled"
               size="small"
               sx={{
                 backgroundColor: theme.palette.success.main,
                 color: 'white',
                 fontWeight: 'bold',
+                px: 1,
+                fontSize: '0.8rem',
               }}
             />
           )}

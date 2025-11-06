@@ -63,6 +63,7 @@ export interface InstructorCourse {
   title: string;
   description: string;
   thumbnail: string;
+  category?: string;
   status: 'draft' | 'published' | 'archived';
   students: number;
   lessons: number;

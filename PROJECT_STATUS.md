@@ -1,6 +1,6 @@
 # Mishin Learn Platform - Project Status & Memory
 
-**Last Updated**: November 5, 2025  
+**Last Updated**: November 6, 2025  
 **Developer**: Sergey Mishin (s.mishin.dev@gmail.com)  
 **AI Assistant Context**: This file serves as project memory for continuity across chat sessions
 
@@ -10,13 +10,163 @@
 
 **Mishin Learn Platform** - Smart Learning Platform with AI Tutoring, Adaptive Assessments, and Progress Analytics
 
-- **Status**: Development Phase - Upload Progress UI with Animations & Sequential Processing
+- **Status**: Development Phase - Course Card UI/UX Enhancement Complete
 - **License**: Proprietary (All Rights Reserved to Sergey Mishin)
 - **Architecture**: React/TypeScript frontend + Node.js/Express backend + SQL Server database
 
 ---
 
-## 🔥 LATEST UPDATE - November 5, 2025
+## 🔥 LATEST UPDATE - November 6, 2025
+
+### Course Card UI/UX Enhancement - Premium Category-Based Design System
+
+**Complete overhaul of course card components** - Category-based gradients, colored level badges, centralized utilities, and consistent formatting across all pages.
+
+#### Problem Solved
+- ❌ **Old Issues**: Missing thumbnails, no category-based visual distinction, duplicate code, raw snake_case categories, no level badge colors, duplicate badges
+- ✅ **New Behavior**: Premium category-based gradients, formatted category names, colored level badges, single shared utilities, no duplicates
+
+#### Implementation Details
+
+1. **Centralized Utility Functions** (`client/src/utils/courseHelpers.ts`)
+   - ✅ Created shared utility module for consistent course card styling
+   - ✅ **`formatCategory(category?: string)`** - Converts snake_case to Title Case
+     - `'data_science'` → `'Data Science'`
+     - `'web_development'` → `'Web Development'`
+   - ✅ **`getCategoryGradient(category?: string)`** - Returns category-based CSS gradients
+     - Programming/Web Dev: Purple gradient (#667eea → #764ba2)
+     - Data Science: Pink-Red gradient (#f093fb → #f5576c)
+     - Design/UI: Blue-Cyan gradient (#4facfe → #00f2fe)
+     - Business/Marketing: Green-Teal gradient (#43e97b → #38f9d7)
+     - Mobile: Pink-Yellow gradient (#fa709a → #fee140)
+     - DevOps/Cloud: Cyan-Purple gradient (#30cfd0 → #330867)
+     - AI/ML: Mint-Pink gradient (#a8edea → #fed6e3)
+     - Other: Default gradient (fallback)
+   - ✅ **`getLevelColor(level, theme)`** - Returns MUI theme colors for difficulty levels
+     - Beginner → Green (theme.palette.success.main)
+     - Intermediate → Orange (theme.palette.warning.main)
+     - Advanced → Red (theme.palette.error.main)
+
+2. **Shared CourseCard Component Updates** (`client/src/components/Course/CourseCard.tsx`)
+   - ✅ Imported and integrated all three utility functions
+   - ✅ Replaced local `getCategoryGradient()` with utility version
+   - ✅ Replaced local `getLevelColor()` with utility version
+   - ✅ Applied `formatCategory()` to category badge on thumbnail
+   - ✅ Fixed level badge colors using `alpha()` helper for proper transparency
+     - Changed from invalid `${color}15` to `alpha(color, 0.15)`
+   - ✅ Removed duplicate category badge from info section (kept only on thumbnail)
+   - ✅ Added MUI `alpha` import for proper color transparency
+
+3. **DashboardLayout Component** (`client/src/components/Layout/DashboardLayout.tsx`)
+   - ✅ Removed duplicate `formatCategory()` function
+   - ✅ Removed duplicate `getCategoryGradient()` function
+   - ✅ Imported shared utilities from `courseHelpers.ts`
+   - ✅ Added colored level badges using `getLevelColor()` + `alpha()`
+   - ✅ Removed duplicate category badge from info section
+   - ✅ Backend integration: Added `Category` and `Level` fields to enrollment queries
+   - ✅ Updated TypeScript interfaces: `RecentCourse` includes `category?` and `level?`
+
+4. **MyLearningPage Component** (`client/src/pages/Learning/MyLearningPage.tsx`)
+   - ✅ Removed duplicate `formatCategory()` function
+   - ✅ Removed duplicate `getCategoryGradient()` function
+   - ✅ Imported shared utilities from `courseHelpers.ts`
+   - ✅ Added colored level badges using `getLevelColor()` + `alpha()`
+   - ✅ Removed duplicate level badge (was showing twice in different sections)
+   - ✅ Applied `formatCategory()` to category display
+   - ✅ Added MUI `alpha` import
+
+5. **InstructorDashboard Component** (`client/src/pages/Instructor/InstructorDashboard.tsx`)
+   - ✅ Removed duplicate `formatCategory()` function
+   - ✅ Removed duplicate `getCategoryGradient()` function
+   - ✅ Imported shared utilities from `courseHelpers.ts`
+   - ✅ Applied `formatCategory()` to both category badges (thumbnail and info)
+   - ✅ Removed duplicate category badge from info section (kept only on thumbnail)
+   - ✅ Cleaned up unused imports (`alpha`, `getLevelColor`, `useTheme`)
+   - ✅ Backend integration: Added `Category` field to instructor courses query
+
+6. **Backend API Updates**
+   - ✅ **`server/src/routes/enrollment.ts`**:
+     - Added `c.Category` to SELECT and GROUP BY clauses (instructor and student routes)
+     - Category field now returned in enrollment responses
+   - ✅ **`server/src/routes/instructor.ts`**:
+     - Added `c.Category as category` to SELECT and GROUP BY clauses
+     - Explicit category mapping in course response
+   - ✅ TypeScript interfaces updated:
+     - `Enrollment` interface: Added `Category?: string`
+     - `InstructorCourse` interface: Added `category?: string`
+     - `RecentCourse` interface: Added `category?: string` and `level?: string`
+
+7. **Database Schema**
+   - ✅ Courses table has `Category` column: `NVARCHAR(30) NOT NULL`
+   - ✅ CHECK constraint enforces valid values: programming, data_science, design, business, etc.
+   - ✅ Stored in snake_case format (database constraint)
+   - ✅ Displayed in Title Case format (frontend formatting)
+
+8. **Build & Deployment Fix**
+   - ✅ Discovered server running old compiled JavaScript from `dist/` folder
+   - ✅ Ran `npm run build` in server directory to recompile TypeScript
+   - ✅ Restarted backend server with new compiled code
+   - ✅ Category field now properly returned from API
+
+9. **Code Quality Improvements**
+   - ✅ Eliminated code duplication (4 copies of formatCategory/getCategoryGradient reduced to 1)
+   - ✅ Centralized business logic in utility module
+   - ✅ Consistent styling across all course card variants
+   - ✅ Proper TypeScript type safety with interfaces
+   - ✅ Removed all unused imports and variables
+   - ✅ Fixed all TypeScript/lint warnings
+
+#### Visual Design System
+
+**Category Gradients** (7 unique gradients matching course categories)
+- Programming: Purple gradient
+- Data Science: Pink-Red gradient
+- Design: Blue-Cyan gradient
+- Business: Green-Teal gradient
+- Mobile: Pink-Yellow gradient
+- DevOps: Cyan-Purple gradient
+- AI/ML: Mint-Pink gradient
+
+**Level Badge Colors**
+- Beginner: Green background with green border
+- Intermediate: Orange background with orange border  
+- Advanced: Red background with red border
+- All use 15% opacity background, 40% opacity border
+
+**Badge Placement Strategy**
+- Thumbnail badge: Shows category (formatted) when using gradient background (no custom thumbnail)
+- Info section: Shows level badge only (removed duplicate category)
+- Consistent across all pages
+
+#### Pages Affected
+1. `/courses` - CoursesPage (shared CourseCard component)
+2. `/dashboard` - DashboardLayout (local CourseCard variant)
+3. `/my-learning` - MyLearningPage (enrollment cards)
+4. `/instructor/dashboard` - InstructorDashboard (instructor course cards)
+
+#### Files Modified (15 files)
+1. `client/src/utils/courseHelpers.ts` - NEW FILE (utility functions)
+2. `client/src/components/Course/CourseCard.tsx` - Updated (shared component)
+3. `client/src/components/Layout/DashboardLayout.tsx` - Refactored (removed duplicates)
+4. `client/src/pages/Learning/MyLearningPage.tsx` - Refactored (removed duplicates)
+5. `client/src/pages/Instructor/InstructorDashboard.tsx` - Refactored (removed duplicates)
+6. `client/src/services/enrollmentApi.ts` - Type update (Category field)
+7. `client/src/services/instructorApi.ts` - Type update (category field)
+8. `server/src/routes/enrollment.ts` - Backend update (Category in queries)
+9. `server/src/routes/instructor.ts` - Backend update (Category in queries)
+
+#### Testing Results
+- ✅ All pages display category-based gradients correctly
+- ✅ Category names formatted as Title Case everywhere
+- ✅ Level badges show proper colors (green/orange/red)
+- ✅ No duplicate badges on any page
+- ✅ Backend returns Category field properly
+- ✅ TypeScript compiles without errors
+- ✅ No console warnings or errors
+
+---
+
+## 📋 PREVIOUS UPDATE - November 5, 2025
 
 ### Upload Progress Enhancement with Beautiful UI & Animations
 

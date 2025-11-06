@@ -13,7 +13,8 @@ import {
   CardMedia,
   Avatar,
   Alert,
-  CircularProgress
+  CircularProgress,
+  alpha
 } from '@mui/material';
 import {
   PlayArrow,
@@ -29,9 +30,12 @@ import { formatDistanceToNow } from 'date-fns';
 import { Header } from '../../components/Navigation/Header';
 import { enrollmentApi, Enrollment } from '../../services/enrollmentApi';
 import { useAuthStore } from '../../stores/authStore';
+import { useTheme } from '@mui/material';
+import { formatCategory, getCategoryGradient, getLevelColor } from '../../utils/courseHelpers';
 
 const MyLearningPage: React.FC = () => {
   const navigate = useNavigate();
+  const theme = useTheme();
   const { user } = useAuthStore();
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -306,39 +310,135 @@ const MyLearningPage: React.FC = () => {
             <Grid container spacing={3}>
               {enrollments.map((enrollment) => (
                 <Grid item xs={12} md={6} lg={4} key={enrollment.enrollmentId}>
-                  <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                  <Card 
+                    sx={{ 
+                      height: '100%', 
+                      display: 'flex', 
+                      flexDirection: 'column',
+                      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                      cursor: 'pointer',
+                      position: 'relative',
+                      overflow: 'hidden',
+                      '&:hover': {
+                        transform: 'translateY(-8px)',
+                        boxShadow: '0 12px 24px rgba(0,0,0,0.15)',
+                      },
+                      '&::after': {
+                        content: '""',
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        background: 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 50%)',
+                        opacity: 0,
+                        transition: 'opacity 0.3s ease',
+                        pointerEvents: 'none',
+                      },
+                      '&:hover::after': {
+                        opacity: 1,
+                      },
+                    }}
+                  >
                     <CardMedia
                       component="div"
                       sx={{
-                        height: 140,
-                        bgcolor: 'primary.light',
+                        height: 160,
+                        background: getCategoryGradient(enrollment.Category),
                         display: 'flex',
                         alignItems: 'center',
-                        justifyContent: 'center'
+                        justifyContent: 'center',
+                        position: 'relative',
+                        overflow: 'hidden',
+                        '&::before': {
+                          content: '""',
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          background: 'radial-gradient(circle at 30% 50%, rgba(255,255,255,0.2) 0%, transparent 60%)',
+                          opacity: 0,
+                          transition: 'opacity 0.3s ease',
+                        },
+                        '.MuiCard-root:hover &::before': {
+                          opacity: 1,
+                        },
                       }}
                     >
-                      <School sx={{ fontSize: 48, color: 'primary.contrastText' }} />
+                      <School 
+                        sx={{ 
+                          fontSize: 56, 
+                          color: 'white',
+                          filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.3))',
+                          transition: 'all 0.3s ease',
+                          '.MuiCard-root:hover &': {
+                            transform: 'scale(1.2)',
+                          },
+                        }} 
+                      />
                     </CardMedia>
                     
-                    <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
-                      <Typography gutterBottom variant="h6" component="h3" noWrap>
+                    <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', p: 2.5 }}>
+                      <Typography gutterBottom variant="h6" component="h3" sx={{ fontWeight: 700, lineHeight: 1.3, mb: 1 }}>
                         {enrollment.Title}
                       </Typography>
                       
-                      <Typography variant="body2" color="text.secondary" sx={{ mb: 2, flexGrow: 1 }}>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 2, fontWeight: 500 }}>
                         by {enrollment.instructorFirstName} {enrollment.instructorLastName}
                       </Typography>
 
+                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, gap: 1, flexWrap: 'wrap' }}>
+                        {enrollment.Level && (
+                          <Chip 
+                            label={enrollment.Level} 
+                            size="small" 
+                            sx={{ 
+                              backgroundColor: alpha(getLevelColor(enrollment.Level as 'Beginner' | 'Intermediate' | 'Advanced', theme), 0.15),
+                              color: getLevelColor(enrollment.Level as 'Beginner' | 'Intermediate' | 'Advanced', theme),
+                              fontWeight: 600,
+                              fontSize: '0.7rem',
+                              height: 24,
+                              border: `1.5px solid ${alpha(getLevelColor(enrollment.Level as 'Beginner' | 'Intermediate' | 'Advanced', theme), 0.4)}`,
+                            }}
+                          />
+                        )}
+                        {enrollment.Category && (
+                          <Chip 
+                            label={formatCategory(enrollment.Category)} 
+                            size="small" 
+                            variant="outlined"
+                            sx={{ 
+                              fontWeight: 500,
+                              fontSize: '0.7rem',
+                              borderColor: 'divider',
+                              height: 24,
+                            }}
+                          />
+                        )}
+                      </Box>
+
                       <Box sx={{ mb: 2 }}>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                          <Typography variant="body2">Progress</Typography>
-                          <Typography variant="body2">{enrollment.OverallProgress || 0}%</Typography>
+                          <Typography variant="body2" sx={{ fontWeight: 600 }}>Your Progress</Typography>
+                          <Typography variant="body2" sx={{ fontWeight: 700, color: 'primary.main' }}>
+                            {enrollment.OverallProgress || 0}%
+                          </Typography>
                         </Box>
                         <LinearProgress
                           variant="determinate"
                           value={enrollment.OverallProgress || 0}
                           color={getProgressColor(enrollment.OverallProgress || 0) as any}
-                          sx={{ height: 6, borderRadius: 3 }}
+                          sx={{ 
+                            height: 10, 
+                            borderRadius: 5,
+                            backgroundColor: 'rgba(0,0,0,0.08)',
+                            boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.1)',
+                            '& .MuiLinearProgress-bar': {
+                              borderRadius: 5,
+                              boxShadow: '0 2px 4px rgba(102, 126, 234, 0.4)',
+                            },
+                          }}
                         />
                       </Box>
 
@@ -347,21 +447,18 @@ const MyLearningPage: React.FC = () => {
                           label={enrollment.Status}
                           size="small"
                           color={getStatusColor(enrollment.Status) as any}
-                        />
-                        <Chip
-                          label={enrollment.Level}
-                          size="small"
-                          variant="outlined"
+                          sx={{ fontWeight: 600, fontSize: '0.7rem' }}
                         />
                         <Chip
                           icon={<Schedule />}
                           label={enrollment.Duration}
                           size="small"
                           variant="outlined"
+                          sx={{ fontWeight: 500, fontSize: '0.7rem' }}
                         />
                       </Box>
 
-                      <Typography variant="caption" color="text.secondary" sx={{ mb: 2 }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ mb: 2, fontWeight: 500 }}>
                         Last accessed {enrollment.LastAccessedAt ? 
                           formatDistanceToNow(new Date(enrollment.LastAccessedAt), { addSuffix: true }) : 
                           'Never'
@@ -375,6 +472,18 @@ const MyLearningPage: React.FC = () => {
                             startIcon={<Psychology />}
                             fullWidth
                             onClick={() => navigate(`/instructor/courses/${enrollment.courseId}/edit`)}
+                            sx={{
+                              py: 0.75,
+                              borderRadius: 2,
+                              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                              boxShadow: '0 4px 12px rgba(102, 126, 234, 0.4)',
+                              fontWeight: 600,
+                              transition: 'all 0.3s ease',
+                              '&:hover': {
+                                transform: 'translateY(-2px)',
+                                boxShadow: '0 6px 16px rgba(102, 126, 234, 0.5)',
+                              },
+                            }}
                           >
                             Edit Course
                           </Button>
@@ -384,6 +493,16 @@ const MyLearningPage: React.FC = () => {
                               size="small"
                               fullWidth
                               onClick={() => navigate(`/instructor/courses/${enrollment.courseId}/lessons`)}
+                              sx={{
+                                borderRadius: 2,
+                                borderWidth: 2,
+                                fontWeight: 600,
+                                transition: 'all 0.2s ease',
+                                '&:hover': {
+                                  borderWidth: 2,
+                                  transform: 'translateY(-2px)',
+                                },
+                              }}
                             >
                               Lessons
                             </Button>
@@ -392,6 +511,16 @@ const MyLearningPage: React.FC = () => {
                               size="small"
                               fullWidth
                               onClick={() => navigate(`/instructor/courses/${enrollment.courseId}/assessments`)}
+                              sx={{
+                                borderRadius: 2,
+                                borderWidth: 2,
+                                fontWeight: 600,
+                                transition: 'all 0.2s ease',
+                                '&:hover': {
+                                  borderWidth: 2,
+                                  transform: 'translateY(-2px)',
+                                },
+                              }}
                             >
                               Assessments
                             </Button>
@@ -401,6 +530,10 @@ const MyLearningPage: React.FC = () => {
                             size="small"
                             fullWidth
                             onClick={() => navigate(`/courses/${enrollment.courseId}`)}
+                            sx={{
+                              borderRadius: 2,
+                              fontWeight: 600,
+                            }}
                           >
                             Preview Course
                           </Button>
@@ -420,6 +553,18 @@ const MyLearningPage: React.FC = () => {
                               // For courses in progress, go to course page (could be enhanced to go to last accessed lesson)
                               navigate(`/courses/${enrollment.courseId}`);
                             }
+                          }}
+                          sx={{
+                            py: 0.75,
+                            borderRadius: 2,
+                            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                            boxShadow: '0 4px 12px rgba(102, 126, 234, 0.4)',
+                            fontWeight: 600,
+                            transition: 'all 0.3s ease',
+                            '&:hover': {
+                              transform: 'translateY(-2px)',
+                              boxShadow: '0 6px 16px rgba(102, 126, 234, 0.5)',
+                            },
                           }}
                         >
                           {enrollment.OverallProgress === 0 ? 'Start Course' : 'Continue'}

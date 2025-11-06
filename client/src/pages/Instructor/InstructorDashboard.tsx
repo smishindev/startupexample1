@@ -35,13 +35,15 @@ import {
   Publish as PublishIcon,
   Drafts as DraftIcon,
   NotificationImportant as InterventionIcon,
-  VideoLibrary as VideoLibraryIcon
+  VideoLibrary as VideoLibraryIcon,
+  PlayCircleOutline
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { Header } from '../../components/Navigation/Header';
 import { instructorApi, InstructorStats, InstructorCourse } from '../../services/instructorApi';
 import { useAuthStore } from '../../stores/authStore';
 import AuthDebug from '../../components/AuthDebug';
+import { formatCategory, getCategoryGradient } from '../../utils/courseHelpers';
 
 export const InstructorDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -333,34 +335,133 @@ export const InstructorDashboard: React.FC = () => {
             return courses;
           })().map((course) => (
             <Grid item xs={12} sm={6} md={4} key={course.id}>
-              <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+              <Card 
+                sx={{ 
+                  height: '100%', 
+                  display: 'flex', 
+                  flexDirection: 'column',
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                  cursor: 'pointer',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  '&:hover': {
+                    transform: 'translateY(-8px)',
+                    boxShadow: '0 12px 24px rgba(0,0,0,0.15)',
+                  },
+                  '&::after': {
+                    content: '""',
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 50%)',
+                    opacity: 0,
+                    transition: 'opacity 0.3s ease',
+                    pointerEvents: 'none',
+                  },
+                  '&:hover::after': {
+                    opacity: 1,
+                  },
+                }}
+              >
                 <Box
                   sx={{
                     height: 200,
-                    backgroundImage: `url(${course.thumbnail})`,
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center',
-                  position: 'relative'
-                }}
-              >
-                <Box sx={{ position: 'absolute', top: 8, right: 8 }}>
-                  <Chip
-                    icon={getStatusIcon(course.status)}
-                    label={course.status.charAt(0).toUpperCase() + course.status.slice(1)}
-                    color={getStatusColor(course.status) as any}
-                    size="small"
-                  />
+                    backgroundImage: course.thumbnail ? `url(${course.thumbnail})` : getCategoryGradient(course.category),
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    position: 'relative',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    overflow: 'hidden',
+                    '&::before': course.thumbnail ? {
+                      content: '""',
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      background: 'linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.6) 100%)',
+                      opacity: 0,
+                      transition: 'opacity 0.3s ease',
+                    } : {
+                      content: '""',
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      background: 'radial-gradient(circle at 30% 50%, rgba(255,255,255,0.2) 0%, transparent 60%)',
+                      opacity: 0,
+                      transition: 'opacity 0.3s ease',
+                    },
+                    '.MuiCard-root:hover &::before': {
+                      opacity: 1,
+                    },
+                  }}
+                >
+                  {!course.thumbnail && (
+                    <PlayCircleOutline 
+                      sx={{ 
+                        fontSize: 56, 
+                        color: 'white', 
+                        filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.3))',
+                        transition: 'all 0.3s ease',
+                        '.MuiCard-root:hover &': {
+                          transform: 'scale(1.2)',
+                        },
+                      }} 
+                    />
+                  )}
+                  <Box sx={{ position: 'absolute', top: 8, right: 8 }}>
+                    <Chip
+                      icon={getStatusIcon(course.status)}
+                      label={course.status.charAt(0).toUpperCase() + course.status.slice(1)}
+                      color={getStatusColor(course.status) as any}
+                      size="small"
+                      sx={{ 
+                        bgcolor: 'rgba(255,255,255,0.95)',
+                        backdropFilter: 'blur(8px)',
+                        fontWeight: 600,
+                      }}
+                    />
+                  </Box>
+                  <Box sx={{ position: 'absolute', top: 8, left: 8 }}>
+                    <IconButton
+                      size="small"
+                      sx={{ 
+                        backgroundColor: 'rgba(255,255,255,0.9)',
+                        backdropFilter: 'blur(8px)',
+                        '&:hover': {
+                          backgroundColor: 'rgba(255,255,255,1)',
+                          transform: 'scale(1.1)',
+                        },
+                      }}
+                      onClick={(e) => handleCourseMenuOpen(e, course.id)}
+                    >
+                      <MoreVertIcon fontSize="small" />
+                    </IconButton>
+                  </Box>
+                  {course.category && !course.thumbnail && (
+                    <Chip
+                      label={formatCategory(course.category)}
+                      size="small"
+                      sx={{
+                        position: 'absolute',
+                        bottom: 12,
+                        left: 12,
+                        bgcolor: 'rgba(255,255,255,0.25)',
+                        backdropFilter: 'blur(8px)',
+                        color: 'white',
+                        fontWeight: 600,
+                        fontSize: '0.7rem',
+                        border: '1px solid rgba(255,255,255,0.3)',
+                      }}
+                    />
+                  )}
                 </Box>
-                <Box sx={{ position: 'absolute', top: 8, left: 8 }}>
-                  <IconButton
-                    size="small"
-                    sx={{ backgroundColor: 'rgba(255,255,255,0.9)' }}
-                    onClick={(e) => handleCourseMenuOpen(e, course.id)}
-                  >
-                    <MoreVertIcon fontSize="small" />
-                  </IconButton>
-                </Box>
-              </Box>
               
               <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
                 <Typography variant="h6" component="h3" gutterBottom noWrap>
@@ -370,6 +471,29 @@ export const InstructorDashboard: React.FC = () => {
                   {course.description}
                 </Typography>
                 
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, gap: 1, flexWrap: 'wrap' }}>
+                  <Chip 
+                    label={`${course.students} students`}
+                    size="small" 
+                    sx={{ 
+                      fontWeight: 500,
+                      fontSize: '0.7rem',
+                      height: 24,
+                    }}
+                  />
+                  <Chip 
+                    label={`${course.lessons} lessons`}
+                    size="small" 
+                    variant="outlined"
+                    sx={{ 
+                      fontWeight: 500,
+                      fontSize: '0.7rem',
+                      borderColor: 'divider',
+                      height: 24,
+                    }}
+                  />
+                </Box>
+
                 {course.status === 'draft' && (
                   <Box sx={{ mb: 2 }}>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
@@ -384,26 +508,26 @@ export const InstructorDashboard: React.FC = () => {
                   </Box>
                 )}
                 
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-                  <Box>
-                    <Typography variant="body2" color="text.secondary">
-                      {course.students} students
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {course.lessons} lessons
-                    </Typography>
-                  </Box>
-                  {course.status === 'published' && (
-                    <Box sx={{ textAlign: 'right' }}>
+                {course.status === 'published' && (
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                       <Typography variant="body2" color="text.secondary">
+                        Rating:
+                      </Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 600, color: '#ffc107' }}>
                         {course.rating} ★
                       </Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                       <Typography variant="body2" color="text.secondary">
+                        Revenue:
+                      </Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 600, color: 'success.main' }}>
                         ${course.revenue}
                       </Typography>
                     </Box>
-                  )}
-                </Box>
+                  </Box>
+                )}
                 
                 <Divider sx={{ mb: 2 }} />
                 

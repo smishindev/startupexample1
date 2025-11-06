@@ -64,6 +64,7 @@ router.get('/courses', authenticateToken, authorize(['instructor', 'admin']), as
         c.Title as title,
         c.Description as description,
         c.Thumbnail as thumbnail,
+        c.Category as category,
         c.IsPublished as isPublished,
         c.Price as price,
         c.Rating as rating,
@@ -90,19 +91,24 @@ router.get('/courses', authenticateToken, authorize(['instructor', 'admin']), as
     }
 
     query += `
-      GROUP BY c.Id, c.Title, c.Description, c.Thumbnail, c.IsPublished, c.Price, 
+      GROUP BY c.Id, c.Title, c.Description, c.Thumbnail, c.Category, c.IsPublished, c.Price, 
                c.Rating, c.EnrollmentCount, c.CreatedAt, c.UpdatedAt
       ORDER BY c.UpdatedAt DESC
     `;
 
     const result = await db.query(query, params);
 
+    console.log('[INSTRUCTOR API] First course from DB:', result[0]);
+
     const courses = result.map((course: any) => ({
       ...course,
+      category: course.category, // Explicitly include category
       status: course.isPublished ? 'published' : 'draft', // Convert boolean to string for frontend
       progress: !course.isPublished ? Math.floor(Math.random() * 100) : 100,
       lastUpdated: course.updatedAt
     }));
+
+    console.log('[INSTRUCTOR API] First mapped course:', courses[0]);
 
     res.json(courses);
   } catch (error) {

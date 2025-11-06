@@ -28,6 +28,7 @@ router.get('/my-enrollments', authenticateToken, async (req: AuthRequest, res: R
           c.Duration,
           c.Level,
           c.Price,
+          c.Category,
           'You' as instructorFirstName,
           'are teaching' as instructorLastName,
           COALESCE(AVG(CAST(up.ProgressPercentage as FLOAT)), 0) as OverallProgress,
@@ -37,7 +38,7 @@ router.get('/my-enrollments', authenticateToken, async (req: AuthRequest, res: R
         LEFT JOIN dbo.Enrollments e ON c.Id = e.CourseId AND e.Status = 'active'
         LEFT JOIN dbo.UserProgress up ON e.UserId = up.UserId AND e.CourseId = up.CourseId
         WHERE c.InstructorId = @userId AND c.IsPublished = 1
-        GROUP BY c.Id, c.Title, c.Description, c.Thumbnail, c.Duration, c.Level, c.Price
+        GROUP BY c.Id, c.Title, c.Description, c.Thumbnail, c.Duration, c.Level, c.Price, c.Category
         ORDER BY c.Id DESC
       `, { userId });
 
@@ -57,6 +58,7 @@ router.get('/my-enrollments', authenticateToken, async (req: AuthRequest, res: R
           c.Duration,
           c.Level,
           c.Price,
+          c.Category,
           u.FirstName as instructorFirstName,
           u.LastName as instructorLastName,
           COALESCE(up.ProgressPercentage, 0) as OverallProgress,
@@ -73,6 +75,8 @@ router.get('/my-enrollments', authenticateToken, async (req: AuthRequest, res: R
         WHERE e.UserId = @userId
         ORDER BY e.EnrolledAt DESC
       `, { userId });
+
+      console.log('[ENROLLMENT API] First enrollment from DB:', enrollments[0]);
 
       res.json(enrollments);
     }

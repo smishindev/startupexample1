@@ -241,17 +241,54 @@ export const Dashboard: React.FC = () => {
             ) : recentCourses.length > 0 ? (
               <Box display="flex" flexDirection="column" gap={2}>
                 {recentCourses.map((course, index) => (
-                  <Card key={index} variant="outlined">
-                    <CardContent>
+                  <Card 
+                    key={index} 
+                    sx={{ 
+                      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                      cursor: 'pointer',
+                      position: 'relative',
+                      overflow: 'hidden',
+                      '&:hover': {
+                        transform: 'translateY(-4px)',
+                        boxShadow: '0 8px 16px rgba(0,0,0,0.12)',
+                      },
+                      '&::after': {
+                        content: '""',
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        background: 'linear-gradient(135deg, rgba(102,126,234,0.05) 0%, transparent 50%)',
+                        opacity: 0,
+                        transition: 'opacity 0.3s ease',
+                        pointerEvents: 'none',
+                      },
+                      '&:hover::after': {
+                        opacity: 1,
+                      },
+                    }}
+                  >
+                    <CardContent sx={{ p: 2.5 }}>
                       <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
-                        <Box>
-                          <Typography variant="h6" gutterBottom>
+                        <Box flex={1}>
+                          <Typography variant="h6" sx={{ fontWeight: 700, mb: 0.5 }}>
                             {course.title}
                           </Typography>
-                          <Typography variant="body2" color="text.secondary" gutterBottom>
+                          <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 500 }}>
                             by {course.instructor}
                           </Typography>
-                          <Typography variant="body2" color="primary">
+                          <Typography 
+                            variant="body2" 
+                            sx={{ 
+                              color: 'primary.main',
+                              fontWeight: 600,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 0.5,
+                            }}
+                          >
+                            <PlayCircleOutline sx={{ fontSize: 16 }} />
                             Next: {course.nextLesson}
                           </Typography>
                         </Box>
@@ -260,23 +297,45 @@ export const Dashboard: React.FC = () => {
                           startIcon={<PlayCircleOutline />}
                           size="small"
                           onClick={() => navigate(`/course/${enrolledCourses[index]?.CourseID}`)}
+                          sx={{
+                            py: 0.75,
+                            px: 2,
+                            borderRadius: 2,
+                            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                            boxShadow: '0 4px 12px rgba(102, 126, 234, 0.4)',
+                            transition: 'all 0.3s ease',
+                            '&:hover': {
+                              transform: 'translateY(-2px)',
+                              boxShadow: '0 6px 16px rgba(102, 126, 234, 0.5)',
+                            },
+                          }}
                         >
                           Continue
                         </Button>
                       </Box>
                       <Box>
                         <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
-                          <Typography variant="body2" color="text.secondary">
-                            Progress
+                          <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
+                            Your Progress
                           </Typography>
-                          <Typography variant="body2" color="text.secondary">
+                          <Typography variant="body2" sx={{ fontWeight: 700, color: 'primary.main' }}>
                             {Math.round(course.progress)}%
                           </Typography>
                         </Box>
                         <LinearProgress
                           variant="determinate"
                           value={course.progress}
-                          sx={{ height: 8, borderRadius: 4 }}
+                          sx={{ 
+                            height: 10, 
+                            borderRadius: 5,
+                            backgroundColor: 'rgba(0,0,0,0.08)',
+                            boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.1)',
+                            '& .MuiLinearProgress-bar': {
+                              borderRadius: 5,
+                              background: 'linear-gradient(90deg, #667eea 0%, #764ba2 100%)',
+                              boxShadow: '0 2px 4px rgba(102, 126, 234, 0.4)',
+                            },
+                          }}
                         />
                       </Box>
                     </CardContent>

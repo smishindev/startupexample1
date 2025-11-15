@@ -1,8 +1,37 @@
 # Mishin Learn Platform - Project Status & Memory
 
-**Last Updated**: November 6, 2025  
+**Last Updated**: November 15, 2025  
 **Developer**: Sergey Mishin (s.mishin.dev@gmail.com)  
 **AI Assistant Context**: This file serves as project memory for continuity across chat sessions
+
+---
+
+## ⚠️ CRITICAL DEVELOPMENT RULES - November 15, 2025
+
+### Database Schema Integrity Protocol
+
+**BEFORE removing any database column references from queries:**
+
+1. ✅ **Check column usage across entire codebase** - Use grep_search to find ALL references
+2. ✅ **Verify if column is a FEATURE or a BUG** - Check backend routes for intentional usage
+3. ✅ **Search frontend for column usage** - Column might be used in UI components
+4. ✅ **Review database schema documentation** - Check `database/schema.sql` for column definition
+5. ⚠️ **ASSUMPTION**: If column appears in 30+ places = IT'S A FEATURE, not a bug
+6. ⚠️ **DEFAULT ACTION**: Add missing column to database, don't break existing functionality
+
+**Recent Example - IsPreview Column Incident (November 15, 2025):**
+- ❌ **Wrong Approach**: Attempted to remove `IsPreview` references from queries (would break preview mode feature)
+- ✅ **Correct Approach**: Added missing `IsPreview` column to AssessmentSubmissions table
+- **Impact**: IsPreview used in 33 backend files + 12 frontend files = core feature for instructor preview mode
+- **Lesson**: Always investigate before removing - user's challenge prevented breaking production feature
+
+**Database Column Addition Checklist:**
+1. Check if column exists: `sqlcmd -Q "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'TableName'"`
+2. Review schema.sql for column definition
+3. Create migration script in `database/add_[column_name]_column.sql`
+4. Execute migration with proper error handling
+5. Verify column added successfully
+6. Update schema.sql documentation if needed
 
 ---
 

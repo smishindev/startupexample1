@@ -167,6 +167,7 @@ CREATE TABLE dbo.AssessmentSubmissions (
     MaxScore INT NOT NULL DEFAULT 100,
     TimeSpent INT NOT NULL DEFAULT 0, -- in minutes
     AttemptNumber INT NOT NULL DEFAULT 1,
+    IsPreview BIT NOT NULL DEFAULT 0, -- 1 = preview/test attempt, 0 = real graded attempt
     Status NVARCHAR(20) NOT NULL DEFAULT 'in_progress' CHECK (Status IN ('in_progress', 'completed', 'abandoned')),
     StartedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
     CompletedAt DATETIME2 NULL,

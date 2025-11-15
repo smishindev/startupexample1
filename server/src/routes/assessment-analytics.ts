@@ -81,7 +81,6 @@ router.get('/instructor/overview', authenticateToken, authorize(['instructor']),
       JOIN dbo.Lessons l ON a.LessonId = l.Id
       WHERE l.CourseId IN (${courseIdsList})
         AND s.CompletedAt >= DATEADD(month, -6, GETUTCDATE())
-        AND s.IsPreview = 0
         AND s.Status = 'completed'
       GROUP BY FORMAT(s.CompletedAt, 'yyyy-MM')
       ORDER BY month DESC

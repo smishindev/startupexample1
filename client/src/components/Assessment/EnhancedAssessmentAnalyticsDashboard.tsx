@@ -176,7 +176,7 @@ export const EnhancedAssessmentAnalyticsDashboard: React.FC = () => {
   return (
     <Box>
       <Header />
-      <Box sx={{ p: 3 }}>
+      <Box sx={{ maxWidth: 'xl', mx: 'auto', p: 3 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
           <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold' }}>
             Assessment Analytics Dashboard
@@ -553,7 +553,7 @@ export const EnhancedAssessmentAnalyticsDashboard: React.FC = () => {
                         ))}
                       </Grid>
 
-                      {selectedCoursePerformance && (
+                      {selectedCoursePerformance && selectedCoursePerformance.studentPerformance.length > 0 && (
                         <Box sx={{ mt: 3 }}>
                           <Typography variant="h6" gutterBottom>
                             Student Performance Analysis
@@ -598,6 +598,17 @@ export const EnhancedAssessmentAnalyticsDashboard: React.FC = () => {
                       </List>
                     </Box>
                   )}
+                      
+                      {selectedCoursePerformance && selectedCoursePerformance.studentPerformance.length === 0 && (
+                        <Box sx={{ mt: 3, py: 4, textAlign: 'center' }}>
+                          <Typography variant="body1" color="text.secondary" gutterBottom>
+                            No student performance data available for this course
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            Students need to complete assessments to see performance analytics
+                          </Typography>
+                        </Box>
+                      )}
                     </>
                   ) : (
                     <Box py={6} textAlign="center">

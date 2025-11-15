@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box,
+  Container,
   Typography,
   Card,
   CardContent,
@@ -128,7 +129,7 @@ export const CourseAnalyticsDashboard: React.FC = () => {
   return (
     <>
       <Header />
-      <Box>
+      <Container maxWidth="xl" sx={{ py: 4 }}>
         <Box 
           display="flex" 
           justifyContent="space-between" 
@@ -173,7 +174,7 @@ export const CourseAnalyticsDashboard: React.FC = () => {
           courseTitle={courses.find(c => c.id === selectedCourse)?.title || 'Course'}
         />
       )}
-    </Box>
+      </Container>
     </>
   );
 };

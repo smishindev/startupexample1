@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box,
+  Container,
   Typography,
   Grid,
   Card,
@@ -130,9 +131,9 @@ export const AnalyticsHubPage: React.FC = () => {
   ];
 
   return (
-    <Box>
+    <>
       <Header />
-      <Box sx={{ p: 3 }}>
+      <Container maxWidth="xl" sx={{ py: 4 }}>
         {/* Header Section */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
           <Box>
@@ -303,7 +304,7 @@ export const AnalyticsHubPage: React.FC = () => {
             </Grid>
           ))}
         </Grid>
-      </Box>
-    </Box>
+      </Container>
+    </>
   );
 };

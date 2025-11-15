@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box,
+  Container,
   Typography,
   Paper,
   Table,
@@ -197,7 +198,7 @@ const StudentManagement: React.FC = () => {
   return (
     <>
       <Header />
-      <Box sx={{ p: 3 }}>
+      <Container maxWidth="xl" sx={{ py: 4 }}>
         <Typography variant="h4" gutterBottom>
           Student Management
         </Typography>
@@ -561,9 +562,9 @@ const StudentManagement: React.FC = () => {
           >
             Send
           </Button>
-        </DialogActions>
-      </Dialog>
-    </Box>
+          </DialogActions>
+        </Dialog>
+      </Container>
     </>
   );
 };

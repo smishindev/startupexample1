@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box,
+  Container,
   Grid,
   Card,
   CardContent,
@@ -128,7 +129,7 @@ export const InstructorStudentAnalytics: React.FC = () => {
   return (
     <Box>
       <Header />
-      <Box sx={{ p: 3 }}>
+      <Container maxWidth="xl" sx={{ py: 4 }}>
         {/* Header */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
           <Box>
@@ -451,7 +452,7 @@ export const InstructorStudentAnalytics: React.FC = () => {
             </Button>
           </DialogActions>
         </Dialog>
-      </Box>
+      </Container>
     </Box>
   );
 };

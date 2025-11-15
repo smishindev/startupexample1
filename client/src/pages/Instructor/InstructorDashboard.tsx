@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box,
+  Container,
   Typography,
   Grid,
   Card,
@@ -156,7 +157,7 @@ export const InstructorDashboard: React.FC = () => {
   return (
     <>
       <Header />
-      <Box sx={{ p: 3 }}>
+      <Container maxWidth="xl" sx={{ py: 4 }}>
         {/* Debug Component - Remove in production */}
         <AuthDebug />
         
@@ -581,6 +582,7 @@ export const InstructorDashboard: React.FC = () => {
           ))
         )}
       </Grid>
+      </Container>
 
       {/* Floating Action Button */}
       <Fab
@@ -664,7 +666,6 @@ export const InstructorDashboard: React.FC = () => {
           </ListItem>
         </List>
       </Dialog>
-    </Box>
     </>
   );
 };

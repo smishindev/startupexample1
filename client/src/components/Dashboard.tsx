@@ -119,7 +119,7 @@ export const Dashboard: React.FC = () => {
   }));
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
+    <Container maxWidth="xl" sx={{ py: 4 }}>
       {/* Welcome Section */}
       <Box mb={4}>
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>

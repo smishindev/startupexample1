@@ -304,7 +304,7 @@ export const LessonDetailPage: React.FC = () => {
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
         <Header />
-        <Container maxWidth="lg" sx={{ mt: 4, mb: 4, flex: 1 }}>
+        <Container maxWidth="xl" sx={{ mt: 4, mb: 4, flex: 1 }}>
           <LinearProgress />
           <Typography variant="h6" sx={{ mt: 2, textAlign: 'center' }}>
             Loading lesson...
@@ -318,7 +318,7 @@ export const LessonDetailPage: React.FC = () => {
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
         <Header />
-        <Container maxWidth="lg" sx={{ mt: 4, mb: 4, flex: 1 }}>
+        <Container maxWidth="xl" sx={{ mt: 4, mb: 4, flex: 1 }}>
           <Typography variant="h6" color="error" sx={{ textAlign: 'center' }}>
             {error || 'Lesson not found'}
           </Typography>
@@ -338,7 +338,7 @@ export const LessonDetailPage: React.FC = () => {
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       <Header />
       
-      <Container maxWidth="lg" sx={{ mt: 4, mb: 4, flex: 1 }}>
+      <Container maxWidth="xl" sx={{ mt: 4, mb: 4, flex: 1 }}>
         {/* Breadcrumb and Navigation */}
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
           <IconButton onClick={() => navigate(`/courses/${courseId}`)}>

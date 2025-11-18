@@ -38,7 +38,7 @@ router.get('/course/:courseId', authenticateToken, async (req: Request, res: Res
         AVG(CAST(VP.WatchedDuration as FLOAT)) as AverageWatchTime,
         AVG(CAST(VP.CompletionPercentage as FLOAT)) as AverageCompletionPercentage,
         SUM(CAST(VP.WatchedDuration as FLOAT)) as TotalWatchTime,
-        SUM(CASE WHEN VP.Completed = 1 THEN 1 ELSE 0 END) as CompletedViews
+        SUM(CASE WHEN VP.IsCompleted = 1 THEN 1 ELSE 0 END) as CompletedViews
       FROM dbo.VideoLessons VL
       INNER JOIN dbo.Lessons L ON VL.LessonId = L.Id
       LEFT JOIN dbo.VideoProgress VP ON VP.VideoLessonId = VL.Id
@@ -168,7 +168,7 @@ router.get('/video/:videoLessonId', authenticateToken, async (req: Request, res:
         VP.LastPosition,
         VP.WatchedDuration,
         VP.CompletionPercentage,
-        VP.Completed,
+        VP.IsCompleted,
         VP.CompletedAt,
         VP.LastWatchedAt
       FROM dbo.VideoProgress VP
@@ -183,7 +183,7 @@ router.get('/video/:videoLessonId', authenticateToken, async (req: Request, res:
       lastPosition: row.LastPosition,
       watchedDuration: row.WatchedDuration,
       completionPercentage: row.CompletionPercentage,
-      completed: row.Completed,
+      completed: row.IsCompleted,
       completedAt: row.CompletedAt,
       lastWatchedAt: row.LastWatchedAt,
     }));

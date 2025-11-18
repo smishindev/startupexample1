@@ -309,7 +309,7 @@ const Chat: React.FC = () => {
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
         <Header />
-        <Container maxWidth="lg" sx={{ py: 4, display: 'flex', justifyContent: 'center' }}>
+        <Container maxWidth="xl" sx={{ py: 4, display: 'flex', justifyContent: 'center' }}>
           <CircularProgress />
         </Container>
       </Box>
@@ -320,7 +320,7 @@ const Chat: React.FC = () => {
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       <Header />
       
-      <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Container maxWidth="xl" sx={{ py: 4 }}>
         {error && (
           <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
             {error}

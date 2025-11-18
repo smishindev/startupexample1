@@ -167,7 +167,7 @@ const MyLearningPage: React.FC = () => {
     return (
       <Box>
         <Header />
-        <Container maxWidth="lg" sx={{ py: 4, display: 'flex', justifyContent: 'center' }}>
+        <Container maxWidth="xl" sx={{ py: 4, display: 'flex', justifyContent: 'center' }}>
           <CircularProgress />
         </Container>
       </Box>
@@ -177,7 +177,7 @@ const MyLearningPage: React.FC = () => {
   return (
     <Box>
       <Header />
-      <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Container maxWidth="xl" sx={{ py: 4 }}>
         <Typography variant="h4" component="h1" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           {isInstructor ? <Psychology color="primary" /> : <School color="primary" />}
           {isInstructor ? 'My Teaching' : 'My Learning'}

@@ -223,7 +223,7 @@ const Tutoring: React.FC = () => {
 
   if (loading) {
     return (
-      <Container maxWidth="lg" sx={{ py: 4, display: 'flex', justifyContent: 'center' }}>
+      <Container maxWidth="xl" sx={{ py: 4, display: 'flex', justifyContent: 'center' }}>
         <CircularProgress />
       </Container>
     );
@@ -233,7 +233,7 @@ const Tutoring: React.FC = () => {
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       <Header />
       
-      <Container maxWidth="lg" sx={{ py: 4, flex: 1 }}>
+      <Container maxWidth="xl" sx={{ py: 4, flex: 1 }}>
         <Typography variant="h4" component="h1" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <AIIcon color="primary" />
           AI Tutoring

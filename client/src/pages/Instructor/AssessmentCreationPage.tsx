@@ -11,7 +11,7 @@ export const AssessmentCreationPage: React.FC = () => {
     return (
       <Box>
         <Header />
-        <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Container maxWidth="xl" sx={{ py: 4 }}>
           <Typography variant="h5" color="error">
             Lesson ID not found
           </Typography>
@@ -26,7 +26,7 @@ export const AssessmentCreationPage: React.FC = () => {
   return (
     <Box>
       <Header />
-      <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Container maxWidth="xl" sx={{ py: 4 }}>
         <Typography variant="h3" gutterBottom>
           Create New Assessment
         </Typography>

@@ -136,7 +136,7 @@ export const CourseAssessmentManagementPage: React.FC = () => {
     return (
       <Box>
         <Header />
-        <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Container maxWidth="xl" sx={{ py: 4 }}>
           <Alert severity="error">
             Course ID not found. Please navigate from a valid course.
           </Alert>
@@ -149,7 +149,7 @@ export const CourseAssessmentManagementPage: React.FC = () => {
     return (
       <Box>
         <Header />
-        <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Container maxWidth="xl" sx={{ py: 4 }}>
           <Typography>Loading course assessments...</Typography>
         </Container>
       </Box>
@@ -160,7 +160,7 @@ export const CourseAssessmentManagementPage: React.FC = () => {
     return (
       <Box>
         <Header />
-        <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Container maxWidth="xl" sx={{ py: 4 }}>
           <Alert severity="error" sx={{ mb: 3 }}>
             {error}
           </Alert>
@@ -175,7 +175,7 @@ export const CourseAssessmentManagementPage: React.FC = () => {
   return (
     <Box>
       <Header />
-      <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Container maxWidth="xl" sx={{ py: 4 }}>
         {/* Breadcrumbs */}
         <Breadcrumbs sx={{ mb: 3 }}>
           <Link

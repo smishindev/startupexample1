@@ -479,7 +479,7 @@ export const CourseDetailPage: React.FC = () => {
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
         <Header />
-        <Container maxWidth="lg" sx={{ mt: 4, mb: 4, flex: 1 }}>
+        <Container maxWidth="xl" sx={{ mt: 4, mb: 4, flex: 1 }}>
           <Typography>Loading course...</Typography>
         </Container>
       </Box>
@@ -490,7 +490,7 @@ export const CourseDetailPage: React.FC = () => {
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
         <Header />
-        <Container maxWidth="lg" sx={{ mt: 4, mb: 4, flex: 1 }}>
+        <Container maxWidth="xl" sx={{ mt: 4, mb: 4, flex: 1 }}>
           <Typography>Course not found</Typography>
         </Container>
       </Box>

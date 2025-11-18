@@ -201,7 +201,7 @@ const CourseDetail: React.FC = () => {
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
         <Header />
-        <Container maxWidth="lg" sx={{ mt: 4, mb: 4, flex: 1 }}>
+        <Container maxWidth="xl" sx={{ mt: 4, mb: 4, flex: 1 }}>
           <Skeleton variant="rectangular" width="100%" height={300} sx={{ mb: 4 }} />
           <Grid container spacing={4}>
             <Grid item xs={12} md={8}>
@@ -222,7 +222,7 @@ const CourseDetail: React.FC = () => {
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
         <Header />
-        <Container maxWidth="lg" sx={{ mt: 4, mb: 4, flex: 1 }}>
+        <Container maxWidth="xl" sx={{ mt: 4, mb: 4, flex: 1 }}>
           <Alert severity="error" sx={{ mb: 4 }}>
             {error || 'Course not found'}
           </Alert>
@@ -242,7 +242,7 @@ const CourseDetail: React.FC = () => {
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       <Header />
       
-      <Container maxWidth="lg" sx={{ mt: 4, mb: 4, flex: 1 }}>
+      <Container maxWidth="xl" sx={{ mt: 4, mb: 4, flex: 1 }}>
         {/* Breadcrumbs */}
         <Breadcrumbs sx={{ mb: 3 }}>
           <Link component={RouterLink} to="/courses" underline="hover">

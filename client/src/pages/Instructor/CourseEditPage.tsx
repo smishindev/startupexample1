@@ -107,7 +107,7 @@ export const CourseEditPage: React.FC = () => {
 
   if (loading) {
     return (
-      <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Container maxWidth="xl" sx={{ py: 4 }}>
         <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
           <CircularProgress />
         </Box>
@@ -117,7 +117,7 @@ export const CourseEditPage: React.FC = () => {
 
   if (error || !course) {
     return (
-      <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Container maxWidth="xl" sx={{ py: 4 }}>
         <Alert severity="error">
           {error || 'Course not found'}
         </Alert>
@@ -126,7 +126,7 @@ export const CourseEditPage: React.FC = () => {
   }
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
+    <Container maxWidth="xl" sx={{ py: 4 }}>
       {/* Header */}
       <Box sx={{ mb: 4 }}>
         <Breadcrumbs sx={{ mb: 2 }}>

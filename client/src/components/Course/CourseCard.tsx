@@ -436,12 +436,26 @@ export const CourseCard: React.FC<CourseCardProps> = ({
 
         {/* Course Stats */}
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 2 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <Rating value={course.rating} precision={0.1} size="small" readOnly />
-            <Typography variant="body2" sx={{ ml: 0.5 }}>
-              {course.rating} ({course.reviewCount})
-            </Typography>
-          </Box>
+          {course.rating > 0 ? (
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              <Rating value={course.rating} precision={0.1} size="small" readOnly />
+              <Typography variant="body2" sx={{ ml: 0.5 }}>
+                {course.rating} ({course.reviewCount})
+              </Typography>
+            </Box>
+          ) : (
+            <Chip
+              label="New Course"
+              size="small"
+              sx={{
+                backgroundColor: alpha(theme.palette.info.main, 0.1),
+                color: theme.palette.info.main,
+                fontWeight: 600,
+                border: `1.5px solid ${alpha(theme.palette.info.main, 0.3)}`,
+                fontSize: '0.7rem',
+              }}
+            />
+          )}
           
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
             <Schedule sx={{ fontSize: 16, color: 'text.secondary', mr: 0.5 }} />
@@ -453,7 +467,9 @@ export const CourseCard: React.FC<CourseCardProps> = ({
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
             <People sx={{ fontSize: 16, color: 'text.secondary', mr: 0.5 }} />
             <Typography variant="body2" color="text.secondary">
-              {course.enrolledStudents.toLocaleString()}
+              {course.enrolledStudents > 0 
+                ? `${course.enrolledStudents.toLocaleString()} enrolled`
+                : 'Be the first!'}
             </Typography>
           </Box>
         </Box>

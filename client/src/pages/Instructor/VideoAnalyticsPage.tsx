@@ -162,7 +162,7 @@ export const VideoAnalyticsPage: React.FC = () => {
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
         <Header />
-        <Container maxWidth="lg" sx={{ mt: 4, mb: 4, flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Container maxWidth="xl" sx={{ mt: 4, mb: 4, flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <CircularProgress />
         </Container>
       </Box>
@@ -173,7 +173,7 @@ export const VideoAnalyticsPage: React.FC = () => {
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       <Header />
       
-      <Container maxWidth="lg" sx={{ mt: 4, mb: 4, flex: 1 }}>
+      <Container maxWidth="xl" sx={{ mt: 4, mb: 4, flex: 1 }}>
         {/* Page Header */}
         <Box sx={{ mb: 4 }}>
           <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1 }}>

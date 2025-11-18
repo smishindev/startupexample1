@@ -71,7 +71,7 @@ const AITutoringDemo: React.FC = () => {
   ];
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
+    <Container maxWidth="xl" sx={{ py: 4 }}>
       <Box sx={{ textAlign: 'center', mb: 6 }}>
         <AIIcon sx={{ fontSize: 64, color: 'primary.main', mb: 2 }} />
         <Typography variant="h3" component="h1" gutterBottom color="primary">

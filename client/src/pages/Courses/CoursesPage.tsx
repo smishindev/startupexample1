@@ -22,7 +22,7 @@ import {
   CardContent,
   Rating,
 } from '@mui/material';
-import { Search, FilterList } from '@mui/icons-material';
+import { Search, FilterList, TrendingUp } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { Header } from '../../components/Navigation/Header';
 import { CourseCard, Course } from '../../components/Course/CourseCard';
@@ -593,57 +593,30 @@ export const CoursesPage: React.FC = () => {
 
         {/* All Courses Tab */}
         <TabPanel value={tabValue} index={0}>
-          {/* Course Statistics Overview */}
-          {!loading && (
-            <Paper sx={{ p: 3, mb: 4 }}>
-              <Typography variant="h6" sx={{ mb: 3 }}>
-                Course Overview
-              </Typography>
-              <Grid container spacing={3}>
-                <Grid item xs={12} sm={6} md={3}>
-                  <Box sx={{ textAlign: 'center' }}>
-                    <Typography variant="h4" color="primary.main" sx={{ fontWeight: 'bold' }}>
-                      {overallStats.TotalCourses}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Total Courses
-                    </Typography>
-                  </Box>
-                </Grid>
-                
-                <Grid item xs={12} sm={6} md={3}>
-                  <Box sx={{ textAlign: 'center' }}>
-                    <Typography variant="h4" color="success.main" sx={{ fontWeight: 'bold' }}>
-                      {overallStats.FreeCourses}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Free Courses
-                    </Typography>
-                  </Box>
-                </Grid>
-                
-                <Grid item xs={12} sm={6} md={3}>
-                  <Box sx={{ textAlign: 'center' }}>
-                    <Typography variant="h4" color="warning.main" sx={{ fontWeight: 'bold' }}>
-                      {overallStats.TotalCategories}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Categories
-                    </Typography>
-                  </Box>
-                </Grid>
-                
-                <Grid item xs={12} sm={6} md={3}>
-                  <Box sx={{ textAlign: 'center' }}>
-                    <Typography variant="h4" color="info.main" sx={{ fontWeight: 'bold' }}>
+          {/* Simplified Course Overview - Only show when meaningful stats exist */}
+          {!loading && overallStats.TotalCourses > 0 && (
+            <Paper sx={{ p: 3, mb: 4, background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 3 }}>
+                <Box>
+                  <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 1 }}>
+                    Explore Our Course Catalog
+                  </Typography>
+                  <Typography variant="body1" sx={{ opacity: 0.9 }}>
+                    {overallStats.TotalCourses} courses across {overallStats.TotalCategories} categories
+                    {overallStats.FreeCourses > 0 && ` • ${overallStats.FreeCourses} free courses available`}
+                  </Typography>
+                </Box>
+                {overallStats.TotalStudents > 0 && (
+                  <Box sx={{ textAlign: 'center', px: 3, py: 2, bgcolor: 'rgba(255,255,255,0.2)', borderRadius: 2 }}>
+                    <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
                       {overallStats.TotalStudents.toLocaleString()}
                     </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Total Students
+                    <Typography variant="body2">
+                      Students Enrolled
                     </Typography>
                   </Box>
-                </Grid>
-              </Grid>
+                )}
+              </Box>
             </Paper>
           )}
 
@@ -683,17 +656,23 @@ export const CoursesPage: React.FC = () => {
                         <Typography variant="body2" sx={{ mb: 1 }}>
                           {formatCategory(stat.Category)}
                         </Typography>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                            <Rating value={stat.AverageRating || 0} precision={0.1} readOnly size="small" />
-                            <Typography variant="caption">
-                              {(stat.AverageRating || 0).toFixed(1)}
-                            </Typography>
+                        {(stat.AverageRating > 0 || stat.AverageEnrollments > 0) && (
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
+                            {stat.AverageRating > 0 && (
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                <Rating value={stat.AverageRating} precision={0.1} readOnly size="small" />
+                                <Typography variant="caption">
+                                  {stat.AverageRating.toFixed(1)}
+                                </Typography>
+                              </Box>
+                            )}
+                            {stat.AverageEnrollments > 0 && (
+                              <Typography variant="caption" color="text.secondary">
+                                ~{Math.round(stat.AverageEnrollments)} enrolled
+                              </Typography>
+                            )}
                           </Box>
-                          <Typography variant="caption" color="text.secondary">
-                            ~{Math.round(stat.AverageEnrollments || 0)} enrolled
-                          </Typography>
-                        </Box>
+                        )}
                       </CardContent>
                     </Card>
                   </Grid>
@@ -738,17 +717,23 @@ export const CoursesPage: React.FC = () => {
                         <Typography variant="body2" sx={{ mb: 1 }}>
                           {stat.Level}
                         </Typography>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                            <Rating value={stat.AverageRating || 0} precision={0.1} readOnly size="small" />
-                            <Typography variant="caption">
-                              {(stat.AverageRating || 0).toFixed(1)}
-                            </Typography>
+                        {(stat.AverageRating > 0 || stat.AverageEnrollments > 0) && (
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
+                            {stat.AverageRating > 0 && (
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                <Rating value={stat.AverageRating} precision={0.1} readOnly size="small" />
+                                <Typography variant="caption">
+                                  {stat.AverageRating.toFixed(1)}
+                                </Typography>
+                              </Box>
+                            )}
+                            {stat.AverageEnrollments > 0 && (
+                              <Typography variant="caption" color="text.secondary">
+                                ~{Math.round(stat.AverageEnrollments)} enrolled
+                              </Typography>
+                            )}
                           </Box>
-                          <Typography variant="caption" color="text.secondary">
-                            ~{Math.round(stat.AverageEnrollments || 0)} enrolled
-                          </Typography>
-                        </Box>
+                        )}
                       </CardContent>
                     </Card>
                   </Grid>
@@ -880,10 +865,30 @@ export const CoursesPage: React.FC = () => {
             </Box>
           ) : (
             <>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3, flexWrap: 'wrap', gap: 2 }}>
                 <Typography variant="h6">
                   {allCourses.length} courses found
                 </Typography>
+                {overallStats.TotalStudents === 0 && allCourses.length > 0 && (
+                  <Box 
+                    sx={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: 1,
+                      px: 2,
+                      py: 1,
+                      bgcolor: 'success.50',
+                      borderRadius: 1,
+                      border: '1px solid',
+                      borderColor: 'success.200',
+                    }}
+                  >
+                    <TrendingUp sx={{ color: 'success.main', fontSize: 20 }} />
+                    <Typography variant="body2" color="success.dark" sx={{ fontWeight: 600 }}>
+                      Fresh courses! Be among the first to enroll
+                    </Typography>
+                  </Box>
+                )}
                 {searchLoading && (
                   <CircularProgress size={20} sx={{ ml: 2 }} />
                 )}

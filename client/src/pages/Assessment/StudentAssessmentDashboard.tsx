@@ -145,7 +145,7 @@ export const StudentAssessmentDashboard: React.FC = () => {
     return (
       <Box>
         <Header />
-        <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Container maxWidth="xl" sx={{ py: 4 }}>
           <Box sx={{ textAlign: 'center' }}>
             <LinearProgress sx={{ mb: 2 }} />
             <Typography>Loading your assessment progress...</Typography>
@@ -159,7 +159,7 @@ export const StudentAssessmentDashboard: React.FC = () => {
     return (
       <Box>
         <Header />
-        <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Container maxWidth="xl" sx={{ py: 4 }}>
           <Alert severity="error" sx={{ mb: 2 }}>
             {error || 'Failed to load assessment data'}
           </Alert>
@@ -174,7 +174,7 @@ export const StudentAssessmentDashboard: React.FC = () => {
   return (
     <Box>
       <Header />
-      <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Container maxWidth="xl" sx={{ py: 4 }}>
         {/* Page Header */}
         <Box sx={{ mb: 4 }}>
           <Typography variant="h3" sx={{ fontWeight: 'bold', mb: 2, display: 'flex', alignItems: 'center' }}>

@@ -61,7 +61,7 @@ export const AssessmentTakingPage: React.FC = () => {
     return (
       <Box>
         <Header />
-        <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Container maxWidth="xl" sx={{ py: 4 }}>
           <Card>
             <CardContent>
               <Typography variant="h5" color="error">
@@ -80,7 +80,7 @@ export const AssessmentTakingPage: React.FC = () => {
   return (
     <Box>
       <Header />
-      <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Container maxWidth="xl" sx={{ py: 4 }}>
         {/* Back to lesson link if available */}
         {returnUrl && (
           <Alert severity="info" sx={{ mb: 2 }}>

@@ -11,7 +11,7 @@ export const AssessmentManagementPage: React.FC = () => {
     return (
       <Box>
         <Header />
-        <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Container maxWidth="xl" sx={{ py: 4 }}>
           <Card>
             <CardContent>
               <Typography variant="h5" color="error">
@@ -30,7 +30,7 @@ export const AssessmentManagementPage: React.FC = () => {
   return (
     <Box>
       <Header />
-      <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Container maxWidth="xl" sx={{ py: 4 }}>
         <Typography variant="h3" gutterBottom>
           Assessment Management
         </Typography>

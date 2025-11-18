@@ -118,7 +118,7 @@ export const DashboardLayout: React.FC = () => {
             title: enrollment.Title,
             instructor: `${enrollment.instructorFirstName} ${enrollment.instructorLastName}`,
             progress: enrollment.OverallProgress || 0,
-            thumbnail: '/api/placeholder/300/200',
+            thumbnail: enrollment.Thumbnail || '',
             lastAccessed: formatLastAccessed(enrollment.LastAccessedAt),
             duration: enrollment.Duration || 'N/A',
             rating: 4.5, // Default rating - could be enhanced with real ratings
@@ -233,7 +233,11 @@ export const DashboardLayout: React.FC = () => {
       <Box
         sx={{
           height: 160,
-          backgroundImage: getCategoryGradient(course.category),
+          backgroundImage: course.thumbnail 
+            ? `url(${course.thumbnail})`
+            : getCategoryGradient(course.category),
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -246,8 +250,10 @@ export const DashboardLayout: React.FC = () => {
             left: 0,
             right: 0,
             bottom: 0,
-            background: 'radial-gradient(circle at 30% 50%, rgba(255,255,255,0.2) 0%, transparent 60%)',
-            opacity: 0,
+            background: course.thumbnail 
+              ? 'rgba(0, 0, 0, 0.3)'
+              : 'radial-gradient(circle at 30% 50%, rgba(255,255,255,0.2) 0%, transparent 60%)',
+            opacity: course.thumbnail ? 1 : 0,
             transition: 'opacity 0.3s ease',
           },
           '.MuiCard-root:hover &::before': {

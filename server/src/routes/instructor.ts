@@ -135,6 +135,7 @@ router.post('/courses', authenticateToken, authorize(['instructor', 'admin']), a
       isPublic,
       allowComments,
       certificateEnabled,
+      thumbnail,
       lessons
     } = req.body;
 
@@ -143,6 +144,8 @@ router.post('/courses', authenticateToken, authorize(['instructor', 'admin']), a
     }
     
     // Map user-friendly category names to database values
+    // Frontend now sends enum values directly (e.g., 'marketing', 'data_science')
+    // This mapping is kept for backward compatibility with old API calls
     const categoryMap: { [key: string]: string } = {
       'Web Development': 'programming',
       'Programming': 'programming',
@@ -151,7 +154,6 @@ router.post('/courses', authenticateToken, authorize(['instructor', 'admin']), a
       'Design': 'design',
       'UI/UX': 'design',
       'Business': 'business',
-      'Marketing': 'business',
       'Language': 'language',
       'English': 'language',
       'Mathematics': 'mathematics',
@@ -165,8 +167,11 @@ router.post('/courses', authenticateToken, authorize(['instructor', 'admin']), a
       'Other': 'other'
     };
 
-    // Map category or use 'other' as fallback
-    const mappedCategory = categoryMap[category] || 'other';
+    // Use provided category if it's a valid enum value, otherwise try mapping, fallback to 'other'
+    const validCategories = ['programming', 'data_science', 'design', 'business', 'marketing', 'language', 'mathematics', 'science', 'arts', 'other'];
+    const mappedCategory = validCategories.includes(category?.toLowerCase()) 
+      ? category.toLowerCase() 
+      : (categoryMap[category] || 'other');
     
     // Generate proper UUID for course ID
     const courseId = uuidv4();
@@ -176,12 +181,12 @@ router.post('/courses', authenticateToken, authorize(['instructor', 'admin']), a
       // Create the course
       await db.execute(`
         INSERT INTO Courses (
-          Id, Title, Description, Category, Level, Price, 
+          Id, Title, Description, Thumbnail, Category, Level, Price, 
           InstructorId, IsPublished, 
           Tags, Prerequisites, LearningOutcomes, CreatedAt, UpdatedAt
         )
         VALUES (
-          @id, @title, @description, @category, @level, @price,
+          @id, @title, @description, @thumbnail, @category, @level, @price,
           @instructorId, @isPublished,
           @tags, @requirements, @whatYouWillLearn, GETDATE(), GETDATE()
         )
@@ -189,6 +194,7 @@ router.post('/courses', authenticateToken, authorize(['instructor', 'admin']), a
         id: courseId,
         title,
         description,
+        thumbnail: thumbnail || null,
         category: mappedCategory,
         level: level || 'beginner',
         price: price || 0,

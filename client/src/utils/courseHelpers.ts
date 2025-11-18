@@ -17,30 +17,36 @@ export const formatCategory = (category?: string): string => {
 
 /**
  * Gets the appropriate gradient based on course category
- * @param category - Category string
+ * @param category - Category string (e.g., 'programming', 'data_science')
  * @returns CSS gradient string
  */
 export const getCategoryGradient = (category?: string): string => {
   const cat = category?.toLowerCase() || '';
   
-  if (cat.includes('programming') || cat.includes('web') || cat.includes('development')) {
-    return 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
-  } else if (cat.includes('data') || cat.includes('science')) {
-    return 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)';
-  } else if (cat.includes('design') || cat.includes('ui')) {
-    return 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)';
-  } else if (cat.includes('business') || cat.includes('marketing')) {
-    return 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)';
-  } else if (cat.includes('mobile')) {
-    return 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)';
-  } else if (cat.includes('devops') || cat.includes('cloud')) {
-    return 'linear-gradient(135deg, #30cfd0 0%, #330867 100%)';
-  } else if (cat.includes('machine') || cat.includes('ai') || cat.includes('ml')) {
-    return 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)';
+  switch (cat) {
+    case 'programming':
+      return 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+    case 'data_science':
+      return 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)';
+    case 'design':
+      return 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)';
+    case 'business':
+      return 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)';
+    case 'marketing':
+      return 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)';
+    case 'language':
+      return 'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)';
+    case 'mathematics':
+      return 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)';
+    case 'science':
+      return 'linear-gradient(135deg, #30cfd0 0%, #330867 100%)';
+    case 'arts':
+      return 'linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)';
+    case 'other':
+      return 'linear-gradient(135deg, #cfd9df 0%, #e2ebf0 100%)';
+    default:
+      return 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)';
   }
-  
-  // Default gradient
-  return 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)';
 };
 
 /**

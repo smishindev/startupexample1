@@ -97,6 +97,7 @@ export interface CourseFormData {
   title: string;
   subtitle?: string;
   description: string;
+  thumbnail?: string;
   category?: string;
   level?: string;
   language?: string;

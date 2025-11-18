@@ -96,6 +96,7 @@ export enum CourseCategory {
   DATA_SCIENCE = 'data_science',
   DESIGN = 'design',
   BUSINESS = 'business',
+  MARKETING = 'marketing',
   LANGUAGE = 'language',
   MATHEMATICS = 'mathematics',
   SCIENCE = 'science',

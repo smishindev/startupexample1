@@ -174,10 +174,20 @@ export const InstructorDashboard: React.FC = () => {
       {/* Stats Overview */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} sm={6} md={2}>
-          <Card>
-            <CardContent sx={{ textAlign: 'center', pb: '16px !important' }}>
-              <SchoolIcon color="primary" sx={{ fontSize: 40, mb: 1 }} />
-              <Typography variant="h4" component="div">
+          <Card sx={{ height: '100%' }}>
+            <CardContent sx={{ 
+              textAlign: 'center', 
+              py: 2,
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              alignItems: 'center',
+              minHeight: 140
+            }}>
+              <Box sx={{ height: 40, display: 'flex', alignItems: 'center', mb: 1 }}>
+                <SchoolIcon color="primary" sx={{ fontSize: 40 }} />
+              </Box>
+              <Typography variant="h4" component="div" sx={{ mb: 0.5 }}>
                 {stats.totalCourses}
               </Typography>
               <Typography color="text.secondary" variant="body2">
@@ -187,10 +197,20 @@ export const InstructorDashboard: React.FC = () => {
           </Card>
         </Grid>
         <Grid item xs={12} sm={6} md={2}>
-          <Card>
-            <CardContent sx={{ textAlign: 'center', pb: '16px !important' }}>
-              <PeopleIcon color="primary" sx={{ fontSize: 40, mb: 1 }} />
-              <Typography variant="h4" component="div">
+          <Card sx={{ height: '100%' }}>
+            <CardContent sx={{ 
+              textAlign: 'center', 
+              py: 2,
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              alignItems: 'center',
+              minHeight: 140
+            }}>
+              <Box sx={{ height: 40, display: 'flex', alignItems: 'center', mb: 1 }}>
+                <PeopleIcon color="primary" sx={{ fontSize: 40 }} />
+              </Box>
+              <Typography variant="h4" component="div" sx={{ mb: 0.5 }}>
                 {stats.totalStudents.toLocaleString()}
               </Typography>
               <Typography color="text.secondary" variant="body2">
@@ -200,10 +220,20 @@ export const InstructorDashboard: React.FC = () => {
           </Card>
         </Grid>
         <Grid item xs={12} sm={6} md={2}>
-          <Card>
-            <CardContent sx={{ textAlign: 'center', pb: '16px !important' }}>
-              <TrendingUpIcon color="primary" sx={{ fontSize: 40, mb: 1 }} />
-              <Typography variant="h4" component="div">
+          <Card sx={{ height: '100%' }}>
+            <CardContent sx={{ 
+              textAlign: 'center', 
+              py: 2,
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              alignItems: 'center',
+              minHeight: 140
+            }}>
+              <Box sx={{ height: 40, display: 'flex', alignItems: 'center', mb: 1 }}>
+                <TrendingUpIcon color="primary" sx={{ fontSize: 40 }} />
+              </Box>
+              <Typography variant="h4" component="div" sx={{ mb: 0.5 }}>
                 ${stats.totalRevenue.toLocaleString()}
               </Typography>
               <Typography color="text.secondary" variant="body2">
@@ -213,16 +243,22 @@ export const InstructorDashboard: React.FC = () => {
           </Card>
         </Grid>
         <Grid item xs={12} sm={6} md={2}>
-          <Card>
-            <CardContent sx={{ textAlign: 'center', pb: '16px !important' }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1 }}>
-                <Typography variant="h4" component="div">
-                  {stats.avgRating}
-                </Typography>
-                <Typography variant="h6" color="text.secondary" sx={{ ml: 0.5 }}>
-                  ★
-                </Typography>
+          <Card sx={{ height: '100%' }}>
+            <CardContent sx={{ 
+              textAlign: 'center', 
+              py: 2,
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              alignItems: 'center',
+              minHeight: 140
+            }}>
+              <Box sx={{ height: 40, display: 'flex', alignItems: 'center', mb: 1, fontSize: 40, color: 'primary.main' }}>
+                ★
               </Box>
+              <Typography variant="h4" component="div" sx={{ mb: 0.5 }}>
+                {stats.avgRating}
+              </Typography>
               <Typography color="text.secondary" variant="body2">
                 Avg Rating
               </Typography>
@@ -230,9 +266,20 @@ export const InstructorDashboard: React.FC = () => {
           </Card>
         </Grid>
         <Grid item xs={12} sm={6} md={2}>
-          <Card>
-            <CardContent sx={{ textAlign: 'center', pb: '16px !important' }}>
-              <Typography variant="h4" component="div">
+          <Card sx={{ height: '100%' }}>
+            <CardContent sx={{ 
+              textAlign: 'center', 
+              py: 2,
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              alignItems: 'center',
+              minHeight: 140
+            }}>
+              <Box sx={{ height: 40, display: 'flex', alignItems: 'center', mb: 1, fontSize: 40, color: 'primary.main', fontWeight: 'bold' }}>
+                %
+              </Box>
+              <Typography variant="h4" component="div" sx={{ mb: 0.5 }}>
                 {stats.completionRate}%
               </Typography>
               <Typography color="text.secondary" variant="body2">
@@ -242,9 +289,20 @@ export const InstructorDashboard: React.FC = () => {
           </Card>
         </Grid>
         <Grid item xs={12} sm={6} md={2}>
-          <Card>
-            <CardContent sx={{ textAlign: 'center', pb: '16px !important' }}>
-              <Typography variant="h4" component="div" color="success.main">
+          <Card sx={{ height: '100%' }}>
+            <CardContent sx={{ 
+              textAlign: 'center', 
+              py: 2,
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              alignItems: 'center',
+              minHeight: 140
+            }}>
+              <Box sx={{ height: 40, display: 'flex', alignItems: 'center', mb: 1 }}>
+                <TrendingUpIcon color="success" sx={{ fontSize: 40 }} />
+              </Box>
+              <Typography variant="h4" component="div" color="success.main" sx={{ mb: 0.5 }}>
                 +{stats.monthlyGrowth}%
               </Typography>
               <Typography color="text.secondary" variant="body2">

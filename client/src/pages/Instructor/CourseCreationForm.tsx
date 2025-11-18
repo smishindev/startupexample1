@@ -73,17 +73,18 @@ interface Lesson {
 
 const steps = ['Basic Info', 'Course Content', 'Settings', 'Preview & Publish'];
 
+// Categories matching backend CourseCategory enum with display formatting
 const categories = [
-  'Web Development',
-  'Mobile Development',
-  'Data Science',
-  'Machine Learning',
-  'DevOps',
-  'Design',
-  'Business',
-  'Marketing',
-  'Photography',
-  'Music'
+  { value: 'programming', label: 'Programming' },
+  { value: 'data_science', label: 'Data Science' },
+  { value: 'design', label: 'Design' },
+  { value: 'business', label: 'Business' },
+  { value: 'marketing', label: 'Marketing' },
+  { value: 'language', label: 'Language' },
+  { value: 'mathematics', label: 'Mathematics' },
+  { value: 'science', label: 'Science' },
+  { value: 'arts', label: 'Arts' },
+  { value: 'other', label: 'Other' }
 ];
 
 const levels = ['Beginner', 'Intermediate', 'Advanced', 'All Levels'];
@@ -120,6 +121,8 @@ export const CourseCreationForm: React.FC = () => {
   const [lessonDialogOpen, setLessonDialogOpen] = useState(false);
   const [currentLesson, setCurrentLesson] = useState<Partial<Lesson>>({});
   const [thumbnailPreview, setThumbnailPreview] = useState<string>('');
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
+  const [uploadedThumbnailUrl, setUploadedThumbnailUrl] = useState<string>('');
   const [saving, setSaving] = useState(false);
   
   // Upload progress state
@@ -152,6 +155,19 @@ export const CourseCreationForm: React.FC = () => {
   const handleThumbnailUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        alert('Please select an image file');
+        return;
+      }
+      
+      // Validate file size (max 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        alert('Image size must be less than 10MB');
+        return;
+      }
+      
+      setThumbnailFile(file);
       const reader = new FileReader();
       reader.onload = (e) => setThumbnailPreview(e.target?.result as string);
       reader.readAsDataURL(file);
@@ -482,6 +498,19 @@ export const CourseCreationForm: React.FC = () => {
     setCancelUpload(false);
     
     try {
+      // Upload thumbnail first if selected
+      let thumbnailUrl = '';
+      if (thumbnailFile) {
+        try {
+          const uploadedFile = await fileUploadApi.uploadFile(thumbnailFile, { fileType: 'image' });
+          thumbnailUrl = uploadedFile.url;
+          setUploadedThumbnailUrl(thumbnailUrl);
+        } catch (error) {
+          console.error('Thumbnail upload failed:', error);
+          alert('Failed to upload thumbnail. Course will be created without thumbnail.');
+        }
+      }
+      
       // Count total files to upload
       const totalFilesToUpload = lessons.reduce((count, lesson) => {
         if (lesson.pendingVideoFile) count++;
@@ -664,8 +693,8 @@ export const CourseCreationForm: React.FC = () => {
 
       const result = await instructorApi.createCourse({
         ...courseData,
+        thumbnail: thumbnailUrl || undefined,
         lessons: apiLessons
-        // TODO: Handle thumbnail upload separately
       });
       
       // If course was created successfully, publish it
@@ -743,7 +772,7 @@ export const CourseCreationForm: React.FC = () => {
                         label="Category"
                       >
                         {categories.map((cat) => (
-                          <MenuItem key={cat} value={cat}>{cat}</MenuItem>
+                          <MenuItem key={cat.value} value={cat.value}>{cat.label}</MenuItem>
                         ))}
                       </Select>
                     </FormControl>

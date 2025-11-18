@@ -60,7 +60,7 @@ CREATE TABLE dbo.Courses (
     Description NVARCHAR(MAX) NOT NULL,
     Thumbnail NVARCHAR(500) NULL,
     InstructorId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id),
-    Category NVARCHAR(30) NOT NULL CHECK (Category IN ('programming', 'data_science', 'design', 'business', 'language', 'mathematics', 'science', 'arts', 'other')),
+    Category NVARCHAR(30) NOT NULL CHECK (Category IN ('programming', 'data_science', 'design', 'business', 'marketing', 'language', 'mathematics', 'science', 'arts', 'other')),
     Level NVARCHAR(20) NOT NULL CHECK (Level IN ('beginner', 'intermediate', 'advanced', 'expert')),
     Duration INT NOT NULL DEFAULT 0, -- in minutes
     Price DECIMAL(10,2) NOT NULL DEFAULT 0.00,

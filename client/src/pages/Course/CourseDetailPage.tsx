@@ -524,14 +524,20 @@ export const CourseDetailPage: React.FC = () => {
                 <Box
                   sx={{
                     height: 300,
-                    background: 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)',
+                    background: course.thumbnail 
+                      ? `url(${course.thumbnail})` 
+                      : 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)',
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     position: 'relative',
                   }}
                 >
-                  <PlayCircleOutline sx={{ fontSize: 80, color: 'white', opacity: 0.8 }} />
+                  {!course.thumbnail && (
+                    <PlayCircleOutline sx={{ fontSize: 80, color: 'white', opacity: 0.8 }} />
+                  )}
                   {!course.isEnrolled && (
                     <Box
                       sx={{

@@ -102,11 +102,12 @@ export const LessonManagement: React.FC<LessonManagementProps> = ({ courseId }) 
   };
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4">Lesson Management</Typography>
+        <Typography variant="h5" fontWeight={600}>Lessons</Typography>
         <Button
           variant="contained"
+          size="large"
           onClick={handleCreateLesson}
           disabled={loading}
         >
@@ -129,70 +130,61 @@ export const LessonManagement: React.FC<LessonManagementProps> = ({ courseId }) 
       {loading ? (
         <Typography>Loading lessons...</Typography>
       ) : lessons.length === 0 ? (
-        <Card>
-          <CardContent sx={{ textAlign: 'center', py: 6 }}>
-            <Typography variant="h6" color="text.secondary" gutterBottom>
+        <Card sx={{ textAlign: 'center', py: 8 }}>
+          <CardContent>
+            <Typography variant="h5" fontWeight={600} gutterBottom>
               No lessons yet
             </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-              Create your first lesson to get started
+            <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
+              Create your first lesson to get started with course content
             </Typography>
-            <Button variant="contained" onClick={handleCreateLesson}>
+            <Button variant="contained" size="large" onClick={handleCreateLesson}>
               Create First Lesson
             </Button>
           </CardContent>
         </Card>
       ) : (
-        <List>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           {lessons.map((lesson, index) => (
-            <React.Fragment key={lesson.id}>
-              <ListItem
-                sx={{
-                  bgcolor: 'background.paper',
-                  mb: 1,
-                  borderRadius: 1,
-                  border: '1px solid',
-                  borderColor: 'divider'
-                }}
-              >
-                <ListItemText
-                  primary={
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Typography variant="h6">{lesson.title}</Typography>
-                      {lesson.isPublished && (
-                        <Chip label="Published" color="success" size="small" />
-                      )}
-                      {hasVideoContent(lesson) && (
-                        <Chip label="📹 Video" color="primary" size="small" />
-                      )}
+            <Card
+              key={lesson.id}
+              sx={{
+                transition: 'box-shadow 0.2s',
+                '&:hover': {
+                  boxShadow: 3
+                }
+              }}
+            >
+              <CardContent>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexGrow: 1 }}>
+                    <Box
+                      sx={{
+                        minWidth: 40,
+                        height: 40,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        bgcolor: 'primary.main',
+                        color: 'primary.contrastText',
+                        borderRadius: 1,
+                        fontWeight: 600
+                      }}
+                    >
+                      {index + 1}
                     </Box>
-                  }
-                  secondary={
-                    <Box sx={{ mt: 1 }}>
-                      <Typography variant="body2" color="text.secondary" component="span">
-                        {lesson.description || 'No description'}
-                      </Typography>
-                      <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Typography variant="caption" color="text.secondary" component="span">
-                          Order: {lesson.orderIndex}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary" component="span">
-                          • Content: {lesson.content.length} items
-                        </Typography>
-                        {lesson.duration && (
-                          <Typography variant="caption" color="text.secondary" component="span">
-                            • Duration: {lesson.duration}min
-                          </Typography>
+                    <Box sx={{ flexGrow: 1 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                        <Typography variant="h6" fontWeight={600}>{lesson.title}</Typography>
+                        {lesson.isPublished && (
+                          <Chip label="Published" color="success" size="small" />
+                        )}
+                        {hasVideoContent(lesson) && (
+                          <Chip label="📹 Video" color="primary" size="small" />
                         )}
                       </Box>
-                      <Box sx={{ mt: 1 }}>
-                        {getContentTypeBadges(lesson)}
-                      </Box>
                     </Box>
-                  }
-                  secondaryTypographyProps={{ component: 'div' }}
-                />
-                <ListItemSecondaryAction>
+                  </Box>
                   <Box sx={{ display: 'flex', gap: 1 }}>
                     <Button
                       size="small"
@@ -210,12 +202,34 @@ export const LessonManagement: React.FC<LessonManagementProps> = ({ courseId }) 
                       Delete
                     </Button>
                   </Box>
-                </ListItemSecondaryAction>
-              </ListItem>
-              {index < lessons.length - 1 && <Divider sx={{ my: 1 }} />}
-            </React.Fragment>
+                </Box>
+                
+                {lesson.description && (
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2, ml: 7 }}>
+                    {lesson.description}
+                  </Typography>
+                )}
+                
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, ml: 7 }}>
+                  <Typography variant="body2" color="text.secondary">
+                    Order: {lesson.orderIndex}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Content: {lesson.content.length} items
+                  </Typography>
+                  {lesson.duration && (
+                    <Typography variant="body2" color="text.secondary">
+                      Duration: {lesson.duration}min
+                    </Typography>
+                  )}
+                  <Box sx={{ display: 'flex', gap: 0.5 }}>
+                    {getContentTypeBadges(lesson)}
+                  </Box>
+                </Box>
+              </CardContent>
+            </Card>
           ))}
-        </List>
+        </Box>
       )}
 
       {/* Floating Action Button for quick access */}

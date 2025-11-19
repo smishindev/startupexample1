@@ -57,7 +57,16 @@ router.get('/lesson/:lessonId', authenticateToken, async (req: AuthRequest, res:
 
     const assessments = await db.query(`
       SELECT 
-        a.*,
+        a.Id,
+        a.LessonId,
+        a.Title,
+        a.Type,
+        a.PassingScore,
+        a.MaxAttempts,
+        a.TimeLimit,
+        a.IsAdaptive,
+        a.CreatedAt,
+        a.UpdatedAt,
         COUNT(q.Id) as QuestionCount
       FROM dbo.Assessments a
       LEFT JOIN dbo.Questions q ON a.Id = q.AssessmentId
@@ -245,7 +254,8 @@ router.get('/:assessmentId/analytics', authenticateToken, checkRole(['instructor
 
     // Get assessment details
     const assessment = await db.query(`
-      SELECT * FROM dbo.Assessments WHERE Id = @assessmentId
+      SELECT Id, LessonId, Title, Type, PassingScore, MaxAttempts, TimeLimit, IsAdaptive, CreatedAt, UpdatedAt
+      FROM dbo.Assessments WHERE Id = @assessmentId
     `, { assessmentId });
 
     if (assessment.length === 0) {
@@ -399,7 +409,8 @@ router.get('/:assessmentId', authenticateToken, async (req: AuthRequest, res: Re
 
     // Get assessment details with lesson info
     const assessment = await db.query(`
-      SELECT a.*, l.CourseId FROM dbo.Assessments a
+      SELECT a.Id, a.LessonId, a.Title, a.Type, a.PassingScore, a.MaxAttempts, a.TimeLimit, a.IsAdaptive, a.CreatedAt, a.UpdatedAt, l.CourseId 
+      FROM dbo.Assessments a
       JOIN dbo.Lessons l ON a.LessonId = l.Id
       WHERE a.Id = @assessmentId
     `, { assessmentId });
@@ -570,7 +581,8 @@ router.post('/', authenticateToken, checkRole(['instructor']), async (req: AuthR
 
     // Fetch the created assessment with questions
     const createdAssessment = await db.query(`
-      SELECT * FROM dbo.Assessments WHERE Id = @assessmentId
+      SELECT Id, LessonId, Title, Type, PassingScore, MaxAttempts, TimeLimit, IsAdaptive, CreatedAt, UpdatedAt
+      FROM dbo.Assessments WHERE Id = @assessmentId
     `, { assessmentId });
 
     res.status(201).json(createdAssessment[0]);
@@ -590,7 +602,8 @@ router.post('/:assessmentId/start', authenticateToken, checkRole(['student', 'in
 
     // Check if assessment exists
     const assessment = await db.query(`
-      SELECT * FROM dbo.Assessments WHERE Id = @assessmentId
+      SELECT Id, LessonId, Title, Type, PassingScore, MaxAttempts, TimeLimit, IsAdaptive, CreatedAt, UpdatedAt
+      FROM dbo.Assessments WHERE Id = @assessmentId
     `, { assessmentId });
 
     if (assessment.length === 0) {
@@ -1101,7 +1114,8 @@ router.put('/:assessmentId', authenticateToken, checkRole(['instructor']), async
     }
 
     const updatedAssessment = await db.query(`
-      SELECT * FROM dbo.Assessments WHERE Id = @assessmentId
+      SELECT Id, LessonId, Title, Type, PassingScore, MaxAttempts, TimeLimit, IsAdaptive, CreatedAt, UpdatedAt
+      FROM dbo.Assessments WHERE Id = @assessmentId
     `, { assessmentId });
 
     res.json(updatedAssessment[0]);

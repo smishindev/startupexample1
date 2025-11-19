@@ -80,12 +80,21 @@ const AssessmentManager: React.FC<AssessmentManagerProps> = ({ lessonId }) => {
   const loadAssessments = async () => {
     try {
       setLoading(true);
+      setError(null);
       const data = await assessmentApi.getAssessmentsByLesson(lessonId);
-      const mappedAssessments = data.map(mapAssessment);
+      const mappedAssessments = Array.isArray(data) ? data.map(mapAssessment) : [];
       setAssessments(mappedAssessments);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error loading assessments:', error);
-      setError('Failed to load assessments');
+      // If it's a 404 or "not found" error, that just means no assessments exist yet
+      if (error?.response?.status === 404 || error?.message?.includes('not found') || error?.message?.includes('No assessments')) {
+        console.log('No assessments found for this lesson (this is normal for new lessons)');
+        setAssessments([]);
+        setError(null); // Clear error since this is expected
+      } else {
+        setError('Failed to load assessments');
+        setAssessments([]);
+      }
     } finally {
       setLoading(false);
     }

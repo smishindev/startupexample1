@@ -5,6 +5,7 @@ USE [startUp1]
 GO
 
 -- Drop tables if they exist (for fresh setup)
+IF OBJECT_ID('dbo.VideoAnalytics', 'U') IS NOT NULL DROP TABLE dbo.VideoAnalytics;
 IF OBJECT_ID('dbo.VideoProgress', 'U') IS NOT NULL DROP TABLE dbo.VideoProgress;
 IF OBJECT_ID('dbo.VideoLessons', 'U') IS NOT NULL DROP TABLE dbo.VideoLessons;
 IF OBJECT_ID('dbo.FileUploads', 'U') IS NOT NULL DROP TABLE dbo.FileUploads;
@@ -20,6 +21,8 @@ IF OBJECT_ID('dbo.StudentRiskAssessment', 'U') IS NOT NULL DROP TABLE dbo.Studen
 IF OBJECT_ID('dbo.StudentRecommendations', 'U') IS NOT NULL DROP TABLE dbo.StudentRecommendations;
 IF OBJECT_ID('dbo.LearningActivities', 'U') IS NOT NULL DROP TABLE dbo.LearningActivities;
 IF OBJECT_ID('dbo.CourseProgress', 'U') IS NOT NULL DROP TABLE dbo.CourseProgress;
+IF OBJECT_ID('dbo.NotificationPreferences', 'U') IS NOT NULL DROP TABLE dbo.NotificationPreferences;
+IF OBJECT_ID('dbo.Notifications', 'U') IS NOT NULL DROP TABLE dbo.Notifications;
 IF OBJECT_ID('dbo.Bookmarks', 'U') IS NOT NULL DROP TABLE dbo.Bookmarks;
 -- Core Assessment Tables
 IF OBJECT_ID('dbo.AssessmentSubmissions', 'U') IS NOT NULL DROP TABLE dbo.AssessmentSubmissions;
@@ -165,7 +168,7 @@ CREATE TABLE dbo.AssessmentSubmissions (
     Answers NVARCHAR(MAX) NOT NULL, -- JSON object with question IDs and answers
     Score INT NOT NULL DEFAULT 0,
     MaxScore INT NOT NULL DEFAULT 100,
-    TimeSpent INT NOT NULL DEFAULT 0, -- in minutes
+    TimeSpent INT NOT NULL DEFAULT 0, -- in seconds (for precise time tracking)
     AttemptNumber INT NOT NULL DEFAULT 1,
     IsPreview BIT NOT NULL DEFAULT 0, -- 1 = preview/test attempt, 0 = real graded attempt
     Status NVARCHAR(20) NOT NULL DEFAULT 'in_progress' CHECK (Status IN ('in_progress', 'completed', 'abandoned')),
@@ -264,96 +267,6 @@ CREATE TABLE dbo.FileUploads (
     RelatedEntityType NVARCHAR(50) NULL CHECK (RelatedEntityType IN ('Course', 'Lesson')),
     RelatedEntityId UNIQUEIDENTIFIER NULL,
     UploadedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE()
-);
-
--- Bookmarks Table
-CREATE TABLE dbo.Bookmarks (
-    Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
-    UserId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id),
-    CourseId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Courses(Id) ON DELETE CASCADE,
-    Notes NVARCHAR(MAX) NULL,
-    BookmarkedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE()
-);
-
--- Notifications Table
-CREATE TABLE dbo.Notifications (
-    Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
-    UserId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id),
-    Type NVARCHAR(50) NOT NULL,
-    Priority NVARCHAR(20) NOT NULL DEFAULT 'normal' CHECK (Priority IN ('low', 'normal', 'high', 'urgent')),
-    Title NVARCHAR(200) NOT NULL,
-    Message NVARCHAR(MAX) NOT NULL,
-    Data NVARCHAR(MAX) NULL, -- JSON object for notification data
-    IsRead BIT NOT NULL DEFAULT 0,
-    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
-    ReadAt DATETIME2 NULL,
-    ExpiresAt DATETIME2 NULL,
-    ActionUrl NVARCHAR(500) NULL,
-    ActionText NVARCHAR(100) NULL,
-    RelatedEntityId UNIQUEIDENTIFIER NULL,
-    RelatedEntityType NVARCHAR(50) NULL
-);
-
--- Notification Preferences Table
-CREATE TABLE dbo.NotificationPreferences (
-    Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
-    UserId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id),
-    EnableProgressNotifications BIT NOT NULL DEFAULT 1,
-    EnableRiskAlerts BIT NOT NULL DEFAULT 1,
-    EnableAchievementNotifications BIT NOT NULL DEFAULT 1,
-    EnableCourseUpdates BIT NOT NULL DEFAULT 1,
-    EnableAssignmentReminders BIT NOT NULL DEFAULT 1,
-    EnableEmailNotifications BIT NOT NULL DEFAULT 1,
-    EmailDigestFrequency NVARCHAR(20) NOT NULL DEFAULT 'daily' CHECK (EmailDigestFrequency IN ('none', 'daily', 'weekly', 'monthly')),
-    QuietHoursStart TIME NULL,
-    QuietHoursEnd TIME NULL,
-    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
-    UpdatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE()
-);
-
--- Video Lessons Table
-CREATE TABLE dbo.VideoLessons (
-    Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
-    LessonId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Lessons(Id) ON DELETE CASCADE,
-    VideoURL NVARCHAR(1000) NOT NULL,
-    Duration INT NOT NULL DEFAULT 0, -- in seconds
-    Thumbnail NVARCHAR(500) NULL,
-    TranscriptURL NVARCHAR(1000) NULL,
-    TranscriptText NVARCHAR(MAX) NULL,
-    VideoMetadata NVARCHAR(MAX) NULL, -- JSON object for video metadata
-    ProcessingStatus NVARCHAR(20) NOT NULL DEFAULT 'processing' CHECK (ProcessingStatus IN ('processing', 'ready', 'failed')),
-    FileSize BIGINT NULL,
-    UploadedBy UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id),
-    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
-    UpdatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE()
-);
-
--- Video Progress Table
-CREATE TABLE dbo.VideoProgress (
-    Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
-    UserId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id),
-    VideoLessonId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.VideoLessons(Id) ON DELETE CASCADE,
-    WatchedDuration INT NOT NULL DEFAULT 0, -- in seconds
-    LastPosition INT NOT NULL DEFAULT 0, -- in seconds
-    CompletionPercentage DECIMAL(5,2) NOT NULL DEFAULT 0.00,
-    IsCompleted BIT NOT NULL DEFAULT 0,
-    PlaybackSpeed DECIMAL(3,2) NOT NULL DEFAULT 1.00,
-    LastWatchedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
-    CompletedAt DATETIME2 NULL,
-    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
-    UpdatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
-    UNIQUE(UserId, VideoLessonId)
-);
-
--- Video Analytics Table
-CREATE TABLE dbo.VideoAnalytics (
-    Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
-    VideoLessonId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.VideoLessons(Id) ON DELETE CASCADE,
-    UserId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id),
-    EventType NVARCHAR(20) NOT NULL CHECK (EventType IN ('play', 'pause', 'seek', 'complete', 'buffer', 'error')),
-    Timestamp INT NOT NULL, -- Video timestamp in seconds
-    EventData NVARCHAR(MAX) NULL, -- JSON object for event data
-    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE()
 );
 
 -- Create Indexes for Performance
@@ -594,15 +507,9 @@ CREATE NONCLUSTERED INDEX IX_VideoAnalytics_UserId ON dbo.VideoAnalytics(UserId)
 CREATE NONCLUSTERED INDEX IX_VideoAnalytics_SessionId ON dbo.VideoAnalytics(SessionId);
 
 -- ========================================
--- SAMPLE DATA
 -- ========================================
-
--- Insert Sample Data
-INSERT INTO dbo.Users (Id, Email, Username, FirstName, LastName, PasswordHash, Role, IsActive, EmailVerified, CreatedAt, UpdatedAt)
-VALUES 
-    (NEWID(), 'admin@mishinlearn.com', 'admin', 'Sergey', 'Mishin', '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LwlAR2B9VCFxCgHKK', 'admin', 1, 1, GETUTCDATE(), GETUTCDATE()),
-    (NEWID(), 'instructor@mishinlearn.com', 'instructor1', 'John', 'Doe', '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LwlAR2B9VCFxCgHKK', 'instructor', 1, 1, GETUTCDATE(), GETUTCDATE()),
-    (NEWID(), 'student@mishinlearn.com', 'student1', 'Jane', 'Smith', '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LwlAR2B9VCFxCgHKK', 'student', 1, 1, GETUTCDATE(), GETUTCDATE());
+-- SCHEMA CREATION COMPLETE
+-- ========================================
 
 PRINT '✅ Mishin Learn Database Schema created successfully!';
 PRINT '📊 Core Tables: Users, Courses, Lessons, Enrollments, UserProgress, Resources, Assessments, Questions, AssessmentSubmissions';
@@ -611,8 +518,4 @@ PRINT '🧠 AI Progress Integration: CourseProgress, LearningActivities, Student
 PRINT '📚 User Features: Bookmarks, FileUploads';
 PRINT '🔔 Real-time Notifications: Notifications, NotificationPreferences';
 PRINT '🎥 Video Lesson System: VideoLessons, VideoProgress, VideoAnalytics';
-PRINT '🔐 Sample accounts created:';
-PRINT '   - Admin: admin@mishinlearn.com (password: password123)';
-PRINT '   - Instructor: instructor@mishinlearn.com (password: password123)';  
-PRINT '   - Student: student@mishinlearn.com (password: password123)';
-PRINT '🚀 Database is ready for Mishin Learn Platform with AI-powered Student Progress Integration and Video Lessons!';
+PRINT '🚀 Database is ready for Mishin Learn Platform!';

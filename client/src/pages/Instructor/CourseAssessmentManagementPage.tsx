@@ -74,9 +74,18 @@ export const CourseAssessmentManagementPage: React.FC = () => {
             const assessments = await assessmentApi.getAssessmentsByLesson(lesson.id);
             return {
               ...lesson,
-              assessments: assessments || []
+              assessments: Array.isArray(assessments) ? assessments : []
             };
-          } catch (error) {
+          } catch (error: any) {
+            // If it's a 404 or "not found" error, that's fine - just no assessments yet
+            if (error?.response?.status === 404 || error?.message?.includes('not found')) {
+              console.log(`No assessments found for lesson ${lesson.id} (this is normal)`);
+              return {
+                ...lesson,
+                assessments: []
+              };
+            }
+            // For other errors, log but don't fail the whole page
             console.warn(`Failed to load assessments for lesson ${lesson.id}:`, error);
             return {
               ...lesson,
@@ -89,7 +98,16 @@ export const CourseAssessmentManagementPage: React.FC = () => {
       setLessons(lessonsWithAssessments);
     } catch (error: any) {
       console.error('Error loading course assessment data:', error);
-      setError('Failed to load course assessment data');
+      // Only show error for critical failures (like course not found)
+      if (error?.response?.status === 404) {
+        setError('Course not found');
+      } else if (error?.message?.includes('lessons')) {
+        setError('Failed to load course lessons');
+      } else {
+        // For other errors, still show the page with empty state
+        console.warn('Non-critical error loading assessments:', error);
+        setLessons([]);
+      }
     } finally {
       setLoading(false);
     }

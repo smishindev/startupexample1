@@ -31,12 +31,14 @@ export const LessonManagementPage: React.FC = () => {
     <Box>
       <Header />
       <Container maxWidth="xl" sx={{ py: 4 }}>
-        <Typography variant="h3" gutterBottom>
-          Content Upload System
-        </Typography>
-        <Typography variant="subtitle1" color="text.secondary" gutterBottom sx={{ mb: 4 }}>
-          Upload and manage video content, documents, and images for your lessons
-        </Typography>
+        <Box sx={{ mb: 4 }}>
+          <Typography variant="h4" fontWeight={600} gutterBottom>
+            Content Upload System
+          </Typography>
+          <Typography variant="body1" color="text.secondary">
+            Upload and manage video content, documents, and images for your lessons
+          </Typography>
+        </Box>
         
         <LessonManagement courseId={courseId} />
       </Container>

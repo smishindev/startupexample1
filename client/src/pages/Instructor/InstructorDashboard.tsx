@@ -276,7 +276,7 @@ export const InstructorDashboard: React.FC = () => {
               alignItems: 'center',
               minHeight: 140
             }}>
-              <Box sx={{ height: 40, display: 'flex', alignItems: 'center', mb: 1, fontSize: 40, color: 'primary.main', fontWeight: 'bold' }}>
+              <Box sx={{ height: 40, display: 'flex', alignItems: 'center', mb: 1, fontSize: 32, color: 'primary.main', fontWeight: 'bold' }}>
                 %
               </Box>
               <Typography variant="h4" component="div" sx={{ mb: 0.5 }}>

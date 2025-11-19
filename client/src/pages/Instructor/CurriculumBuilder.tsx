@@ -237,11 +237,12 @@ export const CurriculumBuilder: React.FC<CurriculumBuilderProps> = ({
   return (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h6">Course Curriculum</Typography>
+        <Typography variant="h5" fontWeight={600}>Course Curriculum</Typography>
         <Button
           variant="contained"
           startIcon={<AddIcon />}
           onClick={handleAddLesson}
+          size="large"
         >
           Add Lesson
         </Button>
@@ -254,21 +255,21 @@ export const CurriculumBuilder: React.FC<CurriculumBuilderProps> = ({
       )}
 
       {lessons.length > 0 && (
-        <Card sx={{ mb: 2, bgcolor: 'background.default' }}>
-          <CardContent>
-            <Typography variant="subtitle2" color="text.secondary">
+        <Card sx={{ mb: 3, bgcolor: 'primary.light', color: 'primary.contrastText' }}>
+          <CardContent sx={{ py: 2 }}>
+            <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1.5 }}>
               Course Overview
             </Typography>
-            <Box sx={{ display: 'flex', gap: 3, mt: 1 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+            <Box sx={{ display: 'flex', gap: 4 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <PlayIcon fontSize="small" />
-                <Typography variant="body2">
+                <Typography variant="body2" fontWeight={500}>
                   {lessons.length} lesson{lessons.length !== 1 ? 's' : ''}
                 </Typography>
               </Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <TimeIcon fontSize="small" />
-                <Typography variant="body2">
+                <Typography variant="body2" fontWeight={500}>
                   {formatDuration(getTotalDuration())} total
                 </Typography>
               </Box>
@@ -278,27 +279,47 @@ export const CurriculumBuilder: React.FC<CurriculumBuilderProps> = ({
       )}
 
       {lessons.length === 0 ? (
-        <Alert severity="info">
+        <Alert severity="info" sx={{ py: 3 }}>
           No lessons created yet. Click "Add Lesson" to start building your course curriculum.
         </Alert>
       ) : (
-        <List>
+        <List sx={{ p: 0 }}>
           {lessons.map((lesson, index) => {
             const contentCounts = getContentTypeCounts(lesson);
             return (
-              <Card key={lesson.id} sx={{ mb: 2 }}>
-                <CardContent>
+              <Card 
+                key={lesson.id} 
+                sx={{ 
+                  mb: 2,
+                  transition: 'box-shadow 0.2s',
+                  '&:hover': {
+                    boxShadow: 3
+                  }
+                }}
+              >
+                <CardContent sx={{ '&:last-child': { pb: 2 } }}>
                   <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', color: 'text.secondary' }}>
-                      <DragIcon sx={{ mr: 1 }} />
-                      <Typography variant="h6" color="text.secondary">
+                    <Box 
+                      sx={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        minWidth: 50,
+                        px: 1.5,
+                        py: 0.5,
+                        bgcolor: 'primary.main',
+                        color: 'primary.contrastText',
+                        borderRadius: 1
+                      }}
+                    >
+                      <DragIcon sx={{ mr: 0.5, fontSize: 18 }} />
+                      <Typography variant="h6" fontWeight={600}>
                         {index + 1}
                       </Typography>
                     </Box>
                     
                     <Box sx={{ flexGrow: 1 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                        <Typography variant="h6" sx={{ flexGrow: 1 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+                        <Typography variant="h6" fontWeight={600} sx={{ flexGrow: 1 }}>
                           {lesson.title}
                         </Typography>
                         {lesson.isRequired && (
@@ -343,11 +364,13 @@ export const CurriculumBuilder: React.FC<CurriculumBuilderProps> = ({
                         </IconButton>
                       </Box>
                       
-                      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                        {lesson.description}
-                      </Typography>
+                      {lesson.description && (
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 2, lineHeight: 1.6 }}>
+                          {lesson.description}
+                        </Typography>
+                      )}
                       
-                      <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
+                      <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center', mt: lesson.description ? 0 : 2 }}>
                         {contentCounts.video > 0 && (
                           <Chip
                             icon={contentTypeIcons.video}

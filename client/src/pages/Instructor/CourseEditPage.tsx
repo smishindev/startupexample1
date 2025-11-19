@@ -20,6 +20,7 @@ import {
 } from '@mui/icons-material';
 import { instructorApi, InstructorCourse } from '../../services/instructorApi';
 import { CurriculumBuilder } from './CurriculumBuilder';
+import { Header } from '../../components/Navigation/Header';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -36,7 +37,7 @@ const TabPanel: React.FC<TabPanelProps> = ({ children, value, index, ...other })
       aria-labelledby={`course-tab-${index}`}
       {...other}
     >
-      {value === index && <Box sx={{ py: 3 }}>{children}</Box>}
+      {value === index && <Box sx={{ p: 3 }}>{children}</Box>}
     </div>
   );
 };
@@ -107,26 +108,34 @@ export const CourseEditPage: React.FC = () => {
 
   if (loading) {
     return (
-      <Container maxWidth="xl" sx={{ py: 4 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
-          <CircularProgress />
-        </Box>
-      </Container>
+      <>
+        <Header />
+        <Container maxWidth="xl" sx={{ py: 4 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
+            <CircularProgress />
+          </Box>
+        </Container>
+      </>
     );
   }
 
   if (error || !course) {
     return (
-      <Container maxWidth="xl" sx={{ py: 4 }}>
-        <Alert severity="error">
-          {error || 'Course not found'}
-        </Alert>
-      </Container>
+      <>
+        <Header />
+        <Container maxWidth="xl" sx={{ py: 4 }}>
+          <Alert severity="error">
+            {error || 'Course not found'}
+          </Alert>
+        </Container>
+      </>
     );
   }
 
   return (
-    <Container maxWidth="xl" sx={{ py: 4 }}>
+    <>
+      <Header />
+      <Container maxWidth="xl" sx={{ py: 4 }}>
       {/* Header */}
       <Box sx={{ mb: 4 }}>
         <Breadcrumbs sx={{ mb: 2 }}>
@@ -208,5 +217,6 @@ export const CourseEditPage: React.FC = () => {
         </TabPanel>
       </Paper>
     </Container>
+    </>
   );
 };

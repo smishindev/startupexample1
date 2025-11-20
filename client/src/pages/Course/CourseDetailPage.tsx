@@ -678,10 +678,10 @@ export const CourseDetailPage: React.FC = () => {
                     variant="contained"
                     size="large"
                     fullWidth
-                    onClick={handleEnroll}
+                    onClick={() => navigate(`/checkout/${courseId}`)}
                     sx={{ mb: 2 }}
                   >
-                    Enroll Now
+                    Purchase Course - {formatCurrency(course.price)}
                   </Button>
                 </Box>
               ) : (

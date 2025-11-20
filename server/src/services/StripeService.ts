@@ -1,0 +1,383 @@
+import Stripe from 'stripe';
+import { DatabaseService } from './DatabaseService';
+
+/**
+ * StripeService - Handles all Stripe payment operations
+ * 
+ * Features:
+ * - Payment Intent creation for course purchases
+ * - Customer management (create/retrieve)
+ * - Refund processing with validation
+ * - Invoice generation
+ * - Transaction tracking in database
+ * - Webhook event handling
+ */
+export class StripeService {
+  private static instance: StripeService;
+  private stripe: Stripe;
+
+  private constructor() {
+    const apiKey = process.env.STRIPE_SECRET_KEY;
+    
+    if (!apiKey) {
+      throw new Error('STRIPE_SECRET_KEY is not configured in environment variables');
+    }
+
+    this.stripe = new Stripe(apiKey, {
+      apiVersion: '2025-11-17.clover',
+      typescript: true,
+    });
+
+    console.log('✅ Stripe Service initialized');
+  }
+
+  public static getInstance(): StripeService {
+    if (!StripeService.instance) {
+      StripeService.instance = new StripeService();
+    }
+    return StripeService.instance;
+  }
+
+  /**
+   * Create a payment intent for course purchase
+   */
+  async createPaymentIntent(params: {
+    userId: string;
+    courseId: string;
+    amount: number;
+    currency?: string;
+    metadata?: Record<string, string>;
+  }): Promise<{ paymentIntent: Stripe.PaymentIntent; clientSecret: string }> {
+    try {
+      const db = DatabaseService.getInstance();
+      const { userId, courseId, amount, currency = 'usd', metadata = {} } = params;
+
+      // Get or create Stripe customer
+      const customer = await this.getOrCreateCustomer(userId);
+
+      // Create payment intent
+      const paymentIntent = await this.stripe.paymentIntents.create({
+        amount: Math.round(amount * 100), // Convert to cents
+        currency: currency.toLowerCase(),
+        customer: customer.id,
+        metadata: {
+          userId,
+          courseId,
+          ...metadata,
+        },
+        automatic_payment_methods: {
+          enabled: true,
+        },
+      });
+
+      // Create pending transaction in database
+      await db.query(
+        `INSERT INTO dbo.Transactions (
+          Id, UserId, CourseId, Amount, Currency, Status,
+          StripePaymentIntentId, PaymentMethod, CreatedAt
+        ) VALUES (
+          NEWID(), @userId, @courseId, @amount, @currency, 'pending',
+          @paymentIntentId, 'card', GETUTCDATE()
+        )`,
+        {
+          userId,
+          courseId,
+          amount,
+          currency: currency.toUpperCase(),
+          paymentIntentId: paymentIntent.id,
+        }
+      );
+
+      console.log(`✅ Payment Intent created: ${paymentIntent.id} for user ${userId}, course ${courseId}`);
+
+      return {
+        paymentIntent,
+        clientSecret: paymentIntent.client_secret!,
+      };
+    } catch (error) {
+      console.error('❌ Error creating payment intent:', error);
+      throw new Error('Failed to create payment intent');
+    }
+  }
+
+  /**
+   * Get or create Stripe customer for user
+   */
+  async getOrCreateCustomer(userId: string): Promise<Stripe.Customer> {
+    try {
+      const db = DatabaseService.getInstance();
+
+      // Check if user already has a Stripe customer ID
+      const result = await db.query<{ StripeCustomerId?: string; Email: string; FullName: string }>(
+        `SELECT StripeCustomerId, Email, FullName FROM dbo.Users WHERE Id = @userId`,
+        { userId }
+      );
+
+      if (!result.length) {
+        throw new Error('User not found');
+      }
+
+      const user = result[0];
+
+      // If customer exists, retrieve it
+      if (user.StripeCustomerId) {
+        try {
+          const customer = await this.stripe.customers.retrieve(user.StripeCustomerId);
+          if (!customer.deleted) {
+            return customer as Stripe.Customer;
+          }
+        } catch (error) {
+          console.warn(`⚠️ Stripe customer ${user.StripeCustomerId} not found, creating new one`);
+        }
+      }
+
+      // Create new customer
+      const customer = await this.stripe.customers.create({
+        email: user.Email,
+        name: user.FullName,
+        metadata: {
+          userId,
+        },
+      });
+
+      // Update user with Stripe customer ID
+      await db.query(
+        `UPDATE dbo.Users SET StripeCustomerId = @customerId WHERE Id = @userId`,
+        { customerId: customer.id, userId }
+      );
+
+      console.log(`✅ Created Stripe customer ${customer.id} for user ${userId}`);
+
+      return customer;
+    } catch (error) {
+      console.error('❌ Error getting/creating customer:', error);
+      throw new Error('Failed to get or create Stripe customer');
+    }
+  }
+
+  /**
+   * Handle successful payment (called from webhook)
+   */
+  async handlePaymentSuccess(paymentIntent: Stripe.PaymentIntent): Promise<void> {
+    try {
+      const db = DatabaseService.getInstance();
+      const { userId, courseId } = paymentIntent.metadata;
+
+      if (!userId || !courseId) {
+        throw new Error('Missing userId or courseId in payment metadata');
+      }
+
+      // Update transaction status
+      await db.query(
+        `UPDATE dbo.Transactions 
+         SET Status = 'completed',
+             StripeChargeId = @chargeId,
+             CompletedAt = GETUTCDATE()
+         WHERE StripePaymentIntentId = @paymentIntentId`,
+        {
+          chargeId: paymentIntent.latest_charge,
+          paymentIntentId: paymentIntent.id,
+        }
+      );
+
+      // Create enrollment
+      await db.query(
+        `IF NOT EXISTS (SELECT 1 FROM dbo.Enrollments WHERE UserId = @userId AND CourseId = @courseId)
+         BEGIN
+           INSERT INTO dbo.Enrollments (Id, UserId, CourseId, EnrolledAt, Status)
+           VALUES (NEWID(), @userId, @courseId, GETUTCDATE(), 'active')
+         END`,
+        { userId, courseId }
+      );
+
+      // Generate invoice
+      await this.generateInvoice(paymentIntent.id);
+
+      console.log(`✅ Payment success processed for payment intent ${paymentIntent.id}`);
+    } catch (error) {
+      console.error('❌ Error handling payment success:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Process refund for a transaction
+   */
+  async processRefund(params: {
+    transactionId: string;
+    reason: string;
+    amount?: number;
+  }): Promise<{ refund: Stripe.Refund; success: boolean }> {
+    try {
+      const db = DatabaseService.getInstance();
+      const { transactionId, reason, amount } = params;
+
+      // Get transaction details
+      const transactions = await db.query<{
+        StripeChargeId: string;
+        Amount: number;
+        Status: string;
+        CourseId: string;
+        UserId: string;
+      }>(
+        `SELECT StripeChargeId, Amount, Status, CourseId, UserId 
+         FROM dbo.Transactions 
+         WHERE Id = @transactionId`,
+        { transactionId }
+      );
+
+      if (!transactions.length) {
+        throw new Error('Transaction not found');
+      }
+
+      const transaction = transactions[0];
+
+      if (transaction.Status !== 'completed') {
+        throw new Error('Can only refund completed transactions');
+      }
+
+      if (!transaction.StripeChargeId) {
+        throw new Error('No Stripe charge ID found for this transaction');
+      }
+
+      // Create refund in Stripe
+      const refundAmount = amount ? Math.round(amount * 100) : undefined;
+      const refund = await this.stripe.refunds.create({
+        charge: transaction.StripeChargeId,
+        amount: refundAmount,
+        reason: 'requested_by_customer',
+        metadata: {
+          transactionId,
+          refundReason: reason,
+        },
+      });
+
+      // Update transaction in database
+      await db.query(
+        `UPDATE dbo.Transactions 
+         SET Status = 'refunded',
+             RefundReason = @reason,
+             RefundedAt = GETUTCDATE()
+         WHERE Id = @transactionId`,
+        { transactionId, reason }
+      );
+
+      // Revoke course access
+      await db.query(
+        `UPDATE dbo.Enrollments 
+         SET Status = 'revoked'
+         WHERE UserId = @userId AND CourseId = @courseId`,
+        { userId: transaction.UserId, courseId: transaction.CourseId }
+      );
+
+      console.log(`✅ Refund processed: ${refund.id} for transaction ${transactionId}`);
+
+      return { refund, success: true };
+    } catch (error) {
+      console.error('❌ Error processing refund:', error);
+      throw new Error('Failed to process refund');
+    }
+  }
+
+  /**
+   * Generate invoice for completed transaction
+   */
+  async generateInvoice(paymentIntentId: string): Promise<string> {
+    try {
+      const db = DatabaseService.getInstance();
+
+      // Get transaction details
+      const transactions = await db.query<{
+        Id: string;
+        Amount: number;
+        Currency: string;
+      }>(
+        `SELECT Id, Amount, Currency FROM dbo.Transactions WHERE StripePaymentIntentId = @paymentIntentId`,
+        { paymentIntentId }
+      );
+
+      if (!transactions.length) {
+        throw new Error('Transaction not found');
+      }
+
+      const transaction = transactions[0];
+
+      // Generate invoice number
+      const invoiceNumber = `INV-${Date.now()}-${transaction.Id.substring(0, 8).toUpperCase()}`;
+
+      // Calculate tax (0% for now, can be enhanced based on location)
+      const taxAmount = 0;
+      const totalAmount = transaction.Amount + taxAmount;
+
+      // Insert invoice
+      await db.query(
+        `INSERT INTO dbo.Invoices (
+          Id, TransactionId, InvoiceNumber, Amount, TaxAmount, TotalAmount, CreatedAt
+        ) VALUES (
+          NEWID(), @transactionId, @invoiceNumber, @amount, @taxAmount, @totalAmount, GETUTCDATE()
+        )`,
+        {
+          transactionId: transaction.Id,
+          invoiceNumber,
+          amount: transaction.Amount,
+          taxAmount,
+          totalAmount,
+        }
+      );
+
+      console.log(`✅ Invoice generated: ${invoiceNumber} for payment ${paymentIntentId}`);
+
+      return invoiceNumber;
+    } catch (error) {
+      console.error('❌ Error generating invoice:', error);
+      throw new Error('Failed to generate invoice');
+    }
+  }
+
+  /**
+   * Verify webhook signature
+   */
+  verifyWebhookSignature(payload: string | Buffer, signature: string): Stripe.Event {
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+    if (!webhookSecret) {
+      throw new Error('STRIPE_WEBHOOK_SECRET is not configured');
+    }
+
+    try {
+      return this.stripe.webhooks.constructEvent(payload, signature, webhookSecret);
+    } catch (error) {
+      console.error('❌ Webhook signature verification failed:', error);
+      throw new Error('Invalid webhook signature');
+    }
+  }
+
+  /**
+   * Get transaction history for user
+   */
+  async getUserTransactions(userId: string): Promise<any[]> {
+    try {
+      const db = DatabaseService.getInstance();
+
+      const transactions = await db.query(
+        `SELECT 
+          t.Id, t.Amount, t.Currency, t.Status, t.CreatedAt, t.CompletedAt, t.RefundedAt,
+          c.Title as CourseTitle, c.ThumbnailUrl as CourseThumbnail,
+          i.InvoiceNumber, i.PdfUrl as InvoicePdfUrl
+        FROM dbo.Transactions t
+        LEFT JOIN dbo.Courses c ON t.CourseId = c.Id
+        LEFT JOIN dbo.Invoices i ON t.Id = i.TransactionId
+        WHERE t.UserId = @userId
+        ORDER BY t.CreatedAt DESC`,
+        { userId }
+      );
+
+      return transactions;
+    } catch (error) {
+      console.error('❌ Error getting user transactions:', error);
+      throw new Error('Failed to retrieve transactions');
+    }
+  }
+}
+
+export default StripeService;

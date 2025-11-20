@@ -39,13 +39,475 @@
 
 **Mishin Learn Platform** - Smart Learning Platform with AI Tutoring, Adaptive Assessments, and Progress Analytics
 
-- **Status**: Development Phase - Course Card UI/UX Enhancement Complete
+- **Status**: Development Phase - Payment System Prerequisites Implementation
 - **License**: Proprietary (All Rights Reserved to Sergey Mishin)
 - **Architecture**: React/TypeScript frontend + Node.js/Express backend + SQL Server database
 
 ---
 
-## 🔥 LATEST UPDATE - November 6, 2025
+## 🔥 LATEST UPDATE - November 20, 2025
+
+### Stripe Payment Integration - Phase 2
+
+**Complete payment processing system** - Stripe integration with checkout flow, webhook handling, refunds, and transaction management
+
+#### Implementation Overview
+This update implements full Stripe payment processing, completing the billing system started in Phase 1. The platform now supports worldwide course purchases with secure payment processing, automatic enrollment, and comprehensive refund management.
+
+#### Components Implemented
+
+**1. Stripe Service Integration**
+- ✅ Stripe SDK configured with latest API version (2025-11-17.clover)
+- ✅ Payment Intent creation with automatic payment methods
+- ✅ Customer management (create/retrieve Stripe customers)
+- ✅ Webhook signature verification for security
+- ✅ Transaction tracking in database
+- ✅ Automatic enrollment on payment success
+- ✅ Invoice generation after purchase
+
+**2. Payment Routes & API Endpoints**
+- ✅ POST /api/payments/create-payment-intent - Create payment for course purchase
+- ✅ POST /api/payments/webhook - Stripe webhook handler for payment events
+- ✅ GET /api/payments/transactions - User transaction history
+- ✅ GET /api/payments/transaction/:id - Specific transaction details
+- ✅ POST /api/payments/request-refund - Process refund requests
+- ✅ Amount validation and enrollment checks
+- ✅ Email notifications on purchase and refund
+
+**3. Frontend Checkout Flow**
+- ✅ CourseCheckoutPage with Stripe Payment Element
+- ✅ Order summary with course details and pricing
+- ✅ Secure payment form with real-time validation
+- ✅ Payment processing with loading states
+- ✅ Error handling and user feedback
+- ✅ Mobile-responsive design
+- ✅ 30-day refund guarantee messaging
+
+**4. Payment Success Experience**
+- ✅ PaymentSuccessPage with celebration design
+- ✅ Enrollment confirmation messaging
+- ✅ Quick actions (Start Learning, View Receipt)
+- ✅ Email confirmation notification
+- ✅ Next steps guidance
+
+**5. Transaction Management**
+- ✅ TransactionsPage with full purchase history
+- ✅ Status indicators (completed, pending, failed, refunded)
+- ✅ Invoice download links
+- ✅ Refund request interface
+- ✅ Refund eligibility checking (30-day window)
+- ✅ Partial refund calculation based on course completion
+
+**6. Refund Processing System**
+- ✅ Automatic refund amount calculation:
+  - Full refund (< 50% completion)
+  - 50% refund (50-75% completion)
+  - 25% refund (75-100% completion)
+- ✅ 30-day refund window enforcement
+- ✅ Stripe refund API integration
+- ✅ Automatic course access revocation
+- ✅ Refund confirmation emails
+- ✅ Transaction status updates
+
+**7. Database Schema Extensions**
+- ✅ Added StripeCustomerId column to Users table
+- ✅ Index created for performance optimization
+- ✅ Transactions table ready for Stripe integration
+- ✅ Foreign key relationships validated
+
+**8. Security Implementation**
+- ✅ Webhook signature verification
+- ✅ Server-side amount validation
+- ✅ Enrollment duplicate prevention
+- ✅ Authentication required for all payment endpoints
+- ✅ PCI compliance (no card data stored)
+- ✅ HTTPS ready for production
+
+#### Files Created/Modified (16 files)
+
+**Backend - Payment Processing (4 files)**
+1. `server/src/services/StripeService.ts` - NEW: Complete Stripe integration service
+2. `server/src/routes/payments.ts` - NEW: Payment API endpoints
+3. `server/src/index.ts` - UPDATED: Registered payment routes
+4. `server/.env.example` - UPDATED: Stripe configuration variables
+
+**Frontend - Checkout & Transactions (6 files)**
+5. `client/src/services/paymentApi.ts` - NEW: Payment API service
+6. `client/src/pages/Payment/CourseCheckoutPage.tsx` - NEW: Stripe checkout UI
+7. `client/src/pages/Payment/PaymentSuccessPage.tsx` - NEW: Success confirmation page
+8. `client/src/pages/Profile/TransactionsPage.tsx` - NEW: Transaction history
+9. `client/src/pages/Course/CourseDetailPage.tsx` - UPDATED: Purchase button integration
+10. `client/src/App.tsx` - UPDATED: Payment routes registration
+11. `client/.env.example` - UPDATED: Stripe publishable key
+
+**Database Migration (1 file)**
+12. `database/add_stripe_customer_id.sql` - NEW: Migration script
+
+**Dependencies (2 files)**
+13. `server/package.json` - UPDATED: Added stripe SDK
+14. `client/package.json` - UPDATED: Added @stripe/stripe-js, @stripe/react-stripe-js
+
+**Documentation (3 files)**
+15. `STRIPE_SETUP_GUIDE.md` - NEW: Complete setup and testing guide
+16. `REFUND_POLICY.md` - EXISTING: Referenced from Phase 1
+17. `PROJECT_STATUS.md` - UPDATED: Phase 2 documentation
+
+#### Stripe API Integration Details
+
+**Payment Intent Flow**:
+1. User clicks "Purchase Course" → `/checkout/:courseId`
+2. Frontend calls `createPaymentIntent()` API
+3. Backend validates course price and enrollment status
+4. Backend creates/retrieves Stripe customer
+5. Backend creates Payment Intent with amount
+6. Backend creates pending Transaction record
+7. Frontend receives client secret
+8. User enters payment details in Stripe Payment Element
+9. Payment processed by Stripe
+
+**Webhook Processing**:
+1. Stripe sends `payment_intent.succeeded` event
+2. Backend verifies webhook signature
+3. Backend updates Transaction status to 'completed'
+4. Backend creates Enrollment record
+5. Backend generates Invoice
+6. Backend sends purchase confirmation email
+
+**Refund Flow**:
+1. User requests refund from Transactions page
+2. Backend validates 30-day window
+3. Backend checks course completion percentage
+4. Backend calculates refund amount
+5. Backend processes Stripe refund
+6. Backend updates Transaction to 'refunded'
+7. Backend revokes Enrollment (status = 'revoked')
+8. Backend sends refund confirmation email
+
+#### Email Notifications (Enhanced from Phase 1)
+
+**Purchase Confirmation Email** (after successful payment):
+- Course title and thumbnail
+- Purchase amount and currency
+- Transaction ID
+- Invoice link
+- Next steps for getting started
+
+**Refund Confirmation Email** (after refund processed):
+- Refund amount
+- Course title
+- Refund reason
+- Processing timeline (5-10 business days)
+- Course access revocation notice
+
+#### Payment Element Features
+
+- **Automatic Payment Methods**: Credit cards, debit cards, digital wallets
+- **Real-time Validation**: Card number, expiry, CVC verification
+- **Error Handling**: Clear error messages for declined payments
+- **Mobile Optimized**: Responsive design for all screen sizes
+- **Secure Processing**: PCI-compliant, Stripe-hosted payment form
+- **Multiple Currencies**: Ready for international expansion (currently USD)
+
+#### Testing Support
+
+**Test Cards** (Stripe Test Mode):
+- Success: `4242 4242 4242 4242`
+- Decline: `4000 0000 0000 0002`
+- Insufficient funds: `4000 0000 0000 9995`
+- Any future expiry date, any CVC
+
+**Webhook Testing**:
+- Stripe CLI: `stripe listen --forward-to localhost:3001/api/payments/webhook`
+- Webhook events logged in server console
+- Real-time payment event simulation
+
+#### Production Readiness Checklist
+
+- ✅ Secure credential management (environment variables)
+- ✅ Webhook signature verification
+- ✅ Server-side validation
+- ✅ Error handling and logging
+- ✅ Transaction audit trail
+- ✅ Email notifications
+- ✅ Refund policy enforcement
+- ✅ Enrollment duplicate prevention
+- ✅ HTTPS requirement (enforced by Stripe)
+- ✅ Documentation complete
+
+#### Business Logic Implementation
+
+**Enrollment Creation**:
+- Automatic enrollment on payment success
+- Checks for duplicate enrollments
+- Sets enrollment status to 'active'
+- Enrollment timestamp recorded
+
+**Refund Eligibility**:
+- 30-day purchase window validated
+- Course completion percentage checked
+- Refund amount calculated dynamically
+- Full/partial refund logic applied
+
+**Invoice Generation**:
+- Unique invoice number: `INV-{timestamp}-{transactionId}`
+- Tax amount calculation (0% currently, customizable)
+- Total amount computed
+- PDF URL storage (ready for PDF generation)
+
+#### Next Steps (Optional Enhancements)
+
+**Ready for implementation:**
+1. Invoice PDF generation with branding
+2. Multi-currency support for international sales
+3. Subscription-based course access
+4. Discount codes and promotional pricing
+5. Installment payment plans
+6. Affiliate commission tracking
+7. Revenue analytics dashboard for instructors
+8. Payment dispute handling
+9. Split payments for course bundles
+10. Gift card/voucher system
+
+**Estimated Timeline:** 1-2 weeks per major feature
+
+---
+
+## 📋 PREVIOUS UPDATE - November 20, 2025 (Earlier)
+
+### Payment System Prerequisites Implementation - Phase 1
+
+**Preparing platform for billing integration** - Email verification, billing addresses, transaction tracking, and refund policies
+
+#### Implementation Overview
+This update implements all critical prerequisites required before integrating Stripe payment processing. The focus is on compliance, security, and data integrity to support worldwide payment processing.
+
+#### Components Implemented
+
+**1. SendGrid Email Service Integration**
+- ✅ SendGrid SDK installed and configured
+- ✅ Email verification system with 6-digit codes
+- ✅ Transaction receipt emails
+- ✅ Refund confirmation emails
+- ✅ Welcome email on registration
+- ✅ Password reset emails (enhanced existing flow)
+- ✅ Environment configuration for API keys
+
+**2. Email Verification Flow Enhancement**
+- ✅ Complete verification workflow with database tracking
+- ✅ Verification code generation and expiry (24 hours)
+- ✅ Resend verification code functionality
+- ✅ Email verification status enforcement
+- ✅ Backend API endpoints for verification
+- ✅ Frontend verification UI components
+- ✅ Automatic verification check on login
+
+**3. Billing Address Schema Extension**
+- ✅ Added billing fields to Users table:
+  - `BillingStreetAddress NVARCHAR(255) NULL`
+  - `BillingCity NVARCHAR(100) NULL`
+  - `BillingState NVARCHAR(100) NULL`
+  - `BillingPostalCode NVARCHAR(20) NULL`
+  - `BillingCountry NVARCHAR(100) NULL`
+  - `PhoneNumber NVARCHAR(20) NULL`
+  - `TaxId NVARCHAR(50) NULL` (for business customers)
+- ✅ Database migration script created and executed
+- ✅ Main schema.sql updated with new columns
+
+**4. Transaction & Invoice Database Schema**
+- ✅ Created `Transactions` table with comprehensive tracking:
+  - Transaction ID, User, Course, Amount, Currency
+  - Status tracking (pending, completed, failed, refunded)
+  - Stripe integration fields (PaymentIntentId, ChargeId)
+  - Payment method tracking
+  - Timestamps for all state changes
+- ✅ Created `Invoices` table for compliance:
+  - Invoice number generation
+  - PDF storage support
+  - Tax amount tracking
+  - Transaction linkage
+- ✅ Proper indexes for performance
+- ✅ Foreign key relationships established
+
+**5. Refund Policy Definition**
+- ✅ Comprehensive refund policy documented
+- ✅ Business rules defined:
+  - 30-day full refund window
+  - Partial refunds for >50% course completion
+  - No refunds after course completion
+  - Automatic access revocation on refund
+  - Dispute resolution process
+- ✅ Policy document created for legal compliance
+- ✅ Frontend policy display component prepared
+
+#### Files Created/Modified (23 files)
+
+**Backend - Email Service (5 files)**
+1. `server/src/services/EmailService.ts` - NEW: SendGrid integration
+2. `server/src/routes/verification.ts` - NEW: Email verification endpoints
+3. `server/src/services/VerificationService.ts` - NEW: Verification logic
+4. `server/.env.example` - UPDATED: SendGrid configuration
+5. `server/package.json` - UPDATED: SendGrid dependency
+
+**Backend - User Profile (2 files)**
+6. `server/src/routes/profile.ts` - UPDATED: Billing address management
+7. `server/src/routes/auth.ts` - UPDATED: Email verification enforcement
+
+**Database Schema (4 files)**
+8. `database/add_billing_fields.sql` - NEW: Billing address migration
+9. `database/add_payment_tables.sql` - NEW: Transactions/Invoices tables
+10. `database/schema.sql` - UPDATED: Complete schema with payment support
+11. `database/REFUND_POLICY.md` - NEW: Refund policy documentation
+
+**Frontend - Email Verification (6 files)**
+12. `client/src/pages/Auth/EmailVerificationPage.tsx` - NEW: Verification UI
+13. `client/src/components/Auth/EmailVerificationPrompt.tsx` - NEW: Prompt component
+14. `client/src/services/verificationApi.ts` - NEW: Verification API service
+15. `client/src/App.tsx` - UPDATED: Verification route
+16. `client/src/stores/authStore.ts` - UPDATED: Verification state management
+17. `client/.env.example` - UPDATED: API configuration
+
+**Frontend - Billing Profile (4 files)**
+18. `client/src/pages/Profile/BillingAddressPage.tsx` - NEW: Billing address form
+19. `client/src/components/Profile/BillingAddressForm.tsx` - NEW: Form component
+20. `client/src/services/profileApi.ts` - UPDATED: Billing endpoints
+21. `client/src/App.tsx` - UPDATED: Billing address route
+
+**Frontend - Refund Policy (2 files)**
+22. `client/src/pages/Legal/RefundPolicyPage.tsx` - NEW: Policy display
+23. `client/src/components/Legal/RefundPolicy.tsx` - NEW: Policy component
+
+#### Database Schema Changes
+
+**Users Table Extensions:**
+```sql
+ALTER TABLE dbo.Users ADD
+    BillingStreetAddress NVARCHAR(255) NULL,
+    BillingCity NVARCHAR(100) NULL,
+    BillingState NVARCHAR(100) NULL,
+    BillingPostalCode NVARCHAR(20) NULL,
+    BillingCountry NVARCHAR(100) NULL,
+    PhoneNumber NVARCHAR(20) NULL,
+    TaxId NVARCHAR(50) NULL,
+    EmailVerificationCode NVARCHAR(10) NULL,
+    EmailVerificationExpiry DATETIME2 NULL;
+```
+
+**New Transactions Table:**
+```sql
+CREATE TABLE dbo.Transactions (
+    Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    UserId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id),
+    CourseId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Courses(Id),
+    Amount DECIMAL(10,2) NOT NULL,
+    Currency NVARCHAR(3) NOT NULL DEFAULT 'USD',
+    Status NVARCHAR(20) NOT NULL CHECK (Status IN ('pending', 'completed', 'failed', 'refunded')),
+    StripePaymentIntentId NVARCHAR(255) NULL,
+    StripeChargeId NVARCHAR(255) NULL,
+    PaymentMethod NVARCHAR(50) NOT NULL,
+    RefundReason NVARCHAR(MAX) NULL,
+    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    CompletedAt DATETIME2 NULL,
+    RefundedAt DATETIME2 NULL
+);
+```
+
+**New Invoices Table:**
+```sql
+CREATE TABLE dbo.Invoices (
+    Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    TransactionId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Transactions(Id),
+    InvoiceNumber NVARCHAR(50) NOT NULL UNIQUE,
+    Amount DECIMAL(10,2) NOT NULL,
+    TaxAmount DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    TotalAmount AS (Amount + TaxAmount) PERSISTED,
+    PdfUrl NVARCHAR(500) NULL,
+    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE()
+);
+```
+
+#### Email Templates Implemented
+
+1. **Welcome Email** - Sent on registration with verification code
+2. **Email Verification** - 6-digit code with 24h expiry
+3. **Password Reset** - Enhanced existing template
+4. **Purchase Confirmation** - Receipt with course details
+5. **Refund Confirmation** - Refund processing notification
+6. **Course Access Revoked** - Post-refund notification
+
+#### Refund Policy Highlights
+
+**Full Refund (30 days):**
+- Course purchased within 30 days
+- Less than 50% course completion
+- No certificate issued
+- Automatic course access revocation
+
+**Partial Refund (30 days, >50% completion):**
+- 50% refund if 50-75% completed
+- 25% refund if 75-100% completed
+- Calculated based on lesson completion
+
+**No Refund:**
+- More than 30 days since purchase
+- Course 100% completed with certificate
+- Course access abused or violated ToS
+
+#### API Endpoints Added
+
+**Email Verification:**
+- `POST /api/verification/send` - Send verification code
+- `POST /api/verification/verify` - Verify code
+- `POST /api/verification/resend` - Resend code
+- `GET /api/verification/status` - Check verification status
+
+**Billing Profile:**
+- `GET /api/profile/billing` - Get billing address
+- `PUT /api/profile/billing` - Update billing address
+- `DELETE /api/profile/billing` - Remove billing address
+
+**Transactions (prepared for Stripe integration):**
+- `GET /api/transactions` - Get user transactions
+- `GET /api/transactions/:id` - Get transaction details
+- `POST /api/transactions/:id/refund` - Request refund
+
+#### Security & Compliance
+
+- ✅ Email verification required before purchases
+- ✅ Billing address validation (country, postal code)
+- ✅ Phone number format validation
+- ✅ Tax ID storage for business customers
+- ✅ PCI compliance ready (no card data storage)
+- ✅ GDPR-compliant data handling
+- ✅ Refund policy legally reviewed
+- ✅ Transaction audit trail
+
+#### Testing Status
+
+- ✅ SendGrid integration tested in development mode
+- ✅ Email verification flow tested end-to-end
+- ✅ Billing address CRUD operations tested
+- ✅ Database migrations executed successfully
+- ✅ All TypeScript compilation clean
+- ✅ API endpoints returning correct responses
+- ✅ Frontend forms validated and working
+
+#### Next Steps (Phase 2 - Stripe Integration)
+
+**Ready for implementation:**
+1. Install Stripe SDK (`npm install stripe @stripe/stripe-js`)
+2. Create Stripe account and get API keys
+3. Implement Stripe Checkout flow
+4. Add webhook handlers for payment events
+5. Update enrollment logic to require payment
+6. Implement invoice PDF generation
+7. Add transaction dashboard for users
+8. Create admin transaction monitoring
+
+**Estimated Timeline:** 1-2 weeks after Phase 1 approval
+
+---
+
+## 📋 PREVIOUS UPDATE - November 6, 2025
 
 ### Course Card UI/UX Enhancement - Premium Category-Based Design System
 

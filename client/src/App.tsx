@@ -37,6 +37,11 @@ import { VideoAnalyticsPage } from './pages/Instructor/VideoAnalyticsPage';
 import LandingPage from './pages/Landing/LandingPage';
 import MyLearningPage from './pages/Learning/MyLearningPage';
 
+// Payment Pages
+import CourseCheckoutPage from './pages/Payment/CourseCheckoutPage';
+import PaymentSuccessPage from './pages/Payment/PaymentSuccessPage';
+import TransactionsPage from './pages/Profile/TransactionsPage';
+
 import { StudentProgressPage } from './pages/Progress/StudentProgressPage';
 import Chat from './pages/Chat/Chat';
 import Tutoring from './pages/Tutoring/Tutoring';
@@ -107,6 +112,32 @@ function App() {
         
         {/* Course Discovery Detail Route (public) */}
         <Route path="/courses/:id/preview" element={<CourseDetail />} />
+
+        {/* Payment Routes */}
+        <Route
+          path="/checkout/:courseId"
+          element={
+            <ProtectedRoute>
+              <CourseCheckoutPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/payment/success"
+          element={
+            <ProtectedRoute>
+              <PaymentSuccessPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/profile/transactions"
+          element={
+            <ProtectedRoute>
+              <TransactionsPage />
+            </ProtectedRoute>
+          }
+        />
 
         <Route
           path="/my-learning"

@@ -24,6 +24,9 @@ IF OBJECT_ID('dbo.CourseProgress', 'U') IS NOT NULL DROP TABLE dbo.CourseProgres
 IF OBJECT_ID('dbo.NotificationPreferences', 'U') IS NOT NULL DROP TABLE dbo.NotificationPreferences;
 IF OBJECT_ID('dbo.Notifications', 'U') IS NOT NULL DROP TABLE dbo.Notifications;
 IF OBJECT_ID('dbo.Bookmarks', 'U') IS NOT NULL DROP TABLE dbo.Bookmarks;
+-- Payment System Tables
+IF OBJECT_ID('dbo.Invoices', 'U') IS NOT NULL DROP TABLE dbo.Invoices;
+IF OBJECT_ID('dbo.Transactions', 'U') IS NOT NULL DROP TABLE dbo.Transactions;
 -- Core Assessment Tables
 IF OBJECT_ID('dbo.AssessmentSubmissions', 'U') IS NOT NULL DROP TABLE dbo.AssessmentSubmissions;
 IF OBJECT_ID('dbo.Questions', 'U') IS NOT NULL DROP TABLE dbo.Questions;
@@ -49,8 +52,18 @@ CREATE TABLE dbo.Users (
     PreferencesJson NVARCHAR(MAX) NULL, -- JSON string for user preferences
     IsActive BIT NOT NULL DEFAULT 1,
     EmailVerified BIT NOT NULL DEFAULT 0,
+    VerificationCode NVARCHAR(6) NULL, -- 6-digit verification code
+    VerificationExpiry DATETIME2 NULL, -- Expiry time for verification code
     PasswordResetToken NVARCHAR(10) NULL, -- For password reset functionality
     PasswordResetExpiry DATETIME2 NULL, -- Expiry time for reset token
+    -- Billing Address Fields
+    BillingStreetAddress NVARCHAR(255) NULL,
+    BillingCity NVARCHAR(100) NULL,
+    BillingState NVARCHAR(100) NULL,
+    BillingPostalCode NVARCHAR(20) NULL,
+    BillingCountry NVARCHAR(100) NULL,
+    -- Stripe Integration
+    StripeCustomerId NVARCHAR(255) NULL,
     CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
     UpdatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
     LastLoginAt DATETIME2 NULL
@@ -507,6 +520,88 @@ CREATE NONCLUSTERED INDEX IX_VideoAnalytics_UserId ON dbo.VideoAnalytics(UserId)
 CREATE NONCLUSTERED INDEX IX_VideoAnalytics_SessionId ON dbo.VideoAnalytics(SessionId);
 
 -- ========================================
+-- PAYMENT SYSTEM TABLES
+-- ========================================
+
+-- Transactions Table
+CREATE TABLE dbo.Transactions (
+    Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    UserId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id),
+    CourseId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Courses(Id),
+    Amount DECIMAL(10,2) NOT NULL,
+    Currency NVARCHAR(3) NOT NULL DEFAULT 'USD',
+    Status NVARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (Status IN ('pending', 'completed', 'failed', 'refunded')),
+    
+    -- Stripe Integration Fields
+    StripePaymentIntentId NVARCHAR(255) NULL,
+    StripeChargeId NVARCHAR(255) NULL,
+    StripeCustomerId NVARCHAR(255) NULL,
+    
+    -- Payment Details
+    PaymentMethod NVARCHAR(50) NOT NULL, -- 'card', 'bank_transfer', etc.
+    PaymentMethodLast4 NVARCHAR(4) NULL, -- Last 4 digits of card
+    PaymentMethodBrand NVARCHAR(20) NULL, -- 'visa', 'mastercard', etc.
+    
+    -- Refund Information
+    RefundReason NVARCHAR(MAX) NULL,
+    RefundAmount DECIMAL(10,2) NULL,
+    
+    -- Metadata
+    Metadata NVARCHAR(MAX) NULL, -- JSON for additional data
+    
+    -- Timestamps
+    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    CompletedAt DATETIME2 NULL,
+    RefundedAt DATETIME2 NULL,
+    UpdatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE()
+);
+
+-- Invoices Table
+CREATE TABLE dbo.Invoices (
+    Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    TransactionId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Transactions(Id),
+    
+    -- Invoice Details
+    InvoiceNumber NVARCHAR(50) NOT NULL UNIQUE,
+    
+    -- Amounts
+    Amount DECIMAL(10,2) NOT NULL,
+    TaxAmount DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    TotalAmount DECIMAL(10,2) NOT NULL,
+    
+    -- Currency
+    Currency NVARCHAR(3) NOT NULL DEFAULT 'USD',
+    
+    -- Billing Information (snapshot at purchase time)
+    BillingName NVARCHAR(200) NULL,
+    BillingEmail NVARCHAR(255) NULL,
+    BillingAddress NVARCHAR(MAX) NULL, -- JSON with full address
+    
+    -- Tax Information
+    TaxRate DECIMAL(5,2) NULL, -- Tax percentage applied
+    TaxId NVARCHAR(50) NULL, -- Customer's tax ID if provided
+    
+    -- PDF Storage
+    PdfUrl NVARCHAR(500) NULL,
+    PdfGeneratedAt DATETIME2 NULL,
+    
+    -- Timestamps
+    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    UpdatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE()
+);
+
+-- Payment System Indexes
+CREATE NONCLUSTERED INDEX IX_Transactions_UserId ON dbo.Transactions(UserId);
+CREATE NONCLUSTERED INDEX IX_Transactions_CourseId ON dbo.Transactions(CourseId);
+CREATE NONCLUSTERED INDEX IX_Transactions_Status ON dbo.Transactions(Status);
+CREATE NONCLUSTERED INDEX IX_Transactions_CreatedAt ON dbo.Transactions(CreatedAt DESC);
+CREATE NONCLUSTERED INDEX IX_Transactions_StripePaymentIntentId ON dbo.Transactions(StripePaymentIntentId);
+CREATE NONCLUSTERED INDEX IX_Invoices_TransactionId ON dbo.Invoices(TransactionId);
+CREATE NONCLUSTERED INDEX IX_Invoices_InvoiceNumber ON dbo.Invoices(InvoiceNumber);
+CREATE NONCLUSTERED INDEX IX_Invoices_CreatedAt ON dbo.Invoices(CreatedAt DESC);
+CREATE NONCLUSTERED INDEX IX_Users_StripeCustomerId ON dbo.Users(StripeCustomerId);
+
+-- ========================================
 -- ========================================
 -- SCHEMA CREATION COMPLETE
 -- ========================================
@@ -518,4 +613,5 @@ PRINT '🧠 AI Progress Integration: CourseProgress, LearningActivities, Student
 PRINT '📚 User Features: Bookmarks, FileUploads';
 PRINT '🔔 Real-time Notifications: Notifications, NotificationPreferences';
 PRINT '🎥 Video Lesson System: VideoLessons, VideoProgress, VideoAnalytics';
+PRINT '💳 Payment System: Transactions, Invoices, Stripe Integration';
 PRINT '🚀 Database is ready for Mishin Learn Platform!';

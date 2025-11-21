@@ -196,7 +196,7 @@ export const EnhancedAssessmentAnalyticsDashboard: React.FC = () => {
           {/* Overview Dashboard */}
           <Grid container spacing={3}>
             {/* Key Metrics Cards */}
-            <Grid item xs={12} sm={6} md={2}>
+            <Grid item xs={12} sm={6} md={3}>
               <Card>
                 <CardContent sx={{ textAlign: 'center' }}>
                   <AssessmentIcon sx={{ fontSize: 40, color: 'primary.main', mb: 1 }} />
@@ -215,7 +215,7 @@ export const EnhancedAssessmentAnalyticsDashboard: React.FC = () => {
               </Card>
             </Grid>
 
-            <Grid item xs={12} sm={6} md={2}>
+            <Grid item xs={12} sm={6} md={3}>
               <Card>
                 <CardContent sx={{ textAlign: 'center' }}>
                   <PeopleIcon sx={{ fontSize: 40, color: 'info.main', mb: 1 }} />
@@ -230,7 +230,7 @@ export const EnhancedAssessmentAnalyticsDashboard: React.FC = () => {
               </Card>
             </Grid>
 
-            <Grid item xs={12} sm={6} md={2}>
+            <Grid item xs={12} sm={6} md={3}>
               <Card>
                 <CardContent sx={{ textAlign: 'center' }}>
                   <CheckCircleIcon sx={{ fontSize: 40, color: 'success.main', mb: 1 }} />
@@ -249,7 +249,7 @@ export const EnhancedAssessmentAnalyticsDashboard: React.FC = () => {
               </Card>
             </Grid>
 
-            <Grid item xs={12} sm={6} md={2}>
+            <Grid item xs={12} sm={6} md={3}>
               <Card>
                 <CardContent sx={{ textAlign: 'center' }}>
                   <TrendingUpIcon sx={{ fontSize: 40, color: 'warning.main', mb: 1 }} />

@@ -40,6 +40,7 @@ import { progressApi } from '../../services/progressApi';
 import { assessmentApi, AssessmentWithProgress } from '../../services/assessmentApi';
 import { getVideoLessonByLessonId, parseVTTTranscript, VideoLesson } from '../../services/videoLessonApi';
 import { getVideoProgress, markVideoComplete } from '../../services/videoProgressApi';
+import { coursesApi } from '../../services/coursesApi';
 
 interface ExtendedLessonContent {
   id: string;
@@ -133,6 +134,7 @@ export const LessonDetailPage: React.FC = () => {
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isInstructorPreview, setIsInstructorPreview] = useState(false);
 
   // Fetch lesson data from real API
   useEffect(() => {
@@ -147,11 +149,16 @@ export const LessonDetailPage: React.FC = () => {
         setLoading(true);
         setError(null);
 
+        // Check if user is the course instructor (preview mode)
+        const enrollmentStatus = await coursesApi.getEnrollmentStatus(courseId);
+        const isPreview = enrollmentStatus?.isInstructor || false;
+        setIsInstructorPreview(isPreview);
+
         // Fetch lesson details, all lessons for navigation, progress, and assessments
         const [lessonData, lessonsData, progressData, assessmentsData] = await Promise.all([
           lessonApi.getLesson(lessonId),
           lessonApi.getLessons(courseId),
-          progressApi.getCourseProgress(courseId).catch(() => null), // Progress might not exist yet
+          isPreview ? Promise.resolve(null) : progressApi.getCourseProgress(courseId).catch(() => null), // Skip progress for instructors
           assessmentApi.getAssessmentsByLesson(lessonId).catch(() => []) // Assessments might not exist
         ]);
 
@@ -198,9 +205,11 @@ export const LessonDetailPage: React.FC = () => {
           if (videoLessonData) {
             setVideoLesson(videoLessonData);
             
-            // Fetch video progress
-            const videoProgressData = await getVideoProgress(videoLessonData.id);
-            setVideoProgress(videoProgressData);
+            // Fetch video progress (skip for instructor preview)
+            if (!isPreview) {
+              const videoProgressData = await getVideoProgress(videoLessonData.id);
+              setVideoProgress(videoProgressData);
+            }
             
             // Load transcript if available
             if (videoLessonData.transcriptUrl) {
@@ -353,15 +362,25 @@ export const LessonDetailPage: React.FC = () => {
         <Paper sx={{ p: 3, mb: 3 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
             <Box sx={{ flex: 1 }}>
-              <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1 }}>
-                {lesson.title}
-              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
+                <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+                  {lesson.title}
+                </Typography>
+                {isInstructorPreview && (
+                  <Chip 
+                    label="Preview Mode" 
+                    color="warning" 
+                    size="small"
+                    sx={{ fontWeight: 'bold' }}
+                  />
+                )}
+              </Box>
               <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
                 {lesson.description}
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 Instructor: {lesson.instructorName} • Duration: {lesson.duration}
-                {progress && (
+                {progress && !isInstructorPreview && (
                   <> • Course Progress: {Math.round(progress.courseProgress?.OverallProgress || 0)}%</>
                 )}
               </Typography>
@@ -460,6 +479,7 @@ export const LessonDetailPage: React.FC = () => {
                     src={videoLesson.videoUrl}
                     title={lesson.title}
                     videoLessonId={videoLesson.id}
+                    poster={videoLesson.thumbnailUrl}
                     initialTime={videoProgress?.currentPosition || 0}
                     enableProgressTracking={true}
                     onProgress={(currentTime, duration, percentWatched) => {

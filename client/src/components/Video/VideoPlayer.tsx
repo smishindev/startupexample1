@@ -43,6 +43,7 @@ interface VideoPlayerProps {
   autoPlay?: boolean;
   initialTime?: number; // Start time in seconds
   enableProgressTracking?: boolean; // Auto-save progress every 5 seconds
+  poster?: string; // Video thumbnail/poster image
 }
 
 export const VideoPlayer: React.FC<VideoPlayerProps> = ({
@@ -55,6 +56,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   autoPlay = false,
   initialTime = 0,
   enableProgressTracking = true,
+  poster,
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -377,6 +379,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       <video
         ref={videoRef}
         src={src}
+        poster={poster}
         title={title}
         aria-label={`Video player: ${title}`}
         aria-describedby="video-keyboard-shortcuts"

@@ -331,16 +331,11 @@ export const CourseDetailPage: React.FC = () => {
   };
 
   const handleLessonSelect = (lesson: Lesson) => {
-    if (lesson.isLocked) return;
+    if (lesson.isLocked && !course?.isEnrolled && !enrollmentStatus?.isInstructor) return;
     
-    setSelectedLesson(lesson);
-    if (lesson.type === 'video') {
-      setShowVideoPlayer(true);
-    }
-    
-    // Update current lesson in course progress
-    if (course) {
-      setCourse({ ...course, currentLesson: lesson.id });
+    // Navigate to lesson page for enrolled students or instructors
+    if (course?.isEnrolled || enrollmentStatus?.isInstructor) {
+      navigate(`/courses/${courseId}/lessons/${lesson.id}`);
     }
   };
 
@@ -674,15 +669,28 @@ export const CourseDetailPage: React.FC = () => {
                       </Typography>
                     )}
                   </Box>
-                  <Button
-                    variant="contained"
-                    size="large"
-                    fullWidth
-                    onClick={() => navigate(`/checkout/${courseId}`)}
-                    sx={{ mb: 2 }}
-                  >
-                    Purchase Course - {formatCurrency(course.price)}
-                  </Button>
+                  {!enrollmentStatus?.isInstructor && (
+                    <Button
+                      variant="contained"
+                      size="large"
+                      fullWidth
+                      onClick={() => navigate(`/checkout/${courseId}`)}
+                      sx={{ mb: 2 }}
+                    >
+                      Purchase Course - {formatCurrency(course.price)}
+                    </Button>
+                  )}
+                  {enrollmentStatus?.isInstructor && (
+                    <Button
+                      variant="outlined"
+                      size="large"
+                      fullWidth
+                      onClick={() => navigate(`/instructor/courses/${courseId}/edit`)}
+                      sx={{ mb: 2 }}
+                    >
+                      Manage Course
+                    </Button>
+                  )}
                 </Box>
               ) : (
                 <Button
@@ -721,17 +729,6 @@ export const CourseDetailPage: React.FC = () => {
                     sx={{ ml: 'auto' }}
                   >
                     Unenroll
-                  </Button>
-                )}
-                {enrollmentStatus?.isInstructor && (
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    color="primary"
-                    onClick={() => navigate(`/instructor/courses/${courseId}/edit`)}
-                    sx={{ ml: 'auto' }}
-                  >
-                    Manage Course
                   </Button>
                 )}
               </Box>

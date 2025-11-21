@@ -45,7 +45,57 @@
 
 ---
 
-## 🔥 LATEST UPDATE - November 20, 2025
+## 🔥 LATEST UPDATE - November 21, 2025
+
+### Database Recreation & SQL Login Management
+
+**Critical Issue Resolved** - Database user recreation process documented and automated
+
+#### Problem Identified
+When dropping and recreating the database from `schema.sql`, only tables are created - the SQL Server login and database user (`mishin_learn_user`) are lost, causing connection failures on server startup.
+
+#### Solution Implemented
+1. ✅ **Updated schema.sql**: Added payment system tables (Transactions, Invoices) to main schema
+2. ✅ **Database User Recreation Script**: Created automated user setup process
+3. ✅ **Documentation**: Added DATABASE_RECREATION_GUIDE.md with step-by-step instructions
+
+#### Database Recreation Process (CRITICAL - FOLLOW EXACTLY)
+```powershell
+# 1. Drop and recreate database
+sqlcmd -S localhost\SQLEXPRESS -E -Q "DROP DATABASE IF EXISTS [startUp1]; CREATE DATABASE [startUp1];"
+
+# 2. Execute schema to create all tables
+sqlcmd -S localhost\SQLEXPRESS -E -i "database\schema.sql"
+
+# 3. CREATE SQL LOGIN (if not exists)
+sqlcmd -S localhost\SQLEXPRESS -E -Q "IF NOT EXISTS (SELECT * FROM sys.server_principals WHERE name = 'mishin_learn_user') CREATE LOGIN [mishin_learn_user] WITH PASSWORD = 'MishinLearn2024!';"
+
+# 4. CREATE DATABASE USER (if not exists)
+sqlcmd -S localhost\SQLEXPRESS -E -Q "USE [startUp1]; IF NOT EXISTS (SELECT * FROM sys.database_principals WHERE name = 'mishin_learn_user') CREATE USER [mishin_learn_user] FOR LOGIN [mishin_learn_user]; ALTER ROLE db_owner ADD MEMBER [mishin_learn_user];"
+
+# 5. Verify connection
+npm run dev  # Should connect successfully
+```
+
+#### Files Modified
+1. `database/schema.sql` - UPDATED: Added Transactions, Invoices, payment fields to Users table
+2. `database/create_db_user.sql` - NEW: Automated user creation script
+3. `DATABASE_RECREATION_GUIDE.md` - NEW: Step-by-step recreation guide
+
+#### Why This Happens
+- **SQL Server Logins**: Stored at server level (master database)
+- **Database Users**: Stored per-database
+- **Schema.sql**: Only creates tables, NOT logins/users
+- **Result**: Fresh database has no user permissions
+
+#### Prevention
+- Always run user creation script after dropping database
+- Never rely on schema.sql alone for complete setup
+- Use automated script to prevent human error
+
+---
+
+## 📋 PREVIOUS UPDATE - November 20, 2025
 
 ### Stripe Payment Integration - Phase 2
 

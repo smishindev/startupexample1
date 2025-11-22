@@ -225,18 +225,9 @@ router.post('/courses/:courseId/enroll', authenticateToken, async (req: AuthRequ
       status: 'active'
     });
 
-    // Initialize user progress
-    await db.execute(`
-      INSERT INTO dbo.UserProgress (UserId, CourseId, ProgressPercentage, TimeSpent, LastAccessedAt, Status)
-      VALUES (@userId, @courseId, @progress, @timeSpent, @lastAccessed, @status)
-    `, {
-      userId,
-      courseId,
-      progress: 0,
-      timeSpent: 0,
-      lastAccessed: now,
-      status: 'in_progress'
-    });
+    // Note: UserProgress is now per-lesson, not per-course
+    // Progress entries will be created as the student accesses lessons
+    // We no longer create a course-level progress entry here
 
     // Update course enrollment count
     await db.execute(`

@@ -21,6 +21,7 @@ import {
   ArrowBack,
   CheckCircle,
   RadioButtonUnchecked,
+  PlayCircleOutline,
   Download,
   Quiz,
   BookmarkBorder,
@@ -41,6 +42,7 @@ import { assessmentApi, AssessmentWithProgress } from '../../services/assessment
 import { getVideoLessonByLessonId, parseVTTTranscript, VideoLesson } from '../../services/videoLessonApi';
 import { getVideoProgress, markVideoComplete } from '../../services/videoProgressApi';
 import { coursesApi } from '../../services/coursesApi';
+import { BookmarkApi } from '../../services/bookmarkApi';
 
 interface ExtendedLessonContent {
   id: string;
@@ -199,6 +201,15 @@ export const LessonDetailPage: React.FC = () => {
         setAssessments(assessmentsData);
         setProgress(progressData);
 
+        // Check if course is bookmarked
+        try {
+          const bookmarkStatus = await BookmarkApi.checkBookmarkStatus(courseId);
+          setIsBookmarked(bookmarkStatus.isBookmarked);
+        } catch (error) {
+          console.error('Failed to check bookmark status:', error);
+          // Don't fail the whole page if bookmark check fails
+        }
+
         // Fetch video lesson data if this is a video lesson
         try {
           const videoLessonData = await getVideoLessonByLessonId(lessonId);
@@ -272,13 +283,11 @@ export const LessonDetailPage: React.FC = () => {
         
         console.log('Lesson marked as complete successfully');
         
-        // Show completion message with next steps
-        const message = lesson.nextLessonId 
-          ? 'Lesson completed! Would you like to proceed to the next lesson?'
-          : 'Lesson completed! Great job finishing this lesson.';
-          
-        if (lesson.nextLessonId && window.confirm(message)) {
-          navigate(`/courses/${courseId}/lessons/${lesson.nextLessonId}`);
+        // Auto-navigate to next lesson after 2 seconds if available
+        if (lesson.nextLessonId) {
+          setTimeout(() => {
+            navigate(`/courses/${courseId}/lessons/${lesson.nextLessonId}`);
+          }, 2000);
         }
         
       } catch (error) {
@@ -305,8 +314,45 @@ export const LessonDetailPage: React.FC = () => {
     }
   };
 
-  const handleBookmark = () => {
-    setIsBookmarked(!isBookmarked);
+  const handleBookmark = async () => {
+    if (!courseId) return;
+    
+    try {
+      if (isBookmarked) {
+        // Remove bookmark
+        await BookmarkApi.removeBookmark(courseId);
+        setIsBookmarked(false);
+      } else {
+        // Add bookmark
+        await BookmarkApi.addBookmark(courseId);
+        setIsBookmarked(true);
+      }
+    } catch (error) {
+      console.error('Failed to update bookmark:', error);
+      // Optionally show error notification to user
+    }
+  };
+
+  const handleShare = () => {
+    const lessonUrl = window.location.href;
+    
+    // Try to use Web Share API if available
+    if (navigator.share) {
+      navigator.share({
+        title: lesson?.title || 'Check out this lesson',
+        text: lesson?.description || 'I found this interesting lesson',
+        url: lessonUrl,
+      }).catch((error) => {
+        console.log('Error sharing:', error);
+      });
+    } else {
+      // Fallback: Copy to clipboard
+      navigator.clipboard.writeText(lessonUrl).then(() => {
+        alert('Link copied to clipboard!');
+      }).catch((error) => {
+        console.error('Failed to copy link:', error);
+      });
+    }
   };
 
   if (loading) {
@@ -347,133 +393,61 @@ export const LessonDetailPage: React.FC = () => {
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       <Header />
       
-      <Container maxWidth="xl" sx={{ mt: 4, mb: 4, flex: 1 }}>
-        {/* Breadcrumb and Navigation */}
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-          <IconButton onClick={() => navigate(`/courses/${courseId}`)}>
+      <Container maxWidth="xl" sx={{ mt: 2, mb: 4, flex: 1 }}>
+        {/* Breadcrumb Navigation */}
+        <Box sx={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          mb: 2,
+          py: 1
+        }}>
+          <IconButton 
+            onClick={() => navigate(`/courses/${courseId}`)}
+            sx={{ 
+              mr: 1,
+              '&:hover': { bgcolor: 'action.hover' }
+            }}
+          >
             <ArrowBack />
           </IconButton>
-          <Typography variant="body2" color="text.secondary" sx={{ ml: 1 }}>
-            {lesson.courseTitle} / {lesson.title}
+          <Typography 
+            variant="body2" 
+            color="text.secondary"
+            sx={{ 
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1
+            }}
+          >
+            <span style={{ fontWeight: 500 }}>{lesson.courseTitle}</span>
+            <span>/</span>
+            <span>{lesson.title}</span>
           </Typography>
         </Box>
 
-        {/* Lesson Header */}
-        <Paper sx={{ p: 3, mb: 3 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-            <Box sx={{ flex: 1 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
-                <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
-                  {lesson.title}
-                </Typography>
-                {isInstructorPreview && (
-                  <Chip 
-                    label="Preview Mode" 
-                    color="warning" 
-                    size="small"
-                    sx={{ fontWeight: 'bold' }}
-                  />
-                )}
-              </Box>
-              <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
-                {lesson.description}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Instructor: {lesson.instructorName} • Duration: {lesson.duration}
-                {progress && !isInstructorPreview && (
-                  <> • Course Progress: {Math.round(progress.courseProgress?.OverallProgress || 0)}%</>
-                )}
-              </Typography>
-            </Box>
-            <Box sx={{ display: 'flex', gap: 1 }}>
-              <IconButton onClick={handleBookmark}>
-                {isBookmarked ? <Bookmark color="primary" /> : <BookmarkBorder />}
-              </IconButton>
-              <IconButton>
-                <Share />
-              </IconButton>
-            </Box>
-          </Box>
-
-          {/* Progress */}
-          <Box sx={{ mb: 2 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-              <Typography variant="body2">Progress</Typography>
-              <Typography variant="body2">{lesson.progress}%</Typography>
-            </Box>
-            <LinearProgress
-              variant="determinate"
-              value={lesson.progress}
-              sx={{
-                height: 8,
-                borderRadius: 4,
-                backgroundColor: '#e0e0e0',
-                '& .MuiLinearProgress-bar': {
-                  borderRadius: 4,
-                  background: 'linear-gradient(45deg, #667eea 30%, #764ba2 90%)',
-                },
-              }}
-            />
-          </Box>
-
-          {/* Status and Actions */}
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              {lesson.completed ? (
-                <Chip
-                  icon={<CheckCircle />}
-                  label="Completed"
-                  color="success"
-                  variant="filled"
-                />
-              ) : (
-                <Chip
-                  icon={<RadioButtonUnchecked />}
-                  label="In Progress"
-                  color="primary"
-                  variant="outlined"
-                />
-              )}
-            </Box>
-            <Box sx={{ display: 'flex', gap: 1 }}>
-              {lesson.previousLessonId && (
-                <Button
-                  variant="outlined"
-                  onClick={() => navigate(`/courses/${courseId}/lessons/${lesson.previousLessonId}`)}
-                >
-                  Previous
-                </Button>
-              )}
-              {!lesson.completed && (
-                <Button variant="contained" onClick={handleMarkComplete}>
-                  Mark Complete
-                </Button>
-              )}
-              {lesson.nextLessonId && (
-                <Button
-                  variant="contained"
-                  onClick={() => navigate(`/courses/${courseId}/lessons/${lesson.nextLessonId}`)}
-                >
-                  Next Lesson
-                </Button>
-              )}
-            </Box>
-          </Box>
-        </Paper>
-
         <Box sx={{ 
           display: 'flex', 
-          flexDirection: { xs: 'column', md: 'row' },
+          flexDirection: { xs: 'column', lg: 'row' },
           gap: 3 
         }}>
-          {/* Main Content */}
+          {/* Main Content Area */}
           <Box sx={{ 
-            flex: videoLesson && transcript.length > 0 ? { xs: 1, md: 2 } : { xs: 1, md: 3 },
-            minWidth: 0 // Prevent flex item overflow
+            flex: 1,
+            minWidth: 0
           }}>
-            {/* Video Lesson with Integrated Player */}
+            {/* Video Player - Full Width, Cinema Style */}
             {videoLesson && (
-              <Paper sx={{ mb: 3, overflow: 'hidden' }}>
+              <Paper 
+                elevation={0}
+                sx={{ 
+                  mb: 3, 
+                  overflow: 'hidden',
+                  borderRadius: 2,
+                  bgcolor: '#000',
+                  border: '1px solid',
+                  borderColor: 'divider'
+                }}
+              >
                 <VideoErrorBoundary onRetry={() => window.location.reload()}>
                   <VideoPlayer
                     src={videoLesson.videoUrl}
@@ -487,44 +461,199 @@ export const LessonDetailPage: React.FC = () => {
                     }}
                     onComplete={async () => {
                       console.log('Video completed!');
+                      
+                      if (isInstructorPreview) {
+                        console.log('Instructor preview mode - skipping completion');
+                        return;
+                      }
+                      
                       try {
                         await markVideoComplete(videoLesson.id);
-                        // Update lesson state to show completion
                         setLesson(prev => prev ? { ...prev, completed: true, progress: 100 } : null);
                       
-                      // Ask user if they want to go to next lesson
-                      if (lesson.nextLessonId) {
-                        setTimeout(() => {
-                          const shouldAutoNavigate = confirm('Video completed! Would you like to go to the next lesson?');
-                          if (shouldAutoNavigate) {
+                        if (lesson.nextLessonId) {
+                          setTimeout(() => {
                             navigate(`/courses/${courseId}/lessons/${lesson.nextLessonId}`);
-                          }
-                        }, 1000);
+                          }, 2000);
+                        }
+                      } catch (error) {
+                        console.error('Failed to mark video complete:', error);
                       }
-                    } catch (error) {
-                      console.error('Failed to mark video complete:', error);
-                    }
-                  }}
-                  onTimeUpdate={(currentTime) => {
-                    setCurrentVideoTime(currentTime);
-                  }}
-                />
+                    }}
+                    onTimeUpdate={(currentTime) => {
+                      setCurrentVideoTime(currentTime);
+                    }}
+                  />
                 </VideoErrorBoundary>
-                
-                {/* Video Info */}
-                <Box sx={{ p: 2, borderTop: 1, borderColor: 'divider' }}>
-                  <Typography variant="body2" color="text.secondary">
-                    Duration: {Math.floor(videoLesson.duration / 60)}:{(videoLesson.duration % 60).toString().padStart(2, '0')}
-                    {videoProgress && (
-                      <> • Progress: {Math.round(videoProgress.watchedPercentage)}% watched</>
-                    )}
-                    {videoProgress?.completed && (
-                      <> • <Chip label="Completed" size="small" color="success" sx={{ ml: 1 }} /></>
-                    )}
-                  </Typography>
-                </Box>
               </Paper>
             )}
+
+            {/* Lesson Header & Description */}
+            <Paper 
+              elevation={0} 
+              sx={{ 
+                p: 3, 
+                mb: 3,
+                border: '1px solid',
+                borderColor: 'divider',
+                borderRadius: 2
+              }}
+            >
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                <Box sx={{ flex: 1 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1.5, flexWrap: 'wrap' }}>
+                    <Typography variant="h4" sx={{ fontWeight: 700, fontSize: { xs: '1.75rem', md: '2rem' } }}>
+                      {lesson.title}
+                    </Typography>
+                    {isInstructorPreview && (
+                      <Chip 
+                        label="Preview Mode" 
+                        color="warning" 
+                        size="small"
+                        sx={{ fontWeight: 600 }}
+                      />
+                    )}
+                    {!isInstructorPreview && lesson.completed && (
+                      <Chip
+                        icon={<CheckCircle />}
+                        label="Completed"
+                        color="success"
+                        size="small"
+                        sx={{ fontWeight: 600 }}
+                      />
+                    )}
+                  </Box>
+                  
+                  <Typography variant="body1" color="text.secondary" sx={{ mb: 2, lineHeight: 1.7 }}>
+                    {lesson.description}
+                  </Typography>
+                  
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+                    <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      <strong>Instructor:</strong> {lesson.instructorName}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">•</Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      <strong>Duration:</strong> {lesson.duration}
+                    </Typography>
+                    {videoLesson && (
+                      <>
+                        <Typography variant="body2" color="text.secondary">•</Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          <strong>Video:</strong> {Math.floor(videoLesson.duration / 60)}:{(videoLesson.duration % 60).toString().padStart(2, '0')}
+                          {videoProgress && !isInstructorPreview && (
+                            <> ({Math.round(videoProgress.watchedPercentage)}% watched)</>
+                          )}
+                        </Typography>
+                      </>
+                    )}
+                  </Box>
+                </Box>
+                
+                <Box sx={{ display: 'flex', gap: 1, ml: 2 }}>
+                  <IconButton 
+                    onClick={handleBookmark}
+                    sx={{ 
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      '&:hover': { borderColor: 'primary.main' }
+                    }}
+                  >
+                    {isBookmarked ? <Bookmark color="primary" /> : <BookmarkBorder />}
+                  </IconButton>
+                  <IconButton 
+                    onClick={handleShare}
+                    sx={{ 
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      '&:hover': { borderColor: 'primary.main' }
+                    }}
+                  >
+                    <Share />
+                  </IconButton>
+                </Box>
+              </Box>
+
+              {/* Progress Bar - Hidden for instructor preview */}
+              {!isInstructorPreview && (
+                <Box sx={{ mt: 3, p: 2.5, bgcolor: 'action.hover', borderRadius: 2 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>Lesson Progress</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 600, color: 'primary.main' }}>
+                      {lesson.progress}%
+                    </Typography>
+                  </Box>
+                  <LinearProgress
+                    variant="determinate"
+                    value={lesson.progress}
+                    sx={{
+                      height: 8,
+                      borderRadius: 4,
+                      backgroundColor: 'background.paper',
+                      '& .MuiLinearProgress-bar': {
+                        borderRadius: 4,
+                        background: 'linear-gradient(90deg, #667eea 0%, #764ba2 100%)',
+                      },
+                    }}
+                  />
+                </Box>
+              )}
+
+              {/* Action Buttons */}
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 3, gap: 2, flexWrap: 'wrap' }}>
+                {!isInstructorPreview && !lesson.completed && (
+                  <Button 
+                    variant="contained" 
+                    onClick={handleMarkComplete}
+                    size="large"
+                    startIcon={<CheckCircle />}
+                    sx={{ 
+                      px: 4,
+                      py: 1.5,
+                      borderRadius: 2,
+                      fontWeight: 600,
+                      textTransform: 'none',
+                      fontSize: '1rem'
+                    }}
+                  >
+                    Mark as Complete
+                  </Button>
+                )}
+                
+                <Box sx={{ display: 'flex', gap: 1.5, ml: 'auto' }}>
+                  {lesson.previousLessonId && (
+                    <Button
+                      variant="outlined"
+                      onClick={() => navigate(`/courses/${courseId}/lessons/${lesson.previousLessonId}`)}
+                      sx={{ 
+                        px: 3,
+                        py: 1,
+                        borderRadius: 2,
+                        fontWeight: 600,
+                        textTransform: 'none'
+                      }}
+                    >
+                      ← Previous
+                    </Button>
+                  )}
+                  {lesson.nextLessonId && (
+                    <Button
+                      variant="contained"
+                      onClick={() => navigate(`/courses/${courseId}/lessons/${lesson.nextLessonId}`)}
+                      sx={{ 
+                        px: 3,
+                        py: 1,
+                        borderRadius: 2,
+                        fontWeight: 600,
+                        textTransform: 'none'
+                      }}
+                    >
+                      Next →
+                    </Button>
+                  )}
+                </Box>
+              </Box>
+            </Paper>
 
             {/* Fallback to legacy video content blocks */}
             {!videoLesson && lesson.extendedContent?.map((content) => (
@@ -537,16 +666,20 @@ export const LessonDetailPage: React.FC = () => {
                     }}
                     onComplete={() => {
                       console.log('Lesson completed!');
+                      
+                      // Skip completion logic for instructors in preview mode
+                      if (isInstructorPreview) {
+                        console.log('Instructor preview mode - skipping completion');
+                        return;
+                      }
+                      
                       // Update lesson state to show completion
                       setLesson(prev => prev ? { ...prev, completed: true, progress: 100 } : null);
                       
-                      // Optionally navigate to next lesson after a delay
+                      // Auto-navigate to next lesson after 2 seconds if available
                       if (lesson.nextLessonId) {
                         setTimeout(() => {
-                          const shouldAutoNavigate = confirm('Lesson completed! Would you like to go to the next lesson?');
-                          if (shouldAutoNavigate) {
-                            navigate(`/courses/${courseId}/lessons/${lesson.nextLessonId}`);
-                          }
+                          navigate(`/courses/${courseId}/lessons/${lesson.nextLessonId}`);
                         }, 2000);
                       }
                     }}
@@ -931,22 +1064,28 @@ export const LessonDetailPage: React.FC = () => {
               <Typography variant="h6" sx={{ mb: 2 }}>
                 Resources
               </Typography>
-              <List>
-                {lesson.resources?.map((resource) => (
-                  <ListItem key={resource.id} sx={{ px: 0 }}>
-                    <ListItemIcon>
-                      <Download />
-                    </ListItemIcon>
-                    <ListItemText
-                      primary={resource.name}
-                      secondary={`${resource.type} • ${resource.description}`}
-                    />
-                    <Button size="small" variant="outlined">
-                      Download
-                    </Button>
-                  </ListItem>
-                ))}
-              </List>
+              {lesson.resources && lesson.resources.length > 0 ? (
+                <List>
+                  {lesson.resources.map((resource) => (
+                    <ListItem key={resource.id} sx={{ px: 0 }}>
+                      <ListItemIcon>
+                        <Download />
+                      </ListItemIcon>
+                      <ListItemText
+                        primary={resource.name}
+                        secondary={`${resource.type} • ${resource.description}`}
+                      />
+                      <Button size="small" variant="outlined">
+                        Download
+                      </Button>
+                    </ListItem>
+                  ))}
+                </List>
+              ) : (
+                <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
+                  No downloadable resources available for this lesson.
+                </Typography>
+              )}
             </Paper>
 
             {/* Lesson Navigation */}
@@ -955,25 +1094,42 @@ export const LessonDetailPage: React.FC = () => {
                 Course Lessons
               </Typography>
               <List>
-                {allLessons.map((courseLesson) => (
-                  <ListItemButton 
-                    key={courseLesson.id}
-                    selected={courseLesson.id === lesson.id}
-                    onClick={() => navigate(`/courses/${courseId}/lessons/${courseLesson.id}`)}
-                  >
-                    <ListItemIcon>
-                      {courseLesson.id === lesson.id ? (
-                        <CheckCircle color="success" />
-                      ) : (
-                        <RadioButtonUnchecked />
-                      )}
-                    </ListItemIcon>
-                    <ListItemText 
-                      primary={courseLesson.title} 
-                      secondary={courseLesson.id === lesson.id ? "Current" : `${courseLesson.duration || 'N/A'}`}
-                    />
-                  </ListItemButton>
-                ))}
+                {allLessons.map((courseLesson) => {
+                  // Check if this lesson is completed (only show for students, not instructors)
+                  const lessonProgressData = !isInstructorPreview && progress?.lessonProgress?.find(
+                    (lp: any) => lp.LessonId === courseLesson.id
+                  );
+                  const isCompleted = !!lessonProgressData?.CompletedAt;
+                  const isCurrent = courseLesson.id === lesson.id;
+                  
+                  return (
+                    <ListItemButton 
+                      key={courseLesson.id}
+                      selected={isCurrent}
+                      onClick={() => navigate(`/courses/${courseId}/lessons/${courseLesson.id}`)}
+                    >
+                      <ListItemIcon>
+                        {isCompleted ? (
+                          <CheckCircle color="success" />
+                        ) : isCurrent ? (
+                          <PlayCircleOutline color="primary" />
+                        ) : (
+                          <RadioButtonUnchecked />
+                        )}
+                      </ListItemIcon>
+                      <ListItemText 
+                        primary={courseLesson.title} 
+                        secondary={
+                          isCurrent 
+                            ? "Current" 
+                            : isCompleted 
+                            ? "Completed" 
+                            : `${courseLesson.duration || 'N/A'} min`
+                        }
+                      />
+                    </ListItemButton>
+                  );
+                })}
               </List>
             </Paper>
           </Box>

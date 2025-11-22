@@ -1,8 +1,106 @@
 # Mishin Learn Platform - Project Status & Memory
 
-**Last Updated**: November 15, 2025  
+**Last Updated**: November 22, 2025  
 **Developer**: Sergey Mishin (s.mishin.dev@gmail.com)  
 **AI Assistant Context**: This file serves as project memory for continuity across chat sessions
+
+---
+
+## 🎭 USER SCENARIOS & ACCESS CONTROL - November 22, 2025
+
+### Complete User Role & Access Matrix
+
+The platform supports multiple user roles and scenarios, each with specific permissions and behaviors:
+
+#### **1. Student Scenarios**
+
+**1.1 Student - Course Not Purchased**
+- ✅ Can browse course catalog and view course details
+- ✅ Can see course preview content (description, instructor, curriculum)
+- ❌ Cannot access lesson content (videos, materials, assessments)
+- ✅ Sees "Purchase Course" button with pricing
+- ✅ Can proceed to checkout flow
+- **Progress Tracking**: None (no enrollment)
+
+**1.2 Student - Course Purchased/Enrolled**
+- ✅ Full access to all course content (lessons, videos, assessments)
+- ✅ Progress tracking active (lesson completion, video position, quiz scores)
+- ✅ Video progress auto-saved every 5 seconds
+- ✅ Lesson completion tracking with CompletedAt timestamps
+- ✅ Can mark lessons as complete
+- ✅ Sees progress indicators and completion badges
+- ✅ Course progress contributes to analytics and certificates
+- **Progress Tracking**: Full tracking enabled
+- **UI Elements**: Progress bars, completion chips, "Mark Complete" button
+
+#### **2. Instructor Scenarios**
+
+**2.1 Instructor - Viewing Own Course/Lessons (Preview Mode)**
+- ✅ Full access to all course content (no purchase required)
+- ✅ Sees "Preview Mode" badge indicator (warning color)
+- ❌ No progress tracking (views don't count in analytics)
+- ❌ Video progress not saved (always starts at 0:00)
+- ❌ Cannot mark lessons as complete
+- ❌ No completion status displayed
+- ❌ Lesson progress indicators hidden
+- ✅ Can navigate between lessons freely
+- ✅ Sees "Manage Course" button instead of "Purchase Course"
+- **Purpose**: Quality assurance, content review, updates verification
+- **Progress Tracking**: Completely disabled to prevent analytics contamination
+- **UI Elements**: "Preview Mode" chip, disabled completion buttons, no progress bars
+
+**2.2 Instructor - Viewing Another Instructor's Course (Not Enrolled)**
+- ✅ Same as "Student - Course Not Purchased"
+- ✅ Can browse and view course details
+- ❌ Cannot access lesson content without purchase
+- ✅ Sees "Purchase Course" button
+- **Progress Tracking**: None
+
+**2.3 Instructor - Enrolled as Student in Another Instructor's Course**
+- ✅ Same as "Student - Course Purchased/Enrolled"
+- ✅ Full progress tracking as a student
+- ✅ Can mark lessons complete
+- ✅ Video progress saved
+- ✅ Course completion contributes to their student analytics
+- **Progress Tracking**: Full tracking enabled
+- **Note**: Instructors can also be students - roles are independent
+
+#### **3. Admin Scenarios**
+
+**3.1 Admin - Full Access**
+- ✅ Access to all courses regardless of enrollment
+- ✅ Can view all instructor dashboards
+- ✅ Can manage users, courses, and content
+- ✅ Analytics access across all courses
+- **Progress Tracking**: Configurable (typically disabled for admin reviews)
+
+### Access Control Implementation
+
+**Backend Checks**:
+- `enrollmentStatus.isInstructor` - Detects if user owns the course
+- `enrollmentStatus.isEnrolled` - Detects if user purchased the course
+- `req.user.role` - User's role (student/instructor/admin)
+
+**Frontend Behavior**:
+- `isInstructorPreview` flag - Disables progress tracking and completion features
+- Conditional rendering based on enrollment status
+- Role-based UI component visibility
+
+### Key UX Principles
+
+1. **Separation of Concerns**: Instructor preview ≠ Student learning experience
+2. **Analytics Integrity**: Instructor views must not contaminate student analytics
+3. **Quality Assurance**: Instructors need to verify content without side effects
+4. **Dual Roles**: Users can be both instructors and students simultaneously
+5. **Clear Indicators**: Visual badges show preview mode vs learning mode
+
+### Technical Implementation Files
+
+- `LessonDetailPage.tsx` - Preview mode detection and UI adjustments
+- `CourseDetailPage.tsx` - Button rendering based on enrollment status
+- `progressApi.ts` - Progress tracking API (skipped for instructors)
+- `videoProgressApi.ts` - Video position saving (disabled for preview)
+- `coursesApi.getEnrollmentStatus()` - Returns isInstructor and isEnrolled flags
 
 ---
 
@@ -45,7 +143,110 @@
 
 ---
 
-## 🔥 LATEST UPDATE - November 21, 2025
+## 🔥 LATEST UPDATE - November 22, 2025
+
+### Instructor Preview Mode & User Scenarios Documentation
+
+**Complete role-based access control and UX improvements** - Comprehensive user scenarios documented and instructor preview mode refined
+
+#### User Scenarios Matrix Documented
+Added complete user role and access control documentation covering all platform scenarios:
+- ✅ Student viewing unpurchased courses
+- ✅ Student viewing purchased courses with full progress tracking
+- ✅ Instructor viewing own courses (Preview Mode)
+- ✅ Instructor viewing other instructors' courses
+- ✅ Instructor enrolled as student in other courses
+- ✅ Admin full access scenarios
+
+#### Instructor Preview Mode Design Decisions
+
+**Question**: Should instructors see completion status and be able to mark lessons complete when previewing their own courses?
+
+**Answer**: **NO** - Instructor preview mode should be completely isolated from student learning experience.
+
+**Rationale**:
+1. **Analytics Integrity**: Instructor actions should not contaminate student analytics
+2. **Quality Assurance Purpose**: Preview is for content verification, not learning
+3. **Clear Mental Model**: Preview ≠ Learning (different contexts)
+4. **No Side Effects**: Instructors reviewing content shouldn't create database records
+5. **Professional Tool**: Similar to "preview mode" in CMS systems (WordPress, etc.)
+
+**Instructor Preview Mode Features**:
+- ❌ No lesson completion tracking
+- ❌ No "Mark Complete" button visible
+- ❌ No completion status displayed (no green checkmarks in lesson list)
+- ❌ No video progress saved
+- ❌ No course progress updates
+- ✅ "Preview Mode" warning badge displayed
+- ✅ Full content access for review
+- ✅ Free navigation between lessons
+- ✅ Video starts at 0:00 every time
+
+**Student Learning Mode Features** (when instructor is enrolled as student in another course):
+- ✅ Full progress tracking
+- ✅ "Mark Complete" button visible
+- ✅ Completion status displayed
+- ✅ Video progress saved
+- ✅ Course completion contributes to analytics
+
+#### UI/UX Improvements Implemented
+
+**1. Course Level Display on Instructor Dashboard**
+- ✅ Added Level field to instructor courses backend query
+- ✅ Color-coded level chips on course cards:
+  - 🟢 Beginner (Green)
+  - 🟠 Intermediate (Orange)
+  - 🔴 Advanced (Red)
+
+**2. Lesson List Completion Status**
+- ✅ CheckCircle (green) - Completed lessons
+- ✅ PlayCircleOutline (blue) - Current lesson
+- ✅ RadioButtonUnchecked (gray) - Incomplete lessons
+- ✅ Secondary text shows "Completed", "Current", or duration
+- ✅ Completion status pulled from progress.lessonProgress.CompletedAt
+
+**3. Preview Mode UI Adjustments**
+- ✅ "Preview Mode" badge displayed prominently
+- ✅ Progress indicators hidden for instructors
+- ✅ "Mark Complete" button hidden in preview mode
+- ✅ Lesson completion status not shown in preview mode
+
+#### Files Modified (5 files)
+
+**Backend**
+1. `server/src/routes/instructor.ts` - Added Level field to courses query and GROUP BY
+
+**Frontend - Services**
+2. `client/src/services/instructorApi.ts` - Added level property to InstructorCourse interface
+
+**Frontend - Pages**
+3. `client/src/pages/Instructor/InstructorDashboard.tsx` - Added level Chip with color coding to course cards
+4. `client/src/pages/Course/LessonDetailPage.tsx` - Updated lesson list to show completion status with proper icons
+
+**Documentation**
+5. `PROJECT_STATUS.md` - Added comprehensive user scenarios and access control matrix
+
+#### Design Principles Established
+
+**Role Separation**:
+- Instructors wear two hats: content creator (preview mode) and learner (enrolled as student)
+- These roles must remain completely separate in the system
+- Preview mode = read-only content verification tool
+- Student mode = full interactive learning experience
+
+**Analytics Integrity**:
+- Only actual student learning activity should appear in analytics
+- Instructor content reviews should leave no trace
+- Prevents inflated completion rates and skewed metrics
+
+**Clear Visual Indicators**:
+- "Preview Mode" badge clearly distinguishes modes
+- Different UI elements shown based on user role
+- No confusion between preview and learning contexts
+
+---
+
+## 📋 PREVIOUS UPDATE - November 21, 2025
 
 ### Database Recreation & SQL Login Management
 

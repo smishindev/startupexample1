@@ -65,6 +65,7 @@ router.get('/courses', authenticateToken, authorize(['instructor', 'admin']), as
         c.Description as description,
         c.Thumbnail as thumbnail,
         c.Category as category,
+        c.Level as level,
         c.IsPublished as isPublished,
         c.Price as price,
         c.Rating as rating,
@@ -91,7 +92,7 @@ router.get('/courses', authenticateToken, authorize(['instructor', 'admin']), as
     }
 
     query += `
-      GROUP BY c.Id, c.Title, c.Description, c.Thumbnail, c.Category, c.IsPublished, c.Price, 
+      GROUP BY c.Id, c.Title, c.Description, c.Thumbnail, c.Category, c.Level, c.IsPublished, c.Price, 
                c.Rating, c.EnrollmentCount, c.CreatedAt, c.UpdatedAt
       ORDER BY c.UpdatedAt DESC
     `;

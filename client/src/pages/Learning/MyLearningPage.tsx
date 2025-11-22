@@ -344,7 +344,11 @@ const MyLearningPage: React.FC = () => {
                       component="div"
                       sx={{
                         height: 160,
-                        background: getCategoryGradient(enrollment.Category),
+                        background: enrollment.Thumbnail 
+                          ? `url(${enrollment.Thumbnail})` 
+                          : getCategoryGradient(enrollment.Category),
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -357,8 +361,10 @@ const MyLearningPage: React.FC = () => {
                           left: 0,
                           right: 0,
                           bottom: 0,
-                          background: 'radial-gradient(circle at 30% 50%, rgba(255,255,255,0.2) 0%, transparent 60%)',
-                          opacity: 0,
+                          background: enrollment.Thumbnail 
+                            ? 'linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.3) 100%)'
+                            : 'radial-gradient(circle at 30% 50%, rgba(255,255,255,0.2) 0%, transparent 60%)',
+                          opacity: enrollment.Thumbnail ? 1 : 0,
                           transition: 'opacity 0.3s ease',
                         },
                         '.MuiCard-root:hover &::before': {
@@ -366,17 +372,19 @@ const MyLearningPage: React.FC = () => {
                         },
                       }}
                     >
-                      <School 
-                        sx={{ 
-                          fontSize: 56, 
-                          color: 'white',
-                          filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.3))',
-                          transition: 'all 0.3s ease',
-                          '.MuiCard-root:hover &': {
-                            transform: 'scale(1.2)',
-                          },
-                        }} 
-                      />
+                      {!enrollment.Thumbnail && (
+                        <School 
+                          sx={{ 
+                            fontSize: 56, 
+                            color: 'white',
+                            filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.3))',
+                            transition: 'all 0.3s ease',
+                            '.MuiCard-root:hover &': {
+                              transform: 'scale(1.2)',
+                            },
+                          }} 
+                        />
+                      )}
                     </CardMedia>
                     
                     <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', p: 2.5 }}>

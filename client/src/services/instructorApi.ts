@@ -64,6 +64,7 @@ export interface InstructorCourse {
   description: string;
   thumbnail: string;
   category?: string;
+  level?: string;
   status: 'draft' | 'published' | 'archived';
   students: number;
   lessons: number;

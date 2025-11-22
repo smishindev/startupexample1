@@ -570,53 +570,41 @@ const CourseDetail: React.FC = () => {
           <Typography variant="body1" sx={{ mb: 2 }}>
             {enrollmentResult?.message || `You have successfully enrolled in "${course.Title}".`}
           </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+          <Typography variant="body2" color="text.secondary">
             You can now access all course materials and start learning immediately.
           </Typography>
-          
-          {enrollmentResult?.nextSteps && (
-            <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
-              <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
-                Next Steps:
-              </Typography>
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                <Button
-                  variant="outlined"
-                  size="small"
-                  startIcon={<PlayCircleOutline />}
-                  onClick={() => {
-                    setEnrollmentDialog(false);
-                    handleStartLearning();
-                  }}
-                >
-                  Start Learning
-                </Button>
-                <Button
-                  variant="outlined"
-                  size="small"
-                  onClick={() => {
-                    setEnrollmentDialog(false);
-                    navigate('/my-learning');
-                  }}
-                >
-                  View My Learning
-                </Button>
-              </Box>
-            </Box>
-          )}
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setEnrollmentDialog(false)}>
+        <DialogActions sx={{ px: 3, pb: 3, gap: 1 }}>
+          <Button 
+            onClick={() => setEnrollmentDialog(false)}
+            sx={{ mr: 'auto' }}
+          >
             Continue Browsing
           </Button>
           <Button
+            variant="outlined"
+            onClick={() => {
+              setEnrollmentDialog(false);
+              navigate('/my-learning');
+            }}
+          >
+            View My Learning
+          </Button>
+          <Button
             variant="contained"
+            startIcon={<PlayCircleOutline />}
             onClick={() => {
               setEnrollmentDialog(false);
               handleStartLearning();
             }}
+            sx={{
+              background: 'linear-gradient(90deg, #667eea 0%, #764ba2 100%)',
+              '&:hover': {
+                background: 'linear-gradient(90deg, #5568d3 0%, #65408b 100%)',
+              }
+            }}
           >
-            Start Learning Now
+            Start Learning
           </Button>
         </DialogActions>
       </Dialog>

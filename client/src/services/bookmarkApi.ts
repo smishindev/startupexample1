@@ -1,7 +1,7 @@
 // Bookmark API service for frontend
 import axios from 'axios';
 
-const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:3001/api';
+const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:3001';
 
 // Get auth token from auth store instead of localStorage directly
 const getAuthToken = () => {
@@ -22,7 +22,7 @@ const getAuthToken = () => {
 
 // Create axios instance with auth
 const apiClient = axios.create({
-  baseURL: `${API_BASE_URL}/bookmarks`,
+  baseURL: `${API_BASE_URL}/api/bookmarks`,
   headers: {
     'Content-Type': 'application/json',
   },

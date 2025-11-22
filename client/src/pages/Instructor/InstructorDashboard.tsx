@@ -503,23 +503,45 @@ export const InstructorDashboard: React.FC = () => {
                       <MoreVertIcon fontSize="small" />
                     </IconButton>
                   </Box>
-                  {course.category && !course.thumbnail && (
-                    <Chip
-                      label={formatCategory(course.category)}
-                      size="small"
-                      sx={{
-                        position: 'absolute',
-                        bottom: 12,
-                        left: 12,
-                        bgcolor: 'rgba(255,255,255,0.25)',
-                        backdropFilter: 'blur(8px)',
-                        color: 'white',
-                        fontWeight: 600,
-                        fontSize: '0.7rem',
-                        border: '1px solid rgba(255,255,255,0.3)',
-                      }}
-                    />
-                  )}
+                  <Box sx={{ 
+                    position: 'absolute', 
+                    bottom: 12, 
+                    left: 12, 
+                    display: 'flex', 
+                    gap: 1 
+                  }}>
+                    {course.category && (
+                      <Chip
+                        label={formatCategory(course.category)}
+                        size="small"
+                        sx={{
+                          bgcolor: 'rgba(255,255,255,0.25)',
+                          backdropFilter: 'blur(8px)',
+                          color: 'white',
+                          fontWeight: 600,
+                          fontSize: '0.7rem',
+                          border: '1px solid rgba(255,255,255,0.3)',
+                        }}
+                      />
+                    )}
+                    {course.level && (
+                      <Chip
+                        label={course.level.charAt(0).toUpperCase() + course.level.slice(1)}
+                        size="small"
+                        sx={{
+                          bgcolor: course.level === 'beginner' 
+                            ? 'rgba(76, 175, 80, 0.9)' 
+                            : course.level === 'intermediate' 
+                            ? 'rgba(255, 152, 0, 0.9)' 
+                            : 'rgba(244, 67, 54, 0.9)',
+                          color: 'white',
+                          fontWeight: 600,
+                          fontSize: '0.7rem',
+                          border: '1px solid rgba(255,255,255,0.3)',
+                        }}
+                      />
+                    )}
+                  </Box>
                 </Box>
               
               <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>

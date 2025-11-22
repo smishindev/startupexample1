@@ -2,6 +2,21 @@ import axios from 'axios';
 
 const API_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3001';
 
+// Helper function to get auth token from Zustand store
+const getAuthToken = (): string | null => {
+  const authStorage = localStorage.getItem('auth-storage');
+  if (authStorage) {
+    try {
+      const parsedAuth = JSON.parse(authStorage);
+      return parsedAuth?.state?.token || null;
+    } catch (error) {
+      console.warn('Failed to parse auth storage:', error);
+      return null;
+    }
+  }
+  return null;
+};
+
 export interface VideoLesson {
   id: string;
   lessonId: string;
@@ -24,7 +39,7 @@ export interface TranscriptSegment {
  */
 export const getVideoLessonByLessonId = async (lessonId: string): Promise<VideoLesson | null> => {
   try {
-    const token = localStorage.getItem('token');
+    const token = getAuthToken();
     const response = await axios.get(
       `${API_URL}/api/video-lessons/lesson/${lessonId}`,
       {
@@ -46,7 +61,7 @@ export const getVideoLessonByLessonId = async (lessonId: string): Promise<VideoL
  * Get video lesson by video lesson ID
  */
 export const getVideoLesson = async (videoLessonId: string): Promise<VideoLesson> => {
-  const token = localStorage.getItem('token');
+  const token = getAuthToken();
   const response = await axios.get(
     `${API_URL}/api/video-lessons/${videoLessonId}`,
     {

@@ -13,7 +13,6 @@ import { TokenExpirationWarning } from './components/Auth/TokenExpirationWarning
 // Main Pages
 import { DashboardLayout } from './components/Layout/DashboardLayout';
 import { CoursesPage } from './pages/Courses/CoursesPage';
-import CourseDetail from './pages/Courses/CourseDetail';
 import { CourseDetailPage } from './pages/Course/CourseDetailPage';
 import { LessonDetailPage } from './pages/Course/LessonDetailPage';
 import { InstructorDashboard } from './pages/Instructor/InstructorDashboard';
@@ -110,8 +109,9 @@ function App() {
         
         <Route path="/courses" element={<CoursesPage />} />
         
-        {/* Course Discovery Detail Route (public) */}
-        <Route path="/courses/:id/preview" element={<CourseDetail />} />
+        {/* Unified Course Detail Route - public, works for everyone */}
+        <Route path="/courses/:courseId" element={<CourseDetailPage />} />
+        <Route path="/courses/:courseId/preview" element={<CourseDetailPage />} />
 
         {/* Payment Routes */}
         <Route
@@ -176,15 +176,6 @@ function App() {
           element={
             <ProtectedRoute>
               <Tutoring />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/courses/:courseId"
-          element={
-            <ProtectedRoute>
-              <CourseDetailPage />
             </ProtectedRoute>
           }
         />

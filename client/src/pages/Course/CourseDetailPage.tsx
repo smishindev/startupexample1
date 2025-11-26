@@ -23,6 +23,14 @@ import {
   Breadcrumbs,
   Link,
   CircularProgress,
+  Skeleton,
+  Alert,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  IconButton,
+  Tooltip,
 } from '@mui/material';
 import {
   PlayCircleOutline,
@@ -37,12 +45,19 @@ import {
   MenuBook,
   Lock,
   Edit,
+  Bookmark,
+  BookmarkBorder,
+  Share,
+  CheckCircleOutline,
+  ArrowBack,
 } from '@mui/icons-material';
 import { Header } from '../../components/Navigation/Header';
 import { enrollmentApi } from '../../services/enrollmentApi';
 import { formatCurrency, roundToDecimals } from '../../utils/formatUtils';
 import { coursesApi } from '../../services/coursesApi';
 import { useAuthStore } from '../../stores/authStore';
+import { ShareDialog } from '../../components/Course/ShareDialog';
+import { BookmarkApi } from '../../services/bookmarkApi';
 
 interface Lesson {
   id: string;
@@ -112,6 +127,11 @@ export const CourseDetailPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [isEnrolling, setIsEnrolling] = useState(false);
   const [enrollmentStatus, setEnrollmentStatus] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isBookmarked, setIsBookmarked] = useState(false);
+  const [enrollmentDialog, setEnrollmentDialog] = useState(false);
+  const [enrollmentResult, setEnrollmentResult] = useState<any>(null);
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
 
   // Fetch real course data from API
   useEffect(() => {
@@ -137,6 +157,16 @@ export const CourseDetailPage: React.FC = () => {
             realProgress = Math.round(progressData.courseProgress?.OverallProgress || 0);
           } catch (err) {
             console.log('Progress not available:', err);
+          }
+        }
+        
+        // Check if course is bookmarked
+        if (user) {
+          try {
+            const bookmarkStatus = await BookmarkApi.checkBookmarkStatus(courseId);
+            setIsBookmarked(bookmarkStatus.isBookmarked);
+          } catch (err) {
+            console.log('Bookmark status not available:', err);
           }
         }
         
@@ -202,58 +232,77 @@ export const CourseDetailPage: React.FC = () => {
   }, [courseId, user]);
 
   const handleEnroll = async () => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+
     if (!courseId || !course) return;
     
     setIsEnrolling(true);
+    setError(null);
     
     try {
-      if (course.isEnrolled) {
-        // Unenroll
-        await enrollmentApi.unenrollFromCourse(courseId);
-        setCourse({ ...course, isEnrolled: false });
-        setEnrollmentStatus({ ...enrollmentStatus, isEnrolled: false });
-        console.log('Successfully unenrolled from course:', courseId);
-      } else {
-        // Enroll
-        const response = await enrollmentApi.enrollInCourse(courseId);
-        console.log('Enrollment response:', response);
-        
-        // Update both course state and enrollment status
-        setCourse({ ...course, isEnrolled: true, progress: 0 });
-        setEnrollmentStatus({ ...enrollmentStatus, isEnrolled: true });
-        
-        console.log('Successfully enrolled in course:', courseId);
-        
-        // Optionally navigate to the learning page after successful enrollment
-        setTimeout(() => {
-          navigate(`/learning/${courseId}`);
-        }, 1000);
-      }
+      const result = await enrollmentApi.enrollInCourse(courseId);
+      
+      // Update both course state and enrollment status
+      setCourse({ ...course, isEnrolled: true, progress: 0 });
+      setEnrollmentStatus({ isEnrolled: true, status: result.status, enrolledAt: result.enrolledAt });
+      
+      setEnrollmentResult(result);
+      setEnrollmentDialog(true);
+      
+      console.log('Successfully enrolled in course:', courseId);
     } catch (error: any) {
-      console.error('Failed to update enrollment:', error);
+      console.error('Failed to enroll:', error);
       
-      // Parse error message if it's a JSON string
-      let errorMessage = 'Failed to update enrollment. Please try again.';
+      // Parse enhanced error message
       try {
-        if (typeof error.message === 'string' && error.message.startsWith('{')) {
-          const errorData = JSON.parse(error.message);
-          errorMessage = errorData.message || errorMessage;
-          
-          // If already enrolled error, update the UI state
-          if (errorData.code === 'ALREADY_ENROLLED') {
-            setCourse({ ...course, isEnrolled: true });
-            setEnrollmentStatus({ ...enrollmentStatus, isEnrolled: true });
-            errorMessage = 'You are already enrolled in this course!';
-          }
+        const errorData = JSON.parse(error.message);
+        if (errorData.code === 'ALREADY_ENROLLED') {
+          setError('You are already enrolled in this course.');
+          setCourse({ ...course, isEnrolled: true });
+          setEnrollmentStatus({ ...enrollmentStatus, isEnrolled: true });
+        } else if (errorData.code === 'INSTRUCTOR_SELF_ENROLLMENT') {
+          setError('Instructors cannot enroll in their own courses.');
+        } else if (errorData.code === 'COURSE_NOT_PUBLISHED') {
+          setError('This course is not available for enrollment at this time.');
+        } else {
+          setError(errorData.message || 'Failed to enroll in course. Please try again.');
         }
-      } catch (parseError) {
-        // Use default error message
+      } catch {
+        setError(error.message || 'Failed to enroll in course. Please try again.');
       }
-      
-      alert(errorMessage);
     } finally {
       setIsEnrolling(false);
     }
+  };
+
+  const handleStartLearning = () => {
+    setEnrollmentDialog(false);
+    navigate(`/learning/${courseId}`);
+  };
+
+  const handleBookmark = async () => {
+    if (!courseId || !user) return;
+    
+    try {
+      if (isBookmarked) {
+        await BookmarkApi.removeBookmark(courseId);
+        setIsBookmarked(false);
+      } else {
+        await BookmarkApi.addBookmark(courseId);
+        setIsBookmarked(true);
+      }
+    } catch (error) {
+      console.error('Failed to update bookmark:', error);
+      // Revert the state if API call fails
+      setIsBookmarked(isBookmarked);
+    }
+  };
+
+  const handleShare = () => {
+    setShareDialogOpen(true);
   };
 
   const handleLessonSelect = (lesson: Lesson) => {
@@ -283,18 +332,38 @@ export const CourseDetailPage: React.FC = () => {
       <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
         <Header />
         <Container maxWidth="xl" sx={{ mt: 4, mb: 4, flex: 1 }}>
-          <CircularProgress />
+          <Skeleton variant="rectangular" width="100%" height={300} sx={{ mb: 4, borderRadius: 2 }} />
+          <Grid container spacing={4}>
+            <Grid item xs={12} md={8}>
+              <Skeleton variant="text" sx={{ fontSize: '2rem', mb: 2 }} />
+              <Skeleton variant="text" sx={{ fontSize: '1rem', mb: 1 }} />
+              <Skeleton variant="text" sx={{ fontSize: '1rem', mb: 4, width: '80%' }} />
+              <Skeleton variant="rectangular" width="100%" height={200} sx={{ borderRadius: 2 }} />
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <Skeleton variant="rectangular" width="100%" height={400} sx={{ borderRadius: 2 }} />
+            </Grid>
+          </Grid>
         </Container>
       </Box>
     );
   }
 
-  if (!course) {
+  if (error || !course) {
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
         <Header />
         <Container maxWidth="xl" sx={{ mt: 4, mb: 4, flex: 1 }}>
-          <Typography>Course not found</Typography>
+          <Alert severity="error" sx={{ mb: 4 }}>
+            {error || 'Course not found'}
+          </Alert>
+          <Button
+            variant="contained"
+            startIcon={<ArrowBack />}
+            onClick={() => navigate('/courses')}
+          >
+            Back to Courses
+          </Button>
         </Container>
       </Box>
     );
@@ -858,6 +927,44 @@ export const CourseDetailPage: React.FC = () => {
                   </Button>
                 )}
 
+                {/* Action Buttons */}
+                <Box sx={{ display: 'flex', gap: 1, mb: 3 }}>
+                  <Tooltip title="Bookmark" arrow>
+                    <IconButton 
+                      onClick={handleBookmark} 
+                      sx={{ 
+                        flex: 1, 
+                        border: '1px solid', 
+                        borderColor: 'divider',
+                        borderRadius: 2,
+                        '&:hover': {
+                          borderColor: 'primary.main',
+                          bgcolor: 'action.hover'
+                        }
+                      }}
+                    >
+                      {isBookmarked ? <Bookmark color="primary" /> : <BookmarkBorder />}
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title="Share" arrow>
+                    <IconButton 
+                      onClick={handleShare} 
+                      sx={{ 
+                        flex: 1, 
+                        border: '1px solid', 
+                        borderColor: 'divider',
+                        borderRadius: 2,
+                        '&:hover': {
+                          borderColor: 'primary.main',
+                          bgcolor: 'action.hover'
+                        }
+                      }}
+                    >
+                      <Share />
+                    </IconButton>
+                  </Tooltip>
+                </Box>
+
                 <Divider sx={{ my: 3 }} />
 
                 {/* Course Features */}
@@ -908,6 +1015,86 @@ export const CourseDetailPage: React.FC = () => {
           </Grid>
         </Grid>
       </Container>
+
+      {/* Enrollment Success Dialog */}
+      <Dialog
+        open={enrollmentDialog}
+        onClose={() => setEnrollmentDialog(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <CheckCircleOutline color="success" />
+            Enrollment Successful!
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body1" sx={{ mb: 2 }}>
+            {enrollmentResult?.message || `You have successfully enrolled in "${course?.title}".`}
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            You can now access all course materials and start learning immediately.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 3, gap: 1 }}>
+          <Button 
+            onClick={() => setEnrollmentDialog(false)}
+            sx={{ mr: 'auto' }}
+          >
+            Continue Browsing
+          </Button>
+          <Button
+            variant="outlined"
+            onClick={() => {
+              setEnrollmentDialog(false);
+              navigate('/my-learning');
+            }}
+          >
+            View My Learning
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<PlayCircleOutline />}
+            onClick={handleStartLearning}
+            sx={{
+              background: 'linear-gradient(90deg, #667eea 0%, #764ba2 100%)',
+              '&:hover': {
+                background: 'linear-gradient(90deg, #5568d3 0%, #65408b 100%)',
+              }
+            }}
+          >
+            Start Learning
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Share Dialog */}
+      {course && (
+        <ShareDialog
+          open={shareDialogOpen}
+          onClose={() => setShareDialogOpen(false)}
+          course={{
+            id: course.id,
+            title: course.title,
+            description: course.description,
+            thumbnail: course.thumbnail,
+            price: course.price,
+            rating: course.rating,
+            level: course.level,
+            duration: course.duration,
+            instructor: {
+              id: course.instructor.id,
+              name: course.instructor.name,
+              avatar: course.instructor.avatar,
+            },
+            enrolledStudents: course.enrolledStudents,
+            reviewCount: course.reviewCount,
+            category: course.category,
+            tags: course.tags,
+          }}
+        />
+      )}
     </Box>
   );
 };

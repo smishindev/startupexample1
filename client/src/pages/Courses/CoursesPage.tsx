@@ -542,7 +542,7 @@ export const CoursesPage: React.FC = () => {
   };
 
   const handleCourseClick = (courseId: string) => {
-    navigate(`/courses/${courseId}/preview`);
+    navigate(`/courses/${courseId}`);
   };
 
   const handleSearchChange = (value: string) => {

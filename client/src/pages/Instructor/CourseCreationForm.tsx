@@ -1179,8 +1179,10 @@ export const CourseCreationForm: React.FC = () => {
       {/* Navigation */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 3 }}>
         <Button
+          variant="outlined"
           onClick={() => navigate('/instructor/dashboard')}
           color="inherit"
+          sx={{ borderRadius: 2 }}
         >
           Cancel
         </Button>

@@ -2,6 +2,21 @@ import axios from 'axios';
 
 const API_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3001';
 
+// Helper function to get auth token from Zustand store
+const getAuthToken = (): string | null => {
+  const authStorage = localStorage.getItem('auth-storage');
+  if (authStorage) {
+    try {
+      const parsedAuth = JSON.parse(authStorage);
+      return parsedAuth?.state?.token || null;
+    } catch (error) {
+      console.warn('Failed to parse auth storage:', error);
+      return null;
+    }
+  }
+  return null;
+};
+
 export interface VideoProgressUpdate {
   videoLessonId: string;
   currentPosition: number;
@@ -43,7 +58,7 @@ export const updateVideoProgress = async (
   currentPosition: number,
   duration: number
 ): Promise<VideoProgressResponse> => {
-  const token = localStorage.getItem('token');
+  const token = getAuthToken();
   const response = await axios.post(
     `${API_URL}/api/video-progress/${videoLessonId}/update`,
     { currentPosition, duration },
@@ -62,7 +77,7 @@ export const updateVideoProgress = async (
 export const getVideoProgress = async (
   videoLessonId: string
 ): Promise<VideoProgressResponse | null> => {
-  const token = localStorage.getItem('token');
+  const token = getAuthToken();
   const response = await axios.get(
     `${API_URL}/api/video-progress/${videoLessonId}`,
     {
@@ -80,7 +95,7 @@ export const getVideoProgress = async (
 export const markVideoComplete = async (
   videoLessonId: string
 ): Promise<VideoProgressResponse> => {
-  const token = localStorage.getItem('token');
+  const token = getAuthToken();
   const response = await axios.post(
     `${API_URL}/api/video-progress/${videoLessonId}/complete`,
     {},
@@ -100,7 +115,7 @@ export const trackVideoEvent = async (
   videoLessonId: string,
   event: VideoAnalyticsEvent
 ): Promise<void> => {
-  const token = localStorage.getItem('token');
+  const token = getAuthToken();
   await axios.post(
     `${API_URL}/api/video-progress/${videoLessonId}/event`,
     event,
@@ -118,7 +133,7 @@ export const trackVideoEvent = async (
 export const getCourseVideoProgress = async (
   courseId: string
 ): Promise<CourseVideoProgress[]> => {
-  const token = localStorage.getItem('token');
+  const token = getAuthToken();
   const response = await axios.get(
     `${API_URL}/api/video-progress/course/${courseId}`,
     {

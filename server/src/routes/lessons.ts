@@ -197,6 +197,32 @@ router.post('/', authenticateToken, async (req: Request, res: Response) => {
       }
     );
 
+    // If content includes video, create VideoLessons record
+    const videoContent = content.find((item: any) => item.type === 'video');
+    if (videoContent && videoContent.data) {
+      const videoUrl = videoContent.data.url || videoContent.data.videoUrl;
+      if (videoUrl) {
+        const videoLessonId = uuidv4();
+        await db.execute(
+          `INSERT INTO dbo.VideoLessons 
+           (Id, LessonId, VideoURL, Duration, Thumbnail, ProcessingStatus, UploadedBy, CreatedAt, UpdatedAt)
+           VALUES (@id, @lessonId, @videoUrl, @duration, @thumbnail, @status, @uploadedBy, @createdAt, @updatedAt)`,
+          {
+            id: videoLessonId,
+            lessonId: lessonId,
+            videoUrl: videoUrl,
+            duration: duration || 0,
+            thumbnail: videoContent.data.thumbnail || null,
+            status: 'ready',
+            uploadedBy: userId,
+            createdAt: now,
+            updatedAt: now
+          }
+        );
+        console.log(`[LESSONS] Created VideoLessons record ${videoLessonId} for lesson ${lessonId}`);
+      }
+    }
+
     const lesson: Lesson = {
       id: lessonId,
       courseId,
@@ -269,6 +295,63 @@ router.put('/:id', authenticateToken, async (req: Request, res: Response) => {
         id
       }
     );
+
+    // Handle VideoLessons record updates
+    const videoContent = content?.find((item: any) => item.type === 'video');
+    if (videoContent && videoContent.data) {
+      const videoUrl = videoContent.data.url || videoContent.data.videoUrl;
+      if (videoUrl) {
+        // Check if VideoLessons record exists
+        const existingVideo = await db.query(
+          'SELECT Id FROM dbo.VideoLessons WHERE LessonId = @lessonId',
+          { lessonId: id }
+        );
+
+        if (existingVideo.length > 0) {
+          // Update existing record
+          await db.execute(
+            `UPDATE dbo.VideoLessons 
+             SET VideoURL = @videoUrl, Duration = @duration, Thumbnail = @thumbnail, UpdatedAt = @updatedAt
+             WHERE LessonId = @lessonId`,
+            {
+              videoUrl: videoUrl,
+              duration: duration || 0,
+              thumbnail: videoContent.data.thumbnail || null,
+              updatedAt: now,
+              lessonId: id
+            }
+          );
+          console.log(`[LESSONS] Updated VideoLessons record for lesson ${id}`);
+        } else {
+          // Create new record
+          const videoLessonId = uuidv4();
+          await db.execute(
+            `INSERT INTO dbo.VideoLessons 
+             (Id, LessonId, VideoURL, Duration, Thumbnail, ProcessingStatus, UploadedBy, CreatedAt, UpdatedAt)
+             VALUES (@id, @lessonId, @videoUrl, @duration, @thumbnail, @status, @uploadedBy, @createdAt, @updatedAt)`,
+            {
+              id: videoLessonId,
+              lessonId: id,
+              videoUrl: videoUrl,
+              duration: duration || 0,
+              thumbnail: videoContent.data.thumbnail || null,
+              status: 'ready',
+              uploadedBy: userId,
+              createdAt: now,
+              updatedAt: now
+            }
+          );
+          console.log(`[LESSONS] Created VideoLessons record ${videoLessonId} for lesson ${id}`);
+        }
+      }
+    } else {
+      // No video content - delete VideoLessons record if exists
+      await db.execute(
+        'DELETE FROM dbo.VideoLessons WHERE LessonId = @lessonId',
+        { lessonId: id }
+      );
+      console.log(`[LESSONS] Deleted VideoLessons record for lesson ${id} (no video content)`);
+    }
 
     const lesson: Lesson = {
       id,

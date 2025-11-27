@@ -227,10 +227,44 @@ export const LessonDetailPage: React.FC = () => {
               const transcriptSegments = await parseVTTTranscript(videoLessonData.transcriptUrl);
               setTranscript(transcriptSegments);
             }
+          } else {
+            // Fallback: Check if lesson content has video data but no VideoLessons record exists
+            // This can happen for lessons created before the VideoLessons auto-creation was added
+            const videoContent = lessonData.content?.find((c: any) => c.type === 'video');
+            if (videoContent && videoContent.data?.url) {
+              console.log('[LESSON] Using video URL from lesson content (no VideoLessons record)');
+              // Create a virtual video lesson object for display purposes
+              const fallbackVideoLesson: VideoLesson = {
+                id: '', // No ID since no record exists
+                lessonId: lessonId,
+                videoUrl: videoContent.data.url,
+                duration: videoContent.data.duration || 0,
+                transcriptUrl: videoContent.data.transcriptUrl,
+                thumbnailUrl: videoContent.data.thumbnail,
+                createdAt: lessonData.createdAt || new Date().toISOString(),
+                updatedAt: lessonData.updatedAt || new Date().toISOString()
+              };
+              setVideoLesson(fallbackVideoLesson);
+            }
           }
         } catch (error) {
           console.error('Failed to load video lesson data:', error);
-          // Not a critical error, continue without video data
+          // Fallback: Check if lesson content has video data
+          const videoContent = lessonData.content?.find((c: any) => c.type === 'video');
+          if (videoContent && videoContent.data?.url) {
+            console.log('[LESSON] Using video URL from lesson content (API error fallback)');
+            const fallbackVideoLesson: VideoLesson = {
+              id: '',
+              lessonId: lessonId,
+              videoUrl: videoContent.data.url,
+              duration: videoContent.data.duration || 0,
+              transcriptUrl: videoContent.data.transcriptUrl,
+              thumbnailUrl: videoContent.data.thumbnail,
+              createdAt: lessonData.createdAt || new Date().toISOString(),
+              updatedAt: lessonData.updatedAt || new Date().toISOString()
+            };
+            setVideoLesson(fallbackVideoLesson);
+          }
         }
 
         // Debug: Log progress data (can be removed in production)

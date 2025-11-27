@@ -48,9 +48,9 @@ router.get('/stats', authenticateToken, async (req: Request, res: Response) => {
     const hoursResult = await hoursRequest
       .input('userId', sql.UniqueIdentifier, userId)
       .query(`
-        SELECT ISNULL(SUM(DATEDIFF(SECOND, StartTime, EndTime)), 0) as TotalSeconds
+        SELECT ISNULL(SUM(TimeSpent), 0) as TotalSeconds
         FROM LearningActivities
-        WHERE UserId = @userId AND EndTime IS NOT NULL
+        WHERE UserId = @userId
       `);
 
     const totalSeconds = hoursResult.recordset[0]?.TotalSeconds || 0;
@@ -62,7 +62,7 @@ router.get('/stats', authenticateToken, async (req: Request, res: Response) => {
       .input('userId', sql.UniqueIdentifier, userId)
       .query(`
         WITH DailyActivity AS (
-          SELECT DISTINCT CAST(StartTime AS DATE) as ActivityDate
+          SELECT DISTINCT CAST(CreatedAt AS DATE) as ActivityDate
           FROM LearningActivities
           WHERE UserId = @userId
           UNION

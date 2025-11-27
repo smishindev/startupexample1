@@ -1,6 +1,18 @@
 -- Mishin Learn Platform Database Schema
 -- SQL Server Database: startUp1
 
+-- Create database if it doesn't exist
+IF NOT EXISTS (SELECT name FROM sys.databases WHERE name = 'startUp1')
+BEGIN
+    CREATE DATABASE [startUp1];
+    PRINT '✅ Database [startUp1] created successfully';
+END
+ELSE
+BEGIN
+    PRINT 'ℹ️ Database [startUp1] already exists';
+END
+GO
+
 USE [startUp1]
 GO
 

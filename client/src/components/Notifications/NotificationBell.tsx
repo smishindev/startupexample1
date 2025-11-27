@@ -13,6 +13,7 @@ import {
   Tooltip,
   CircularProgress
 } from '@mui/material';
+import { toast } from 'sonner';
 import {
   Notifications as NotificationsIcon,
   NotificationsNone as NotificationsNoneIcon,
@@ -24,6 +25,7 @@ import {
   Close as CloseIcon
 } from '@mui/icons-material';
 import { notificationApi, Notification } from '../../services/notificationApi';
+import { socketService } from '../../services/socketService';
 import { useNavigate } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -54,13 +56,80 @@ export const NotificationBell: React.FC = () => {
   };
 
   useEffect(() => {
+    // Initial fetch for historical notifications
     fetchNotifications();
     
-    // Poll for new notifications every 30 seconds
-    const interval = setInterval(fetchNotifications, 30000);
+    // Connect socket and setup real-time listeners
+    const connectSocket = async () => {
+      try {
+        await socketService.connect();
+        console.log('Socket connected for notifications');
+        
+        // Listen for new notifications
+        socketService.onNotification((notification) => {
+          console.log('Received real-time notification:', notification);
+          
+          // Add to notifications list
+          setNotifications(prev => [{
+            Id: notification.id,
+            Type: notification.type,
+            Priority: notification.priority,
+            Title: notification.title,
+            Message: notification.message,
+            ActionUrl: notification.actionUrl,
+            ActionText: notification.actionText,
+            CreatedAt: new Date().toISOString(),
+            IsRead: false
+          }, ...prev]);
+          
+          // Increment unread count
+          setUnreadCount(prev => prev + 1);
+          
+          // Show toast for urgent/high priority notifications
+          if (notification.priority === 'urgent' || notification.priority === 'high') {
+            toast.warning(notification.title, {
+              description: notification.message,
+              action: notification.actionUrl ? {
+                label: notification.actionText || 'View',
+                onClick: () => {
+                  if (notification.actionUrl) {
+                    navigate(notification.actionUrl);
+                  }
+                }
+              } : undefined,
+              duration: 5000
+            });
+          } else {
+            // Show info toast for normal/low priority
+            toast.info(notification.title, {
+              description: notification.message,
+              duration: 3000
+            });
+          }
+        });
+        
+        // Listen for notification-read events from other devices
+        socketService.onNotificationRead((data) => {
+          console.log('Notification marked as read:', data.notificationId);
+          
+          // Remove from local list if present
+          setNotifications(prev => prev.filter(n => n.Id !== data.notificationId));
+          setUnreadCount(prev => Math.max(0, prev - 1));
+        });
+        
+      } catch (error) {
+        console.error('Socket connection failed, will use REST API only:', error);
+        // Fallback: Socket connection failed, but initial fetch already loaded notifications
+      }
+    };
     
-    return () => clearInterval(interval);
-  }, []);
+    connectSocket();
+    
+    return () => {
+      // Cleanup socket listeners on unmount
+      socketService.disconnect();
+    };
+  }, [navigate]);
 
   const handleClick = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);

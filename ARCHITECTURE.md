@@ -516,34 +516,230 @@ const [bookmarkedCourses, setBookmarkedCourses] = useState<Course[]>([]);
 
 ## 🔌 SOCKET.IO INTEGRATION
 
-### Real-time Features
+### Overview
+Socket.io provides real-time bidirectional communication between clients and server for instant updates, live chat, and collaborative features.
 
-**Server**: `server/src/sockets.ts`
+**Server Setup**: `server/src/index.ts`
 ```typescript
-io.on('connection', (socket) => {
-  // User joins course room
-  socket.on('joinCourse', (courseId) => {
-    socket.join(`course-${courseId}`);
+import { Server } from 'socket.io';
+
+const io = new Server(server, {
+  cors: {
+    origin: 'http://localhost:5173',
+    credentials: true
+  }
+});
+
+// Initialize handlers
+setupSocketHandlers(io);
+
+// NotificationService with Socket.io
+const notificationService = new NotificationService(io);
+```
+
+### Authentication Flow
+
+**Connection with JWT** (`server/src/sockets.ts`):
+```typescript
+io.use((socket, next) => {
+  const token = socket.handshake.auth.token;
+  
+  jwt.verify(token, JWT_SECRET, (err, decoded) => {
+    if (err) return next(new Error('Authentication failed'));
+    
+    socket.userId = decoded.userId;
+    socket.userEmail = decoded.email;
+    socket.join(`user-${decoded.userId}`);
+    
+    next();
+  });
+});
+```
+
+**Client Connection** (`client/src/services/socketService.ts`):
+```typescript
+connect() {
+  const token = authStore.getState().token;
+  
+  this.socket = io('http://localhost:3001', {
+    auth: { token },
+    transports: ['websocket', 'polling']
   });
   
-  // Broadcast to course room
-  io.to(`course-${courseId}`).emit('event', data);
-});
+  this.setupListeners();
+}
 ```
 
-**Client**: `services/socketService.ts`
+### Real-time Notifications Flow
+
+**Backend Emission** (`server/src/services/NotificationService.ts`):
 ```typescript
-socket.emit('joinCourse', courseId);
-socket.on('event', (data) => {
-  // Handle event
+async createNotification(data: CreateNotificationData) {
+  // Save to database
+  const notification = await db.insertNotification(data);
+  
+  // Emit via Socket.io to user's room
+  this.io.to(`user-${data.userId}`).emit('notification', {
+    id: notification.Id,
+    type: notification.Type,
+    title: notification.Title,
+    message: notification.Message,
+    priority: notification.Priority,
+    createdAt: notification.CreatedAt
+  });
+  
+  return notification;
+}
+```
+
+**Frontend Listener** (`client/src/components/Notifications/NotificationBell.tsx`):
+```typescript
+useEffect(() => {
+  socketService.connect();
+  
+  socketService.onNotification((notification) => {
+    // Update state
+    setNotifications(prev => [notification, ...prev]);
+    setUnreadCount(prev => prev + 1);
+    
+    // Show toast for urgent notifications
+    if (notification.priority === 'urgent') {
+      toast.warning(notification.title, {
+        description: notification.message
+      });
+    }
+  });
+  
+  return () => socketService.disconnect();
+}, []);
+```
+
+### Live Chat Flow
+
+**Room Management** (`server/src/sockets.ts`):
+```typescript
+socket.on('join-room', async (data: { roomId: string }) => {
+  // Verify user has access to room
+  const hasAccess = await verifyRoomAccess(socket.userId, data.roomId);
+  if (!hasAccess) return socket.emit('error', 'Access denied');
+  
+  socket.join(`room-${data.roomId}`);
+  
+  // Notify others
+  io.to(`room-${data.roomId}`).emit('user-joined', {
+    userId: socket.userId,
+    email: socket.userEmail
+  });
+});
+
+socket.on('chat-message', async (data) => {
+  // Save message to database
+  const message = await db.insertChatMessage({
+    roomId: data.roomId,
+    senderId: socket.userId,
+    message: data.message
+  });
+  
+  // Broadcast to room
+  io.to(`room-${data.roomId}`).emit('new-message', {
+    messageId: message.Id,
+    senderId: socket.userId,
+    senderName: socket.userEmail,
+    message: data.message,
+    timestamp: message.CreatedAt
+  });
 });
 ```
 
-**Used For**:
-- Real-time notifications
-- Live chat in AI tutoring
-- Instructor interventions
-- Progress updates
+**Client Integration** (`client/src/pages/Chat/Chat.tsx`):
+```typescript
+useEffect(() => {
+  socketService.joinRoom(roomId);
+  
+  socketService.onMessage((message) => {
+    setMessages(prev => [...prev, message]);
+  });
+  
+  return () => socketService.leaveRoom(roomId);
+}, [roomId]);
+
+const sendMessage = (text: string) => {
+  socketService.sendMessage(roomId, text);
+};
+```
+
+### Typing Indicators
+
+**Backend** (`server/src/sockets.ts`):
+```typescript
+socket.on('typing-start', (data: { roomId: string }) => {
+  socket.to(`room-${data.roomId}`).emit('user-typing', {
+    userId: socket.userId,
+    email: socket.userEmail
+  });
+});
+
+socket.on('typing-stop', (data: { roomId: string }) => {
+  socket.to(`room-${data.roomId}`).emit('user-stopped-typing', {
+    userId: socket.userId
+  });
+});
+```
+
+### Event Summary
+
+**Server Events** (emit to clients):
+- `notification` - New notification created
+- `notification-read` - Notification marked as read (sync across devices)
+- `new-message` - New chat message
+- `user-joined` - User joined chat room
+- `user-left` - User left chat room
+- `user-typing` - User started typing
+- `user-stopped-typing` - User stopped typing
+
+**Client Events** (emit to server):
+- `join-room` - Join chat room
+- `leave-room` - Leave chat room
+- `chat-message` - Send chat message
+- `typing-start` - Start typing indicator
+- `typing-stop` - Stop typing indicator
+
+### Connection Management
+
+**Reconnection Logic**:
+```typescript
+socket.on('disconnect', () => {
+  console.log('Socket disconnected, will auto-reconnect');
+});
+
+socket.on('connect', () => {
+  console.log('Socket connected/reconnected');
+  // Rejoin rooms if needed
+});
+```
+
+**Cleanup**:
+```typescript
+useEffect(() => {
+  // Setup
+  connectSocket();
+  
+  return () => {
+    // Cleanup
+    socket.off('notification');
+    socket.off('new-message');
+    socket.disconnect();
+  };
+}, []);
+```
+
+### Used For
+- ✅ **Real-time Notifications** - Instant notification delivery
+- ✅ **Live Chat** - AI tutoring sessions with real-time messaging
+- ✅ **Typing Indicators** - Show when users are typing
+- ✅ **Instructor Interventions** - At-risk student alerts
+- 🔜 **Live Sessions** - Future: collaborative learning sessions
+- 🔜 **Presence System** - Future: online/offline status
 
 ---
 

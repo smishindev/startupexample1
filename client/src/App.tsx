@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Routes, Route, Navigate, BrowserRouter } from 'react-router-dom';
 import { Box } from '@mui/material';
+import { Toaster } from 'sonner';
 
 // Auth Components
 import { LoginForm } from './components/Auth/LoginForm';
@@ -76,6 +77,9 @@ function App() {
 
   return (
     <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
+      {/* Toast notifications */}
+      <Toaster position="top-right" richColors closeButton />
+      
       {/* Token expiration warning */}
       {isAuthenticated && <TokenExpirationWarning />}
       

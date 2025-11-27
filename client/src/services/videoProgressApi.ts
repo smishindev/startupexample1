@@ -61,7 +61,11 @@ export const updateVideoProgress = async (
   const token = getAuthToken();
   const response = await axios.post(
     `${API_URL}/api/video-progress/${videoLessonId}/update`,
-    { currentPosition, duration },
+    { 
+      lastPosition: Math.floor(currentPosition),
+      watchedDuration: Math.floor(currentPosition),
+      playbackSpeed: 1.0
+    },
     {
       headers: {
         Authorization: `Bearer ${token}`,

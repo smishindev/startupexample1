@@ -280,7 +280,15 @@ export const CourseDetailPage: React.FC = () => {
 
   const handleStartLearning = () => {
     setEnrollmentDialog(false);
-    navigate(`/learning/${courseId}`);
+    
+    // Navigate to first lesson
+    const firstLesson = course?.sections?.[0]?.lessons?.[0];
+    if (firstLesson) {
+      navigate(`/courses/${courseId}/lessons/${firstLesson.id}`);
+    } else {
+      // Fallback to my-learning if no lessons found
+      navigate('/my-learning');
+    }
   };
 
   const handleBookmark = async () => {
@@ -884,7 +892,16 @@ export const CourseDetailPage: React.FC = () => {
                     fullWidth
                     variant="contained"
                     size="large"
-                    onClick={() => navigate(`/learning/${courseId}`)}
+                    onClick={() => {
+                      // Find first lesson in course
+                      const firstLesson = course.sections?.[0]?.lessons?.[0];
+                      if (firstLesson) {
+                        navigate(`/courses/${courseId}/lessons/${firstLesson.id}`);
+                      } else {
+                        // Fallback if no lessons found
+                        navigate(`/my-learning`);
+                      }
+                    }}
                     sx={{ 
                       mb: 2,
                       py: 2,

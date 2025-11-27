@@ -94,15 +94,44 @@ router.post('/:videoLessonId/update', authenticateToken, async (req: Request, re
       request.input('id', sql.UniqueIdentifier, uuidv4());
       request.input('completedAt', sql.DateTime2, isCompleted ? new Date() : null);
       
-      const insertQuery = `
-        INSERT INTO dbo.VideoProgress 
-        (Id, UserId, VideoLessonId, WatchedDuration, LastPosition, CompletionPercentage, 
-         IsCompleted, PlaybackSpeed, LastWatchedAt, CompletedAt, CreatedAt, UpdatedAt)
-        VALUES 
-        (@id, @userId, @videoLessonId, @watchedDuration, @lastPosition, @completionPercentage,
-         @isCompleted, @playbackSpeed, @lastWatchedAt, @completedAt, GETUTCDATE(), GETUTCDATE())
-      `;
-      await request.query(insertQuery);
+      try {
+        const insertQuery = `
+          INSERT INTO dbo.VideoProgress 
+          (Id, UserId, VideoLessonId, WatchedDuration, LastPosition, CompletionPercentage, 
+           IsCompleted, PlaybackSpeed, LastWatchedAt, CompletedAt, CreatedAt, UpdatedAt)
+          VALUES 
+          (@id, @userId, @videoLessonId, @watchedDuration, @lastPosition, @completionPercentage,
+           @isCompleted, @playbackSpeed, @lastWatchedAt, @completedAt, GETUTCDATE(), GETUTCDATE())
+        `;
+        await request.query(insertQuery);
+      } catch (insertError: any) {
+        // If duplicate key error (race condition), update instead
+        if (insertError.message?.includes('UNIQUE KEY constraint') || insertError.message?.includes('duplicate key')) {
+          console.log('Race condition detected, performing UPDATE instead of INSERT');
+          const updateQuery = `
+            UPDATE dbo.VideoProgress 
+            SET 
+              WatchedDuration = CASE 
+                WHEN @watchedDuration > WatchedDuration THEN @watchedDuration 
+                ELSE WatchedDuration 
+              END,
+              LastPosition = @lastPosition,
+              CompletionPercentage = @completionPercentage,
+              IsCompleted = @isCompleted,
+              PlaybackSpeed = @playbackSpeed,
+              LastWatchedAt = @lastWatchedAt,
+              CompletedAt = CASE 
+                WHEN @isCompleted = 1 AND CompletedAt IS NULL THEN @lastWatchedAt 
+                ELSE CompletedAt 
+              END,
+              UpdatedAt = GETUTCDATE()
+            WHERE UserId = @userId AND VideoLessonId = @videoLessonId
+          `;
+          await request.query(updateQuery);
+        } else {
+          throw insertError;
+        }
+      }
     }
 
     // Track analytics event

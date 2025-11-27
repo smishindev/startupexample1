@@ -264,7 +264,38 @@ router.post('/courses', authenticateToken, authorize(['instructor', 'admin']), a
             updatedAt: now
           });
 
-          // Note: File upload linking is handled separately and not critical for lesson creation
+          // Create VideoLesson record if this is a video lesson
+          if (lesson.type === 'video' && lessonContent.length > 0 && lessonContent[0].type === 'video') {
+            const videoData = lessonContent[0].data;
+            const videoLessonId = uuidv4();
+            
+            await db.execute(`
+              INSERT INTO dbo.VideoLessons 
+              (Id, LessonId, VideoURL, Duration, Thumbnail, TranscriptURL, TranscriptText, 
+               VideoMetadata, ProcessingStatus, FileSize, UploadedBy, CreatedAt, UpdatedAt)
+              VALUES 
+              (@id, @lessonId, @videoURL, @duration, @thumbnail, @transcriptURL, @transcriptText,
+               @videoMetadata, @processingStatus, @fileSize, @uploadedBy, @createdAt, @updatedAt)
+            `, {
+              id: videoLessonId,
+              lessonId: lessonId,
+              videoURL: videoData.url,
+              duration: lesson.duration || 0,
+              thumbnail: null,
+              transcriptURL: null,
+              transcriptText: null,
+              videoMetadata: videoData.fileId ? JSON.stringify({
+                fileId: videoData.fileId,
+                originalName: videoData.originalName,
+                mimeType: videoData.mimeType
+              }) : null,
+              processingStatus: 'ready',
+              fileSize: null,
+              uploadedBy: userId,
+              createdAt: now,
+              updatedAt: now
+            });
+          }
         }
       }
 

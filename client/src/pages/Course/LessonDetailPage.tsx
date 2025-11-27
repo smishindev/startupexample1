@@ -16,6 +16,12 @@ import {
   ListItemButton,
   TextField,
   Avatar,
+  Drawer,
+  Divider,
+  Switch,
+  FormControlLabel,
+  Card,
+  Grid,
 } from '@mui/material';
 import {
   ArrowBack,
@@ -29,6 +35,11 @@ import {
   Share,
   ThumbUp,
   Check,
+  Menu as MenuIcon,
+  PlayArrow,
+  Article,
+  Assignment,
+  EmojiEvents,
 } from '@mui/icons-material';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Header } from '../../components/Navigation/Header';
@@ -137,6 +148,12 @@ export const LessonDetailPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isInstructorPreview, setIsInstructorPreview] = useState(false);
+  const [autoPlayNext, setAutoPlayNext] = useState(() => {
+    const saved = localStorage.getItem('autoPlayNext');
+    return saved !== null ? JSON.parse(saved) : true;
+  });
+  const [showTableOfContents, setShowTableOfContents] = useState(false);
+  const [courseInfo, setCourseInfo] = useState<any>(null);
 
   // Fetch lesson data from real API
   useEffect(() => {
@@ -150,6 +167,12 @@ export const LessonDetailPage: React.FC = () => {
       try {
         setLoading(true);
         setError(null);
+        
+        // Clear video-related state when navigating to a new lesson
+        setVideoLesson(null);
+        setVideoProgress(null);
+        setTranscript([]);
+        setCurrentVideoTime(0);
 
         // Check if user is the course instructor (preview mode)
         const enrollmentStatus = await coursesApi.getEnrollmentStatus(courseId);
@@ -201,6 +224,14 @@ export const LessonDetailPage: React.FC = () => {
         setAssessments(assessmentsData);
         setProgress(progressData);
 
+        // Fetch course info for sidebar
+        try {
+          const courseData = await coursesApi.getCourse(courseId);
+          setCourseInfo(courseData);
+        } catch (error) {
+          console.error('Failed to fetch course info:', error);
+        }
+
         // Check if course is bookmarked
         try {
           const bookmarkStatus = await BookmarkApi.checkBookmarkStatus(courseId);
@@ -210,32 +241,56 @@ export const LessonDetailPage: React.FC = () => {
           // Don't fail the whole page if bookmark check fails
         }
 
-        // Fetch video lesson data if this is a video lesson
-        try {
-          const videoLessonData = await getVideoLessonByLessonId(lessonId);
-          if (videoLessonData) {
-            setVideoLesson(videoLessonData);
-            
-            // Fetch video progress (skip for instructor preview)
-            if (!isPreview) {
-              const videoProgressData = await getVideoProgress(videoLessonData.id);
-              setVideoProgress(videoProgressData);
+        // Fetch video lesson data only if this lesson has video content
+        const hasVideoContent = lessonData.content?.some((c: any) => c.type === 'video');
+        
+        if (hasVideoContent) {
+          try {
+            const videoLessonData = await getVideoLessonByLessonId(lessonId);
+            if (videoLessonData) {
+              setVideoLesson(videoLessonData);
+              
+              // Fetch video progress (skip for instructor preview)
+              if (!isPreview) {
+                const videoProgressData = await getVideoProgress(videoLessonData.id);
+                setVideoProgress(videoProgressData);
+              }
+              
+              // Load transcript if available
+              if (videoLessonData.transcriptUrl) {
+                const transcriptSegments = await parseVTTTranscript(videoLessonData.transcriptUrl);
+                setTranscript(transcriptSegments);
+              }
+            } else {
+              // Fallback: Check if lesson content has video data but no VideoLessons record exists
+              // This can happen for lessons created before the VideoLessons auto-creation was added
+              const videoContent = lessonData.content?.find((c: any) => c.type === 'video');
+              if (videoContent && videoContent.data?.url) {
+                console.log('[LESSON] Using video URL from lesson content (no VideoLessons record)');
+                console.log('[LESSON] Video content data:', videoContent);
+                // Create a virtual video lesson object for display purposes
+                const fallbackVideoLesson: VideoLesson = {
+                  id: '', // No ID since no record exists
+                  lessonId: lessonId,
+                  videoUrl: videoContent.data.url,
+                  duration: videoContent.data.duration || 0,
+                  transcriptUrl: videoContent.data.transcriptUrl,
+                  thumbnailUrl: videoContent.data.thumbnail,
+                  createdAt: lessonData.createdAt || new Date().toISOString(),
+                  updatedAt: lessonData.updatedAt || new Date().toISOString()
+                };
+                setVideoLesson(fallbackVideoLesson);
+              }
             }
-            
-            // Load transcript if available
-            if (videoLessonData.transcriptUrl) {
-              const transcriptSegments = await parseVTTTranscript(videoLessonData.transcriptUrl);
-              setTranscript(transcriptSegments);
-            }
-          } else {
-            // Fallback: Check if lesson content has video data but no VideoLessons record exists
-            // This can happen for lessons created before the VideoLessons auto-creation was added
+          } catch (error) {
+            console.error('Failed to load video lesson data:', error);
+            // Fallback: Check if lesson content has video data
             const videoContent = lessonData.content?.find((c: any) => c.type === 'video');
             if (videoContent && videoContent.data?.url) {
-              console.log('[LESSON] Using video URL from lesson content (no VideoLessons record)');
-              // Create a virtual video lesson object for display purposes
+              console.log('[LESSON] Using video URL from lesson content (API error fallback)');
+              console.log('[LESSON] Video content data:', videoContent);
               const fallbackVideoLesson: VideoLesson = {
-                id: '', // No ID since no record exists
+                id: '',
                 lessonId: lessonId,
                 videoUrl: videoContent.data.url,
                 duration: videoContent.data.duration || 0,
@@ -247,24 +302,8 @@ export const LessonDetailPage: React.FC = () => {
               setVideoLesson(fallbackVideoLesson);
             }
           }
-        } catch (error) {
-          console.error('Failed to load video lesson data:', error);
-          // Fallback: Check if lesson content has video data
-          const videoContent = lessonData.content?.find((c: any) => c.type === 'video');
-          if (videoContent && videoContent.data?.url) {
-            console.log('[LESSON] Using video URL from lesson content (API error fallback)');
-            const fallbackVideoLesson: VideoLesson = {
-              id: '',
-              lessonId: lessonId,
-              videoUrl: videoContent.data.url,
-              duration: videoContent.data.duration || 0,
-              transcriptUrl: videoContent.data.transcriptUrl,
-              thumbnailUrl: videoContent.data.thumbnail,
-              createdAt: lessonData.createdAt || new Date().toISOString(),
-              updatedAt: lessonData.updatedAt || new Date().toISOString()
-            };
-            setVideoLesson(fallbackVideoLesson);
-          }
+        } else {
+          console.log('[LESSON] No video content in lesson - skipping video API call');
         }
 
         // Debug: Log progress data (can be removed in production)
@@ -367,6 +406,12 @@ export const LessonDetailPage: React.FC = () => {
     }
   };
 
+  const handleToggleAutoPlay = () => {
+    const newValue = !autoPlayNext;
+    setAutoPlayNext(newValue);
+    localStorage.setItem('autoPlayNext', JSON.stringify(newValue));
+  };
+
   const handleShare = () => {
     const lessonUrl = window.location.href;
     
@@ -433,31 +478,108 @@ export const LessonDetailPage: React.FC = () => {
           display: 'flex', 
           alignItems: 'center', 
           mb: 2,
-          py: 1
+          py: 1,
+          justifyContent: 'space-between'
         }}>
-          <IconButton 
-            onClick={() => navigate(`/courses/${courseId}`)}
-            sx={{ 
-              mr: 1,
-              '&:hover': { bgcolor: 'action.hover' }
-            }}
-          >
-            <ArrowBack />
-          </IconButton>
-          <Typography 
-            variant="body2" 
-            color="text.secondary"
-            sx={{ 
-              display: 'flex',
-              alignItems: 'center',
-              gap: 1
-            }}
-          >
-            <span style={{ fontWeight: 500 }}>{lesson.courseTitle}</span>
-            <span>/</span>
-            <span>{lesson.title}</span>
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <IconButton 
+              onClick={() => navigate(`/courses/${courseId}`)}
+              sx={{ 
+                mr: 1,
+                '&:hover': { bgcolor: 'action.hover' }
+              }}
+            >
+              <ArrowBack />
+            </IconButton>
+            <Typography 
+              variant="body2" 
+              color="text.secondary"
+              sx={{ 
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1
+              }}
+            >
+              <span style={{ fontWeight: 500 }}>{lesson.courseTitle}</span>
+              <span>/</span>
+              <span>{lesson.title}</span>
+            </Typography>
+          </Box>
+          {/* Table of Contents Button - Always visible */}
+          {allLessons.length > 0 && (
+            <IconButton 
+              onClick={() => setShowTableOfContents(!showTableOfContents)} 
+              size="large"
+              sx={{ 
+                border: '1px solid',
+                borderColor: 'divider',
+                '&:hover': { bgcolor: 'action.hover' }
+              }}
+            >
+              <MenuIcon />
+            </IconButton>
+          )}
         </Box>
+
+        {/* Progress Summary Card */}
+        {!isInstructorPreview && allLessons.length > 0 && progress && (
+          <Card sx={{ mb: 3, border: '1px solid', borderColor: 'divider' }}>
+            <CardContent>
+              <Grid container spacing={2} alignItems="center">
+                <Grid item xs={12} md={6}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Box sx={{ 
+                      width: 60, 
+                      height: 60, 
+                      borderRadius: '50%', 
+                      bgcolor: 'primary.main',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'white',
+                      fontWeight: 'bold',
+                      fontSize: '1.2rem'
+                    }}>
+                      {Math.round((progress.lessonProgress?.filter((lp: any) => lp.CompletedAt).length || 0) / allLessons.length * 100)}%
+                    </Box>
+                    <Box>
+                      <Typography variant="h6" gutterBottom>
+                        {progress.lessonProgress?.filter((lp: any) => lp.CompletedAt).length || 0} of {allLessons.length} lessons completed
+                      </Typography>
+                      <LinearProgress 
+                        variant="determinate" 
+                        value={(progress.lessonProgress?.filter((lp: any) => lp.CompletedAt).length || 0) / allLessons.length * 100} 
+                        sx={{ height: 8, borderRadius: 4 }}
+                      />
+                    </Box>
+                  </Box>
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <Box sx={{ display: 'flex', justifyContent: { xs: 'flex-start', md: 'flex-end' }, gap: 2, flexWrap: 'wrap' }}>
+                    <FormControlLabel
+                      control={
+                        <Switch 
+                          checked={autoPlayNext} 
+                          onChange={handleToggleAutoPlay}
+                          color="primary"
+                        />
+                      }
+                      label="Auto-play next lesson"
+                    />
+                  </Box>
+                </Grid>
+              </Grid>
+              {courseInfo?.certificate && (
+                <Box sx={{ mt: 2, p: 2, bgcolor: 'success.light', borderRadius: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <EmojiEvents sx={{ color: 'success.dark' }} />
+                  <Typography variant="body2" color="success.dark">
+                    Complete all lessons to earn your certificate!
+                  </Typography>
+                </Box>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         <Box sx={{ 
           display: 'flex', 
@@ -502,10 +624,23 @@ export const LessonDetailPage: React.FC = () => {
                       }
                       
                       try {
+                        // Mark video as complete
                         await markVideoComplete(videoLesson.id);
+                        
+                        // Mark lesson as complete
+                        await progressApi.markLessonComplete(lesson.id, {
+                          notes: `Video completed at ${new Date().toISOString()}`
+                        });
+                        
+                        // Refetch progress data to update UI
+                        if (courseId) {
+                          const updatedProgress = await progressApi.getCourseProgress(courseId);
+                          setProgress(updatedProgress);
+                        }
+                        
                         setLesson(prev => prev ? { ...prev, completed: true, progress: 100 } : null);
                       
-                        if (lesson.nextLessonId) {
+                        if (lesson.nextLessonId && autoPlayNext) {
                           setTimeout(() => {
                             navigate(`/courses/${courseId}/lessons/${lesson.nextLessonId}`);
                           }, 2000);
@@ -519,6 +654,65 @@ export const LessonDetailPage: React.FC = () => {
                     }}
                   />
                 </VideoErrorBoundary>
+              </Paper>
+            )}
+
+            {/* Next Lesson Preview */}
+            {lesson.completed && lesson.nextLessonId && allLessons.length > 0 && (
+              <Paper 
+                elevation={0}
+                sx={{ 
+                  mb: 3,
+                  p: 3,
+                  border: '2px solid',
+                  borderColor: 'primary.main',
+                  borderRadius: 2,
+                  bgcolor: 'primary.light',
+                  color: 'primary.contrastText'
+                }}
+              >
+                <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <CheckCircle /> Lesson Complete!
+                </Typography>
+                <Typography variant="body2" paragraph>
+                  Great job! Ready for the next lesson?
+                </Typography>
+                {(() => {
+                  const nextLesson = allLessons.find((l: Lesson) => l.id === lesson.nextLessonId);
+                  return nextLesson ? (
+                    <Box sx={{ 
+                      bgcolor: 'background.paper', 
+                      p: 2, 
+                      borderRadius: 1,
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      mb: 2
+                    }}>
+                      <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                        Up Next:
+                      </Typography>
+                      <Typography variant="h6" color="text.primary">
+                        {nextLesson.title}
+                      </Typography>
+                      {nextLesson.duration && (
+                        <Typography variant="body2" color="text.secondary">
+                          Duration: {nextLesson.duration} minutes
+                        </Typography>
+                      )}
+                    </Box>
+                  ) : null;
+                })()}
+                <Button
+                  variant="contained"
+                  color="primary"
+                  size="large"
+                  fullWidth
+                  onClick={() => navigate(`/courses/${courseId}/lessons/${lesson.nextLessonId}`)}
+                  startIcon={<PlayCircleOutline />}
+                  sx={{ mt: 1 }}
+                >
+                  Continue to Next Lesson
+                </Button>
               </Paper>
             )}
 
@@ -575,8 +769,12 @@ export const LessonDetailPage: React.FC = () => {
                         <Typography variant="body2" color="text.secondary">•</Typography>
                         <Typography variant="body2" color="text.secondary">
                           <strong>Video:</strong> {Math.floor(videoLesson.duration / 60)}:{(videoLesson.duration % 60).toString().padStart(2, '0')}
-                          {videoProgress && !isInstructorPreview && (
-                            <> ({Math.round(videoProgress.watchedPercentage)}% watched)</>
+                          {!isInstructorPreview && (
+                            videoProgress && videoProgress.watchedPercentage !== undefined && videoProgress.watchedPercentage > 0 ? (
+                              <> ({Math.round(videoProgress.watchedPercentage)}% watched)</>
+                            ) : (
+                              <> (Not started)</>
+                            )
                           )}
                         </Typography>
                       </>
@@ -1169,6 +1367,103 @@ export const LessonDetailPage: React.FC = () => {
           </Box>
         </Box>
       </Container>
+
+      {/* Table of Contents Drawer */}
+      <Drawer
+        anchor="right"
+        open={showTableOfContents}
+        onClose={() => setShowTableOfContents(false)}
+        sx={{
+          '& .MuiDrawer-paper': {
+            width: { xs: '85%', sm: 400 },
+            maxWidth: '100%',
+            p: 3
+          }
+        }}
+      >
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+          <Typography variant="h6">Table of Contents</Typography>
+          <IconButton onClick={() => setShowTableOfContents(false)}>
+            <ArrowBack />
+          </IconButton>
+        </Box>
+        <Divider sx={{ mb: 2 }} />
+        
+        {allLessons.length > 0 ? (
+          <List>
+            {allLessons.map((courseLesson: Lesson, index: number) => {
+              const lessonProgressData = !isInstructorPreview && progress?.lessonProgress?.find(
+                (lp: any) => lp.LessonId === courseLesson.id
+              );
+              const isCompleted = !!lessonProgressData?.CompletedAt;
+              const isCurrent = courseLesson.id === lesson?.id;
+              
+              const getLessonIcon = () => {
+                const hasVideo = courseLesson.content?.some((c: any) => c.type === 'video');
+                const hasQuiz = courseLesson.content?.some((c: any) => c.type === 'quiz');
+                const hasAssignment = courseLesson.content?.some((c: any) => c.type === 'assignment');
+                
+                if (hasVideo) return <PlayArrow />;
+                if (hasQuiz) return <Quiz />;
+                if (hasAssignment) return <Assignment />;
+                return <Article />;
+              };
+              
+              return (
+                <ListItemButton 
+                  key={courseLesson.id}
+                  selected={isCurrent}
+                  onClick={() => {
+                    navigate(`/courses/${courseId}/lessons/${courseLesson.id}`);
+                    setShowTableOfContents(false);
+                  }}
+                  sx={{ 
+                    borderRadius: 1, 
+                    mb: 1,
+                    bgcolor: isCurrent ? 'action.selected' : 'transparent'
+                  }}
+                >
+                  <ListItemIcon sx={{ minWidth: 40 }}>
+                    {isCompleted ? (
+                      <CheckCircle color="success" />
+                    ) : (
+                      getLessonIcon()
+                    )}
+                  </ListItemIcon>
+                  <ListItemText 
+                    primary={
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
+                        <Typography variant="body2" fontWeight={isCurrent ? 'bold' : 'normal'} component="span">
+                          {index + 1}. {courseLesson.title}
+                        </Typography>
+                        <Box sx={{ display: 'flex', gap: 0.5 }}>
+                          {isCurrent && (
+                            <Chip label="Current" size="small" color="primary" sx={{ height: 20 }} />
+                          )}
+                          {isCompleted && !isCurrent && (
+                            <Chip label="Completed" size="small" color="success" sx={{ height: 20 }} />
+                          )}
+                        </Box>
+                      </Box>
+                    }
+                    secondary={
+                      courseLesson.duration && (
+                        <Typography variant="caption" component="span">
+                          {courseLesson.duration} min
+                        </Typography>
+                      )
+                    }
+                  />
+                </ListItemButton>
+              );
+            })}
+          </List>
+        ) : (
+          <Typography variant="body2" color="text.secondary">
+            No lessons available
+          </Typography>
+        )}
+      </Drawer>
     </Box>
   );
 };

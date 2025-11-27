@@ -810,10 +810,14 @@ export const CourseCreationForm: React.FC = () => {
                       fullWidth
                       type="number"
                       label="Price"
-                      value={courseData.price}
+                      value={courseData.price || ''}
                       onChange={(e) => handleInputChange('price', parseFloat(e.target.value) || 0)}
                       InputProps={{
                         startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                      }}
+                      inputProps={{
+                        min: 0,
+                        step: 0.01
                       }}
                     />
                   </Grid>

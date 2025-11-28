@@ -33,6 +33,10 @@ import assessmentAnalyticsRoutes from './routes/assessment-analytics';
 import notificationRoutes from './routes/notifications';
 import verificationRoutes from './routes/verification';
 import paymentsRoutes from './routes/payments';
+import liveSessionsRoutes from './routes/liveSessions';
+import presenceRoutes from './routes/presence';
+import officeHoursRoutes from './routes/officeHours';
+import studyGroupsRoutes from './routes/studyGroups';
 import { videoLessonRoutes } from './routes/videoLessons';
 import { videoProgressRoutes } from './routes/videoProgress';
 import { videoAnalyticsRoutes } from './routes/videoAnalytics';
@@ -153,7 +157,17 @@ app.set('io', io);
 
 // Initialize services that need Socket.io
 import { NotificationService } from './services/NotificationService';
+import { LiveSessionService } from './services/LiveSessionService';
+import { PresenceService } from './services/PresenceService';
+import { OfficeHoursService } from './services/OfficeHoursService';
+import { StudyGroupService } from './services/StudyGroupService';
+
 const notificationService = new NotificationService(io);
+LiveSessionService.setSocketIO(io);
+PresenceService.setSocketIO(io);
+OfficeHoursService.setSocketIO(io);
+StudyGroupService.setSocketIO(io);
+
 app.set('notificationService', notificationService);
 
 // Health check endpoint
@@ -193,6 +207,10 @@ app.use('/api/assessment-analytics', assessmentAnalyticsRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/verification', verificationRoutes);
 app.use('/api/payments', paymentsRoutes);
+app.use('/api/live-sessions', liveSessionsRoutes);
+app.use('/api/presence', presenceRoutes);
+app.use('/api/office-hours', officeHoursRoutes);
+app.use('/api/study-groups', studyGroupsRoutes);
 app.use('/api/student-progress', studentProgressRoutes);
 app.use('/api/video-lessons', videoLessonRoutes);
 app.use('/api/video-progress', videoProgressRoutes);

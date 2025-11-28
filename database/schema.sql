@@ -257,6 +257,63 @@ CREATE TABLE dbo.ChatMessages (
     CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE()
 );
 
+-- =============================================
+-- Phase 2: Collaborative Features Tables
+-- =============================================
+
+-- User Presence Table
+CREATE TABLE dbo.UserPresence (
+    UserId UNIQUEIDENTIFIER PRIMARY KEY FOREIGN KEY REFERENCES dbo.Users(Id) ON DELETE CASCADE,
+    Status NVARCHAR(20) NOT NULL DEFAULT 'offline' CHECK (Status IN ('online', 'offline', 'away', 'busy')),
+    Activity NVARCHAR(100) NULL, -- "Viewing Course: JavaScript", "In Live Session", etc.
+    LastSeenAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    UpdatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE()
+);
+
+-- Study Groups Table
+CREATE TABLE dbo.StudyGroups (
+    Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    Name NVARCHAR(100) NOT NULL,
+    Description NVARCHAR(MAX) NULL,
+    CourseId UNIQUEIDENTIFIER NULL FOREIGN KEY REFERENCES dbo.Courses(Id) ON DELETE SET NULL,
+    CreatedBy UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id),
+    IsActive BIT NOT NULL DEFAULT 1,
+    MaxMembers INT NULL,
+    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE()
+);
+
+-- Study Group Members Table
+CREATE TABLE dbo.StudyGroupMembers (
+    GroupId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.StudyGroups(Id) ON DELETE CASCADE,
+    UserId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id) ON DELETE CASCADE,
+    Role NVARCHAR(20) NOT NULL DEFAULT 'member' CHECK (Role IN ('admin', 'member')),
+    JoinedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    PRIMARY KEY (GroupId, UserId)
+);
+
+-- Office Hours Table
+CREATE TABLE dbo.OfficeHours (
+    Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    InstructorId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id) ON DELETE CASCADE,
+    DayOfWeek INT NOT NULL CHECK (DayOfWeek BETWEEN 0 AND 6), -- 0 = Sunday, 6 = Saturday
+    StartTime TIME NOT NULL,
+    EndTime TIME NOT NULL,
+    IsActive BIT NOT NULL DEFAULT 1,
+    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE()
+);
+
+-- Office Hours Queue Table
+CREATE TABLE dbo.OfficeHoursQueue (
+    Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    InstructorId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id),
+    StudentId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id) ON DELETE CASCADE,
+    Status NVARCHAR(20) NOT NULL DEFAULT 'waiting' CHECK (Status IN ('waiting', 'admitted', 'completed', 'cancelled')),
+    Question NVARCHAR(500) NULL,
+    JoinedQueueAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    AdmittedAt DATETIME2 NULL,
+    CompletedAt DATETIME2 NULL
+);
+
 -- Tutoring Sessions Table
 CREATE TABLE dbo.TutoringSessions (
     Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),

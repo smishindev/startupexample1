@@ -1,6 +1,8 @@
 import { Server } from 'socket.io';
 import jwt from 'jsonwebtoken';
 import { DatabaseService } from './services/DatabaseService';
+import { LiveSessionService } from './services/LiveSessionService';
+import { PresenceService } from './services/PresenceService';
 
 const db = DatabaseService.getInstance();
 
@@ -39,10 +41,24 @@ export const setupSocketHandlers = (io: Server) => {
     // Join user to their personal room for direct messages
     if (socket.userId) {
       socket.join(`user-${socket.userId}`);
+      
+      // Set user online presence
+      PresenceService.setUserOnline(socket.userId).catch(err => {
+        console.error('Error setting user online:', err);
+      });
     }
 
-    socket.on('disconnect', () => {
+    socket.on('disconnect', async () => {
       console.log('User disconnected:', socket.id);
+      
+      // Set user offline presence
+      if (socket.userId) {
+        try {
+          await PresenceService.setUserOffline(socket.userId);
+        } catch (err) {
+          console.error('Error setting user offline:', err);
+        }
+      }
     });
 
     // Chat room events
@@ -147,6 +163,252 @@ export const setupSocketHandlers = (io: Server) => {
         userId: socket.userId,
         roomId: data.roomId
       });
+    });
+
+    // ========================================
+    // Phase 2: Live Session Events
+    // ========================================
+
+    // Join a live session room
+    socket.on('join-live-session', async (data: { sessionId: string }) => {
+      try {
+        if (!socket.userId) {
+          socket.emit('error', { message: 'User not authenticated' });
+          return;
+        }
+
+        // Verify session exists and is live
+        const session = await LiveSessionService.getSessionById(data.sessionId);
+        if (!session) {
+          socket.emit('error', { message: 'Session not found' });
+          return;
+        }
+
+        if (session.Status !== 'live') {
+          socket.emit('error', { message: 'Session is not currently live' });
+          return;
+        }
+
+        // Join the session room
+        socket.join(`session-${data.sessionId}`);
+        
+        // Broadcast to others that someone joined
+        socket.to(`session-${data.sessionId}`).emit('session-participant-joined', {
+          userId: socket.userId,
+          sessionId: data.sessionId,
+          timestamp: new Date()
+        });
+
+        socket.emit('joined-live-session', { 
+          sessionId: data.sessionId,
+          message: 'Successfully joined live session'
+        });
+
+        console.log(`User ${socket.userId} joined live session ${data.sessionId}`);
+      } catch (error) {
+        console.error('Error joining live session:', error);
+        socket.emit('error', { message: 'Failed to join live session' });
+      }
+    });
+
+    // Leave a live session room
+    socket.on('leave-live-session', (data: { sessionId: string }) => {
+      socket.leave(`session-${data.sessionId}`);
+      
+      // Broadcast to others that someone left
+      socket.to(`session-${data.sessionId}`).emit('session-participant-left', {
+        userId: socket.userId,
+        sessionId: data.sessionId,
+        timestamp: new Date()
+      });
+
+      socket.emit('left-live-session', { sessionId: data.sessionId });
+      console.log(`User ${socket.userId} left live session ${data.sessionId}`);
+    });
+
+    // Send a message in a live session
+    socket.on('session-message', async (data: {
+      sessionId: string;
+      content: string;
+      messageType?: 'text' | 'question' | 'poll';
+    }) => {
+      try {
+        // Get user info
+        const userInfo = await db.query(`
+          SELECT FirstName, LastName, Email FROM dbo.Users WHERE Id = @userId
+        `, { userId: socket.userId });
+
+        const messageData = {
+          id: require('uuid').v4(),
+          sessionId: data.sessionId,
+          content: data.content,
+          messageType: data.messageType || 'text',
+          createdAt: new Date().toISOString(),
+          user: {
+            id: socket.userId,
+            firstName: userInfo[0]?.FirstName,
+            lastName: userInfo[0]?.LastName,
+            email: userInfo[0]?.Email
+          }
+        };
+
+        // Broadcast to all in session (including sender for confirmation)
+        io.to(`session-${data.sessionId}`).emit('session-new-message', messageData);
+        console.log(`Broadcasting session message to session ${data.sessionId}`);
+      } catch (error) {
+        console.error('Error broadcasting session message:', error);
+        socket.emit('error', { message: 'Failed to send message' });
+      }
+    });
+
+    // Typing indicator in live session
+    socket.on('session-typing-start', (data: { sessionId: string }) => {
+      socket.to(`session-${data.sessionId}`).emit('session-user-typing', {
+        userId: socket.userId,
+        email: socket.userEmail,
+        sessionId: data.sessionId
+      });
+    });
+
+    socket.on('session-typing-stop', (data: { sessionId: string }) => {
+      socket.to(`session-${data.sessionId}`).emit('session-user-stop-typing', {
+        userId: socket.userId,
+        sessionId: data.sessionId
+      });
+    });
+
+    // ========================================
+    // Phase 2: Presence Events
+    // ========================================
+
+    // Update user presence status
+    socket.on('update-presence', async (data: {
+      status: 'online' | 'offline' | 'away' | 'busy';
+      activity?: string;
+    }) => {
+      try {
+        if (!socket.userId) {
+          socket.emit('error', { message: 'User not authenticated' });
+          return;
+        }
+
+        await PresenceService.updatePresence({
+          userId: socket.userId,
+          status: data.status,
+          activity: data.activity
+        });
+
+        socket.emit('presence-updated', { 
+          status: data.status,
+          activity: data.activity 
+        });
+      } catch (error) {
+        console.error('Error updating presence:', error);
+        socket.emit('error', { message: 'Failed to update presence' });
+      }
+    });
+
+    // Heartbeat to keep user online
+    socket.on('presence-heartbeat', async () => {
+      try {
+        if (socket.userId) {
+          await PresenceService.updateLastSeen(socket.userId);
+        }
+      } catch (error) {
+        console.error('Error processing heartbeat:', error);
+      }
+    });
+
+    // Update activity without changing status
+    socket.on('update-activity', async (data: { activity: string }) => {
+      try {
+        if (!socket.userId) {
+          socket.emit('error', { message: 'User not authenticated' });
+          return;
+        }
+
+        await PresenceService.updateActivity(socket.userId, data.activity);
+        socket.emit('activity-updated', { activity: data.activity });
+      } catch (error) {
+        console.error('Error updating activity:', error);
+        socket.emit('error', { message: 'Failed to update activity' });
+      }
+    });
+
+    // ========================================
+    // Phase 2: Study Group Events
+    // ========================================
+
+    // Join a study group room
+    socket.on('join-study-group', (data: { groupId: string }) => {
+      socket.join(`study-group-${data.groupId}`);
+      socket.to(`study-group-${data.groupId}`).emit('study-group-member-joined', {
+        userId: socket.userId,
+        groupId: data.groupId,
+        timestamp: new Date()
+      });
+      socket.emit('joined-study-group', { groupId: data.groupId });
+      console.log(`User ${socket.userId} joined study group ${data.groupId}`);
+    });
+
+    // Leave a study group room
+    socket.on('leave-study-group', (data: { groupId: string }) => {
+      socket.leave(`study-group-${data.groupId}`);
+      socket.to(`study-group-${data.groupId}`).emit('study-group-member-left', {
+        userId: socket.userId,
+        groupId: data.groupId,
+        timestamp: new Date()
+      });
+      socket.emit('left-study-group', { groupId: data.groupId });
+      console.log(`User ${socket.userId} left study group ${data.groupId}`);
+    });
+
+    // ========================================
+    // Phase 2: Office Hours Events
+    // ========================================
+
+    // Join office hours queue
+    socket.on('join-office-hours-queue', (data: { 
+      instructorId: string;
+      queueId: string;
+    }) => {
+      // Join instructor's office hours room to get updates
+      socket.join(`office-hours-${data.instructorId}`);
+      
+      // Notify instructor of new queue member
+      socket.to(`office-hours-${data.instructorId}`).emit('queue-member-joined', {
+        queueId: data.queueId,
+        studentId: socket.userId,
+        timestamp: new Date()
+      });
+
+      socket.emit('joined-office-hours-queue', { 
+        instructorId: data.instructorId,
+        queueId: data.queueId
+      });
+      
+      console.log(`User ${socket.userId} joined office hours queue for instructor ${data.instructorId}`);
+    });
+
+    // Leave office hours queue
+    socket.on('leave-office-hours-queue', (data: { 
+      instructorId: string;
+      queueId: string;
+    }) => {
+      socket.leave(`office-hours-${data.instructorId}`);
+      
+      // Notify instructor
+      socket.to(`office-hours-${data.instructorId}`).emit('queue-member-left', {
+        queueId: data.queueId,
+        studentId: socket.userId,
+        timestamp: new Date()
+      });
+
+      socket.emit('left-office-hours-queue', { 
+        instructorId: data.instructorId 
+      });
+      
+      console.log(`User ${socket.userId} left office hours queue for instructor ${data.instructorId}`);
     });
   });
 };

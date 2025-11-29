@@ -1,12 +1,71 @@
 # Mishin Learn Platform - Project Status & Memory
 
-**Last Updated**: November 28, 2025 - Phase 2 Week 1 TESTED & VERIFIED ✅ | Starting Week 2 Frontend  
+**Last Updated**: November 29, 2025 - Phase 2 Week 2 Day 2 COMPLETE ✅ | Study Groups UI with Clickable Course Links  
 **Developer**: Sergey Mishin (s.mishin.dev@gmail.com)  
 **AI Assistant Context**: This file serves as project memory for continuity across chat sessions
 
 ---
 
 ## 🔥 LATEST UPDATE - November 29, 2025
+
+### Phase 2: Collaborative Features - Week 2 Day 2 - Study Groups UI COMPLETE ✅
+
+**Frontend implementation for Study Groups fully functional with real-time updates, smart filtering, and enhanced UX**
+
+#### Week 2 Day 2 Completed Tasks (10 files created/modified)
+
+**New Files Created:**
+1. ✅ `client/src/types/studyGroup.ts` - TypeScript interfaces (StudyGroup, GroupMember, GroupRole, CreateGroupData)
+2. ✅ `client/src/services/studyGroupsApi.ts` - 13 API methods with axios auth interceptor
+3. ✅ `client/src/components/StudyGroups/StudyGroupCard.tsx` - Group card with role-based actions + clickable course links
+4. ✅ `client/src/components/StudyGroups/CreateGroupModal.tsx` - Group creation form with course selection
+5. ✅ `client/src/components/StudyGroups/GroupMembersList.tsx` - Member management with admin actions
+6. ✅ `client/src/pages/StudyGroups/StudyGroupsPage.tsx` - Main page with 3 tabs and real-time updates
+7. ✅ `client/src/hooks/useStudyGroupSocket.ts` - Socket.IO hook with stable callbacks (useRef pattern)
+
+**Files Modified:**
+8. ✅ `client/src/App.tsx` - Added /study-groups route + global Socket.IO initialization
+9. ✅ `server/src/routes/studyGroups.ts` - Added Socket.IO emissions + GET /api/study-groups endpoint + CourseTitle JOIN
+10. ✅ `server/src/services/StudyGroupService.ts` - Added enrichGroupsWithMembership() + CourseTitle JOINs to all queries
+
+**Features Implemented:**
+- ✅ Create study groups (both students and instructors can create)
+- ✅ Join/Leave groups with optimistic UI updates
+- ✅ Real-time member count synchronization (no double-counting)
+- ✅ Tab-based filtering: My Groups, All Groups, By Course
+- ✅ Smart refetching (only updates when relevant to current tab)
+- ✅ Member capacity limits with "Full" badge
+- ✅ Admin-only delete permissions
+- ✅ Course-linked and general groups support
+- ✅ **Clickable course titles with subtle blue link styling (navigate to course page)**
+- ✅ IsMember/IsAdmin flags enriched server-side
+- ✅ Toast notifications for all group events
+
+**UX Enhancements:**
+- ✅ Course titles display on all group cards (when group is linked to a course)
+- ✅ Course titles are clickable links with primary blue color (no underline)
+- ✅ Underline appears on hover for link confirmation
+- ✅ Navigate to `/courses/{CourseId}` when course title clicked
+- ✅ Clean, professional design that signals interactivity without clutter
+
+**Real-time Socket.IO Events:**
+- `group-created` - Broadcast when user creates group
+- `group-deleted` - Broadcast when admin deletes group
+- `study-group-member-joined` - Broadcast when user joins (excludes self for optimistic updates)
+- `study-group-member-left` - Broadcast when user leaves (excludes self for optimistic updates)
+- `member-promoted` - Broadcast when member promoted to admin
+
+**Technical Improvements:**
+- ✅ Global Socket.IO connection in App.tsx (connects on auth, disconnects on logout)
+- ✅ Stable Socket.IO callbacks using useRef pattern (prevents listener re-registration)
+- ✅ Axios auth interceptor for JWT tokens in all API calls
+- ✅ Self-event filtering (users ignore their own join/leave events to prevent double-counting)
+- ✅ Backend membership enrichment for accurate IsMember/IsAdmin flags
+- ✅ SQL query fixes for proper member counts
+- ✅ CourseTitle added to all 4 backend queries (GET /, getGroupsByCourse, getUserGroups, searchGroups)
+- ✅ React Router useNavigate hook for course navigation from group cards
+
+---
 
 ### Phase 2: Collaborative Features - Week 2 Day 1 - Live Sessions UI COMPLETE ✅
 

@@ -234,7 +234,12 @@
 
 ## Study Groups API
 
-### 1. Create Study Group
+### 1. Get All Groups
+**GET** `/study-groups`  
+**Auth:** Private  
+**Description:** Returns all active study groups with IsMember/IsAdmin flags enriched
+
+### 2. Create Study Group
 **POST** `/study-groups`  
 **Auth:** Private  
 **Body:**
@@ -246,40 +251,47 @@
   "maxMembers": 20
 }
 ```
+**Socket Event Emitted:** `group-created`
 
-### 2. Get Group Details
+### 3. Get Group Details
 **GET** `/study-groups/:groupId`  
 **Auth:** Private
 
-### 3. Get Course Groups
+### 4. Get Course Groups
 **GET** `/study-groups/course/:courseId`  
-**Auth:** Private
+**Auth:** Private  
+**Returns:** Groups with IsMember/IsAdmin flags
 
-### 4. Get My Groups
+### 5. Get My Groups
 **GET** `/study-groups/my/groups`  
-**Auth:** Private
+**Auth:** Private  
+**Returns:** Groups where user is a member with role information
 
-### 5. Join Group
+### 6. Join Group
 **POST** `/study-groups/:groupId/join`  
-**Auth:** Private
+**Auth:** Private  
+**Validates:** Group capacity  
+**Socket Event:** `study-group-member-joined`
 
-### 6. Leave Group
+### 7. Leave Group
 **POST** `/study-groups/:groupId/leave`  
-**Auth:** Private
+**Auth:** Private  
+**Socket Event:** `study-group-member-left`
 
-### 7. Get Members
+### 8. Get Members
 **GET** `/study-groups/:groupId/members`  
 **Auth:** Private (member only)
 
-### 8. Promote Member
+### 9. Promote Member
 **POST** `/study-groups/:groupId/members/:userId/promote`  
-**Auth:** Private (admin only)
+**Auth:** Private (admin only)  
+**Socket Event:** `member-promoted`
 
-### 9. Remove Member
+### 10. Remove Member
 **POST** `/study-groups/:groupId/members/:userId/remove`  
 **Auth:** Private (admin only)
 
-### 10. Update Group
+### 11. Update Group
 **PUT** `/study-groups/:groupId`  
 **Auth:** Private (admin only)  
 **Body:**
@@ -291,13 +303,15 @@
 }
 ```
 
-### 11. Delete Group
+### 12. Delete Group
 **DELETE** `/study-groups/:groupId`  
-**Auth:** Private (admin only)
+**Auth:** Private (admin only)  
+**Socket Event:** `group-deleted`
 
-### 12. Search Groups
+### 13. Search Groups
 **GET** `/study-groups/search?q=javascript&courseId=uuid`  
-**Auth:** Private
+**Auth:** Private  
+**Returns:** Groups with IsMember/IsAdmin flags
 
 ---
 
@@ -345,20 +359,31 @@ const socket = io('http://localhost:3001', {
 ### Study Group Events
 
 **Emit:**
-- `join-study-group` - `{ groupId: 'uuid' }`
-- `leave-study-group` - `{ groupId: 'uuid' }`
+- `join-study-group` - `{ groupId: 'uuid' }` (optional, for room-based features)
+- `leave-study-group` - `{ groupId: 'uuid' }` (optional, for room-based features)
 
-**Listen:**
-- `joined-study-group` - `{ groupId }`
-- `left-study-group` - `{ groupId }`
-- `study-group-member-joined` - `{ userId, groupId, timestamp }`
-- `study-group-member-left` - `{ userId, groupId, timestamp }`
-- `study-group-created` - `{ groupId, name, courseId, createdBy }`
-- `member-joined` - `{ groupId, userId, joinedAt }`
-- `member-left` - `{ groupId, userId, leftAt }`
-- `member-promoted` - `{ groupId, userId, role }`
-- `group-updated` - `{ groupId, updates }`
-- `group-deleted` - `{ groupId, deletedAt }`
+**Listen (Broadcast Events):**
+- `group-created` - `{ groupId, groupName, courseId }`
+  - Emitted when any user creates a new study group
+  - All connected clients receive this event
+  
+- `group-deleted` - `{ groupId }`
+  - Emitted when admin deletes a group
+  - All connected clients receive this event
+  
+- `study-group-member-joined` - `{ groupId, userId, userName }`
+  - Emitted when user joins a group
+  - All connected clients receive this event
+  - Frontend filters out self-events to prevent double-counting
+  
+- `study-group-member-left` - `{ groupId, userId, userName }`
+  - Emitted when user leaves a group
+  - All connected clients receive this event
+  - Frontend filters out self-events to prevent double-counting
+  
+- `member-promoted` - `{ groupId, userId, userName }`
+  - Emitted when member promoted to admin
+  - All connected clients receive this event
 
 ### Office Hours Events
 

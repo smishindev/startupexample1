@@ -39,6 +39,7 @@ import MyLearningPage from './pages/Learning/MyLearningPage';
 
 // Phase 2 - Collaborative Features
 import { LiveSessionsPage } from './pages/LiveSessions/LiveSessionsPage';
+import { StudyGroupsPage } from './pages/StudyGroups/StudyGroupsPage';
 
 // Payment Pages
 import CourseCheckoutPage from './pages/Payment/CourseCheckoutPage';
@@ -54,6 +55,7 @@ import { ContentUploadDemo } from './components/Demo/ContentUploadDemo';
 
 // Hooks
 import { useAuthStore } from './stores/authStore';
+import { socketService } from './services/socketService';
 
 function App() {
   const { isAuthenticated, token, validateToken, logout } = useAuthStore();
@@ -77,6 +79,21 @@ function App() {
 
     initializeAuth();
   }, []); // Run once on app startup
+
+  // Initialize socket connection when authenticated
+  useEffect(() => {
+    if (isAuthenticated && token) {
+      console.log('Initializing socket connection...');
+      socketService.connect()
+        .then(() => console.log('Socket connected successfully'))
+        .catch(err => console.error('Socket connection failed:', err));
+      
+      return () => {
+        console.log('Disconnecting socket...');
+        socketService.disconnect();
+      };
+    }
+  }, [isAuthenticated, token]);
 
   return (
     <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
@@ -193,6 +210,16 @@ function App() {
           element={
             <ProtectedRoute>
               <LiveSessionsPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Phase 2 - Study Groups */}
+        <Route
+          path="/study-groups"
+          element={
+            <ProtectedRoute>
+              <StudyGroupsPage />
             </ProtectedRoute>
           }
         />

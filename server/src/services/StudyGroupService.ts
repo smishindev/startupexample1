@@ -115,11 +115,12 @@ export class StudyGroupService {
     const result = await (await db.getRequest())
       .input('courseId', sql.UniqueIdentifier, courseId)
       .query(`
-        SELECT sg.*, COUNT(sgm.UserId) as MemberCount
+        SELECT sg.*, c.Title as CourseTitle, COUNT(sgm.UserId) as MemberCount
         FROM dbo.StudyGroups sg
         LEFT JOIN dbo.StudyGroupMembers sgm ON sg.Id = sgm.GroupId
+        LEFT JOIN dbo.Courses c ON sg.CourseId = c.Id
         WHERE sg.CourseId = @courseId AND sg.IsActive = 1
-        GROUP BY sg.Id, sg.Name, sg.Description, sg.CourseId, sg.CreatedBy, sg.IsActive, sg.MaxMembers, sg.CreatedAt
+        GROUP BY sg.Id, sg.Name, sg.Description, sg.CourseId, sg.CreatedBy, sg.IsActive, sg.MaxMembers, sg.CreatedAt, c.Title
         ORDER BY sg.CreatedAt DESC
       `);
 
@@ -135,12 +136,13 @@ export class StudyGroupService {
     const result = await (await db.getRequest())
       .input('userId', sql.UniqueIdentifier, userId)
       .query(`
-        SELECT sg.*, sgm.Role, COUNT(sgm2.UserId) as MemberCount
+        SELECT sg.*, c.Title as CourseTitle, sgm.Role, COUNT(sgm2.UserId) as MemberCount
         FROM dbo.StudyGroups sg
         JOIN dbo.StudyGroupMembers sgm ON sg.Id = sgm.GroupId
         LEFT JOIN dbo.StudyGroupMembers sgm2 ON sg.Id = sgm2.GroupId
+        LEFT JOIN dbo.Courses c ON sg.CourseId = c.Id
         WHERE sgm.UserId = @userId AND sg.IsActive = 1
-        GROUP BY sg.Id, sg.Name, sg.Description, sg.CourseId, sg.CreatedBy, sg.IsActive, sg.MaxMembers, sg.CreatedAt, sgm.Role
+        GROUP BY sg.Id, sg.Name, sg.Description, sg.CourseId, sg.CreatedBy, sg.IsActive, sg.MaxMembers, sg.CreatedAt, sgm.Role, c.Title
         ORDER BY sg.CreatedAt DESC
       `);
 
@@ -428,9 +430,10 @@ export class StudyGroupService {
     const db = DatabaseService.getInstance();
 
     let query = `
-      SELECT sg.*, COUNT(sgm.UserId) as MemberCount
+      SELECT sg.*, c.Title as CourseTitle, COUNT(sgm.UserId) as MemberCount
       FROM dbo.StudyGroups sg
       LEFT JOIN dbo.StudyGroupMembers sgm ON sg.Id = sgm.GroupId
+      LEFT JOIN dbo.Courses c ON sg.CourseId = c.Id
       WHERE sg.IsActive = 1 AND sg.Name LIKE @searchTerm
     `;
 
@@ -443,12 +446,48 @@ export class StudyGroupService {
     }
 
     query += ` 
-      GROUP BY sg.Id, sg.Name, sg.Description, sg.CourseId, sg.CreatedBy, sg.IsActive, sg.MaxMembers, sg.CreatedAt
+      GROUP BY sg.Id, sg.Name, sg.Description, sg.CourseId, sg.CreatedBy, sg.IsActive, sg.MaxMembers, sg.CreatedAt, c.Title
       ORDER BY sg.CreatedAt DESC
     `;
 
     const result = await request.query(query);
 
     return result.recordset as StudyGroup[];
+  }
+
+  /**
+   * Enrich groups with membership info for a specific user
+   */
+  static async enrichGroupsWithMembership(groups: any[], userId: string): Promise<any[]> {
+    const db = DatabaseService.getInstance();
+    
+    if (groups.length === 0) return groups;
+
+    const groupIds = groups.map(g => g.Id);
+    
+    // Build query with parameters
+    const request = await db.getRequest();
+    request.input('userId', sql.UniqueIdentifier, userId);
+    
+    // Add each groupId as a parameter
+    groupIds.forEach((id, i) => {
+      request.input(`groupId${i}`, sql.UniqueIdentifier, id);
+    });
+    
+    const membershipResult = await request.query(`
+      SELECT GroupId, Role 
+      FROM dbo.StudyGroupMembers 
+      WHERE UserId = @userId AND GroupId IN (${groupIds.map((_, i) => `@groupId${i}`).join(',')})
+    `);
+
+    const membershipMap = new Map(
+      membershipResult.recordset.map((m: any) => [m.GroupId, m.Role])
+    );
+
+    return groups.map(group => ({
+      ...group,
+      IsMember: membershipMap.has(group.Id),
+      IsAdmin: membershipMap.get(group.Id) === 'admin'
+    }));
   }
 }

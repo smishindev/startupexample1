@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { Server } from 'socket.io';
 import { StudyGroupService } from '../services/StudyGroupService';
 import { authenticateToken, AuthRequest } from '../middleware/auth';
 
@@ -25,6 +26,17 @@ router.post('/', authenticateToken, async (req: AuthRequest, res) => {
       maxMembers
     });
 
+    // Emit Socket.IO event
+    const io: Server = req.app.get('io');
+    if (io) {
+      console.log('Emitting group-created event:', { groupId: group.Id, groupName: group.Name });
+      io.emit('group-created', {
+        groupId: group.Id,
+        groupName: group.Name,
+        courseId: group.CourseId
+      });
+    }
+
     res.status(201).json({ 
       message: 'Study group created successfully', 
       group 
@@ -33,6 +45,47 @@ router.post('/', authenticateToken, async (req: AuthRequest, res) => {
     console.error('Error creating study group:', error);
     res.status(500).json({ 
       message: 'Failed to create study group', 
+      error: error instanceof Error ? error.message : 'Unknown error' 
+    });
+  }
+});
+
+/**
+ * @route   GET /api/study-groups
+ * @desc    Get all study groups (with membership info)
+ * @access  Private
+ */
+router.get('/', authenticateToken, async (req: AuthRequest, res) => {
+  try {
+    const db = await (await import('../services/DatabaseService')).DatabaseService.getInstance();
+    const request = await db.getRequest();
+    const result = await request.query(`
+      SELECT 
+        sg.Id,
+        sg.Name,
+        sg.Description,
+        sg.CourseId,
+        sg.CreatedBy,
+        sg.MaxMembers,
+        sg.CreatedAt,
+        c.Title as CourseTitle,
+        COUNT(sgm.UserId) as MemberCount
+      FROM dbo.StudyGroups sg
+      LEFT JOIN dbo.StudyGroupMembers sgm ON sg.Id = sgm.GroupId
+      LEFT JOIN dbo.Courses c ON sg.CourseId = c.Id
+      WHERE sg.IsActive = 1
+      GROUP BY sg.Id, sg.Name, sg.Description, sg.CourseId, sg.CreatedBy, sg.MaxMembers, sg.CreatedAt, c.Title
+      ORDER BY sg.CreatedAt DESC
+    `);
+
+    const groups = result.recordset;
+    const enrichedGroups = await StudyGroupService.enrichGroupsWithMembership(groups, req.user!.userId);
+
+    res.json({ groups: enrichedGroups, count: enrichedGroups.length });
+  } catch (error) {
+    console.error('Error fetching all study groups:', error);
+    res.status(500).json({ 
+      message: 'Failed to fetch study groups', 
       error: error instanceof Error ? error.message : 'Unknown error' 
     });
   }
@@ -73,8 +126,9 @@ router.get('/course/:courseId', authenticateToken, async (req: AuthRequest, res)
     const { courseId } = req.params;
 
     const groups = await StudyGroupService.getGroupsByCourse(courseId);
+    const enrichedGroups = await StudyGroupService.enrichGroupsWithMembership(groups, req.user!.userId);
 
-    res.json({ groups, count: groups.length });
+    res.json({ groups: enrichedGroups, count: enrichedGroups.length });
   } catch (error) {
     console.error('Error fetching course study groups:', error);
     res.status(500).json({ 
@@ -92,8 +146,14 @@ router.get('/course/:courseId', authenticateToken, async (req: AuthRequest, res)
 router.get('/my/groups', authenticateToken, async (req: AuthRequest, res) => {
   try {
     const groups = await StudyGroupService.getUserGroups(req.user!.userId);
+    // For "my groups", user is always a member, enrich with admin status
+    const enrichedGroups = groups.map(g => ({
+      ...g,
+      IsMember: true,
+      IsAdmin: (g as any).Role === 'admin'
+    }));
 
-    res.json({ groups, count: groups.length });
+    res.json({ groups: enrichedGroups, count: enrichedGroups.length });
   } catch (error) {
     console.error('Error fetching user study groups:', error);
     res.status(500).json({ 
@@ -113,6 +173,17 @@ router.post('/:groupId/join', authenticateToken, async (req: AuthRequest, res) =
     const { groupId } = req.params;
 
     const member = await StudyGroupService.addMember(groupId, req.user!.userId);
+
+    // Emit Socket.IO event
+    const io: Server = req.app.get('io');
+    if (io) {
+      console.log('Emitting study-group-member-joined event:', { groupId, userId: req.user!.userId });
+      io.emit('study-group-member-joined', {
+        groupId,
+        userId: req.user!.userId,
+        userName: req.user!.email
+      });
+    }
 
     res.json({ 
       message: 'Joined study group successfully', 
@@ -137,6 +208,16 @@ router.post('/:groupId/leave', authenticateToken, async (req: AuthRequest, res) 
     const { groupId } = req.params;
 
     await StudyGroupService.removeMember(groupId, req.user!.userId);
+
+    // Emit Socket.IO event
+    const io: Server = req.app.get('io');
+    if (io) {
+      io.emit('study-group-member-left', {
+        groupId,
+        userId: req.user!.userId,
+        userName: req.user!.email
+      });
+    }
 
     res.json({ message: 'Left study group successfully' });
   } catch (error) {
@@ -284,6 +365,13 @@ router.delete('/:groupId', authenticateToken, async (req: AuthRequest, res) => {
 
     await StudyGroupService.deleteGroup(groupId);
 
+    // Emit Socket.IO event
+    const io: Server = req.app.get('io');
+    if (io) {
+      console.log('Emitting group-deleted event:', { groupId });
+      io.emit('group-deleted', { groupId });
+    }
+
     res.json({ message: 'Study group deleted successfully' });
   } catch (error) {
     console.error('Error deleting study group:', error);
@@ -311,8 +399,9 @@ router.get('/search', authenticateToken, async (req: AuthRequest, res) => {
       q as string,
       courseId as string | undefined
     );
+    const enrichedGroups = await StudyGroupService.enrichGroupsWithMembership(groups, req.user!.userId);
 
-    res.json({ groups, count: groups.length });
+    res.json({ groups: enrichedGroups, count: enrichedGroups.length });
   } catch (error) {
     console.error('Error searching study groups:', error);
     res.status(500).json({ 

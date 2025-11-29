@@ -82,6 +82,11 @@ class SocketService {
     return this.connected && this.socket?.connected === true;
   }
 
+  // Get socket instance
+  getSocket(): Socket | null {
+    return this.socket;
+  }
+
   // Chat room methods
   joinRoom(roomId: string): void {
     if (this.socket) {
@@ -160,7 +165,7 @@ class SocketService {
   // Notification event listeners
   onNotification(callback: (notification: NotificationEvent) => void): void {
     if (this.socket) {
-      this.socket.on('notification', callback);
+      this.socket.on('notification-created', callback);
     }
   }
 

@@ -37,6 +37,9 @@ import { VideoAnalyticsPage } from './pages/Instructor/VideoAnalyticsPage';
 import LandingPage from './pages/Landing/LandingPage';
 import MyLearningPage from './pages/Learning/MyLearningPage';
 
+// Phase 2 - Collaborative Features
+import { LiveSessionsPage } from './pages/LiveSessions/LiveSessionsPage';
+
 // Payment Pages
 import CourseCheckoutPage from './pages/Payment/CourseCheckoutPage';
 import PaymentSuccessPage from './pages/Payment/PaymentSuccessPage';
@@ -180,6 +183,16 @@ function App() {
           element={
             <ProtectedRoute>
               <Tutoring />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Phase 2 - Live Sessions */}
+        <Route
+          path="/live-sessions"
+          element={
+            <ProtectedRoute>
+              <LiveSessionsPage />
             </ProtectedRoute>
           }
         />

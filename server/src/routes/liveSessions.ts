@@ -1,9 +1,13 @@
 import { Router } from 'express';
+import { Server } from 'socket.io';
 import { LiveSessionService } from '../services/LiveSessionService';
+import { NotificationService } from '../services/NotificationService';
+import { DatabaseService } from '../services/DatabaseService';
 import { authenticateToken, AuthRequest } from '../middleware/auth';
 import { checkRole } from '../middleware/roleCheck';
 
 const router = Router();
+const notificationService = new NotificationService();
 
 /**
  * @route   POST /api/live-sessions
@@ -29,6 +33,59 @@ router.post('/', authenticateToken, checkRole(['instructor']), async (req: AuthR
       streamUrl,
       materials
     });
+
+    // Emit Socket.IO event to notify students about new session
+    const io: Server = req.app.get('io');
+    if (io && session.CourseId) {
+      io.emit('session-created', {
+        sessionId: session.Id,
+        courseId: session.CourseId,
+        title: session.Title,
+        scheduledAt: session.ScheduledAt,
+        instructorId: session.InstructorId
+      });
+
+      // Create persistent notifications for enrolled students
+      try {
+        const dbService = DatabaseService.getInstance();
+        const enrolledStudents = await dbService.query<{ UserId: string }>(
+          `SELECT DISTINCT UserId 
+           FROM Enrollments 
+           WHERE CourseId = @courseId AND Status IN ('active', 'completed')`,
+          { courseId: session.CourseId }
+        );
+
+        // Create notification for each enrolled student
+        for (const student of enrolledStudents) {
+          const notificationId = await notificationService.createNotification({
+            userId: student.UserId,
+            type: 'course',
+            priority: 'normal',
+            title: 'New Live Session',
+            message: `A new live session "${session.Title}" has been scheduled`,
+            actionUrl: `/live-sessions`,
+            actionText: 'View Session',
+            relatedEntityId: session.Id,
+            relatedEntityType: 'course'
+          });
+
+          // Emit notification-created event to the specific student
+          io.to(`user-${student.UserId}`).emit('notification-created', {
+            id: notificationId,
+            userId: student.UserId,
+            type: 'course',
+            priority: 'normal',
+            title: 'New Live Session',
+            message: `A new live session "${session.Title}" has been scheduled`,
+            actionUrl: '/live-sessions',
+            actionText: 'View Session'
+          });
+        }
+      } catch (notifError) {
+        console.error('Error creating notifications:', notifError);
+        // Don't fail the request if notifications fail
+      }
+    }
 
     res.status(201).json({ 
       message: 'Live session created successfully', 
@@ -132,6 +189,57 @@ router.post('/:sessionId/start', authenticateToken, checkRole(['instructor']), a
 
     const session = await LiveSessionService.startSession(sessionId);
 
+    // Emit Socket.IO event to notify students about session starting
+    const io: Server = req.app.get('io');
+    if (io && session.CourseId) {
+      io.emit('session-started', {
+        sessionId: session.Id,
+        courseId: session.CourseId,
+        title: session.Title
+      });
+
+      // Create persistent notifications for enrolled students
+      try {
+        const dbService = DatabaseService.getInstance();
+        const enrolledStudents = await dbService.query<{ UserId: string }>(
+          `SELECT DISTINCT UserId 
+           FROM Enrollments 
+           WHERE CourseId = @courseId AND Status IN ('active', 'completed')`,
+          { courseId: session.CourseId }
+        );
+
+        // Create notification for each enrolled student
+        for (const student of enrolledStudents) {
+          const notificationId = await notificationService.createNotification({
+            userId: student.UserId,
+            type: 'course',
+            priority: 'urgent',
+            title: 'Session Starting Now',
+            message: `The live session "${session.Title}" is starting now! Join now.`,
+            actionUrl: `/live-sessions`,
+            actionText: 'Join Session',
+            relatedEntityId: session.Id,
+            relatedEntityType: 'course'
+          });
+
+          // Emit notification-created event to the specific student
+          io.to(`user-${student.UserId}`).emit('notification-created', {
+            id: notificationId,
+            userId: student.UserId,
+            type: 'course',
+            priority: 'urgent',
+            title: 'Session Starting Now',
+            message: `The live session "${session.Title}" is starting now! Join now.`,
+            actionUrl: '/live-sessions',
+            actionText: 'Join Session'
+          });
+        }
+      } catch (notifError) {
+        console.error('Error creating session start notifications:', notifError);
+        // Don't fail the request if notifications fail
+      }
+    }
+
     res.json({ 
       message: 'Live session started', 
       session 
@@ -167,6 +275,58 @@ router.post('/:sessionId/end', authenticateToken, checkRole(['instructor']), asy
 
     const session = await LiveSessionService.endSession(sessionId, recordingUrl);
 
+    // Emit Socket.IO event to notify students about session ending
+    const io: Server = req.app.get('io');
+    if (io && session.CourseId) {
+      io.emit('session-ended', {
+        sessionId: session.Id,
+        courseId: session.CourseId,
+        title: session.Title,
+        endedAt: session.EndedAt
+      });
+
+      // Create persistent notifications for enrolled students
+      try {
+        const dbService = DatabaseService.getInstance();
+        const enrolledStudents = await dbService.query<{ UserId: string }>(
+          `SELECT DISTINCT UserId 
+           FROM Enrollments 
+           WHERE CourseId = @courseId AND Status IN ('active', 'completed')`,
+          { courseId: session.CourseId }
+        );
+
+        // Create notification for each enrolled student
+        for (const student of enrolledStudents) {
+          const notificationId = await notificationService.createNotification({
+            userId: student.UserId,
+            type: 'course',
+            priority: 'normal',
+            title: 'Session Ended',
+            message: `The live session "${session.Title}" has ended`,
+            actionUrl: `/live-sessions`,
+            actionText: 'View Sessions',
+            relatedEntityId: session.Id,
+            relatedEntityType: 'course'
+          });
+
+          // Emit notification-created event to the specific student
+          io.to(`user-${student.UserId}`).emit('notification-created', {
+            id: notificationId,
+            userId: student.UserId,
+            type: 'course',
+            priority: 'normal',
+            title: 'Session Ended',
+            message: `The live session "${session.Title}" has ended`,
+            actionUrl: '/live-sessions',
+            actionText: 'View Sessions'
+          });
+        }
+      } catch (notifError) {
+        console.error('Error creating session end notifications:', notifError);
+        // Don't fail the request if notifications fail
+      }
+    }
+
     res.json({ 
       message: 'Live session ended', 
       session 
@@ -200,6 +360,57 @@ router.post('/:sessionId/cancel', authenticateToken, checkRole(['instructor']), 
     }
 
     const session = await LiveSessionService.cancelSession(sessionId);
+
+    // Emit Socket.IO event to notify students about cancelled session
+    const io: Server = req.app.get('io');
+    if (io && session.CourseId) {
+      io.emit('session-cancelled', {
+        sessionId: session.Id,
+        courseId: session.CourseId,
+        title: session.Title
+      });
+
+      // Create persistent notifications for enrolled students
+      try {
+        const dbService = DatabaseService.getInstance();
+        const enrolledStudents = await dbService.query<{ UserId: string }>(
+          `SELECT DISTINCT UserId 
+           FROM Enrollments 
+           WHERE CourseId = @courseId AND Status IN ('active', 'completed')`,
+          { courseId: session.CourseId }
+        );
+
+        // Create notification for each enrolled student
+        for (const student of enrolledStudents) {
+          const notificationId = await notificationService.createNotification({
+            userId: student.UserId,
+            type: 'course',
+            priority: 'high',
+            title: 'Session Cancelled',
+            message: `The live session "${session.Title}" has been cancelled`,
+            actionUrl: `/live-sessions`,
+            actionText: 'View Sessions',
+            relatedEntityId: session.Id,
+            relatedEntityType: 'course'
+          });
+
+          // Emit notification-created event to the specific student
+          io.to(`user-${student.UserId}`).emit('notification-created', {
+            id: notificationId,
+            userId: student.UserId,
+            type: 'course',
+            priority: 'high',
+            title: 'Session Cancelled',
+            message: `The live session "${session.Title}" has been cancelled`,
+            actionUrl: '/live-sessions',
+            actionText: 'View Sessions'
+          });
+        }
+      } catch (notifError) {
+        console.error('Error creating cancellation notifications:', notifError);
+        // Don't fail the request if notifications fail
+      }
+    }
 
     res.json({ 
       message: 'Live session cancelled', 

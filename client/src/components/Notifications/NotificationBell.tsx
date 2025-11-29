@@ -85,27 +85,9 @@ export const NotificationBell: React.FC = () => {
           // Increment unread count
           setUnreadCount(prev => prev + 1);
           
-          // Show toast for urgent/high priority notifications
-          if (notification.priority === 'urgent' || notification.priority === 'high') {
-            toast.warning(notification.title, {
-              description: notification.message,
-              action: notification.actionUrl ? {
-                label: notification.actionText || 'View',
-                onClick: () => {
-                  if (notification.actionUrl) {
-                    navigate(notification.actionUrl);
-                  }
-                }
-              } : undefined,
-              duration: 5000
-            });
-          } else {
-            // Show info toast for normal/low priority
-            toast.info(notification.title, {
-              description: notification.message,
-              duration: 3000
-            });
-          }
+          // Don't show toast here - the feature-specific components 
+          // (like StudentSessionsList) already show appropriate toasts
+          // This just adds the notification silently to the bell
         });
         
         // Listen for notification-read events from other devices

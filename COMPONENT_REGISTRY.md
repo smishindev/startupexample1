@@ -1,6 +1,6 @@
 # Mishin Learn Platform - Component Registry
 
-**Last Updated**: November 22, 2025  
+**Last Updated**: December 2, 2025  
 **Purpose**: Quick reference for all major components, their dependencies, and relationships
 
 ---
@@ -462,6 +462,149 @@ if (progress >= 0.9 && !isCompleted) {
 
 ---
 
+### OfficeHoursPage (Instructor)
+**Path**: `client/src/pages/OfficeHours/OfficeHoursInstructor.tsx`  
+**Route**: `/office-hours` (Instructors only)  
+**Purpose**: Manage office hours schedule and student queue
+
+**Services Used**:
+- `officeHoursApi.getMySchedules()` - Get instructor's schedules
+- `officeHoursApi.createSchedule()` - Create new schedule
+- `officeHoursApi.updateSchedule()` - Update schedule
+- `officeHoursApi.deleteSchedule()` - Delete schedule
+- `officeHoursApi.getQueue()` - Get current queue
+- `officeHoursApi.admitStudent()` - Admit from queue
+- `officeHoursApi.completeSession()` - Complete session
+- `officeHoursApi.cancelQueueEntry()` - Cancel entry
+
+**State Management**:
+- Socket.IO real-time updates (`useOfficeHoursSocket` hook)
+- Local state: schedules, queue, active sessions
+
+**Socket Events Emitted**:
+- `queue-updated` - When student joins/leaves queue
+- `admitted` - When instructor admits student
+- `session-completed` - When session completes
+- `queue-cancelled` - When entry cancelled
+
+**Components Used**:
+- Schedule creation/edit dialogs
+- Queue list with admit buttons
+- Active sessions list
+
+**Key Logic**:
+```typescript
+// Real-time queue updates
+useOfficeHoursSocket((event) => {
+  if (event.type === 'queue-updated') {
+    refreshQueue(); // Reload queue data
+  }
+});
+
+// Admit student
+const handleAdmit = async (entryId: string) => {
+  await officeHoursApi.admitStudent(entryId);
+  // Socket.IO automatically notifies student
+};
+```
+
+**Common Issues**:
+- **Queue not updating**: Check Socket.IO connection and event listeners
+- **Duplicate toasts**: Check useOfficeHoursSocket is only instantiated once
+- **Timestamps wrong**: Verify UTC 'Z' suffix in API responses
+
+**Last Modified**: Dec 2, 2025 - Production ready with real-time notifications
+
+---
+
+### OfficeHoursPage (Student)
+**Path**: `client/src/pages/OfficeHours/OfficeHoursStudent.tsx`  
+**Route**: `/office-hours` (Students only)  
+**Purpose**: View instructor schedules and join queue
+
+**Services Used**:
+- `officeHoursApi.getAvailableSchedules()` - Get all instructor schedules
+- `officeHoursApi.joinQueue()` - Join instructor's queue
+- `officeHoursApi.getMyQueueStatus()` - Check current queue position
+- `officeHoursApi.leaveQueue()` - Leave queue
+
+**State Management**:
+- Socket.IO real-time updates (`useOfficeHoursSocket` hook)
+- Local state: schedules, queueStatus, position
+
+**Socket Events Received**:
+- `admitted` - When instructor admits this student
+- `session-completed` - When session is completed
+- `queue-cancelled` - When entry is cancelled
+- `position-updated` - When queue position changes
+
+**Notifications**:
+- Bell notifications for admitted/completed/cancelled events
+- Toast notifications only for user-initiated actions (join queue)
+
+**Key Logic**:
+```typescript
+// Real-time admission notification
+useOfficeHoursSocket((event) => {
+  if (event.type === 'admitted') {
+    // Bell notification appears automatically
+    refreshQueueStatus();
+  }
+});
+
+// Join queue with toast
+const handleJoin = async (scheduleId: string) => {
+  const result = await officeHoursApi.joinQueue(scheduleId);
+  toast.success(`Joined queue at position ${result.position}`);
+};
+```
+
+**Common Issues**:
+- **Not receiving notifications**: Check Socket.IO connection in Network tab
+- **Position not updating**: Verify real-time event listeners registered
+- **Timestamps inconsistent**: Check UTC formatting on server
+
+**Last Modified**: Dec 2, 2025 - Production ready with real-time notifications
+
+---
+
+## 🎣 CUSTOM HOOKS
+
+### useOfficeHoursSocket
+**Path**: `client/src/hooks/useOfficeHoursSocket.ts`  
+**Purpose**: Socket.IO event handling for office hours real-time updates
+
+**Events Listened**:
+- `queue-updated` - Queue changed (instructor view)
+- `admitted` - Student admitted (student receives notification)
+- `session-completed` - Session completed (student receives notification)
+- `queue-cancelled` - Entry cancelled (student receives notification)
+- `position-updated` - Queue position changed
+
+**Usage**:
+```typescript
+const { connected } = useOfficeHoursSocket({
+  onQueueUpdated: () => refreshQueue(),
+  onAdmitted: () => refreshStatus(),
+  onCompleted: () => refreshStatus(),
+  onCancelled: () => refreshStatus(),
+});
+```
+
+**Key Features**:
+- Automatic Socket.IO connection via socketService
+- No duplicate toast notifications (bell handles notifications)
+- Cleanup on unmount
+
+**Common Issues**:
+- **Duplicate toasts**: Ensure only ONE instance per page
+- **Events not firing**: Check Socket.IO connection status
+- **Memory leaks**: Verify cleanup in useEffect return
+
+**Last Modified**: Dec 2, 2025 - Removed duplicate toasts, production ready
+
+---
+
 ## 🔌 API SERVICE CLASSES
 
 ### coursesApi
@@ -509,6 +652,58 @@ if (progress >= 0.9 && !isCompleted) {
 - Creates Enrollment record only (NOT UserProgress)
 - UserProgress created per-lesson when accessed
 - Check for duplicate enrollment before calling
+
+---
+
+### officeHoursApi
+**Path**: `client/src/services/officeHoursApi.ts`  
+**Endpoint Base**: `/api/office-hours`
+
+**Methods**:
+- `getMySchedules()` - Get instructor's schedules
+- `getAvailableSchedules()` - Get all available schedules (students)
+- `createSchedule(data)` - Create new schedule (instructor)
+- `updateSchedule(id, data)` - Update schedule (instructor)
+- `deleteSchedule(id)` - Delete schedule (instructor)
+- `getQueue(scheduleId)` - Get queue for schedule
+- `getMyQueueStatus()` - Get student's current queue position
+- `joinQueue(scheduleId)` - Join instructor's queue (student)
+- `leaveQueue(entryId)` - Leave queue (student)
+- `admitStudent(entryId)` - Admit student from queue (instructor)
+- `completeSession(entryId)` - Complete session (instructor)
+- `cancelQueueEntry(entryId)` - Cancel entry (instructor)
+
+**Used By**: OfficeHoursInstructor, OfficeHoursStudent
+
+**Returns**:
+```typescript
+// getQueue
+{
+  id: string,
+  studentId: string,
+  studentName: string,
+  studentEmail: string,
+  position: number,
+  status: 'waiting' | 'admitted' | 'completed' | 'cancelled',
+  joinedAt: string, // UTC with 'Z' suffix
+  admittedAt?: string,
+  completedAt?: string
+}
+
+// joinQueue
+{
+  id: string,
+  position: number,
+  estimatedWaitTime: number
+}
+```
+
+**Key Features**:
+- All timestamps returned in UTC with 'Z' suffix
+- Real-time Socket.IO notifications integrated
+- GUID-based IDs (not numeric)
+
+**Last Modified**: Dec 2, 2025 - Production ready
 
 ---
 

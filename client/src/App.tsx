@@ -40,6 +40,7 @@ import MyLearningPage from './pages/Learning/MyLearningPage';
 // Phase 2 - Collaborative Features
 import { LiveSessionsPage } from './pages/LiveSessions/LiveSessionsPage';
 import { StudyGroupsPage } from './pages/StudyGroups/StudyGroupsPage';
+import OfficeHoursPage from './pages/OfficeHours/OfficeHoursPage';
 
 // Payment Pages
 import CourseCheckoutPage from './pages/Payment/CourseCheckoutPage';
@@ -220,6 +221,16 @@ function App() {
           element={
             <ProtectedRoute>
               <StudyGroupsPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Phase 2 - Office Hours */}
+        <Route
+          path="/office-hours"
+          element={
+            <ProtectedRoute>
+              <OfficeHoursPage />
             </ProtectedRoute>
           }
         />

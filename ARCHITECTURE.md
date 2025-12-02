@@ -1,6 +1,6 @@
 # Mishin Learn Platform - System Architecture
 
-**Last Updated**: November 22, 2025  
+**Last Updated**: December 2, 2025  
 **Purpose**: Understanding system components, data flows, and dependencies
 
 ---
@@ -259,6 +259,97 @@ Backend: Update CompletedAt + lesson progress
 - `client/src/services/videoProgressApi.ts` - Video progress API
 - `server/src/routes/video-progress.ts` - Video progress endpoints
 - Database: `VideoProgress`, `VideoAnalytics`
+
+---
+
+### 8. **Office Hours Flow** (Real-time)
+```
+Instructor creates schedule → OfficeHoursInstructor
+  ↓
+officeHoursApi.createSchedule({ dayOfWeek, startTime, endTime })
+  ↓ (POST /api/office-hours/schedules)
+Backend office-hours.ts:
+  ├─→ Create OfficeHours record
+  └─→ Return schedule details
+  ↓
+Student views schedules → OfficeHoursStudent
+  ↓
+officeHoursApi.getAvailableSchedules()
+  ↓ (GET /api/office-hours/schedules)
+Backend: Return all instructor schedules
+  ↓
+Student joins queue:
+  ↓
+officeHoursApi.joinQueue(scheduleId)
+  ↓ (POST /api/office-hours/queue)
+Backend OfficeHoursService.joinQueue():
+  ├─→ Create OfficeHoursQueue record (GUID ID)
+  ├─→ Calculate position in queue
+  ├─→ Create notification for instructor
+  └─→ Socket.IO emit('queue-updated') to instructor room
+  ↓
+Instructor sees queue update (real-time):
+  ↓
+useOfficeHoursSocket → onQueueUpdated callback
+  ↓
+Refresh queue display (no toast, silent update)
+  ↓
+Instructor admits student:
+  ↓
+officeHoursApi.admitStudent(entryId)
+  ↓ (PUT /api/office-hours/queue/:id/admit)
+Backend OfficeHoursService.admitStudent():
+  ├─→ Update queue entry status to 'admitted'
+  ├─→ Set AdmittedAt timestamp (UTC with 'Z')
+  ├─→ Create notification for student
+  └─→ Socket.IO emit('admitted') to student room
+  ↓
+Student receives notification (real-time):
+  ↓
+useOfficeHoursSocket → onAdmitted callback
+  ↓
+Bell notification appears (no toast)
+  ↓
+Refresh queue status
+  ↓
+Instructor completes session:
+  ↓
+officeHoursApi.completeSession(entryId)
+  ↓ (PUT /api/office-hours/queue/:id/complete)
+Backend OfficeHoursService.completeSession():
+  ├─→ Update queue entry status to 'completed'
+  ├─→ Set CompletedAt timestamp (UTC with 'Z')
+  ├─→ Create notification for student
+  └─→ Socket.IO emit('session-completed') to student room
+  ↓
+Student receives completion notification (real-time)
+```
+
+**Key Files**:
+- `client/src/pages/OfficeHours/OfficeHoursInstructor.tsx` - Instructor UI
+- `client/src/pages/OfficeHours/OfficeHoursStudent.tsx` - Student UI
+- `client/src/hooks/useOfficeHoursSocket.ts` - Socket.IO events
+- `client/src/services/officeHoursApi.ts` - Office Hours API
+- `server/src/routes/office-hours.ts` - Office Hours endpoints
+- `server/src/services/OfficeHoursService.ts` - Business logic
+- `server/src/services/NotificationService.ts` - Notification integration
+- Database: `OfficeHours`, `OfficeHoursQueue`, `Notifications`
+
+**Socket.IO Rooms**:
+- `user-${userId}` - Individual user notifications
+- `office-hours-${instructorId}` - Instructor's queue updates
+
+**Notification Strategy**:
+- User actions (join queue) → Toast + Bell notification
+- Server events (admitted, completed) → Bell notification only (no toast)
+- Prevents duplicate UI feedback
+
+**Timestamp Handling**:
+- All timestamps stored in UTC in database
+- Backend returns timestamps with 'Z' suffix (ISO 8601)
+- Frontend displays relative time ("a few seconds ago")
+
+**Last Updated**: December 2, 2025 - Production ready
 
 ---
 

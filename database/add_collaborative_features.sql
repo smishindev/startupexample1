@@ -101,6 +101,7 @@ BEGIN
         StartTime TIME NOT NULL,
         EndTime TIME NOT NULL,
         IsActive BIT NOT NULL DEFAULT 1,
+        IsDeleted BIT NOT NULL DEFAULT 0,
         CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
         CONSTRAINT FK_OfficeHours_Instructor FOREIGN KEY (InstructorId) REFERENCES dbo.Users(Id) ON DELETE CASCADE,
         CONSTRAINT CK_OfficeHours_DayOfWeek CHECK (DayOfWeek BETWEEN 0 AND 6)
@@ -109,12 +110,21 @@ BEGIN
     CREATE INDEX IX_OfficeHours_InstructorId ON dbo.OfficeHours(InstructorId);
     CREATE INDEX IX_OfficeHours_DayOfWeek ON dbo.OfficeHours(DayOfWeek);
     CREATE INDEX IX_OfficeHours_IsActive ON dbo.OfficeHours(IsActive);
+    CREATE INDEX IX_OfficeHours_IsDeleted ON dbo.OfficeHours(IsDeleted);
     
     PRINT '✅ OfficeHours table created successfully';
 END
 ELSE
 BEGIN
     PRINT 'ℹ️ OfficeHours table already exists';
+    
+    -- Add IsDeleted column if it doesn't exist
+    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[OfficeHours]') AND name = 'IsDeleted')
+    BEGIN
+        ALTER TABLE dbo.OfficeHours ADD IsDeleted BIT NOT NULL DEFAULT 0;
+        CREATE INDEX IX_OfficeHours_IsDeleted ON dbo.OfficeHours(IsDeleted);
+        PRINT '✅ IsDeleted column added to OfficeHours table';
+    END
 END
 GO
 
@@ -127,6 +137,7 @@ BEGIN
         Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
         InstructorId UNIQUEIDENTIFIER NOT NULL,
         StudentId UNIQUEIDENTIFIER NOT NULL,
+        ScheduleId UNIQUEIDENTIFIER NULL,
         Status NVARCHAR(20) NOT NULL DEFAULT 'waiting', -- waiting, admitted, completed, cancelled
         Question NVARCHAR(500) NULL,
         JoinedQueueAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
@@ -134,6 +145,7 @@ BEGIN
         CompletedAt DATETIME2 NULL,
         CONSTRAINT FK_OfficeHoursQueue_Instructor FOREIGN KEY (InstructorId) REFERENCES dbo.Users(Id),
         CONSTRAINT FK_OfficeHoursQueue_Student FOREIGN KEY (StudentId) REFERENCES dbo.Users(Id) ON DELETE CASCADE,
+        CONSTRAINT FK_OfficeHoursQueue_Schedule FOREIGN KEY (ScheduleId) REFERENCES dbo.OfficeHours(Id),
         CONSTRAINT CK_OfficeHoursQueue_Status CHECK (Status IN ('waiting', 'admitted', 'completed', 'cancelled'))
     );
     
@@ -147,6 +159,14 @@ END
 ELSE
 BEGIN
     PRINT 'ℹ️ OfficeHoursQueue table already exists';
+    
+    -- Add ScheduleId column if it doesn't exist
+    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[OfficeHoursQueue]') AND name = 'ScheduleId')
+    BEGIN
+        ALTER TABLE dbo.OfficeHoursQueue ADD ScheduleId UNIQUEIDENTIFIER NULL;
+        ALTER TABLE dbo.OfficeHoursQueue ADD CONSTRAINT FK_OfficeHoursQueue_Schedule FOREIGN KEY (ScheduleId) REFERENCES dbo.OfficeHours(Id);
+        PRINT '✅ ScheduleId column added to OfficeHoursQueue table';
+    END
 END
 GO
 

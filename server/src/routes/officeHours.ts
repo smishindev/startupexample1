@@ -119,15 +119,20 @@ router.delete('/schedule/:scheduleId', authenticateToken, checkRole(['instructor
  */
 router.post('/queue/join', authenticateToken, async (req: AuthRequest, res) => {
   try {
-    const { instructorId, question } = req.body;
+    const { instructorId, scheduleId, question } = req.body;
 
     if (!instructorId) {
       return res.status(400).json({ message: 'Instructor ID is required' });
     }
 
+    if (!scheduleId) {
+      return res.status(400).json({ message: 'Schedule ID is required' });
+    }
+
     const queueEntry = await OfficeHoursService.joinQueue({
       instructorId,
       studentId: req.user!.userId,
+      scheduleId,
       question
     });
 

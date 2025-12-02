@@ -114,7 +114,7 @@ export class NotificationService {
       
       // Emit real-time notification via Socket.io
       if (this.io) {
-        this.io.to(`user-${params.userId}`).emit('notification', {
+        this.io.to(`user-${params.userId}`).emit('notification-created', {
           id: notificationId,
           type: params.type,
           priority: params.priority,
@@ -146,7 +146,10 @@ export class NotificationService {
         .query(`
           SELECT 
             Id, UserId, Type, Priority, Title, Message, Data,
-            IsRead, CreatedAt, ReadAt, ExpiresAt,
+            IsRead, 
+            FORMAT(CreatedAt, 'yyyy-MM-ddTHH:mm:ss.fff') + 'Z' as CreatedAt,
+            FORMAT(ReadAt, 'yyyy-MM-ddTHH:mm:ss.fff') + 'Z' as ReadAt,
+            FORMAT(ExpiresAt, 'yyyy-MM-ddTHH:mm:ss.fff') + 'Z' as ExpiresAt,
             ActionUrl, ActionText, RelatedEntityId, RelatedEntityType
           FROM Notifications
           WHERE UserId = @UserId
@@ -157,7 +160,9 @@ export class NotificationService {
 
       return result.recordset.map((record: any) => ({
         ...record,
-        Data: record.Data ? JSON.parse(record.Data) : null
+        Data: record.Data ? JSON.parse(record.Data) : null,
+        ReadAt: record.ReadAt === 'Z' ? null : record.ReadAt,
+        ExpiresAt: record.ExpiresAt === 'Z' ? null : record.ExpiresAt
       }));
     } catch (error) {
       console.error('❌ Error fetching user notifications:', error);

@@ -367,6 +367,18 @@ export const setupSocketHandlers = (io: Server) => {
     // Phase 2: Office Hours Events
     // ========================================
 
+    // Instructor joins office hours room (to receive queue updates)
+    socket.on('join-office-hours', (data: { instructorId: string }) => {
+      socket.join(`office-hours-${data.instructorId}`);
+      console.log(`Instructor ${socket.userId} joined office hours room ${data.instructorId}`);
+    });
+
+    // Instructor leaves office hours room
+    socket.on('leave-office-hours', (data: { instructorId: string }) => {
+      socket.leave(`office-hours-${data.instructorId}`);
+      console.log(`Instructor ${socket.userId} left office hours room ${data.instructorId}`);
+    });
+
     // Join office hours queue
     socket.on('join-office-hours-queue', (data: { 
       instructorId: string;

@@ -72,7 +72,7 @@ export class PresenceService {
         UPDATE dbo.UserPresence
         SET Status = 'offline', UpdatedAt = GETUTCDATE()
         OUTPUT INSERTED.UserId
-        WHERE Status != 'offline' AND UpdatedAt < @threshold
+        WHERE Status != 'offline' AND LastSeenAt < @threshold
       `);
 
     // Broadcast offline status for each user
@@ -134,12 +134,18 @@ export class PresenceService {
   static async updateLastSeen(userId: string): Promise<void> {
     const db = DatabaseService.getInstance();
 
+    // Use MERGE to insert if doesn't exist, update if exists
     await (await db.getRequest())
       .input('userId', sql.UniqueIdentifier, userId)
       .query(`
-        UPDATE dbo.UserPresence
-        SET LastSeenAt = GETUTCDATE(), UpdatedAt = GETUTCDATE()
-        WHERE UserId = @userId
+        MERGE dbo.UserPresence AS target
+        USING (SELECT @userId AS UserId) AS source
+        ON target.UserId = source.UserId
+        WHEN MATCHED THEN
+          UPDATE SET LastSeenAt = GETUTCDATE(), UpdatedAt = GETUTCDATE()
+        WHEN NOT MATCHED THEN
+          INSERT (UserId, Status, LastSeenAt, UpdatedAt)
+          VALUES (@userId, 'online', GETUTCDATE(), GETUTCDATE());
       `);
   }
 
@@ -173,18 +179,18 @@ export class PresenceService {
 
     const db = DatabaseService.getInstance();
 
-    // Create a table value parameter for the user IDs
-    const table = new sql.Table();
-    table.columns.add('UserId', sql.UniqueIdentifier);
-    userIds.forEach(id => table.rows.add(id));
-
+    // Build parameterized query with individual parameters
     const request = await db.getRequest();
-    request.input('userIds', table);
+    const paramNames = userIds.map((id, index) => {
+      const paramName = `userId${index}`;
+      request.input(paramName, sql.UniqueIdentifier, id);
+      return `@${paramName}`;
+    });
 
     const result = await request.query(`
       SELECT up.* 
       FROM dbo.UserPresence up
-      WHERE up.UserId IN (SELECT UserId FROM @userIds)
+      WHERE up.UserId IN (${paramNames.join(', ')})
     `);
 
     return result.recordset as UserPresence[];
@@ -199,10 +205,10 @@ export class PresenceService {
     const result = await (await db.getRequest())
       .input('limit', sql.Int, limit)
       .query(`
-        SELECT TOP(@limit) up.*, u.Username, u.Email
+        SELECT TOP(@limit) up.*, u.FirstName, u.LastName, u.Email, u.Avatar, u.Role
         FROM dbo.UserPresence up
         JOIN dbo.Users u ON up.UserId = u.Id
-        WHERE up.Status = 'online'
+        WHERE up.Status IN ('online', 'away', 'busy')
         ORDER BY up.UpdatedAt DESC
       `);
 
@@ -219,7 +225,7 @@ export class PresenceService {
       .query(`
         SELECT COUNT(*) as Count
         FROM dbo.UserPresence
-        WHERE Status = 'online'
+        WHERE Status IN ('online', 'away', 'busy')
       `);
 
     return result.recordset[0].Count;
@@ -234,11 +240,11 @@ export class PresenceService {
     const result = await (await db.getRequest())
       .input('courseId', sql.UniqueIdentifier, courseId)
       .query(`
-        SELECT up.*, u.Username, u.Email
+        SELECT up.*, u.FirstName, u.LastName, u.Email, u.Avatar, u.Role
         FROM dbo.UserPresence up
         JOIN dbo.Users u ON up.UserId = u.Id
         JOIN dbo.Enrollments e ON u.Id = e.UserId
-        WHERE up.Status = 'online' AND e.CourseId = @courseId
+        WHERE up.Status IN ('online', 'away', 'busy') AND e.CourseId = @courseId
         ORDER BY up.UpdatedAt DESC
       `);
 
@@ -247,8 +253,34 @@ export class PresenceService {
 
   /**
    * Set user online (typically called on socket connection)
+   * If user status is away or busy (not offline), preserve that status
    */
   static async setUserOnline(userId: string, activity?: string): Promise<UserPresence> {
+    // Ensure user has a presence record (creates if doesn't exist)
+    await this.ensureUserPresence(userId);
+    
+    // Check if user already has a presence status
+    const existing = await this.getUserPresence(userId);
+    
+    console.log('[PRESENCE] setUserOnline called for user:', userId);
+    
+    if (existing) {
+      console.log('[PRESENCE] Existing status:', existing.Status);
+      
+      // If status is away or busy, restore it (user is reconnecting)
+      // Only reset to online if they were actually offline
+      if (existing.Status === 'away' || existing.Status === 'busy') {
+        console.log('[PRESENCE] Restoring previous status:', existing.Status);
+        return this.updatePresence({
+          userId,
+          status: existing.Status,
+          activity: activity || existing.Activity || undefined
+        });
+      }
+    }
+    
+    console.log('[PRESENCE] Setting status to online');
+    // Otherwise, set to online (new user or was offline)
     return this.updatePresence({
       userId,
       status: 'online',
@@ -346,5 +378,26 @@ export class PresenceService {
       userId,
       status: 'offline'
     });
+  }
+
+  /**
+   * Ensure user has a presence record (create with online status if doesn't exist)
+   */
+  static async ensureUserPresence(userId: string): Promise<UserPresence> {
+    const db = DatabaseService.getInstance();
+
+    const result = await (await db.getRequest())
+      .input('userId', sql.UniqueIdentifier, userId)
+      .query(`
+        IF NOT EXISTS (SELECT 1 FROM dbo.UserPresence WHERE UserId = @userId)
+        BEGIN
+          INSERT INTO dbo.UserPresence (UserId, Status, LastSeenAt, UpdatedAt)
+          VALUES (@userId, 'online', GETUTCDATE(), GETUTCDATE())
+        END
+        
+        SELECT * FROM dbo.UserPresence WHERE UserId = @userId
+      `);
+
+    return result.recordset[0] as UserPresence;
   }
 }

@@ -51,12 +51,25 @@ export const setupSocketHandlers = (io: Server) => {
     socket.on('disconnect', async () => {
       console.log('User disconnected:', socket.id);
       
-      // Set user offline presence
+      // Don't immediately set user offline on socket disconnect
+      // The status (away/busy/online) should persist across page refreshes
+      // Users will be marked offline by the inactivity checker after 5 minutes
+      // or when they explicitly log out
+      
+      // Just update LastSeenAt to current time
       if (socket.userId) {
         try {
-          await PresenceService.setUserOffline(socket.userId);
+          const existing = await PresenceService.getUserPresence(socket.userId);
+          if (existing) {
+            await PresenceService.updatePresence({
+              userId: socket.userId,
+              status: existing.Status, // Keep existing status
+              activity: existing.Activity || undefined
+            });
+            console.log('[PRESENCE] Socket disconnected, preserving status:', existing.Status);
+          }
         } catch (err) {
-          console.error('Error setting user offline:', err);
+          console.error('Error updating LastSeenAt on disconnect:', err);
         }
       }
     });

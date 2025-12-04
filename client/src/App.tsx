@@ -41,6 +41,7 @@ import MyLearningPage from './pages/Learning/MyLearningPage';
 import { LiveSessionsPage } from './pages/LiveSessions/LiveSessionsPage';
 import { StudyGroupsPage } from './pages/StudyGroups/StudyGroupsPage';
 import OfficeHoursPage from './pages/OfficeHours/OfficeHoursPage';
+import PresencePage from './pages/Presence/PresencePage';
 
 // Payment Pages
 import CourseCheckoutPage from './pages/Payment/CourseCheckoutPage';
@@ -231,6 +232,16 @@ function App() {
           element={
             <ProtectedRoute>
               <OfficeHoursPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Phase 2 - Online Users / Presence */}
+        <Route
+          path="/presence"
+          element={
+            <ProtectedRoute>
+              <PresencePage />
             </ProtectedRoute>
           }
         />

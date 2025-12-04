@@ -823,6 +823,317 @@ roundToDecimals(value: number, decimals: number): number
 
 ---
 
+## 🟢 PRESENCE SYSTEM COMPONENTS (Phase 2 - Week 2 Day 4)
+
+### PresencePage
+**Path**: `client/src/pages/Presence/PresencePage.tsx`  
+**Route**: `/presence`  
+**Purpose**: Main page for viewing online users and managing presence status
+
+**Services Used**:
+- `presenceApi.getMyPresence()` - Get current user's presence status
+- Uses `usePresence()` hook for status management and real-time updates
+
+**State Management**:
+- `usePresence()` hook - Status state and Socket.IO integration
+- Local state managed by hook:
+  - `currentStatus: PresenceStatus` - Current user status (online/away/busy/offline)
+  - `isLoadingStatus: boolean` - Loading state while fetching initial status
+
+**Components Used**:
+- `<Header />` - Navigation
+- `<PresenceStatusSelector />` - Status dropdown
+- `<OnlineUsersList />` - List of online users
+- MUI components (Box, Container, Grid, etc.)
+
+**Related Components**:
+- All Presence System components
+- Header navigation (Online Users link)
+
+**Used By**:
+- App.tsx route (`/presence`)
+- Header navigation menu
+
+**Key Logic**:
+```typescript
+const { currentStatus, isLoadingStatus, updateStatus } = usePresence({
+  autoHeartbeat: true,
+  heartbeatInterval: 60000, // 60 seconds
+  onUserOnline: (data) => console.log('User online:', data),
+  onUserOffline: (data) => console.log('User offline:', data),
+});
+
+// Status selector shows loading while fetching
+{isLoadingStatus ? (
+  <Typography>Loading...</Typography>
+) : (
+  <PresenceStatusSelector
+    currentStatus={currentStatus}
+    onStatusChange={(status) => updateStatus(status)}
+  />
+)}
+```
+
+**Common Issues**:
+- **Status resets to 'online' after refresh**: Fixed - hook now fetches actual status from server on mount
+- **Socket not connecting**: Check if user is authenticated
+- **Heartbeat not working**: Check Socket.IO connection in browser DevTools
+
+**Last Modified**: Dec 4, 2025 - Fixed status persistence issue
+
+---
+
+### OnlineIndicator
+**Path**: `client/src/components/Presence/OnlineIndicator.tsx`  
+**Purpose**: Color-coded status badge with pulse animation
+
+**Props**:
+```typescript
+interface OnlineIndicatorProps {
+  status: PresenceStatus; // 'online' | 'offline' | 'away' | 'busy'
+  size?: 'small' | 'medium' | 'large';
+  showTooltip?: boolean;
+  lastSeenAt?: string; // ISO timestamp
+}
+```
+
+**Status Colors**:
+- Online: Green (#4caf50) with pulse animation
+- Away: Orange (#ff9800)
+- Busy: Red (#f44336)
+- Offline: Gray (#9e9e9e)
+
+**Used By**:
+- `UserPresenceBadge` - Avatar overlay
+- `OnlineUsersList` - User list items
+
+**Key Features**:
+- Pulse animation for 'online' status
+- Tooltip showing status and last seen time
+- Responsive sizing
+
+---
+
+### UserPresenceBadge
+**Path**: `client/src/components/Presence/UserPresenceBadge.tsx`  
+**Purpose**: Avatar with presence indicator overlay at bottom-right
+
+**Props**:
+```typescript
+interface UserPresenceBadgeProps {
+  avatarUrl?: string | null;
+  firstName: string;
+  lastName: string;
+  status: PresenceStatus;
+  lastSeenAt?: string;
+  size?: number; // Avatar diameter in pixels
+}
+```
+
+**Used By**:
+- `OnlineUsersList`
+- `OnlineUsersWidget`
+- Can be used in Study Groups, Live Sessions, Office Hours (future integration)
+
+**Key Features**:
+- Automatic initials generation if no avatar
+- Status badge positioned at bottom-right
+- Responsive sizing with size prop
+
+---
+
+### OnlineUsersList
+**Path**: `client/src/components/Presence/OnlineUsersList.tsx`  
+**Purpose**: Card displaying list of currently online users
+
+**Props**:
+```typescript
+interface OnlineUsersListProps {
+  courseId?: string; // Optional: filter by course
+  limit?: number; // Max users to display
+  title?: string; // Card title
+  compact?: boolean; // Compact layout
+}
+```
+
+**Services Used**:
+- `presenceApi.getOnlineUsers(limit)` - Get all online users
+- `presenceApi.getOnlineUsersInCourse(courseId)` - Get course-specific users
+- Uses `socketService` for real-time updates
+
+**Socket.IO Events Listened**:
+- `presence-changed` - Updates list when user status changes
+
+**State Management**:
+- Local state:
+  - `users: OnlineUser[]` - List of online users
+  - `loading: boolean` - Loading state
+  - `error: string | null` - Error message
+
+**Used By**:
+- `PresencePage`
+- Future: Dashboard, Study Groups, Live Sessions
+
+**Key Features**:
+- Real-time updates via Socket.IO
+- Auto-refresh every 30 seconds
+- Shows activity ("Viewing Course: X")
+- Empty state for no users
+- Loading and error states
+
+---
+
+### PresenceStatusSelector
+**Path**: `client/src/components/Presence/PresenceStatusSelector.tsx`  
+**Purpose**: Dropdown menu to change user presence status
+
+**Props**:
+```typescript
+interface PresenceStatusSelectorProps {
+  currentStatus: PresenceStatus;
+  onStatusChange: (status: PresenceStatus) => void;
+}
+```
+
+**Status Options**:
+1. Online (green icon) - Active and available
+2. Away (orange icon) - Temporarily unavailable
+3. Busy (red icon) - Do not disturb
+4. Offline (gray icon) - Appear offline
+
+**Used By**:
+- `PresencePage`
+- Header (can be integrated)
+
+**Key Features**:
+- Icon-based status display
+- Toast notification on status change
+- Visual feedback for current status
+- Clean Material-UI dropdown
+
+---
+
+### OnlineUsersWidget
+**Path**: `client/src/components/Presence/OnlineUsersWidget.tsx`  
+**Purpose**: Dashboard widget showing online users with avatar group
+
+**Props**:
+```typescript
+interface OnlineUsersWidgetProps {
+  maxAvatars?: number; // Max avatars to show (default: 6)
+}
+```
+
+**Services Used**:
+- `presenceApi.getOnlineUsers(limit)` - Get online users
+- Uses `socketService` for real-time updates
+
+**Used By**:
+- Future: Dashboard pages
+- Can be added to instructor/student dashboards
+
+**Key Features**:
+- Avatar group showing first N users
+- Online count badge
+- "View All" button navigates to `/presence`
+- Real-time updates via Socket.IO
+
+---
+
+### usePresence Hook
+**Path**: `client/src/hooks/usePresence.ts`  
+**Purpose**: React hook for presence management with Socket.IO integration
+
+**Options**:
+```typescript
+interface UsePresenceOptions {
+  autoHeartbeat?: boolean; // Auto-send heartbeat (default: true)
+  heartbeatInterval?: number; // Interval in ms (default: 60000)
+  onUserOnline?: (data: PresenceEventData) => void;
+  onUserOffline?: (data: PresenceEventData) => void;
+  onUserStatusChange?: (data: PresenceEventData) => void;
+}
+```
+
+**Returns**:
+```typescript
+return {
+  currentStatus: PresenceStatus; // Current user status
+  isLoadingStatus: boolean; // Loading initial status
+  updateStatus: (status, activity?) => Promise<void>;
+  updateActivity: (activity) => Promise<void>;
+  sendHeartbeat: () => Promise<void>;
+}
+```
+
+**Services Used**:
+- `presenceApi.getMyPresence()` - Fetch initial status on mount
+- `presenceApi.updateStatus()` - Update status
+- `presenceApi.updateActivity()` - Update activity
+- `presenceApi.sendHeartbeat()` - Send heartbeat
+- `socketService` - Socket.IO integration
+
+**Socket.IO Events**:
+- Emits: `update-presence`, `update-activity`, `presence-heartbeat`
+- Listens: `presence-changed`, `presence-updated`
+
+**Used By**:
+- `PresencePage`
+- Can be used in any component needing presence features
+
+**Key Features**:
+- **Fetches actual status on mount** (fixes refresh bug)
+- Automatic heartbeat system
+- Real-time status updates via Socket.IO
+- Stable callbacks using useRef pattern
+- Automatic cleanup on unmount
+
+**Common Issues**:
+- **Status resets after refresh**: FIXED - Now fetches from server on mount
+- **Heartbeat not working**: Check Socket.IO connection
+- **Multiple tabs**: Each tab sends heartbeats independently (by design)
+
+**Last Modified**: Dec 4, 2025 - Added initial status fetch to fix persistence
+
+---
+
+### presenceApi Service
+**Path**: `client/src/services/presenceApi.ts`  
+**Purpose**: API service for presence-related HTTP requests
+
+**Methods**:
+```typescript
+presenceApi.getOnlineUsers(limit): Promise<OnlineUsersResponse>
+presenceApi.getOnlineUsersInCourse(courseId): Promise<{users, count}>
+presenceApi.getUserPresence(userId): Promise<UserPresence>
+presenceApi.getMyPresence(): Promise<UserPresence | null> // NEW: Get own status
+presenceApi.getBulkPresence(userIds[]): Promise<BulkPresenceResponse>
+presenceApi.updateStatus(status, activity?): Promise<UserPresence>
+presenceApi.updateActivity(activity): Promise<void>
+presenceApi.sendHeartbeat(): Promise<void>
+```
+
+**API Endpoints Used**:
+- GET `/api/presence/online` - All online users
+- GET `/api/presence/course/:courseId` - Course online users
+- GET `/api/presence/user/:userId` - User presence
+- POST `/api/presence/bulk` - Bulk presence query
+- PUT `/api/presence/status` - Update status
+- PUT `/api/presence/activity` - Update activity
+- POST `/api/presence/heartbeat` - Send heartbeat
+
+**Authentication**: All requests include JWT token via axios interceptor
+
+**Used By**:
+- `usePresence` hook
+- `OnlineUsersList` component
+- `OnlineUsersWidget` component
+- Any component needing presence data
+
+**Last Modified**: Dec 4, 2025 - Added `getMyPresence()` method
+
+---
+
 ## 🔄 DATA FLOW EXAMPLES
 
 ### Enrolling in a Course

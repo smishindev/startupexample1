@@ -1,6 +1,37 @@
 # 🚀 Quick Reference - Development Workflow
 
-**Last Updated**: November 22, 2025
+**Last Updated**: December 4, 2025
+
+---
+
+## 🧪 TEST CREDENTIALS
+
+**Instructor Account:**
+```
+Email: ins1@gmail.com
+Password: Aa123456
+Role: Instructor
+```
+
+**Student Account:**
+```
+Email: student1@gmail.com
+Password: Aa123456
+Role: Student
+```
+
+**Use these accounts for:**
+- Testing role-based features
+- Office Hours (instructor creates schedule, student joins queue)
+- Live Sessions (instructor creates, student joins)
+- Study Groups (both can create/join)
+- Presence System (test multi-user scenarios)
+- Chat/messaging features
+
+**Testing Multi-User Features:**
+1. Open two browser windows (or use Incognito)
+2. Login as instructor in one, student in other
+3. Test real-time features (presence, notifications, chat)
 
 ---
 

@@ -33,6 +33,10 @@ import {
   TrendingUp as SmartProgressIcon,
   Chat as ChatIcon,
   Psychology as PsychologyIcon,
+  People as PeopleIcon,
+  VideoCall as LiveSessionIcon,
+  Groups as StudyGroupIcon,
+  AccessTime as OfficeHoursIcon,
 } from '@mui/icons-material';
 import { styled, alpha } from '@mui/material/styles';
 import { Link, useNavigate } from 'react-router-dom';
@@ -117,6 +121,10 @@ export const Header: React.FC<HeaderProps> = () => {
     { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
     { text: 'Courses', icon: <BookIcon />, path: '/courses' },
     { text: user?.role === 'instructor' ? 'My Teaching' : 'My Learning', icon: <LearningIcon />, path: '/my-learning' },
+    { text: 'Live Sessions', icon: <LiveSessionIcon />, path: '/live-sessions' },
+    { text: 'Study Groups', icon: <StudyGroupIcon />, path: '/study-groups' },
+    { text: 'Office Hours', icon: <OfficeHoursIcon />, path: '/office-hours' },
+    { text: 'Online Users', icon: <PeopleIcon />, path: '/presence' },
     { text: 'Smart Progress', icon: <SmartProgressIcon />, path: '/smart-progress' },
     { text: 'AI Tutoring', icon: <PsychologyIcon />, path: '/tutoring' },
     { text: 'Chat', icon: <ChatIcon />, path: '/chat' },

@@ -349,6 +349,122 @@ Student receives completion notification (real-time)
 - Backend returns timestamps with 'Z' suffix (ISO 8601)
 - Frontend displays relative time ("a few seconds ago")
 
+---
+
+### 9. **Presence System Flow** (Real-time)
+```
+User logs in → Socket connects
+  ↓
+socketService.connect() with JWT token
+  ↓
+Backend sockets.ts → 'connection' event
+  ↓
+PresenceService.setUserOnline(userId):
+  ├─→ ensureUserPresence(userId) - Create record if doesn't exist
+  ├─→ Update Status = 'online', LastSeenAt = GETUTCDATE()
+  └─→ Socket.IO broadcast('presence-changed') to all users
+  ↓
+All connected users update UI
+  ↓
+User changes status to 'away':
+  ↓
+PresenceStatusSelector → updateStatus('away')
+  ↓
+usePresence hook:
+  ├─→ presenceApi.updateStatus('away')
+  │   ↓ (PUT /api/presence/status)
+  │   Backend PresenceService.updatePresence():
+  │   ├─→ Update Status = 'away', UpdatedAt = GETUTCDATE()
+  │   └─→ Socket.IO broadcast('presence-changed')
+  │
+  └─→ Socket emit('update-presence', { status: 'away' })
+  ↓
+Frontend receives 'presence-updated' event:
+  ↓
+setCurrentStatus('away') → UI updates immediately
+  ↓
+Automatic heartbeat (every 60 seconds):
+  ↓
+usePresence hook → sendHeartbeat()
+  ↓
+presenceApi.sendHeartbeat() + Socket emit('presence-heartbeat')
+  ↓ (POST /api/presence/heartbeat)
+Backend PresenceService.updateLastSeen():
+  ├─→ MERGE statement (UPDATE if exists, INSERT if new)
+  └─→ Set LastSeenAt = GETUTCDATE()
+  ↓
+User closes browser/tab:
+  ↓
+Socket.IO 'disconnect' event
+  ↓
+Backend preserves status (away/busy remain):
+  ├─→ Update LastSeenAt = GETUTCDATE()
+  └─→ Keep existing status (don't set offline)
+  ↓
+Inactivity checker (every 2 minutes):
+  ↓
+PresenceService.checkInactiveUsers():
+  ├─→ Find users with LastSeenAt > 5 minutes ago
+  ├─→ Set Status = 'offline' for inactive users
+  └─→ Socket.IO broadcast('presence-changed') for each
+  ↓
+User refreshes page:
+  ↓
+PresencePage loads → usePresence hook initializes
+  ↓
+useEffect on mount:
+  ├─→ presenceApi.getMyPresence() - Fetch actual status from server
+  ├─→ setCurrentStatus(presence.Status) - Display correct status
+  └─→ setIsLoadingStatus(false)
+  ↓
+Status badge and online list show consistent status (bug fixed!)
+```
+
+**Key Files**:
+- `client/src/pages/Presence/PresencePage.tsx` - Main presence UI
+- `client/src/hooks/usePresence.ts` - Status management + Socket.IO
+- `client/src/components/Presence/OnlineIndicator.tsx` - Status badge
+- `client/src/components/Presence/UserPresenceBadge.tsx` - Avatar + badge
+- `client/src/components/Presence/OnlineUsersList.tsx` - Online users list
+- `client/src/components/Presence/PresenceStatusSelector.tsx` - Status dropdown
+- `client/src/services/presenceApi.ts` - Presence API methods
+- `server/src/routes/presence.ts` - Presence endpoints
+- `server/src/services/PresenceService.ts` - Business logic with Socket.IO
+- `server/src/sockets.ts` - Socket connection handlers
+- Database: `UserPresence` (UserId, Status, LastSeenAt, Activity)
+
+**Socket.IO Events**:
+- `presence-changed` - Broadcast to all when user status changes
+- `presence-updated` - Personal confirmation after status update
+- `update-presence` - Client emits to change status
+- `presence-heartbeat` - Client emits to update last seen
+- `update-activity` - Client emits to update activity string
+
+**Presence Statuses**:
+- `online` (green) - Active and available
+- `away` (orange) - Temporarily unavailable
+- `busy` (red) - Do not disturb mode
+- `offline` (gray) - User offline or inactive > 5 minutes
+
+**Critical Features**:
+- **Status persistence through refresh** - Fetches actual status from server on mount
+- **Automatic heartbeat** - Every 60 seconds to prevent false offline
+- **Status preservation on disconnect** - Keeps away/busy status, not reset to offline
+- **Inactivity detection** - Marks offline after 5 minutes of no heartbeat
+- **Real-time updates** - All users see status changes instantly via Socket.IO
+
+**Database Configuration**:
+- `useUTC: true` in DatabaseService.ts (CRITICAL!)
+- All timestamps use GETUTCDATE() in SQL queries
+- Frontend uses standard Date API for ISO UTC parsing
+- Display uses relative time with auto-timezone conversion
+
+**Bug Fix (Dec 4, 2025)**:
+- Issue: Status badge showed 'online' after refresh despite actual status being 'away'
+- Cause: usePresence hook defaulted to 'online' on mount instead of fetching from server
+- Fix: Added presenceApi.getMyPresence() call on mount to fetch actual status
+- Result: Status now persists correctly through page refreshes
+
 **Last Updated**: December 2, 2025 - Production ready
 
 ---
@@ -829,8 +945,10 @@ useEffect(() => {
 - ✅ **Live Chat** - AI tutoring sessions with real-time messaging
 - ✅ **Typing Indicators** - Show when users are typing
 - ✅ **Instructor Interventions** - At-risk student alerts
-- 🔜 **Live Sessions** - Future: collaborative learning sessions
-- 🔜 **Presence System** - Future: online/offline status
+- ✅ **Live Sessions** - Collaborative learning sessions
+- ✅ **Study Groups** - Student collaboration spaces
+- ✅ **Office Hours** - Queue management with real-time updates
+- ✅ **Presence System** - Online/offline/away/busy status tracking
 
 ---
 

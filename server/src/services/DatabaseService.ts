@@ -21,7 +21,7 @@ export class DatabaseService {
         enableArithAbort: true,
         connectionTimeout: 60000,
         requestTimeout: 60000,
-        useUTC: false,
+        useUTC: true, // CRITICAL: Treat all DATETIME2 as UTC (database uses GETUTCDATE())
       },
       pool: {
         max: 10,

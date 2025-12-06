@@ -14,7 +14,6 @@ import {
   CircularProgress,
   Chip,
   Stack,
-  Avatar,
   Badge
 } from '@mui/material';
 import {
@@ -36,6 +35,10 @@ import {
 } from '../../types/officeHours';
 import { formatDistanceToNow } from 'date-fns';
 import { useOfficeHoursSocket } from '../../hooks/useOfficeHoursSocket.js';
+import UserPresenceBadge from '../Presence/UserPresenceBadge';
+import { presenceApi } from '../../services/presenceApi';
+import { socketService } from '../../services/socketService';
+import type { PresenceStatus } from '../../types/presence';
 
 interface QueueDisplayProps {
   instructorId: string;
@@ -49,6 +52,7 @@ const QueueDisplay: React.FC<QueueDisplayProps> = ({ instructorId, isInstructor,
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actioningId, setActioningId] = useState<string | null>(null);
+  const [presenceMap, setPresenceMap] = useState<Record<string, PresenceStatus>>({});
 
   // Listen for real-time queue updates
   useOfficeHoursSocket({
@@ -70,6 +74,37 @@ const QueueDisplay: React.FC<QueueDisplayProps> = ({ instructorId, isInstructor,
   useEffect(() => {
     loadQueue();
   }, [instructorId]);
+
+  // Load presence status for students in queue
+  useEffect(() => {
+    const loadPresence = async () => {
+      if (queue.length === 0) return;
+      
+      try {
+        const userIds = queue.map(entry => entry.StudentId);
+        const response = await presenceApi.getBulkPresence(userIds);
+        
+        const map: Record<string, PresenceStatus> = {};
+        response.presences.forEach(p => {
+          map[p.UserId] = p.Status;
+        });
+        setPresenceMap(map);
+      } catch (err) {
+        console.error('Failed to load presence:', err);
+      }
+    };
+    
+    loadPresence();
+    
+    // Listen for presence changes
+    const socket = socketService.getSocket();
+    if (socket) {
+      socket.on('presence-changed', loadPresence);
+      return () => {
+        socket.off('presence-changed', loadPresence);
+      };
+    }
+  }, [queue]);
 
   const loadQueue = async () => {
     try {
@@ -212,9 +247,13 @@ const QueueDisplay: React.FC<QueueDisplayProps> = ({ instructorId, isInstructor,
                         horizontal: 'left',
                       }}
                     >
-                      <Avatar sx={{ bgcolor: 'primary.main' }}>
-                        <PersonIcon />
-                      </Avatar>
+                      <UserPresenceBadge
+                        firstName={entry.StudentName?.split(' ')[0] || 'Unknown'}
+                        lastName={entry.StudentName?.split(' ').slice(1).join(' ') || 'Student'}
+                        avatarUrl={null}
+                        status={presenceMap[entry.StudentId] || 'offline'}
+                        size={40}
+                      />
                     </Badge>
                     <Box flex={1}>
                       <Typography variant="h6" fontWeight="bold">

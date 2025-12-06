@@ -42,6 +42,7 @@ import { styled, alpha } from '@mui/material/styles';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore';
 import { NotificationBell } from '../Notifications/NotificationBell';
+import PresenceStatusSelector from '../Presence/PresenceStatusSelector';
 
 const Search = styled('div')(({ theme }) => ({
   position: 'relative',
@@ -272,6 +273,7 @@ export const Header: React.FC<HeaderProps> = () => {
           </Search>
 
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <PresenceStatusSelector />
             <NotificationBell />
 
             <IconButton

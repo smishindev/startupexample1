@@ -22,18 +22,11 @@ import {
   ArrowDropDown as DropdownIcon,
 } from '@mui/icons-material';
 import { PresenceStatus } from '../../types/presence';
-import { presenceApi } from '../../services/presenceApi';
 import { toast } from 'sonner';
+import { usePresence } from '../../hooks/usePresence';
 
-interface PresenceStatusSelectorProps {
-  currentStatus: PresenceStatus;
-  onStatusChange: (status: PresenceStatus) => void;
-}
-
-const PresenceStatusSelector: React.FC<PresenceStatusSelectorProps> = ({
-  currentStatus,
-  onStatusChange,
-}) => {
+const PresenceStatusSelector: React.FC = () => {
+  const { currentStatus, updateStatus } = usePresence();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [updating, setUpdating] = useState(false);
 
@@ -53,8 +46,7 @@ const PresenceStatusSelector: React.FC<PresenceStatusSelectorProps> = ({
 
     setUpdating(true);
     try {
-      await presenceApi.updateStatus(status);
-      onStatusChange(status);
+      await updateStatus(status);
       toast.success(`Status changed to ${status}`);
     } catch (error) {
       console.error('Error updating status:', error);

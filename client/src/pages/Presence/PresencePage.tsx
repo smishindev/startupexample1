@@ -19,7 +19,7 @@ import PresenceStatusSelector from '../../components/Presence/PresenceStatusSele
 import { Header } from '../../components/Navigation/Header';
 
 const PresencePage: React.FC = () => {
-  const { currentStatus, isLoadingStatus, updateStatus } = usePresence({
+  const { isLoadingStatus } = usePresence({
     autoHeartbeat: true,
     onUserOnline: (data) => {
       console.log('User came online:', data);
@@ -51,10 +51,7 @@ const PresencePage: React.FC = () => {
                 {isLoadingStatus ? (
                   <Typography variant="body2" color="text.secondary">Loading...</Typography>
                 ) : (
-                  <PresenceStatusSelector
-                    currentStatus={currentStatus}
-                    onStatusChange={(status) => updateStatus(status)}
-                  />
+                  <PresenceStatusSelector />
                 )}
               </Box>
             </Grid>

@@ -44,6 +44,9 @@ import { instructorApi } from '../../services/instructorApi';
 import type { StudyGroup } from '../../types/studyGroup';
 import { useAuthStore } from '../../stores/authStore';
 import { useStudyGroupSocket } from '../../hooks/useStudyGroupSocket';
+import { presenceApi } from '../../services/presenceApi';
+import { socketService } from '../../services/socketService';
+import { Header } from '../../components/Navigation/Header';
 
 interface Course {
   Id: string;
@@ -62,6 +65,7 @@ export const StudyGroupsPage: React.FC = () => {
   const [courses, setCourses] = useState<Course[]>([]);
   const [selectedCourse, setSelectedCourse] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
 
   // Fetch courses on mount
   useEffect(() => {
@@ -119,6 +123,29 @@ export const StudyGroupsPage: React.FC = () => {
       fetchGroups();
     }
   }, [courses, fetchGroups]);
+
+  // Load online users for presence indicators
+  useEffect(() => {
+    const loadOnlineUsers = async () => {
+      try {
+        const response = await presenceApi.getOnlineUsers(1000);
+        setOnlineUsers(response.users.map(u => u.UserId));
+      } catch (err) {
+        console.error('Failed to load online users:', err);
+      }
+    };
+    
+    loadOnlineUsers();
+    
+    // Listen for presence changes
+    const socket = socketService.getSocket();
+    if (socket) {
+      socket.on('presence-changed', loadOnlineUsers);
+      return () => {
+        socket.off('presence-changed', loadOnlineUsers);
+      };
+    }
+  }, []);
 
   // Socket.IO callbacks with useCallback to prevent re-renders
   const handleMemberJoined = useCallback((data: any) => {
@@ -264,8 +291,10 @@ export const StudyGroupsPage: React.FC = () => {
   const filteredGroups = groups;
 
   return (
-    <Container maxWidth="xl" sx={{ py: 4 }}>
-      {/* Header */}
+    <>
+      <Header />
+      <Container maxWidth="xl" sx={{ py: 4 }}>
+        {/* Header */}
       <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Typography variant="h4" component="h1" sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <GroupIcon fontSize="large" color="primary" />
@@ -354,6 +383,7 @@ export const StudyGroupsPage: React.FC = () => {
             <Grid item xs={12} sm={6} md={4} key={group.Id}>
               <StudyGroupCard
                 group={group}
+                onlineMembers={onlineUsers}
                 onJoin={handleJoin}
                 onLeave={handleLeave}
                 onDelete={group.IsAdmin ? handleDelete : undefined}
@@ -374,5 +404,8 @@ export const StudyGroupsPage: React.FC = () => {
         courses={courses}
       />
     </Container>
+    </>
   );
 };
+
+export default StudyGroupsPage;

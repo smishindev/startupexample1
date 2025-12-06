@@ -1,12 +1,16 @@
 import React from 'react'
-import { Typography, Box, Grid, Card, CardContent, Paper } from '@mui/material'
+import { Typography, Grid, Card, CardContent, Paper, Container } from '@mui/material'
+import OnlineUsersWidget from '../../components/Presence/OnlineUsersWidget'
+import { Header } from '../../components/Navigation/Header'
 
 const Dashboard: React.FC = () => {
   return (
-    <Box>
-      <Typography variant="h4" fontWeight="bold" sx={{ mb: 3 }}>
-        Dashboard
-      </Typography>
+    <>
+      <Header />
+      <Container maxWidth="xl" sx={{ py: 4 }}>
+        <Typography variant="h4" fontWeight="bold" sx={{ mb: 3 }}>
+          Dashboard
+        </Typography>
       
       <Grid container spacing={3}>
         <Grid item xs={12} md={6} lg={3}>
@@ -61,7 +65,11 @@ const Dashboard: React.FC = () => {
           </Card>
         </Grid>
         
-        <Grid item xs={12}>
+        <Grid item xs={12} md={6}>
+          <OnlineUsersWidget maxAvatars={6} />
+        </Grid>
+        
+        <Grid item xs={12} md={6}>
           <Paper sx={{ p: 3 }}>
             <Typography variant="h6" sx={{ mb: 2 }}>
               Recent Activity
@@ -72,7 +80,8 @@ const Dashboard: React.FC = () => {
           </Paper>
         </Grid>
       </Grid>
-    </Box>
+      </Container>
+    </>
   )
 }
 

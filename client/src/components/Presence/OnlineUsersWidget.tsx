@@ -21,8 +21,13 @@ import { useNavigate } from 'react-router-dom';
 import { presenceApi } from '../../services/presenceApi';
 import { OnlineUser } from '../../types/presence';
 import OnlineIndicator from '../Presence/OnlineIndicator';
+import { socketService } from '../../services/socketService';
 
-const OnlineUsersWidget: React.FC = () => {
+interface OnlineUsersWidgetProps {
+  maxAvatars?: number;
+}
+
+const OnlineUsersWidget: React.FC<OnlineUsersWidgetProps> = ({ maxAvatars = 8 }) => {
   const navigate = useNavigate();
   const [users, setUsers] = useState<OnlineUser[]>([]);
   const [loading, setLoading] = useState(true);
@@ -41,10 +46,15 @@ const OnlineUsersWidget: React.FC = () => {
   useEffect(() => {
     loadOnlineUsers();
     
-    // Refresh every 30 seconds
-    const interval = setInterval(loadOnlineUsers, 30000);
-    
-    return () => clearInterval(interval);
+    // Listen for real-time presence changes
+    const socket = socketService.getSocket();
+    if (socket) {
+      socket.on('presence-changed', loadOnlineUsers);
+      
+      return () => {
+        socket.off('presence-changed', loadOnlineUsers);
+      };
+    }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (loading) {
@@ -79,7 +89,7 @@ const OnlineUsersWidget: React.FC = () => {
           </Typography>
         ) : (
           <Box>
-            <AvatarGroup max={6} sx={{ mb: 2, justifyContent: 'flex-start' }}>
+            <AvatarGroup max={maxAvatars} sx={{ mb: 2, justifyContent: 'flex-start' }}>
               {users.map((user) => (
                 <Box key={user.UserId} position="relative">
                   <Avatar

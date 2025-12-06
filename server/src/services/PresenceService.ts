@@ -208,7 +208,7 @@ export class PresenceService {
         SELECT TOP(@limit) up.*, u.FirstName, u.LastName, u.Email, u.Avatar, u.Role
         FROM dbo.UserPresence up
         JOIN dbo.Users u ON up.UserId = u.Id
-        WHERE up.Status IN ('online', 'away', 'busy')
+        WHERE up.Status = 'online'
         ORDER BY up.UpdatedAt DESC
       `);
 
@@ -225,7 +225,7 @@ export class PresenceService {
       .query(`
         SELECT COUNT(*) as Count
         FROM dbo.UserPresence
-        WHERE Status IN ('online', 'away', 'busy')
+        WHERE Status = 'online'
       `);
 
     return result.recordset[0].Count;

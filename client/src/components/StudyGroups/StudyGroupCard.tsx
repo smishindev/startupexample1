@@ -28,6 +28,7 @@ import type { StudyGroup } from '../../types/studyGroup';
 
 interface StudyGroupCardProps {
   group: StudyGroup;
+  onlineMembers?: string[]; // Array of user IDs who are online
   onJoin?: (groupId: string) => void;
   onLeave?: (groupId: string) => void;
   onViewDetails?: (groupId: string) => void;
@@ -37,6 +38,7 @@ interface StudyGroupCardProps {
 
 export const StudyGroupCard: React.FC<StudyGroupCardProps> = ({
   group,
+  onlineMembers = [],
   onJoin,
   onLeave,
   onViewDetails,
@@ -126,12 +128,20 @@ export const StudyGroupCard: React.FC<StudyGroupCardProps> = ({
         )}
 
         {/* Member count */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
           <PersonIcon fontSize="small" color="action" />
           <Typography variant="body2" color="text.secondary">
             {group.MemberCount || 0}
             {group.MaxMembers !== null && ` / ${group.MaxMembers}`} members
           </Typography>
+          {onlineMembers.length > 0 && (
+            <Chip 
+              label={`${onlineMembers.length} online`}
+              size="small"
+              color="success"
+              sx={{ height: 20, fontSize: '0.7rem' }}
+            />
+          )}
         </Box>
 
         {/* Created by */}

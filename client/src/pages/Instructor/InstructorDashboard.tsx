@@ -43,8 +43,8 @@ import { useNavigate } from 'react-router-dom';
 import { Header } from '../../components/Navigation/Header';
 import { instructorApi, InstructorStats, InstructorCourse } from '../../services/instructorApi';
 import { useAuthStore } from '../../stores/authStore';
-import AuthDebug from '../../components/AuthDebug';
 import { formatCategory, getCategoryGradient } from '../../utils/courseHelpers';
+import OnlineUsersWidget from '../../components/Presence/OnlineUsersWidget';
 
 export const InstructorDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -158,9 +158,6 @@ export const InstructorDashboard: React.FC = () => {
     <>
       <Header />
       <Container maxWidth="xl" sx={{ py: 4 }}>
-        {/* Debug Component - Remove in production */}
-        <AuthDebug />
-        
         {/* Header */}
         <Box sx={{ mb: 4 }}>
           <Typography variant="h4" component="h1" gutterBottom>
@@ -367,6 +364,22 @@ export const InstructorDashboard: React.FC = () => {
         </Typography>
       </Box>
       
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        {/* Online Users Widget */}
+        <Grid item xs={12} md={6}>
+          <OnlineUsersWidget maxAvatars={6} />
+        </Grid>
+        
+        {/* Placeholder for additional widget */}
+        <Grid item xs={12} md={6}>
+          <Paper sx={{ p: 3, height: '100%', minHeight: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Typography variant="body2" color="text.secondary">
+              Additional widget space
+            </Typography>
+          </Paper>
+        </Grid>
+      </Grid>
+
       <Grid container spacing={3}>
         {courses.length === 0 ? (
           <Grid item xs={12}>

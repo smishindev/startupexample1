@@ -41,6 +41,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { Header } from '../../components/Navigation/Header';
+import { PageHeader } from '../../components/Navigation/PageHeader';
 import { instructorApi, InstructorStats, InstructorCourse } from '../../services/instructorApi';
 import { useAuthStore } from '../../stores/authStore';
 import { formatCategory, getCategoryGradient } from '../../utils/courseHelpers';
@@ -157,16 +158,22 @@ export const InstructorDashboard: React.FC = () => {
   return (
     <>
       <Header />
+      <PageHeader
+        title="Instructor Dashboard"
+        subtitle="Manage your courses and track your teaching performance"
+        icon={<SchoolIcon sx={{ fontSize: 32 }} />}
+        actions={
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => handleCreateCourse('blank')}
+            sx={{ borderRadius: 2 }}
+          >
+            Create Course
+          </Button>
+        }
+      />
       <Container maxWidth="xl" sx={{ py: 4 }}>
-        {/* Header */}
-        <Box sx={{ mb: 4 }}>
-          <Typography variant="h4" component="h1" gutterBottom>
-            Instructor Dashboard
-          </Typography>
-          <Typography variant="subtitle1" color="text.secondary">
-            Manage your courses and track your teaching performance
-          </Typography>
-      </Box>
 
       {/* Stats Overview */}
       <Grid container spacing={3} sx={{ mb: 4 }}>

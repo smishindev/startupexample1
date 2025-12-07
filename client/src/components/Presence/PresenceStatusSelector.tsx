@@ -84,18 +84,29 @@ const PresenceStatusSelector: React.FC = () => {
           size="small"
           disabled={updating}
           sx={{
-            border: '1px solid',
-            borderColor: 'divider',
-            borderRadius: 2,
-            px: 1,
+            background: 'rgba(255, 255, 255, 0.9)',
+            backdropFilter: 'blur(10px)',
+            border: '1px solid rgba(255, 255, 255, 0.5)',
+            borderRadius: 3,
+            px: 1.5,
+            color: 'text.primary',
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+            transition: 'all 0.3s ease',
             '&:hover': {
-              backgroundColor: 'action.hover',
+              background: 'rgba(255, 255, 255, 1)',
+              border: '1px solid rgba(25, 118, 210, 0.3)',
+              transform: 'translateY(-2px)',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+            },
+            '&:disabled': {
+              background: 'rgba(255, 255, 255, 0.5)',
+              color: 'text.disabled',
             },
           }}
         >
           <Box display="flex" alignItems="center" gap={0.5}>
             {getStatusIcon(currentStatus)}
-            <Typography variant="body2" sx={{ mx: 0.5 }}>
+            <Typography variant="body2" sx={{ mx: 0.5, fontWeight: 500 }}>
               {getStatusLabel(currentStatus)}
             </Typography>
             <DropdownIcon fontSize="small" />

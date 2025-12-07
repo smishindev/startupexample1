@@ -41,6 +41,7 @@ import {
   Cell
 } from 'recharts';
 import { Header } from '../../components/Navigation/Header';
+import { PageHeader } from '../../components/Navigation/PageHeader';
 import { analyticsApi, type CourseAnalytics, type DashboardAnalytics } from '../../services/analyticsApi';
 import { instructorApi, type InstructorCourse } from '../../services/instructorApi';
 
@@ -129,51 +130,48 @@ export const CourseAnalyticsDashboard: React.FC = () => {
   return (
     <>
       <Header />
+      <PageHeader
+        title="Analytics Hub"
+        subtitle={selectedCourse === 'dashboard' 
+          ? 'Overview of all your courses' 
+          : courses.find(c => c.CourseId.toString() === selectedCourse)?.Title || 'Course Analytics'
+        }
+        icon={<TrendingUpIcon sx={{ fontSize: 32 }} />}
+        actions={
+          <Box display="flex" alignItems="center" gap={1}>
+            <Typography variant="body2" color="textSecondary">
+              View:
+            </Typography>
+            <Select
+              size="small"
+              value={selectedCourse}
+              onChange={(e) => setSelectedCourse(e.target.value)}
+              sx={{ minWidth: 200 }}
+            >
+              <MenuItem value="dashboard">All Courses Overview</MenuItem>
+              {courses.map((course) => (
+                <MenuItem key={course.CourseId} value={course.CourseId.toString()}>
+                  {course.Title}
+                </MenuItem>
+              ))}
+            </Select>
+          </Box>
+        }
+      />
       <Container maxWidth="xl" sx={{ py: 4 }}>
-        <Box 
-          display="flex" 
-          justifyContent="space-between" 
-          alignItems="center" 
-          mb={3}
-          flexWrap="wrap"
-          gap={2}
-        >
-        <Typography variant="h4" component="h1">
-          Course Analytics
-        </Typography>
-        <Box display="flex" alignItems="center" gap={1}>
-          <Typography variant="body2" color="textSecondary">
-            View:
-          </Typography>
-          <Select
-            size="small"
-            value={selectedCourse}
-            onChange={(e) => setSelectedCourse(e.target.value)}
-            variant="outlined"
-            sx={{ minWidth: 200 }}
-          >
-            <MenuItem value="dashboard">All Courses Dashboard</MenuItem>
-            <Divider />
-            {courses.map((course) => (
-              <MenuItem key={course.id} value={course.id}>
-                {course.title}
-              </MenuItem>
-            ))}
-          </Select>
-        </Box>
-      </Box>
 
-      {selectedCourse === 'dashboard' && dashboardData && (
-        <DashboardView data={dashboardData} />
-      )}
+        {/* Dashboard or Course Specific View */}
+        {selectedCourse === 'dashboard' && dashboardData && (
+          <DashboardView data={dashboardData} />
+        )}
 
-      {selectedCourse !== 'dashboard' && courseData && (
-        <CourseView 
-          data={courseData} 
-          distribution={performanceDistribution}
-          courseTitle={courses.find(c => c.id === selectedCourse)?.title || 'Course'}
-        />
-      )}
+        {selectedCourse !== 'dashboard' && courseData && (
+          <CourseView 
+            data={courseData} 
+            distribution={performanceDistribution}
+            courseTitle={courses.find(c => c.CourseId.toString() === selectedCourse)?.Title || 'Course'}
+          />
+        )}
       </Container>
     </>
   );

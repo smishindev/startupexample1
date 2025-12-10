@@ -6,7 +6,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Box, Container, Paper } from '@mui/material';
-import { Header } from '../../components/Navigation/Header';
+import { HeaderV4 as Header } from '../../components/Navigation/HeaderV4';
 import { InstructorSessionsList } from '../../components/LiveSessions/InstructorSessionsList';
 import { StudentSessionsList } from '../../components/LiveSessions/StudentSessionsList';
 import { useAuthStore } from '../../stores/authStore';

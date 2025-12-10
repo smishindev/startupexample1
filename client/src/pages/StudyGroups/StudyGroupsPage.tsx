@@ -46,7 +46,7 @@ import { useAuthStore } from '../../stores/authStore';
 import { useStudyGroupSocket } from '../../hooks/useStudyGroupSocket';
 import { presenceApi } from '../../services/presenceApi';
 import { socketService } from '../../services/socketService';
-import { Header } from '../../components/Navigation/Header';
+import { HeaderV4 as Header } from '../../components/Navigation/HeaderV4';
 
 interface Course {
   Id: string;

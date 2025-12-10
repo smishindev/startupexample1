@@ -30,7 +30,7 @@ import {
   VideoLibrary,
 } from '@mui/icons-material';
 import { useSearchParams } from 'react-router-dom';
-import { Header } from '../../components/Navigation/Header';
+import { HeaderV4 as Header } from '../../components/Navigation/HeaderV4';
 import axios from 'axios';
 import { instructorApi } from '../../services/instructorApi';
 import { useAuthStore } from '../../stores/authStore';

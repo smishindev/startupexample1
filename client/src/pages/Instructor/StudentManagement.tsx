@@ -41,7 +41,7 @@ import {
   CheckCircle as CheckCircleIcon,
   Schedule as ScheduleIcon
 } from '@mui/icons-material';
-import { Header } from '../../components/Navigation/Header';
+import { HeaderV4 as Header } from '../../components/Navigation/HeaderV4';
 import { studentsApi, Student, StudentAnalytics, StudentFilters } from '../../services/studentsApi';
 import { instructorApi } from '../../services/instructorApi';
 

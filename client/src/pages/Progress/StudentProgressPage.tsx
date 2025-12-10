@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box } from '@mui/material';
-import { Header } from '../../components/Navigation/Header';
+import { HeaderV4 as Header } from '../../components/Navigation/HeaderV4';
 import { StudentProgressDashboard } from '../../components/Progress/StudentProgressDashboard';
 
 export const StudentProgressPage: React.FC = () => {

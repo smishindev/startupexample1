@@ -18,8 +18,6 @@ import {
   ListItemIcon,
   ListItemText,
   Divider,
-  Paper,
-  Grid,
   ListSubheader,
   Zoom,
   Collapse,
@@ -142,6 +140,47 @@ export const Header: React.FC<HeaderProps> = () => {
     handleMenuClose();
     navigate('/login');
   };
+
+  const closeTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+
+  // Simple hover handler - just switch menus
+  const handleMenuHover = React.useCallback((menuName: 'learning' | 'collaboration' | 'tools' | 'instructor', anchorElement: HTMLElement) => {
+    // Cancel any pending close
+    if (closeTimeoutRef.current) {
+      clearTimeout(closeTimeoutRef.current);
+      closeTimeoutRef.current = null;
+    }
+    
+    // Close all other menus and open this one
+    setLearningMenuAnchor(menuName === 'learning' ? anchorElement : null);
+    setCollaborationMenuAnchor(menuName === 'collaboration' ? anchorElement : null);
+    setToolsMenuAnchor(menuName === 'tools' ? anchorElement : null);
+    setInstructorMenuAnchor(menuName === 'instructor' ? anchorElement : null);
+  }, []);
+
+  const handleCloseAllMenus = React.useCallback(() => {
+    // Add small delay to allow mouse movement from button to menu
+    closeTimeoutRef.current = setTimeout(() => {
+      setLearningMenuAnchor(null);
+      setCollaborationMenuAnchor(null);
+      setToolsMenuAnchor(null);
+      setInstructorMenuAnchor(null);
+    }, 100);
+  }, []);
+
+  const cancelClose = React.useCallback(() => {
+    if (closeTimeoutRef.current) {
+      clearTimeout(closeTimeoutRef.current);
+      closeTimeoutRef.current = null;
+    }
+  }, []);
+
+  // Cleanup on unmount
+  React.useEffect(() => {
+    return () => {
+      handleCloseAllMenus();
+    };
+  }, [handleCloseAllMenus]);
 
   const handleSearch = (event: React.FormEvent) => {
     event.preventDefault();
@@ -518,13 +557,19 @@ export const Header: React.FC<HeaderProps> = () => {
           </Box>
 
           {!isMobile && (
-            <Box sx={{ display: 'flex', ml: 4, gap: 1 }}>
+            <Box 
+              sx={{ display: 'flex', ml: 4, gap: 1 }}
+            >
               {/* Dashboard - Primary */}
               <Button
                 color="inherit"
                 component={Link}
                 to="/dashboard"
                 startIcon={<DashboardIcon />}
+                onMouseEnter={() => {
+                  // Close all menus when hovering dashboard
+                  handleCloseAllMenus();
+                }}
                 sx={{
                   textTransform: 'none',
                   fontWeight: isActivePath('/dashboard') ? '700' : '500',
@@ -574,7 +619,7 @@ export const Header: React.FC<HeaderProps> = () => {
                   transform: Boolean(learningMenuAnchor) ? 'rotate(180deg)' : 'rotate(0deg)',
                   transition: 'transform 0.3s ease',
                 }} />}
-                onClick={(e) => setLearningMenuAnchor(learningMenuAnchor ? null : e.currentTarget)}
+                onMouseEnter={(e) => handleMenuHover('learning', e.currentTarget)}
                 sx={{
                     textTransform: 'none',
                     fontWeight: learningItems.some(item => isActivePath(item.path)) ? '700' : '500',
@@ -626,7 +671,7 @@ export const Header: React.FC<HeaderProps> = () => {
                   transform: Boolean(collaborationMenuAnchor) ? 'rotate(180deg)' : 'rotate(0deg)',
                   transition: 'transform 0.3s ease',
                 }} />}
-                onClick={(e) => setCollaborationMenuAnchor(collaborationMenuAnchor ? null : e.currentTarget)}
+                onMouseEnter={(e) => handleMenuHover('collaboration', e.currentTarget)}
                 sx={{
                     textTransform: 'none',
                     fontWeight: collaborationItems.some(item => isActivePath(item.path)) ? '700' : '500',
@@ -678,13 +723,7 @@ export const Header: React.FC<HeaderProps> = () => {
                   transform: Boolean(toolsMenuAnchor) ? 'rotate(180deg)' : 'rotate(0deg)',
                   transition: 'transform 0.3s ease',
                 }} />}
-                onClick={(e) => {
-                  if (toolsMenuAnchor) {
-                    setToolsMenuAnchor(null);
-                  } else {
-                    setToolsMenuAnchor(e.currentTarget);
-                  }
-                }}
+                onMouseEnter={(e) => handleMenuHover('tools', e.currentTarget)}
                 sx={{
                     textTransform: 'none',
                     fontWeight: toolsItems.some(item => isActivePath(item.path)) ? '700' : '500',
@@ -737,7 +776,7 @@ export const Header: React.FC<HeaderProps> = () => {
                     transform: Boolean(instructorMenuAnchor) ? 'rotate(180deg)' : 'rotate(0deg)',
                     transition: 'transform 0.3s ease',
                   }} />}
-                  onClick={(e) => setInstructorMenuAnchor(instructorMenuAnchor ? null : e.currentTarget)}
+                  onMouseEnter={(e) => handleMenuHover('instructor', e.currentTarget)}
                   sx={{
                       textTransform: 'none',
                       fontWeight: instructorItems.some(item => isActivePath(item.path)) ? '700' : '500',
@@ -928,8 +967,15 @@ export const Header: React.FC<HeaderProps> = () => {
         anchorEl={learningMenuAnchor}
         open={Boolean(learningMenuAnchor)}
         onClose={() => setLearningMenuAnchor(null)}
+        MenuListProps={{
+          onMouseEnter: cancelClose,
+          onMouseLeave: handleCloseAllMenus,
+        }}
         TransitionComponent={Zoom}
-        transitionDuration={300}
+        transitionDuration={150}
+        disableAutoFocusItem
+        disableAutoFocus
+        disableEnforceFocus
         slotProps={{
           paper: {
             'data-menu': 'learning',
@@ -1048,8 +1094,15 @@ export const Header: React.FC<HeaderProps> = () => {
         anchorEl={collaborationMenuAnchor}
         open={Boolean(collaborationMenuAnchor)}
         onClose={() => setCollaborationMenuAnchor(null)}
+        MenuListProps={{
+          onMouseEnter: cancelClose,
+          onMouseLeave: handleCloseAllMenus,
+        }}
         TransitionComponent={Zoom}
-        transitionDuration={300}
+        transitionDuration={150}
+        disableAutoFocusItem
+        disableAutoFocus
+        disableEnforceFocus
         slotProps={{
           paper: {
             'data-menu': 'collaboration',
@@ -1154,8 +1207,15 @@ export const Header: React.FC<HeaderProps> = () => {
         anchorEl={toolsMenuAnchor}
         open={Boolean(toolsMenuAnchor)}
         onClose={() => setToolsMenuAnchor(null)}
+        MenuListProps={{
+          onMouseEnter: cancelClose,
+          onMouseLeave: handleCloseAllMenus,
+        }}
         TransitionComponent={Zoom}
-        transitionDuration={300}
+        transitionDuration={150}
+        disableAutoFocusItem
+        disableAutoFocus
+        disableEnforceFocus
         slotProps={{
           paper: {
             'data-menu': 'tools',
@@ -1261,8 +1321,15 @@ export const Header: React.FC<HeaderProps> = () => {
           anchorEl={instructorMenuAnchor}
           open={Boolean(instructorMenuAnchor)}
           onClose={() => setInstructorMenuAnchor(null)}
+          MenuListProps={{
+            onMouseEnter: cancelClose,
+            onMouseLeave: handleCloseAllMenus,
+          }}
           TransitionComponent={Zoom}
-          transitionDuration={300}
+          transitionDuration={150}
+          disableAutoFocusItem
+          disableAutoFocus
+          disableEnforceFocus
           slotProps={{
             paper: {
               'data-menu': 'instructor',

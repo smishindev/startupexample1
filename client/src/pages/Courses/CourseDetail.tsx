@@ -50,7 +50,7 @@ import {
   PersonAdd,
   CheckCircleOutline,
 } from '@mui/icons-material';
-import { Header } from '../../components/Navigation/Header';
+import { HeaderV4 as Header } from '../../components/Navigation/HeaderV4';
 import { coursesApi, CourseDetail as CourseDetailType, EnrollmentStatus } from '../../services/coursesApi';
 import { enrollmentApi } from '../../services/enrollmentApi';
 import { useAuthStore } from '../../stores/authStore';

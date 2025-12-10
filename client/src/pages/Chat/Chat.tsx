@@ -35,7 +35,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { chatApi, ChatRoom, ChatMessage, CreateRoomRequest } from '../../services/chatApi';
 import { socketService, SocketMessage, TypingUser } from '../../services/socketService';
 import { useAuthStore } from '../../stores/authStore';
-import { Header } from '../../components/Navigation/Header';
+import { HeaderV4 as Header } from '../../components/Navigation/HeaderV4';
 
 const Chat: React.FC = () => {
   const [rooms, setRooms] = useState<ChatRoom[]>([]);

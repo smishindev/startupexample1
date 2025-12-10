@@ -33,7 +33,7 @@ import {
   School as SchoolIcon,
   Quiz as QuizIcon
 } from '@mui/icons-material';
-import { Header } from '../../components/Navigation/Header';
+import { HeaderV4 as Header } from '../../components/Navigation/HeaderV4';
 import { lessonApi, Lesson } from '../../services/lessonApi';
 import { assessmentApi, Assessment } from '../../services/assessmentApi';
 import { coursesApi } from '../../services/coursesApi';

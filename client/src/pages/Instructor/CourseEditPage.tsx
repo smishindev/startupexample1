@@ -20,7 +20,7 @@ import {
 } from '@mui/icons-material';
 import { instructorApi, InstructorCourse } from '../../services/instructorApi';
 import { CurriculumBuilder } from './CurriculumBuilder';
-import { Header } from '../../components/Navigation/Header';
+import { HeaderV4 as Header } from '../../components/Navigation/HeaderV4';
 
 interface TabPanelProps {
   children?: React.ReactNode;

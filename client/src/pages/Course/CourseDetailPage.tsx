@@ -51,7 +51,7 @@ import {
   CheckCircleOutline,
   ArrowBack,
 } from '@mui/icons-material';
-import { Header } from '../../components/Navigation/Header';
+import { HeaderV4 as Header } from '../../components/Navigation/HeaderV4';
 import { enrollmentApi } from '../../services/enrollmentApi';
 import { formatCurrency, roundToDecimals } from '../../utils/formatUtils';
 import { coursesApi } from '../../services/coursesApi';

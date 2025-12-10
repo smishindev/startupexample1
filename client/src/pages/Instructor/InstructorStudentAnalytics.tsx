@@ -40,7 +40,7 @@ import {
   Message as InterventionIcon,
   Refresh as RefreshIcon
 } from '@mui/icons-material';
-import { Header } from '../../components/Navigation/Header';
+import { HeaderV4 as Header } from '../../components/Navigation/HeaderV4';
 import { instructorApi } from '../../services/instructorApi';
 
 interface StudentRiskData {

@@ -40,7 +40,7 @@ import {
   Pie,
   Cell
 } from 'recharts';
-import { Header } from '../../components/Navigation/Header';
+import { HeaderV4 as Header } from '../../components/Navigation/HeaderV4';
 import { PageHeader } from '../../components/Navigation/PageHeader';
 import { analyticsApi, type CourseAnalytics, type DashboardAnalytics } from '../../services/analyticsApi';
 import { instructorApi, type InstructorCourse } from '../../services/instructorApi';
@@ -149,8 +149,8 @@ export const CourseAnalyticsDashboard: React.FC = () => {
               sx={{ minWidth: 200 }}
             >
               <MenuItem value="dashboard">All Courses Overview</MenuItem>
-              {courses.map((course) => (
-                <MenuItem key={course.CourseId} value={course.CourseId.toString()}>
+              {courses.map((course, index) => (
+                <MenuItem key={course.CourseId || `course-${index}`} value={course.CourseId?.toString() || course.CourseId}>
                   {course.Title}
                 </MenuItem>
               ))}
@@ -309,7 +309,7 @@ const DashboardView: React.FC<{ data: DashboardAnalytics }> = ({ data }) => {
             {topCourses && topCourses.length > 0 ? (
               <List dense>
                 {topCourses.map((course, index) => (
-                  <ListItem key={index}>
+                  <ListItem key={course.CourseId || `course-${index}`}>
                     <ListItemAvatar>
                       <Avatar sx={{ bgcolor: 'primary.main' }}>
                         {index + 1}
@@ -347,7 +347,7 @@ const DashboardView: React.FC<{ data: DashboardAnalytics }> = ({ data }) => {
               <Box overflow="auto">
                 <Grid container spacing={2}>
                   {coursePerformance.map((course) => (
-                    <Grid item xs={12} sm={6} md={4} key={course.Id}>
+                    <Grid item xs={12} sm={6} md={4} key={course.Id || course.CourseId}>
                       <Paper sx={{ p: 2 }}>
                         <Typography variant="subtitle1" fontWeight="medium" noWrap>
                           {course.Title}
@@ -568,7 +568,7 @@ const CourseView: React.FC<{
             </Typography>
             <List>
               {recentActivity.map((activity, index) => (
-                <ListItem key={index} divider={index < recentActivity.length - 1}>
+                <ListItem key={activity.UserId || `activity-${index}`} divider={index < recentActivity.length - 1}>
                   <ListItemAvatar>
                     <Avatar>
                       {activity.FirstName[0]}{activity.LastName[0]}

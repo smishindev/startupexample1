@@ -22,7 +22,7 @@ import {
   Star,
   MoreVert,
 } from '@mui/icons-material';
-import { Header } from '../Navigation/Header';
+import { HeaderV4 as Header } from '../Navigation/HeaderV4';
 import { useAuthStore } from '../../stores/authStore';
 import { enrollmentApi } from '../../services/enrollmentApi';
 import { dashboardApi } from '../../services/dashboardApi';

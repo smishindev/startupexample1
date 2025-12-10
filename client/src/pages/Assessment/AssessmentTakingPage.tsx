@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Box, Typography, Card, CardContent, Container, Button, Alert } from '@mui/material';
-import { Header } from '../../components/Navigation/Header';
+import { HeaderV4 as Header } from '../../components/Navigation/HeaderV4';
 import QuizTaker from '../../components/Assessment/QuizTaker';
 import { assessmentApi, AssessmentSubmission } from '../../services/assessmentApi';
 

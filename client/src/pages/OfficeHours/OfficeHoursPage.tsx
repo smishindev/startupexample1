@@ -19,7 +19,7 @@ import {
   Person as StudentIcon
 } from '@mui/icons-material';
 import { useAuthStore } from '../../stores/authStore';
-import { Header } from '../../components/Navigation/Header';
+import { HeaderV4 as Header } from '../../components/Navigation/HeaderV4';
 import ScheduleManagement from '../../components/OfficeHours/ScheduleManagement';
 import QueueDisplay from '../../components/OfficeHours/QueueDisplay';
 import StudentQueueJoin from '../../components/OfficeHours/StudentQueueJoin';

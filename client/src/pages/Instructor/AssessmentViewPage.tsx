@@ -1,7 +1,7 @@
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import { Box, Typography, Container } from '@mui/material';
-import { Header } from '../../components/Navigation/Header';
+import { HeaderV4 as Header } from '../../components/Navigation/HeaderV4';
 import AssessmentAnalytics from '../../components/Assessment/AssessmentAnalytics';
 
 export const AssessmentViewPage: React.FC = () => {

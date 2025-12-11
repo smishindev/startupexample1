@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Box,
   Container,
@@ -31,13 +31,14 @@ import {
   Visibility,
   VisibilityOff,
   Save as SaveIcon,
-  History as HistoryIcon
+  History as HistoryIcon,
+  PhotoCamera as PhotoCameraIcon
 } from '@mui/icons-material';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import profileApi, { UserProfile, UpdatePersonalInfoData, UpdateBillingAddressData, ChangePasswordData } from '../../services/profileApi';
 import { useAuthStore } from '../../stores/authStore';
-import { Header } from '../../components/Navigation/Header';
+import { HeaderV4 } from '../../components/Navigation/HeaderV4';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -64,9 +65,11 @@ function TabPanel(props: TabPanelProps) {
 const ProfilePage: React.FC = () => {
   const navigate = useNavigate();
   const { updateUser } = useAuthStore();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [tabValue, setTabValue] = useState(0);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -172,6 +175,48 @@ const ProfilePage: React.FC = () => {
     }
   };
 
+  // Avatar Upload Handlers
+  const handleAvatarClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      toast.error('Invalid file type. Please upload a JPEG, PNG, GIF, or WebP image.');
+      return;
+    }
+
+    // Validate file size (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('File too large. Maximum size is 5MB.');
+      return;
+    }
+
+    try {
+      setUploading(true);
+      const result = await profileApi.uploadAvatar(file);
+      
+      // Update profile state and auth store
+      setProfile(prev => prev ? { ...prev, avatar: result.avatar } : null);
+      updateUser({ avatar: result.avatar });
+      
+      toast.success('Avatar uploaded successfully');
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Failed to upload avatar');
+    } finally {
+      setUploading(false);
+      // Reset file input
+      if (event.target) {
+        event.target.value = '';
+      }
+    }
+  };
+
   // Password Change Handlers
   const handleChangePassword = async () => {
     if (passwordData.newPassword !== confirmPassword) {
@@ -200,7 +245,7 @@ const ProfilePage: React.FC = () => {
   if (loading) {
     return (
       <>
-        <Header />
+        <HeaderV4 />
         <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
           <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
             <CircularProgress />
@@ -213,7 +258,7 @@ const ProfilePage: React.FC = () => {
   if (error || !profile) {
     return (
       <>
-        <Header />
+        <HeaderV4 />
         <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
           <Alert severity="error">{error || 'Profile not found'}</Alert>
         </Container>
@@ -223,20 +268,48 @@ const ProfilePage: React.FC = () => {
 
   return (
     <>
-      <Header />
+      <HeaderV4 />
       <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
         <Paper elevation={3} sx={{ overflow: 'hidden' }}>
           {/* Header Section */}
           <Box sx={{ p: 3, bgcolor: 'primary.main', color: 'white' }}>
             <Grid container spacing={2} alignItems="center">
               <Grid item>
-                <Avatar
-                  src={profile.avatar || undefined}
-                  alt={`${profile.firstName} ${profile.lastName}`}
-                  sx={{ width: 80, height: 80, bgcolor: 'primary.dark' }}
-                >
-                  {profile.firstName[0]}{profile.lastName[0]}
-                </Avatar>
+                <Box sx={{ position: 'relative', display: 'inline-block' }}>
+                  <Avatar
+                    src={profile.avatar || undefined}
+                    alt={`${profile.firstName} ${profile.lastName}`}
+                    sx={{ width: 80, height: 80, bgcolor: 'primary.dark' }}
+                  >
+                    {profile.firstName[0]}{profile.lastName[0]}
+                  </Avatar>
+                  <IconButton
+                    onClick={handleAvatarClick}
+                    disabled={uploading}
+                    sx={{
+                      position: 'absolute',
+                      bottom: -4,
+                      right: -4,
+                      bgcolor: 'white',
+                      '&:hover': { bgcolor: 'grey.200' },
+                      boxShadow: 2
+                    }}
+                    size="small"
+                  >
+                    {uploading ? (
+                      <CircularProgress size={20} />
+                    ) : (
+                      <PhotoCameraIcon fontSize="small" color="primary" />
+                    )}
+                  </IconButton>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/gif,image/webp"
+                    onChange={handleAvatarUpload}
+                    style={{ display: 'none' }}
+                  />
+                </Box>
               </Grid>
               <Grid item xs>
                 <Typography variant="h4" fontWeight="bold">

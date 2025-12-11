@@ -100,6 +100,19 @@ const profileApi = {
     return response.data.data;
   },
 
+  // Upload avatar image
+  uploadAvatar: async (file: File): Promise<{ avatar: string; filename: string }> => {
+    const formData = new FormData();
+    formData.append('avatar', file);
+    
+    const response = await api.post('/profile/avatar/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data.data;
+  },
+
   // Update preferences
   updatePreferences: async (preferences: Record<string, any>): Promise<void> => {
     const response = await api.put('/profile/preferences', { preferences });

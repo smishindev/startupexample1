@@ -3,9 +3,45 @@ import { authenticateToken, AuthRequest } from '../middleware/auth';
 import { DatabaseService } from '../services/DatabaseService';
 import { logger } from '../utils/logger';
 import bcrypt from 'bcryptjs';
+import multer from 'multer';
+import sharp from 'sharp';
+import path from 'path';
+import fs from 'fs/promises';
+import { v4 as uuidv4 } from 'uuid';
 
 const router = Router();
 const db = DatabaseService.getInstance();
+
+// Configure multer for avatar uploads
+const UPLOAD_DIR = path.join(__dirname, '../../../uploads/images');
+const storage = multer.diskStorage({
+  destination: async (req, file, cb) => {
+    try {
+      await fs.access(UPLOAD_DIR);
+    } catch {
+      await fs.mkdir(UPLOAD_DIR, { recursive: true });
+    }
+    cb(null, UPLOAD_DIR);
+  },
+  filename: (req, file, cb) => {
+    const uniqueId = uuidv4();
+    const ext = path.extname(file.originalname);
+    cb(null, `avatar_${uniqueId}${ext}`);
+  }
+});
+
+const upload = multer({
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  fileFilter: (req, file, cb) => {
+    const allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (allowedMimes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Invalid file type. Only JPEG, PNG, GIF, and WebP are allowed.'));
+    }
+  }
+});
 
 // GET /api/profile - Get current user's complete profile
 router.get('/', authenticateToken, async (req: AuthRequest, res) => {
@@ -246,6 +282,73 @@ router.put('/avatar', authenticateToken, async (req: AuthRequest, res) => {
     res.status(500).json({ 
       success: false, 
       message: 'Failed to update avatar' 
+    });
+  }
+});
+
+// POST /api/profile/avatar/upload - Upload avatar image
+router.post('/avatar/upload', authenticateToken, upload.single('avatar'), async (req: AuthRequest, res) => {
+  try {
+    const userId = req.user!.userId;
+    const file = req.file;
+
+    if (!file) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'No file uploaded' 
+      });
+    }
+
+    // Process image with sharp - create optimized version
+    const filename = `avatar_${userId}_${uuidv4()}.webp`;
+    const outputPath = path.join(UPLOAD_DIR, filename);
+
+    await sharp(file.path)
+      .resize(200, 200, { 
+        fit: 'cover',
+        position: 'center'
+      })
+      .webp({ quality: 85 })
+      .toFile(outputPath);
+
+    // Delete original uploaded file
+    await fs.unlink(file.path);
+
+    // Generate URL - use full server URL for cross-origin access
+    const serverUrl = process.env.SERVER_URL || 'http://localhost:3001';
+    const avatarUrl = `${serverUrl}/uploads/images/${filename}`;
+
+    // Update user's avatar in database
+    await db.execute(`
+      UPDATE dbo.Users
+      SET Avatar = @avatar,
+          UpdatedAt = GETUTCDATE()
+      WHERE Id = @userId
+    `, { avatar: avatarUrl, userId });
+
+    res.json({ 
+      success: true, 
+      message: 'Avatar uploaded successfully',
+      data: { 
+        avatar: avatarUrl,
+        filename 
+      }
+    });
+  } catch (error) {
+    logger.error('Upload avatar error:', error);
+    
+    // Clean up file if upload failed
+    if (req.file) {
+      try {
+        await fs.unlink(req.file.path);
+      } catch (unlinkError) {
+        logger.error('Failed to clean up file:', unlinkError);
+      }
+    }
+
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to upload avatar' 
     });
   }
 });

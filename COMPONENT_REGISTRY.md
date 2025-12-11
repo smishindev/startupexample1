@@ -18,6 +18,87 @@
 
 ## 🎯 PAGES (Entry Point Components)
 
+### ProfilePage
+**Path**: `client/src/pages/Profile/ProfilePage.tsx`  
+**Route**: `/profile`  
+**Purpose**: User profile management with 5 tabs (Personal Info, Password, Billing, Preferences, Account Info)
+
+**Services Used**:
+- `profileApi.getProfile()` - Fetch user profile data
+- `profileApi.updatePersonalInfo()` - Update name, username, learning style
+- `profileApi.updateBillingAddress()` - Update billing address
+- `profileApi.updatePassword()` - Change password with verification
+- `profileApi.updateAvatar()` - Update avatar URL
+- `profileApi.uploadAvatar(file)` - Upload avatar image with multer/sharp processing
+- `notificationPreferencesApi.getPreferences()` - Fetch notification settings
+- `notificationPreferencesApi.updatePreferences()` - Save notification settings
+
+**State Management**:
+- `useAuthStore()` - User authentication and profile updates
+- Local state:
+  - `tabValue: number` - Active tab (0-4)
+  - `personalInfo` - Name, username, learning style
+  - `billingAddress` - 5 address fields
+  - `passwords` - Current, new, confirm passwords
+  - `notificationPreferences` - 13 preference fields
+  - `avatarFile: File | null` - Avatar upload file
+  - `avatarPreview: string | null` - Preview URL
+  - `loading/saving: boolean` - Loading states
+
+**Components Used**:
+- `<HeaderV4 />` - Navigation with back button
+- `<Avatar />` - User avatar with upload overlay
+- `<TextField />` - Form inputs
+- `<Switch />` - Toggle switches for preferences
+- `<Select />` - Dropdown for email digest frequency
+- `<TimePicker />` - Quiet hours time selection
+- MUI Tabs, Box, Paper, Button, etc.
+
+**Related Components**:
+- Header - Profile menu navigates here
+- SettingsPage - Placeholder for future settings
+
+**Used By**:
+- App.tsx route (`/profile`)
+- Header profile menu
+
+**Key Features**:
+```typescript
+// 5 Tabs
+0: Personal Info - Name, username, learning style, avatar upload
+1: Password - Change password with current verification
+2: Billing Address - Street, city, state, postal, country
+3: Preferences - Notification settings (5 toggles, email digest, quiet hours)
+4: Account Info - Read-only account details, role badge, dates
+
+// Avatar Upload
+- Camera button overlay on avatar
+- File validation: JPEG/PNG/GIF/WebP, max 5MB
+- Sharp processing: resize 200x200, WebP, quality 85
+- Preview before upload
+- Full server URL: http://localhost:3001/uploads/images/avatar_123_abc.webp
+
+// Notification Preferences (STORAGE ONLY - NOT ENFORCED YET)
+- 5 in-app notification toggles
+- Email notifications toggle
+- Email digest frequency (none/realtime/daily/weekly)
+- Quiet hours (start/end time in HH:mm format)
+- Case conversion: camelCase ↔ PascalCase
+- Time format: ISO timestamp ↔ HH:mm
+- Local timezone preservation
+```
+
+**Common Issues**:
+- **Avatar not updating**: Check multer config and sharp processing in backend
+- **Controlled input warning**: Ensure all Switch `checked` props have || false fallback
+- **Time showing wrong**: Verify using getHours() not getUTCHours()
+- **Preferences not saving**: Check case conversion in notificationPreferencesApi
+- **Notification preferences don't work**: Known limitation - preferences are stored but not enforced in NotificationService.createNotification() (see TODO in PROJECT_STATUS.md)
+
+**Last Modified**: December 11, 2025 - Complete profile system with notification preferences UI
+
+---
+
 ### CourseDetailPage
 **Path**: `client/src/pages/Course/CourseDetailPage.tsx`  
 **Route**: `/courses/:courseId` and `/courses/:courseId/preview`  

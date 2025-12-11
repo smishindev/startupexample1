@@ -23,6 +23,39 @@ State: Zustand (auth), React state (components)
 
 ---
 
+## 🔌 API ENDPOINTS
+
+### Profile Management (added Dec 11, 2025)
+```
+GET    /api/profile                    - Get user profile
+PUT    /api/profile/personal-info      - Update name, username, learning style
+PUT    /api/profile/billing-address    - Update billing address
+PUT    /api/profile/password           - Change password (requires current)
+PUT    /api/profile/avatar             - Update avatar URL
+POST   /api/profile/avatar/upload      - Upload avatar (multer + sharp)
+PUT    /api/profile/preferences        - Update notification preferences
+
+GET    /api/notifications/preferences  - Get notification preferences
+PATCH  /api/notifications/preferences  - Update notification preferences
+```
+
+**Avatar Upload Details:**
+- Accepts: multipart/form-data with 'avatar' field
+- File types: JPEG, PNG, GIF, WebP
+- Max size: 5MB
+- Processing: resize 200x200, convert WebP, quality 85
+- Storage: uploads/images/avatar_${userId}_${uuid}.webp
+- Returns: { avatarUrl: 'http://localhost:3001/uploads/images/...' }
+
+**Notification Preferences Details:**
+- 13 fields: EnableProgressNotifications, EnableRiskAlerts, EnableAchievements, EnableCourseUpdates, EnableAssignmentReminders, EnableEmailNotifications, EmailDigestFrequency, QuietHoursStart, QuietHoursEnd, etc.
+- Case conversion: Frontend camelCase ↔ Backend PascalCase
+- Time format: SQL Server TIME type, HTML5 HH:mm input
+- UPSERT logic: Creates default record if doesn't exist
+- ⚠️ Currently storage only - NOT enforced in notification sending (see TODO)
+
+---
+
 ## 📊 DATA FLOW ARCHITECTURE
 
 ### 1. **Authentication Flow**
@@ -40,6 +73,73 @@ All API services → Inject token in headers
 Backend authenticateToken middleware → Verify JWT
   ↓
 Protected routes execute
+```
+
+**User Profile Update Flow** (added Dec 11, 2025):
+```
+User → ProfilePage (5 tabs)
+  ↓ (edit personal info)
+profileApi.updatePersonalInfo(data)
+  ↓ (PUT /api/profile/personal-info)
+Backend profile.ts → authenticateToken → Update Users table
+  ↓ (updated user data)
+authStore.updateUser(userData)
+  ↓
+localStorage['auth-storage'] updated
+  ↓
+Header avatar/name auto-updates
+```
+
+**Avatar Upload Flow** (added Dec 11, 2025):
+```
+User selects image → ProfilePage
+  ↓ (FormData with file)
+profileApi.uploadAvatar(file)
+  ↓ (POST /api/profile/avatar/upload, multipart/form-data)
+Backend multer middleware → Save to uploads/images/
+  ↓
+sharp processing:
+  ├─ Resize to 200x200
+  ├─ Convert to WebP
+  └─ Quality 85
+  ↓ (filename: avatar_123_uuid.webp)
+Update Users.AvatarUrl with full server URL
+  ↓ (http://localhost:3001/uploads/images/...)
+authStore.updateUser({ AvatarUrl })
+  ↓
+Header avatar auto-updates
+```
+
+**Notification Preferences Flow** (added Dec 11, 2025):
+```
+User → ProfilePage → Preferences tab
+  ↓
+Load: notificationPreferencesApi.getPreferences()
+  ↓ (GET /api/notifications/preferences)
+Backend NotificationService.getUserPreferences()
+  ↓ (PascalCase fields from NotificationPreferences table)
+Frontend: Convert PascalCase → camelCase
+  ├─ EnableProgressNotifications → enableProgressNotifications
+  ├─ QuietHoursStart → quietHoursStart (ISO → HH:mm)
+  └─ QuietHoursEnd → quietHoursEnd (ISO → HH:mm)
+  ↓
+Render form with 5 toggles + email dropdown + 2 time pickers
+  ↓ (user edits)
+notificationPreferencesApi.updatePreferences(data)
+  ↓ (PATCH /api/notifications/preferences)
+Frontend: Convert camelCase → PascalCase
+  ├─ quietHoursStart (HH:mm → Date object)
+  └─ quietHoursEnd (HH:mm → Date object)
+  ↓
+Backend NotificationService.updatePreferences()
+  ├─ Check if record exists
+  ├─ Create default if not (UPSERT)
+  └─ Update NotificationPreferences table
+  ↓
+Toast: "Preferences saved successfully"
+
+⚠️ NOTE: Preferences are STORED but NOT ENFORCED
+└─→ TODO: Modify NotificationService.createNotification() to check preferences
 ```
 
 **Key Files**:

@@ -20,6 +20,14 @@ Password: Aa123456
 Role: Student
 ```
 
+**Profile Testing:**
+- Login with either account
+- Navigate to `/profile` or click profile icon in header
+- Test all 5 tabs: Personal Info, Password, Billing Address, Preferences, Account Info
+- Upload avatar (JPEG/PNG/GIF/WebP, max 5MB)
+- Configure notification preferences (toggles, email digest, quiet hours)
+- Note: Notification preferences are stored but not yet enforced in notification system
+
 **Use these accounts for:**
 - Testing role-based features
 - Office Hours (instructor creates schedule, student joins queue)
@@ -48,6 +56,7 @@ Role: Student
 │  Troubleshoot common issues           │  COMPONENT_REGISTRY  │
 │  Understand data flows                │  ARCHITECTURE.md     │
 │  Find API endpoints                   │  ARCHITECTURE.md     │
+│  Implement notification preferences   │  NOTIFICATION_PREFS  │
 └─────────────────────────────────────────────────────────────┘
 ```
 

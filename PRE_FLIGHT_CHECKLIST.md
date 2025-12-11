@@ -27,6 +27,11 @@
 - [ ] Checked `ARCHITECTURE.md` for data flow understanding
 - [ ] Identified all pages that use this component
 
+**Recent Additions to Check:**
+- [ ] ProfilePage (`/profile`) - 5-tab user profile system (Dec 11, 2025)
+- [ ] Notification preferences - Storage implemented, enforcement pending (see TODO)
+- [ ] Avatar upload system - multer + sharp processing
+
 **Commands to run**:
 ```bash
 # Find all usages of a component

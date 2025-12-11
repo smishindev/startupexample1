@@ -500,6 +500,13 @@ CREATE TABLE dbo.Notifications (
 );
 
 -- NotificationPreferences Table - User preferences for notification delivery
+-- IMPLEMENTATION STATUS (Dec 11, 2025):
+--   ✅ Database table created and functional
+--   ✅ UI fully implemented (/profile → Preferences tab)
+--   ✅ API endpoints working (GET/PATCH /api/notifications/preferences)
+--   ⚠️  Preferences are STORED but NOT ENFORCED in notification sending
+--   📝 TODO: Connect preferences to NotificationService.createNotification()
+--        See: NOTIFICATION_PREFERENCES_TODO.md for implementation plan
 CREATE TABLE dbo.NotificationPreferences (
     Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
     UserId UNIQUEIDENTIFIER NOT NULL UNIQUE FOREIGN KEY REFERENCES dbo.Users(Id) ON DELETE CASCADE,

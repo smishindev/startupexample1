@@ -210,6 +210,16 @@ router.post('/courses/:courseId/enroll', authenticateToken, async (req: AuthRequ
       });
     }
 
+    // Prevent enrollment in paid courses without payment
+    if (course[0].Price > 0) {
+      return res.status(402).json({ 
+        error: 'This course requires payment. Please complete the checkout process.',
+        code: 'PAYMENT_REQUIRED',
+        price: course[0].Price,
+        checkoutUrl: `/checkout/${courseId}`
+      });
+    }
+
     const enrollmentId = uuidv4();
     const now = new Date().toISOString();
 

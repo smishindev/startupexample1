@@ -168,6 +168,76 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req: R
 });
 
 /**
+ * POST /api/payments/confirm-enrollment
+ * Confirm enrollment after successful payment (for test mode when webhook isn't triggered)
+ * SECURITY: Only creates enrollment if a valid completed payment exists
+ */
+router.post('/confirm-enrollment', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const userId = (req as AuthRequest).user?.userId;
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'User not authenticated' });
+    }
+
+    const { courseId, paymentIntentId } = req.body;
+
+    if (!courseId) {
+      return res.status(400).json({ success: false, message: 'courseId is required' });
+    }
+
+    // SECURITY CHECK: Verify a COMPLETED payment transaction exists for this user and course
+    const transactions = await db.query(
+      `SELECT Id, Status, StripePaymentIntentId FROM dbo.Transactions 
+       WHERE CourseId = @courseId 
+       AND UserId = @userId 
+       AND Status = 'completed'
+       ${paymentIntentId ? 'AND StripePaymentIntentId = @paymentIntentId' : ''}
+       ORDER BY CreatedAt DESC`,
+      { courseId, userId, paymentIntentId }
+    );
+
+    if (!transactions.length) {
+      console.warn(`⚠️ Enrollment attempt without valid payment: User ${userId}, Course ${courseId}`);
+      return res.status(403).json({ 
+        success: false, 
+        message: 'No valid payment found for this course. Please complete payment first.' 
+      });
+    }
+
+    // Verify the transaction status is 'completed'
+    if (transactions[0].Status !== 'completed') {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'Payment is not completed yet.' 
+      });
+    }
+
+    // Create enrollment if it doesn't exist
+    await db.query(
+      `IF NOT EXISTS (SELECT 1 FROM dbo.Enrollments WHERE UserId = @userId AND CourseId = @courseId)
+       BEGIN
+         INSERT INTO dbo.Enrollments (Id, UserId, CourseId, EnrolledAt, Status)
+         VALUES (NEWID(), @userId, @courseId, GETUTCDATE(), 'active')
+       END`,
+      { userId, courseId }
+    );
+
+    console.log(`✅ Enrollment confirmed for user ${userId} in course ${courseId} (Transaction: ${transactions[0].Id})`);
+
+    res.json({
+      success: true,
+      message: 'Enrollment confirmed',
+    });
+  } catch (error) {
+    console.error('❌ Error confirming enrollment:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: error instanceof Error ? error.message : 'Failed to confirm enrollment' 
+    });
+  }
+});
+
+/**
  * GET /api/payments/transactions
  * Get user's transaction history
  */

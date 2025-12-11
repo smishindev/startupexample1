@@ -25,6 +25,7 @@ import { coursesApi } from '../../services/coursesApi';
 import { createPaymentIntent } from '../../services/paymentApi';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import LockIcon from '@mui/icons-material/Lock';
+import { HeaderV4 } from '../../components/Navigation/HeaderV4';
 
 const stripePromise = loadStripe((import.meta as any).env?.VITE_STRIPE_PUBLISHABLE_KEY || '');
 
@@ -196,10 +197,12 @@ const CourseCheckoutPage: React.FC = () => {
   };
 
   return (
-    <Container maxWidth="lg" sx={{ py: 6 }}>
-      <Typography variant="h4" gutterBottom sx={{ mb: 4 }}>
-        Complete Your Purchase
-      </Typography>
+    <>
+      <HeaderV4 />
+      <Container maxWidth="lg" sx={{ py: 6 }}>
+        <Typography variant="h4" gutterBottom sx={{ mb: 4 }}>
+          Complete Your Purchase
+        </Typography>
 
       <Grid container spacing={4}>
         {/* Order Summary */}
@@ -292,6 +295,7 @@ const CourseCheckoutPage: React.FC = () => {
         </Grid>
       </Grid>
     </Container>
+    </>
   );
 };
 

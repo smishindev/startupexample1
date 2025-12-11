@@ -108,8 +108,8 @@ export class StripeService {
       const db = DatabaseService.getInstance();
 
       // Check if user already has a Stripe customer ID
-      const result = await db.query<{ StripeCustomerId?: string; Email: string; FullName: string }>(
-        `SELECT StripeCustomerId, Email, FullName FROM dbo.Users WHERE Id = @userId`,
+      const result = await db.query<{ StripeCustomerId?: string; Email: string; FirstName: string; LastName: string }>(
+        `SELECT StripeCustomerId, Email, FirstName, LastName FROM dbo.Users WHERE Id = @userId`,
         { userId }
       );
 
@@ -118,6 +118,7 @@ export class StripeService {
       }
 
       const user = result[0];
+      const fullName = `${user.FirstName} ${user.LastName}`.trim();
 
       // If customer exists, retrieve it
       if (user.StripeCustomerId) {
@@ -134,7 +135,7 @@ export class StripeService {
       // Create new customer
       const customer = await this.stripe.customers.create({
         email: user.Email,
-        name: user.FullName,
+        name: fullName,
         metadata: {
           userId,
         },

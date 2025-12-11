@@ -50,6 +50,7 @@ import {
   Share,
   CheckCircleOutline,
   ArrowBack,
+  ShoppingCart,
 } from '@mui/icons-material';
 import { HeaderV4 as Header } from '../../components/Navigation/HeaderV4';
 import { enrollmentApi } from '../../services/enrollmentApi';
@@ -134,6 +135,31 @@ export const CourseDetailPage: React.FC = () => {
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
 
   // Fetch real course data from API
+  // Refresh enrollment status when returning from payment
+  useEffect(() => {
+    const refreshEnrollment = async () => {
+      if (!courseId || !user) return;
+      
+      try {
+        const enrollmentStatusData = await enrollmentApi.getEnrollmentStatus(courseId);
+        if (enrollmentStatusData?.enrolled) {
+          // Force refresh the page data
+          setEnrollmentStatus({ 
+            isEnrolled: true, 
+            isInstructor: false,
+            status: enrollmentStatusData.status, 
+            enrolledAt: enrollmentStatusData.enrolledAt 
+          });
+          setCourse(prev => prev ? { ...prev, isEnrolled: true } : null);
+        }
+      } catch (error) {
+        console.error('Error refreshing enrollment:', error);
+      }
+    };
+    
+    refreshEnrollment();
+  }, [courseId, user]); // Run when courseId or user changes
+
   useEffect(() => {
     const fetchCourse = async () => {
       if (!courseId) return;
@@ -276,6 +302,18 @@ export const CourseDetailPage: React.FC = () => {
     } finally {
       setIsEnrolling(false);
     }
+  };
+
+  const handlePurchase = () => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+    
+    if (!courseId) return;
+    
+    // Navigate to checkout page
+    navigate(`/checkout/${courseId}`);
   };
 
   const handleStartLearning = () => {
@@ -917,6 +955,28 @@ export const CourseDetailPage: React.FC = () => {
                   >
                     Continue Learning
                   </Button>
+                ) : course.price > 0 ? (
+                  <Button
+                    fullWidth
+                    variant="contained"
+                    size="large"
+                    onClick={handlePurchase}
+                    startIcon={<ShoppingCart />}
+                    sx={{ 
+                      mb: 2,
+                      py: 2,
+                      fontSize: '1.1rem',
+                      fontWeight: 700,
+                      borderRadius: 2,
+                      textTransform: 'none',
+                      background: 'linear-gradient(90deg, #667eea 0%, #764ba2 100%)',
+                      '&:hover': {
+                        background: 'linear-gradient(90deg, #5568d3 0%, #65408b 100%)',
+                      }
+                    }}
+                  >
+                    Purchase Course - {formatCurrency(course.price)}
+                  </Button>
                 ) : (
                   <Button
                     fullWidth
@@ -931,16 +991,16 @@ export const CourseDetailPage: React.FC = () => {
                       fontWeight: 700,
                       borderRadius: 2,
                       textTransform: 'none',
-                      background: 'linear-gradient(90deg, #667eea 0%, #764ba2 100%)',
+                      background: 'linear-gradient(90deg, #10b981 0%, #059669 100%)',
                       '&:hover': {
-                        background: 'linear-gradient(90deg, #5568d3 0%, #65408b 100%)',
+                        background: 'linear-gradient(90deg, #059669 0%, #047857 100%)',
                       },
                       '&.Mui-disabled': {
                         background: 'rgba(0,0,0,0.12)'
                       }
                     }}
                   >
-                    {isEnrolling ? <CircularProgress size={24} sx={{ color: 'white' }} /> : 'Enroll Now'}
+                    {isEnrolling ? <CircularProgress size={24} sx={{ color: 'white' }} /> : 'Enroll For Free'}
                   </Button>
                 )}
 

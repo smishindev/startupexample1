@@ -598,6 +598,34 @@ CREATE NONCLUSTERED INDEX IX_VideoAnalytics_UserId ON dbo.VideoAnalytics(UserId)
 CREATE NONCLUSTERED INDEX IX_VideoAnalytics_SessionId ON dbo.VideoAnalytics(SessionId);
 
 -- ========================================
+-- USER SETTINGS TABLE
+-- ========================================
+
+-- UserSettings Table
+CREATE TABLE dbo.UserSettings (
+    Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    UserId UNIQUEIDENTIFIER NOT NULL UNIQUE FOREIGN KEY REFERENCES dbo.Users(Id) ON DELETE CASCADE,
+    
+    -- Privacy Settings
+    ProfileVisibility NVARCHAR(20) NOT NULL DEFAULT 'public' CHECK (ProfileVisibility IN ('public', 'students', 'private')),
+    ShowEmail BIT NOT NULL DEFAULT 0,
+    ShowProgress BIT NOT NULL DEFAULT 1,
+    AllowMessages BIT NOT NULL DEFAULT 1,
+    
+    -- Appearance Settings
+    Theme NVARCHAR(20) NOT NULL DEFAULT 'light' CHECK (Theme IN ('light', 'dark', 'auto')),
+    Language NVARCHAR(10) NOT NULL DEFAULT 'en' CHECK (Language IN ('en', 'es', 'fr', 'de', 'zh')),
+    FontSize NVARCHAR(10) NOT NULL DEFAULT 'medium' CHECK (FontSize IN ('small', 'medium', 'large')),
+    
+    -- Timestamps
+    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    UpdatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE()
+);
+
+-- UserSettings Indexes
+CREATE NONCLUSTERED INDEX IX_UserSettings_UserId ON dbo.UserSettings(UserId);
+
+-- ========================================
 -- PAYMENT SYSTEM TABLES
 -- ========================================
 
@@ -691,5 +719,6 @@ PRINT '🧠 AI Progress Integration: CourseProgress, LearningActivities, Student
 PRINT '📚 User Features: Bookmarks, FileUploads';
 PRINT '🔔 Real-time Notifications: Notifications, NotificationPreferences';
 PRINT '🎥 Video Lesson System: VideoLessons, VideoProgress, VideoAnalytics';
+PRINT '⚙️ User Settings: UserSettings (Privacy, Appearance)';
 PRINT '💳 Payment System: Transactions, Invoices, Stripe Integration';
 PRINT '🚀 Database is ready for Mishin Learn Platform!';

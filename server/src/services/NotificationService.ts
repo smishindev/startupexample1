@@ -460,11 +460,18 @@ export class NotificationService {
     const now = new Date();
     const currentTime = now.getHours() * 60 + now.getMinutes(); // minutes since midnight
 
-    const [startHours, startMinutes] = preferences.QuietHoursStart.split(':').map(Number);
-    const [endHours, endMinutes] = preferences.QuietHoursEnd.split(':').map(Number);
-    
-    const quietStart = startHours * 60 + startMinutes;
-    const quietEnd = endHours * 60 + endMinutes;
+    // Parse quiet hours - can be string "HH:mm:ss" or Date object
+    const parseTime = (timeValue: string | Date): number => {
+      if (timeValue instanceof Date) {
+        return timeValue.getHours() * 60 + timeValue.getMinutes();
+      }
+      // Handle string format "HH:mm:ss" or "HH:mm"
+      const [hours, minutes] = String(timeValue).split(':').map(Number);
+      return hours * 60 + minutes;
+    };
+
+    const quietStart = parseTime(preferences.QuietHoursStart as any);
+    const quietEnd = parseTime(preferences.QuietHoursEnd as any);
 
     // Handle overnight quiet hours (e.g., 22:00 - 08:00)
     if (quietStart > quietEnd) {

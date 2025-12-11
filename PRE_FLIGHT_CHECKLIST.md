@@ -28,8 +28,10 @@
 - [ ] Identified all pages that use this component
 
 **Recent Additions to Check:**
+- [ ] TransactionsPage (`/transactions`) - Payment history with database setup (Dec 11, 2025)
 - [ ] ProfilePage (`/profile`) - 5-tab user profile system (Dec 11, 2025)
-- [ ] Notification preferences - Storage implemented, enforcement pending (see TODO)
+- [ ] Settings page - Privacy, appearance, data management with backend API (Dec 11, 2025)
+- [ ] Notification preferences - Fully enforced with quiet hours and type filtering (Dec 11, 2025)
 - [ ] Avatar upload system - multer + sharp processing
 
 **Commands to run**:

@@ -42,6 +42,7 @@ import { videoLessonRoutes } from './routes/videoLessons';
 import { videoProgressRoutes } from './routes/videoProgress';
 import { videoAnalyticsRoutes } from './routes/videoAnalytics';
 import dashboardRoutes from './routes/dashboard';
+import settingsRoutes from './routes/settings';
 const studentProgressRoutes = require('./routes/student-progress');
 import { DatabaseService } from './services/DatabaseService';
 import { setupSocketHandlers } from './sockets';
@@ -218,6 +219,7 @@ app.use('/api/video-lessons', videoLessonRoutes);
 app.use('/api/video-progress', videoProgressRoutes);
 app.use('/api/video-analytics', videoAnalyticsRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/settings', settingsRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {

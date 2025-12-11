@@ -18,6 +18,49 @@
 
 ## 🎯 PAGES (Entry Point Components)
 
+### TransactionsPage
+**Path**: `client/src/pages/Profile/TransactionsPage.tsx`  
+**Route**: `/transactions`  
+**Purpose**: Display user's transaction history with payment details and refund requests
+
+**Services Used**:
+- `paymentApi.getUserTransactions()` - Fetch all transactions for user
+- `paymentApi.requestRefund(data)` - Submit refund request
+
+**Database Tables**:
+- `Transactions` - Payment transaction records with Stripe IDs
+- `Invoices` - Invoice records linked to transactions
+- `Courses` - Course details (Title, Thumbnail)
+
+**State Management**:
+- Local state:
+  - `transactions: Transaction[]` - List of all transactions
+  - `loading: boolean` - Loading state
+  - `error: string | null` - Error message
+  - `refundDialog` - Refund dialog state
+  - `refundReason: string` - Refund reason text
+  - `refundProcessing: boolean` - Refund submission state
+
+**Components Used**:
+- `<HeaderV4 />` - Navigation header
+- `<Table />` - Transaction data table
+- `<Chip />` - Status badges (pending, completed, failed, refunded)
+- `<Dialog />` - Refund request dialog
+
+**Features**:
+- Transaction table with course details, amounts, status, dates
+- Refund eligibility check (30 days)
+- Invoice download links
+- Refresh button to reload transactions
+- Status color coding
+- Empty state for no transactions
+
+**Database Migration**: `database/add_payment_tables.sql`
+
+**Status**: ✅ Fully functional with database setup complete
+
+---
+
 ### ProfilePage
 **Path**: `client/src/pages/Profile/ProfilePage.tsx`  
 **Route**: `/profile`  

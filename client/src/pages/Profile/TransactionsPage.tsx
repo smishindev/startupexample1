@@ -32,6 +32,7 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import DownloadIcon from '@mui/icons-material/Download';
 import { getUserTransactions, requestRefund, type Transaction } from '../../services/paymentApi';
 import { format } from 'date-fns';
+import { HeaderV4 } from '../../components/Navigation/HeaderV4';
 
 const TransactionsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -128,19 +129,21 @@ const TransactionsPage: React.FC = () => {
   }
 
   return (
-    <Container maxWidth="lg" sx={{ py: 6 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
-        <Typography variant="h4">
-          Transaction History
-        </Typography>
-        <Button
-          variant="outlined"
-          startIcon={<RefreshIcon />}
-          onClick={loadTransactions}
-        >
-          Refresh
-        </Button>
-      </Box>
+    <>
+      <HeaderV4 />
+      <Container maxWidth="lg" sx={{ py: 6 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
+          <Typography variant="h4">
+            Transaction History
+          </Typography>
+          <Button
+            variant="outlined"
+            startIcon={<RefreshIcon />}
+            onClick={loadTransactions}
+          >
+            Refresh
+          </Button>
+        </Box>
 
       {error && (
         <Alert severity="error" sx={{ mb: 3 }}>
@@ -269,6 +272,7 @@ const TransactionsPage: React.FC = () => {
         </DialogActions>
       </Dialog>
     </Container>
+    </>
   );
 };
 

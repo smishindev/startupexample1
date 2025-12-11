@@ -362,7 +362,7 @@ export class StripeService {
       const transactions = await db.query(
         `SELECT 
           t.Id, t.Amount, t.Currency, t.Status, t.CreatedAt, t.CompletedAt, t.RefundedAt,
-          c.Title as CourseTitle, c.ThumbnailUrl as CourseThumbnail,
+          c.Title as CourseTitle, c.Thumbnail as CourseThumbnail,
           i.InvoiceNumber, i.PdfUrl as InvoicePdfUrl
         FROM dbo.Transactions t
         LEFT JOIN dbo.Courses c ON t.CourseId = c.Id

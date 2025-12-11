@@ -39,6 +39,32 @@ GET    /api/notifications/preferences  - Get notification preferences
 PATCH  /api/notifications/preferences  - Update notification preferences
 ```
 
+### Payment & Billing (added Dec 11, 2025)
+```
+POST   /api/payments/create-payment-intent  - Create Stripe payment intent
+POST   /api/payments/webhook                - Stripe webhook events
+POST   /api/payments/confirm-enrollment     - Confirm enrollment after payment (with security validation)
+GET    /api/payments/transactions           - Get user transaction history
+POST   /api/payments/request-refund         - Request refund for transaction
+GET    /api/payments/transaction/:id        - Get transaction details
+```
+
+**Payment Security Details:**
+- `/confirm-enrollment` validates completed transaction exists before creating enrollment
+- Checks: `Status = 'completed'`, `UserId` match, course ownership
+- Prevents free enrollment via URL manipulation
+- Returns 403 Forbidden if no valid payment found
+- Logs security warnings for unauthorized attempts
+
+**Stripe Integration:**
+- Test mode with test keys
+- Payment intents for checkout flow
+- Customer management (create/retrieve)
+- Webhook processing for payment events
+- Refund processing with progress-based calculations
+
+```
+
 **Avatar Upload Details:**
 - Accepts: multipart/form-data with 'avatar' field
 - File types: JPEG, PNG, GIF, WebP
@@ -88,6 +114,40 @@ authStore.updateUser(userData)
 localStorage['auth-storage'] updated
   ↓
 Header avatar/name auto-updates
+```
+
+**Payment Flow** (added Dec 11, 2025):
+```
+User → CourseDetailPage → Click "Purchase Course - $X.XX"
+  ↓ (navigate /checkout/:courseId)
+CourseCheckoutPage loads course details
+  ↓ (POST /api/payments/create-payment-intent)
+Backend → Verify course price → Create Stripe payment intent → Save Transaction
+  ↓ (clientSecret returned)
+Stripe Elements → User fills payment form → Submit
+  ↓ (Stripe processes payment)
+Stripe redirects → /payment/success?courseId=XXX
+  ↓
+PaymentSuccessPage → Confetti animation 🎉
+  ↓ (POST /api/payments/confirm-enrollment)
+Backend → Verify completed transaction exists → Create Enrollment
+  ↓ (security check: Status='completed', UserId match)
+User navigates to course → Sees "Continue Learning" button
+  ↓ (auto-refresh enrollment state via useEffect)
+CourseDetailPage → Fetches enrollment status → Updates UI
+```
+
+**Payment Security Layer:**
+```
+URL: /payment/success?courseId=XXX
+  ↓ (attempt to get free enrollment)
+POST /api/payments/confirm-enrollment
+  ↓
+Backend checks: SELECT FROM Transactions WHERE UserId=X AND CourseId=Y AND Status='completed'
+  ↓ (if no transaction found)
+403 Forbidden + Security warning logged
+  ↓ (if transaction exists)
+Create enrollment (IF NOT EXISTS) ✅
 ```
 
 **Avatar Upload Flow** (added Dec 11, 2025):

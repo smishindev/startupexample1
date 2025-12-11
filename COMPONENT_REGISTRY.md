@@ -18,6 +18,52 @@
 
 ## 🎯 PAGES (Entry Point Components)
 
+### Payment & Checkout Pages
+
+#### CourseCheckoutPage
+**Path**: `client/src/pages/Payment/CourseCheckoutPage.tsx`  
+**Route**: `/checkout/:courseId`  
+**Purpose**: Stripe Elements checkout flow for course purchases
+
+**Services Used**:
+- `coursesApi.getCourse()` - Fetch course details
+- `paymentApi.createPaymentIntent()` - Create Stripe payment intent
+- Stripe Elements - Payment form UI
+
+**Features**:
+- HeaderV4 navigation
+- Course summary with thumbnail and price
+- Stripe PaymentElement integration
+- Loading states and error handling
+- Secure payment processing
+
+**Status**: ✅ Fully functional with Phase 2.1 complete
+
+---
+
+#### PaymentSuccessPage
+**Path**: `client/src/pages/Payment/PaymentSuccessPage.tsx`  
+**Route**: `/payment/success?courseId=XXX`  
+**Purpose**: Post-payment celebration and enrollment confirmation
+
+**Services Used**:
+- `coursesApi.getCourse()` - Fetch enrolled course
+- `paymentApi.confirmEnrollment()` - Verify payment and create enrollment
+
+**Features**:
+- 🎉 Confetti animation (5 seconds, 500 pieces)
+- Gradient celebration theme with glassmorphism
+- Social sharing (Twitter, Facebook, LinkedIn)
+- CTAs: "Start Learning Now", "View Receipt", "Go to Dashboard"
+- Email confirmation notice
+- "What's Next?" tips
+- 30-day money-back guarantee notice
+- **Security**: Validates completed payment before enrollment
+
+**Status**: ✅ Complete with Phase 2.3 enhancements
+
+---
+
 ### TransactionsPage
 **Path**: `client/src/pages/Profile/TransactionsPage.tsx`  
 **Route**: `/transactions`  

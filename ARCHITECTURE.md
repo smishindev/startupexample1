@@ -39,14 +39,16 @@ GET    /api/notifications/preferences  - Get notification preferences
 PATCH  /api/notifications/preferences  - Update notification preferences
 ```
 
-### Payment & Billing (added Dec 11, 2025)
+### Payment & Billing (added Dec 11, updated Dec 14, 2025)
 ```
-POST   /api/payments/create-payment-intent  - Create Stripe payment intent
-POST   /api/payments/webhook                - Stripe webhook events
-POST   /api/payments/confirm-enrollment     - Confirm enrollment after payment (with security validation)
-GET    /api/payments/transactions           - Get user transaction history
-POST   /api/payments/request-refund         - Request refund for transaction
-GET    /api/payments/transaction/:id        - Get transaction details
+POST   /api/payments/create-payment-intent       - Create Stripe payment intent
+POST   /api/payments/webhook                     - Stripe webhook events
+POST   /api/payments/confirm-enrollment          - Confirm enrollment after payment (with security validation)
+GET    /api/payments/transactions                - Get user transaction history
+POST   /api/payments/request-refund              - Request refund for transaction
+GET    /api/payments/transaction/:id             - Get transaction details
+GET    /api/payments/invoice/:invoiceId/download - Download invoice PDF (secure, ownership verified)
+POST   /api/payments/test-complete               - DEV ONLY: Complete test payment without webhook
 ```
 
 **Payment Security Details:**
@@ -62,6 +64,18 @@ GET    /api/payments/transaction/:id        - Get transaction details
 - Customer management (create/retrieve)
 - Webhook processing for payment events
 - Refund processing with progress-based calculations
+
+**Invoice PDF Generation (Phase 3 - Dec 14, 2025):**
+- PDFKit library for professional PDF generation
+- Automatic invoice generation on payment success
+- Multi-table queries: Users, Courses, Transactions
+- Billing address formatting (5 separate fields → single string)
+- PDF branding: Mishin Learn header, purple theme (#667eea)
+- Secure download: Ownership verification before serving PDF
+- Storage: `server/uploads/invoices/invoice_{invoiceNumber}.pdf`
+- Database: PdfPath column in Invoices table
+- Test endpoint: `/api/payments/test-complete` for local development
+- Frontend: Test Complete button, download functionality
 
 ```
 

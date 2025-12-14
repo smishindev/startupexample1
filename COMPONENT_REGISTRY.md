@@ -67,11 +67,13 @@
 ### TransactionsPage
 **Path**: `client/src/pages/Profile/TransactionsPage.tsx`  
 **Route**: `/transactions`  
-**Purpose**: Display user's transaction history with payment details and refund requests
+**Purpose**: Display user's transaction history with payment details, refund requests, and invoice downloads
 
 **Services Used**:
 - `paymentApi.getUserTransactions()` - Fetch all transactions for user
 - `paymentApi.requestRefund(data)` - Submit refund request
+- `paymentApi.downloadInvoice(invoiceId)` - Download invoice PDF (Dec 14, 2025)
+- `paymentApi.testCompleteTransaction(paymentIntentId)` - DEV ONLY: Complete test payment (Dec 14, 2025)
 
 **Database Tables**:
 - `Transactions` - Payment transaction records with Stripe IDs
@@ -96,8 +98,17 @@
 **Features**:
 - Transaction table with course details, amounts, status, dates
 - Refund eligibility check (30 days)
-- Invoice download links
+- Invoice download links with secure blob handling
+- Test Complete button for pending transactions (DEV ONLY - simulates webhook)
 - Refresh button to reload transactions
+- Status chips: pending (orange), completed (green), failed (red), refunded (gray)
+- Download icon for completed invoices with PDF generation
+
+**Recent Updates (Dec 14, 2025)**:
+- ✅ Test Complete button with CheckCircleIcon (green outlined)
+- ✅ Invoice download with ownership verification
+- ✅ PDF generation: Professional invoices with Mishin Learn branding
+- ✅ Automatic invoice creation on payment success
 - Status color coding
 - Empty state for no transactions
 

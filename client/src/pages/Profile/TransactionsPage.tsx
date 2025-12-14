@@ -30,7 +30,8 @@ import {
 import ReceiptIcon from '@mui/icons-material/Receipt';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import DownloadIcon from '@mui/icons-material/Download';
-import { getUserTransactions, requestRefund, type Transaction } from '../../services/paymentApi';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import { getUserTransactions, requestRefund, downloadInvoice, testCompleteTransaction, type Transaction } from '../../services/paymentApi';
 import { format } from 'date-fns';
 import { HeaderV4 } from '../../components/Navigation/HeaderV4';
 
@@ -92,6 +93,33 @@ const TransactionsPage: React.FC = () => {
       alert(err.response?.data?.message || 'Failed to process refund. Please try again.');
     } finally {
       setRefundProcessing(false);
+    }
+  };
+
+  const handleDownloadInvoice = async (invoiceId: string) => {
+    try {
+      await downloadInvoice(invoiceId);
+    } catch (err) {
+      alert('Failed to download invoice. Please try again.');
+    }
+  };
+
+  const handleTestComplete = async (transaction: Transaction) => {
+    if (!transaction.StripePaymentIntentId) {
+      alert('No payment intent ID found');
+      return;
+    }
+
+    if (!confirm('This will simulate webhook completion and generate an invoice. Continue?')) {
+      return;
+    }
+
+    try {
+      await testCompleteTransaction(transaction.StripePaymentIntentId);
+      alert('Transaction completed! Reloading...');
+      await loadTransactions();
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Failed to complete transaction');
     }
   };
 
@@ -197,20 +225,34 @@ const TransactionsPage: React.FC = () => {
                     {getStatusChip(transaction.Status)}
                   </TableCell>
                   <TableCell>
-                    {transaction.InvoiceNumber && (
+                    {transaction.InvoiceNumber && transaction.InvoiceId && (
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         <Typography variant="caption">
                           {transaction.InvoiceNumber}
                         </Typography>
-                        {transaction.InvoicePdfUrl && (
-                          <IconButton size="small" href={transaction.InvoicePdfUrl} target="_blank">
-                            <DownloadIcon fontSize="small" />
-                          </IconButton>
-                        )}
+                        <IconButton 
+                          size="small" 
+                          onClick={() => handleDownloadInvoice(transaction.InvoiceId!)}
+                          title="Download Invoice PDF"
+                        >
+                          <DownloadIcon fontSize="small" />
+                        </IconButton>
                       </Box>
                     )}
                   </TableCell>
                   <TableCell>
+                    {transaction.Status === 'pending' && transaction.StripePaymentIntentId && (
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        color="success"
+                        startIcon={<CheckCircleIcon />}
+                        onClick={() => handleTestComplete(transaction)}
+                        sx={{ mr: 1 }}
+                      >
+                        Test Complete
+                      </Button>
+                    )}
                     {isRefundEligible(transaction) && (
                       <Button
                         size="small"

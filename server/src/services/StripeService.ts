@@ -1,5 +1,6 @@
 import Stripe from 'stripe';
 import { DatabaseService } from './DatabaseService';
+import InvoicePdfService from './InvoicePdfService';
 
 /**
  * StripeService - Handles all Stripe payment operations
@@ -287,13 +288,18 @@ export class StripeService {
     try {
       const db = DatabaseService.getInstance();
 
-      // Get transaction details
+      // Get transaction details with user and course info
       const transactions = await db.query<{
         Id: string;
         Amount: number;
         Currency: string;
+        UserId: string;
+        CourseId: string;
+        PaymentMethod: string;
       }>(
-        `SELECT Id, Amount, Currency FROM dbo.Transactions WHERE StripePaymentIntentId = @paymentIntentId`,
+        `SELECT t.Id, t.Amount, t.Currency, t.UserId, t.CourseId, t.PaymentMethod
+         FROM dbo.Transactions t
+         WHERE t.StripePaymentIntentId = @paymentIntentId`,
         { paymentIntentId }
       );
 
@@ -303,6 +309,51 @@ export class StripeService {
 
       const transaction = transactions[0];
 
+      // Get user details
+      const users = await db.query<{
+        FirstName: string;
+        LastName: string;
+        Email: string;
+        BillingStreetAddress: string | null;
+        BillingCity: string | null;
+        BillingState: string | null;
+        BillingPostalCode: string | null;
+        BillingCountry: string | null;
+      }>(
+        `SELECT FirstName, LastName, Email, BillingStreetAddress, BillingCity, 
+                BillingState, BillingPostalCode, BillingCountry 
+         FROM dbo.Users WHERE Id = @userId`,
+        { userId: transaction.UserId }
+      );
+
+      // Get course details
+      const courses = await db.query<{
+        Title: string;
+        Price: number;
+      }>(
+        `SELECT Title, Price FROM dbo.Courses WHERE Id = @courseId`,
+        { courseId: transaction.CourseId }
+      );
+
+      if (!users.length || !courses.length) {
+        throw new Error('User or course not found');
+      }
+
+      const user = users[0];
+      const course = courses[0];
+
+      // Format billing address
+      const billingAddressParts = [
+        user.BillingStreetAddress,
+        user.BillingCity,
+        user.BillingState,
+        user.BillingPostalCode,
+        user.BillingCountry,
+      ].filter(Boolean);
+      const billingAddress = billingAddressParts.length > 0 
+        ? billingAddressParts.join(', ') 
+        : undefined;
+
       // Generate invoice number
       const invoiceNumber = `INV-${Date.now()}-${transaction.Id.substring(0, 8).toUpperCase()}`;
 
@@ -310,12 +361,31 @@ export class StripeService {
       const taxAmount = 0;
       const totalAmount = transaction.Amount + taxAmount;
 
-      // Insert invoice
+      // Generate PDF
+      const pdfUrl = await InvoicePdfService.generateInvoicePdf({
+        invoiceNumber,
+        date: new Date(),
+        customerName: `${user.FirstName} ${user.LastName}`.trim(),
+        customerEmail: user.Email,
+        billingAddress: billingAddress,
+        items: [
+          {
+            description: `Course: ${course.Title}`,
+            amount: transaction.Amount,
+          },
+        ],
+        subtotal: transaction.Amount,
+        tax: taxAmount,
+        total: totalAmount,
+        paymentMethod: transaction.PaymentMethod || 'Card',
+      });
+
+      // Insert invoice with PDF path
       await db.query(
         `INSERT INTO dbo.Invoices (
-          Id, TransactionId, InvoiceNumber, Amount, TaxAmount, TotalAmount, CreatedAt
+          Id, TransactionId, InvoiceNumber, Amount, TaxAmount, TotalAmount, PdfPath, CreatedAt
         ) VALUES (
-          NEWID(), @transactionId, @invoiceNumber, @amount, @taxAmount, @totalAmount, GETUTCDATE()
+          NEWID(), @transactionId, @invoiceNumber, @amount, @taxAmount, @totalAmount, @pdfPath, GETUTCDATE()
         )`,
         {
           transactionId: transaction.Id,
@@ -323,10 +393,11 @@ export class StripeService {
           amount: transaction.Amount,
           taxAmount,
           totalAmount,
+          pdfPath: pdfUrl,
         }
       );
 
-      console.log(`✅ Invoice generated: ${invoiceNumber} for payment ${paymentIntentId}`);
+      console.log(`✅ Invoice generated: ${invoiceNumber} for payment ${paymentIntentId} (PDF: ${pdfUrl})`);
 
       return invoiceNumber;
     } catch (error) {
@@ -363,8 +434,9 @@ export class StripeService {
       const transactions = await db.query(
         `SELECT 
           t.Id, t.Amount, t.Currency, t.Status, t.CreatedAt, t.CompletedAt, t.RefundedAt,
+          t.StripePaymentIntentId,
           c.Title as CourseTitle, c.Thumbnail as CourseThumbnail,
-          i.InvoiceNumber, i.PdfUrl as InvoicePdfUrl
+          i.Id as InvoiceId, i.InvoiceNumber, i.PdfPath as InvoicePdfUrl
         FROM dbo.Transactions t
         LEFT JOIN dbo.Courses c ON t.CourseId = c.Id
         LEFT JOIN dbo.Invoices i ON t.Id = i.TransactionId

@@ -24,6 +24,8 @@ export interface Transaction {
   CourseThumbnail?: string;
   InvoiceNumber?: string;
   InvoicePdfUrl?: string;
+  InvoiceId?: string; // For download endpoint
+  StripePaymentIntentId?: string; // For test completion
 }
 
 export interface RefundRequest {
@@ -84,6 +86,37 @@ export const getUserTransactions = async (): Promise<Transaction[]> => {
 };
 
 /**
+ * Download invoice PDF
+ */
+export const downloadInvoice = async (invoiceId: string): Promise<void> => {
+  try {
+    const token = localStorage.getItem('token');
+    const response = await axios.get(
+      `${API_BASE_URL}/api/payments/invoice/${invoiceId}/download`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        responseType: 'blob', // Important for file download
+      }
+    );
+
+    // Create download link
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `invoice_${invoiceId}.pdf`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error('Error downloading invoice:', error);
+    throw error;
+  }
+};
+
+/**
  * Get specific transaction details
  */
 export const getTransaction = async (transactionId: string): Promise<Transaction> => {
@@ -124,9 +157,37 @@ export const requestRefund = async (request: RefundRequest): Promise<RefundRespo
   }
 };
 
+/**
+ * TEST ONLY: Manually complete a transaction (simulates webhook)
+ */
+export const testCompleteTransaction = async (paymentIntentId: string): Promise<void> => {
+  try {
+    const token = localStorage.getItem('token');
+    const response = await axios.post(
+      `${API_BASE_URL}/api/payments/test-complete`,
+      { paymentIntentId },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (!response.data.success) {
+      throw new Error('Failed to complete transaction');
+    }
+  } catch (error) {
+    console.error('Error completing transaction:', error);
+    throw error;
+  }
+};
+
 export default {
   createPaymentIntent,
   getUserTransactions,
   getTransaction,
   requestRefund,
+  downloadInvoice,
+  testCompleteTransaction,
 };
+

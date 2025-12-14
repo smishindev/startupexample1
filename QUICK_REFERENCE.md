@@ -41,6 +41,14 @@ Role: Student
 2. Login as instructor in one, student in other
 3. Test real-time features (presence, notifications, chat)
 
+**Payment Testing (Dec 14, 2025):**
+- Navigate to Transactions page (`/profile/transactions`)
+- Pending transactions show green "Test Complete" button
+- Click to simulate webhook completion (DEV ONLY)
+- Invoice PDF generated automatically
+- Download invoice with branded PDF (Mishin Learn purple theme)
+- Stripe test card: 4242 4242 4242 4242, any future date, any CVC
+
 ---
 
 ## 📚 DOCUMENTATION FILES - WHAT TO READ WHEN

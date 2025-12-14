@@ -3,6 +3,8 @@ import { StripeService } from '../services/StripeService';
 import { DatabaseService } from '../services/DatabaseService';
 import EmailService from '../services/EmailService';
 import { AuthRequest, authenticateToken } from '../middleware/auth';
+import InvoicePdfService from '../services/InvoicePdfService';
+import path from 'path';
 
 const router = express.Router();
 const stripeService = StripeService.getInstance();
@@ -168,6 +170,43 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req: R
 });
 
 /**
+ * POST /api/payments/test-complete
+ * DEV ONLY: Manually complete a transaction for testing
+ * Simulates what the webhook would do
+ */
+router.post('/test-complete', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const userId = (req as AuthRequest).user?.userId;
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'User not authenticated' });
+    }
+
+    const { paymentIntentId } = req.body;
+
+    if (!paymentIntentId) {
+      return res.status(400).json({ success: false, message: 'paymentIntentId is required' });
+    }
+
+    // Get the payment intent from Stripe
+    const paymentIntent = await stripeService['stripe'].paymentIntents.retrieve(paymentIntentId);
+    
+    // Manually trigger payment success handling
+    await stripeService.handlePaymentSuccess(paymentIntent);
+
+    res.json({
+      success: true,
+      message: 'Transaction completed and invoice generated',
+    });
+  } catch (error) {
+    console.error('❌ Error completing test payment:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: error instanceof Error ? error.message : 'Failed to complete payment' 
+    });
+  }
+});
+
+/**
  * POST /api/payments/confirm-enrollment
  * Confirm enrollment after successful payment (for test mode when webhook isn't triggered)
  * SECURITY: Only creates enrollment if a valid completed payment exists
@@ -259,6 +298,87 @@ router.get('/transactions', authenticateToken, async (req: Request, res: Respons
     res.status(500).json({ 
       success: false, 
       message: 'Failed to retrieve transactions' 
+    });
+  }
+});
+
+/**
+ * GET /api/payments/invoice/:invoiceId/download
+ * Download invoice PDF
+ */
+router.get('/invoice/:invoiceId/download', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const userId = (req as AuthRequest).user?.userId;
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'User not authenticated' });
+    }
+
+    const { invoiceId } = req.params;
+
+    // Get invoice with transaction verification
+    const invoices = await db.query<{
+      PdfPath: string;
+      InvoiceNumber: string;
+      UserId: string;
+    }>(
+      `SELECT i.PdfPath, i.InvoiceNumber, t.UserId
+       FROM dbo.Invoices i
+       INNER JOIN dbo.Transactions t ON i.TransactionId = t.Id
+       WHERE i.Id = @invoiceId`,
+      { invoiceId }
+    );
+
+    if (!invoices.length) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Invoice not found' 
+      });
+    }
+
+    const invoice = invoices[0];
+
+    // Security: Verify invoice belongs to user
+    if (invoice.UserId !== userId) {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'Access denied' 
+      });
+    }
+
+    // Check if PDF exists
+    if (!invoice.PdfPath) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Invoice PDF not generated yet' 
+      });
+    }
+
+    const filepath = InvoicePdfService.getInvoiceFilePath(invoice.PdfPath);
+
+    if (!InvoicePdfService.invoiceExists(invoice.PdfPath)) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Invoice PDF file not found' 
+      });
+    }
+
+    // Send file
+    res.download(filepath, `${invoice.InvoiceNumber}.pdf`, (err) => {
+      if (err) {
+        console.error('❌ Error downloading invoice:', err);
+        if (!res.headersSent) {
+          res.status(500).json({ 
+            success: false, 
+            message: 'Failed to download invoice' 
+          });
+        }
+      }
+    });
+  } catch (error) {
+    console.error('❌ Error downloading invoice:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to download invoice' 
     });
   }
 });

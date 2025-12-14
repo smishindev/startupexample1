@@ -689,6 +689,7 @@ CREATE TABLE dbo.Invoices (
     
     -- PDF Storage
     PdfUrl NVARCHAR(500) NULL,
+    PdfPath NVARCHAR(500) NULL, -- Added Dec 14, 2025 - Local file path for invoice PDF
     PdfGeneratedAt DATETIME2 NULL,
     
     -- Timestamps

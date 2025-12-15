@@ -46,11 +46,13 @@ const CheckoutForm: React.FC<{ course: Course; onSuccess: () => void }> = ({ cou
   const elements = useElements();
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!stripe || !elements) {
+      setError('Payment system not loaded. Please refresh the page.');
       return;
     }
 
@@ -66,14 +68,47 @@ const CheckoutForm: React.FC<{ course: Course; onSuccess: () => void }> = ({ cou
       });
 
       if (submitError) {
-        setError(submitError.message || 'Payment failed. Please try again.');
+        // Categorize errors for better user feedback
+        let userMessage = submitError.message || 'Payment failed. Please try again.';
+        
+        switch (submitError.type) {
+          case 'card_error':
+            userMessage = submitError.message || 'Your card was declined. Please try a different card.';
+            break;
+          case 'validation_error':
+            userMessage = 'Please check your payment information and try again.';
+            break;
+          case 'invalid_request_error':
+            userMessage = 'There was an issue with your payment. Please contact support if this continues.';
+            break;
+          case 'api_error':
+            userMessage = 'A payment processing error occurred. Please try again in a moment.';
+            break;
+          case 'rate_limit_error':
+            userMessage = 'Too many requests. Please wait a moment and try again.';
+            break;
+          default:
+            userMessage = submitError.message || 'Payment failed. Please try again.';
+        }
+        
+        setError(userMessage);
+        setRetryCount(prev => prev + 1);
         setProcessing(false);
+
+        // Log error for debugging
+        console.error('Payment error:', {
+          type: submitError.type,
+          code: submitError.code,
+          message: submitError.message,
+          retryAttempt: retryCount + 1,
+        });
       } else {
         onSuccess();
       }
     } catch (err) {
-      console.error('Payment error:', err);
-      setError('An unexpected error occurred. Please try again.');
+      console.error('Unexpected payment error:', err);
+      setError('An unexpected error occurred. Please check your internet connection and try again.');
+      setRetryCount(prev => prev + 1);
       setProcessing(false);
     }
   };
@@ -87,6 +122,11 @@ const CheckoutForm: React.FC<{ course: Course; onSuccess: () => void }> = ({ cou
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
           {error}
+          {retryCount > 1 && (
+            <Typography variant="caption" display="block" sx={{ mt: 1 }}>
+              Retry attempt {retryCount}. If the issue persists, please contact support.
+            </Typography>
+          )}
         </Alert>
       )}
 
@@ -145,16 +185,47 @@ const CourseCheckoutPage: React.FC = () => {
         setLoading(false);
       } catch (err: any) {
         console.error('Checkout initialization error:', err);
-        setError(
-          err.response?.data?.message ||
-          'Failed to initialize checkout. Please try again.'
-        );
+        
+        // Detailed error messages based on status code
+        let errorMessage = 'Failed to initialize checkout. Please try again.';
+        
+        if (err.response) {
+          switch (err.response.status) {
+            case 400:
+              errorMessage = err.response.data?.message || 'Invalid request. Please check your course selection.';
+              break;
+            case 401:
+              errorMessage = 'Please log in to continue with your purchase.';
+              setTimeout(() => navigate('/login'), 2000);
+              break;
+            case 404:
+              errorMessage = 'Course not found. It may have been removed or is no longer available.';
+              break;
+            case 409:
+              errorMessage = 'You are already enrolled in this course.';
+              setTimeout(() => navigate('/my-learning'), 2000);
+              break;
+            case 500:
+              errorMessage = 'Payment system error. Please try again in a few moments.';
+              break;
+            case 503:
+              errorMessage = 'Payment service is temporarily unavailable. Please try again later.';
+              break;
+            default:
+              errorMessage = err.response.data?.message || errorMessage;
+          }
+        } else if (err.request) {
+          // Network error
+          errorMessage = 'Network error. Please check your internet connection and try again.';
+        }
+        
+        setError(errorMessage);
         setLoading(false);
       }
     };
 
     initializeCheckout();
-  }, [courseId]);
+  }, [courseId, navigate]);
 
   const handlePaymentSuccess = () => {
     // Redirect to success page

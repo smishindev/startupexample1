@@ -97,18 +97,25 @@
 
 **Features**:
 - Transaction table with course details, amounts, status, dates
-- Refund eligibility check (30 days)
+- Enhanced refund dialog with policy display and progress bar (Phase 4 - Dec 15, 2025)
+- Refund eligibility check (30 days) with visual countdown
+- Refund amount calculator and display
+- Smart button states (disabled with tooltips for ineligible)
 - Invoice download links with secure blob handling
 - Test Complete button for pending transactions (DEV ONLY - simulates webhook)
 - Refresh button to reload transactions
-- Status chips: pending (orange), completed (green), failed (red), refunded (gray)
+- Status chips with tooltips: pending (orange), completed (green), failed (red), refunded (gray)
 - Download icon for completed invoices with PDF generation
 
-**Recent Updates (Dec 14, 2025)**:
+**Recent Updates (Dec 15, 2025)**:
 - ✅ Test Complete button with CheckCircleIcon (green outlined)
 - ✅ Invoice download with ownership verification
 - ✅ PDF generation: Professional invoices with Mishin Learn branding
 - ✅ Automatic invoice creation on payment success
+- ✅ Enhanced refund dialog with policy checklist
+- ✅ Refund window progress bar (days remaining/30)
+- ✅ Smart eligibility tooltips for disabled refund buttons
+- ✅ Input validation: 10-500 characters for refund reason
 - Status color coding
 - Empty state for no transactions
 

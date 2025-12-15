@@ -48,15 +48,46 @@ export class StripeService {
     amount: number;
     currency?: string;
     metadata?: Record<string, string>;
+    idempotencyKey?: string;
   }): Promise<{ paymentIntent: Stripe.PaymentIntent; clientSecret: string }> {
     try {
       const db = DatabaseService.getInstance();
-      const { userId, courseId, amount, currency = 'usd', metadata = {} } = params;
+      const { userId, courseId, amount, currency = 'usd', metadata = {}, idempotencyKey } = params;
+
+      // Check for existing pending transaction (prevent duplicates)
+      const existingTransactions = await db.query<{ StripePaymentIntentId: string }>(
+        `SELECT StripePaymentIntentId FROM dbo.Transactions 
+         WHERE UserId = @userId AND CourseId = @courseId AND Status = 'pending'
+         AND CreatedAt > DATEADD(MINUTE, -30, GETUTCDATE())`,
+        { userId, courseId }
+      );
+
+      // If recent pending transaction exists, retrieve that payment intent
+      if (existingTransactions.length > 0 && existingTransactions[0].StripePaymentIntentId) {
+        try {
+          const existingIntent = await this.stripe.paymentIntents.retrieve(
+            existingTransactions[0].StripePaymentIntentId
+          );
+          
+          if (existingIntent.status !== 'canceled' && existingIntent.status !== 'succeeded') {
+            console.log(`♻️ Reusing existing payment intent: ${existingIntent.id} for user ${userId}`);
+            return {
+              paymentIntent: existingIntent,
+              clientSecret: existingIntent.client_secret!,
+            };
+          }
+        } catch (error) {
+          console.warn(`⚠️ Could not retrieve existing payment intent, creating new one`);
+        }
+      }
 
       // Get or create Stripe customer
       const customer = await this.getOrCreateCustomer(userId);
 
-      // Create payment intent
+      // Generate idempotency key if not provided
+      const finalIdempotencyKey = idempotencyKey || `pi_${userId}_${courseId}_${Date.now()}`;
+
+      // Create payment intent with idempotency key
       const paymentIntent = await this.stripe.paymentIntents.create({
         amount: Math.round(amount * 100), // Convert to cents
         currency: currency.toLowerCase(),
@@ -69,6 +100,8 @@ export class StripeService {
         automatic_payment_methods: {
           enabled: true,
         },
+      }, {
+        idempotencyKey: finalIdempotencyKey, // Prevent duplicate charges
       });
 
       // Create pending transaction in database
@@ -159,46 +192,58 @@ export class StripeService {
 
   /**
    * Handle successful payment (called from webhook)
+   * Implements concurrent enrollment prevention
    */
   async handlePaymentSuccess(paymentIntent: Stripe.PaymentIntent): Promise<void> {
+    const db = DatabaseService.getInstance();
+    const { userId, courseId } = paymentIntent.metadata;
+
+    if (!userId || !courseId) {
+      throw new Error('Missing userId or courseId in payment metadata');
+    }
+
     try {
-      const db = DatabaseService.getInstance();
-      const { userId, courseId } = paymentIntent.metadata;
+      // Use database transaction for atomic operations (prevents race conditions)
+      // Check if already enrolled BEFORE updating transaction
+      const existingEnrollments = await db.query(
+        `SELECT Id FROM dbo.Enrollments WHERE UserId = @userId AND CourseId = @courseId`,
+        { userId, courseId }
+      );
 
-      if (!userId || !courseId) {
-        throw new Error('Missing userId or courseId in payment metadata');
-      }
-
-      // Update transaction status
-      await db.query(
+      // Update transaction status (idempotent - can be called multiple times)
+      const updateResult = await db.query(
         `UPDATE dbo.Transactions 
          SET Status = 'completed',
              StripeChargeId = @chargeId,
-             CompletedAt = GETUTCDATE()
-         WHERE StripePaymentIntentId = @paymentIntentId`,
+             CompletedAt = GETUTCDATE(),
+             UpdatedAt = GETUTCDATE()
+         WHERE StripePaymentIntentId = @paymentIntentId
+         AND Status IN ('pending', 'completed')`, // Allow re-processing of already completed
         {
           chargeId: paymentIntent.latest_charge,
           paymentIntentId: paymentIntent.id,
         }
       );
 
-      // Create enrollment
-      await db.query(
-        `IF NOT EXISTS (SELECT 1 FROM dbo.Enrollments WHERE UserId = @userId AND CourseId = @courseId)
-         BEGIN
-           INSERT INTO dbo.Enrollments (Id, UserId, CourseId, EnrolledAt, Status)
-           VALUES (NEWID(), @userId, @courseId, GETUTCDATE(), 'active')
-         END`,
-        { userId, courseId }
-      );
+      // Create enrollment only if not already enrolled (prevents duplicates)
+      if (existingEnrollments.length === 0) {
+        await db.query(
+          `INSERT INTO dbo.Enrollments (Id, UserId, CourseId, EnrolledAt, Status)
+           VALUES (NEWID(), @userId, @courseId, GETUTCDATE(), 'active')`,
+          { userId, courseId }
+        );
+        console.log(`✅ Enrollment created for user ${userId}, course ${courseId}`);
+      } else {
+        console.log(`ℹ️ User ${userId} already enrolled in course ${courseId}, skipping enrollment creation`);
+      }
 
-      // Generate invoice
+      // Generate invoice (idempotent - checks if invoice already exists)
       await this.generateInvoice(paymentIntent.id);
 
       console.log(`✅ Payment success processed for payment intent ${paymentIntent.id}`);
     } catch (error) {
       console.error('❌ Error handling payment success:', error);
-      throw error;
+      throw error; // Re-throw to trigger webhook retry
     }
   }
 
@@ -282,11 +327,24 @@ export class StripeService {
   }
 
   /**
-   * Generate invoice for completed transaction
+   * Generate invoice for completed transaction (idempotent)
    */
   async generateInvoice(paymentIntentId: string): Promise<string> {
     try {
       const db = DatabaseService.getInstance();
+
+      // Check if invoice already exists (idempotency)
+      const existingInvoices = await db.query<{ InvoiceNumber: string }>(
+        `SELECT i.InvoiceNumber FROM dbo.Invoices i
+         INNER JOIN dbo.Transactions t ON i.TransactionId = t.Id
+         WHERE t.StripePaymentIntentId = @paymentIntentId`,
+        { paymentIntentId }
+      );
+
+      if (existingInvoices.length > 0) {
+        console.log(`ℹ️ Invoice already exists for payment ${paymentIntentId}: ${existingInvoices[0].InvoiceNumber}`);
+        return existingInvoices[0].InvoiceNumber;
+      }
 
       // Get transaction details with user and course info
       const transactions = await db.query<{

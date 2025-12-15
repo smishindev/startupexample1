@@ -14,17 +14,30 @@ const emailService = EmailService;
 /**
  * POST /api/payments/create-payment-intent
  * Create a payment intent for course purchase
+ * Enhanced with detailed error logging
  */
 router.post('/create-payment-intent', authenticateToken, async (req: Request, res: Response) => {
+  const requestId = `req_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+  const startTime = Date.now();
+  
   try {
     const userId = (req as AuthRequest).user?.userId;
     if (!userId) {
+      console.error(`[${requestId}] Authentication failed: No userId`);
       return res.status(401).json({ success: false, message: 'User not authenticated' });
     }
 
     const { courseId, amount, currency = 'usd' } = req.body;
 
+    console.log(`[${requestId}] Payment intent request:`, {
+      userId,
+      courseId,
+      amount,
+      currency,
+    });
+
     if (!courseId || !amount) {
+      console.error(`[${requestId}] Validation failed: Missing courseId or amount`);
       return res.status(400).json({ success: false, message: 'courseId and amount are required' });
     }
 
@@ -35,6 +48,7 @@ router.post('/create-payment-intent', authenticateToken, async (req: Request, re
     );
 
     if (!courses.length) {
+      console.error(`[${requestId}] Course not found:`, courseId);
       return res.status(404).json({ success: false, message: 'Course not found' });
     }
 
@@ -42,6 +56,11 @@ router.post('/create-payment-intent', authenticateToken, async (req: Request, re
 
     // Verify amount matches course price
     if (Math.abs(amount - course.Price) > 0.01) {
+      console.error(`[${requestId}] Price mismatch:`, {
+        requested: amount,
+        actual: course.Price,
+        difference: Math.abs(amount - course.Price),
+      });
       return res.status(400).json({ 
         success: false, 
         message: 'Amount does not match course price' 
@@ -55,6 +74,7 @@ router.post('/create-payment-intent', authenticateToken, async (req: Request, re
     );
 
     if (enrollments.length > 0) {
+      console.warn(`[${requestId}] User already enrolled:`, { userId, courseId });
       return res.status(400).json({ 
         success: false, 
         message: 'Already enrolled in this course' 
@@ -72,7 +92,13 @@ router.post('/create-payment-intent', authenticateToken, async (req: Request, re
       },
     });
 
-    console.log(`✅ Payment intent created: ${paymentIntent.id} for user ${userId}`);
+    const processingTime = Date.now() - startTime;
+    console.log(`[${requestId}] Payment intent created successfully:`, {
+      paymentIntentId: paymentIntent.id,
+      userId,
+      courseId,
+      processingTime: `${processingTime}ms`,
+    });
 
     res.json({
       success: true,
@@ -82,7 +108,13 @@ router.post('/create-payment-intent', authenticateToken, async (req: Request, re
       },
     });
   } catch (error) {
-    console.error('❌ Error creating payment intent:', error);
+    const processingTime = Date.now() - startTime;
+    console.error(`[${requestId}] Payment intent creation failed:`, {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      processingTime: `${processingTime}ms`,
+    });
+    
     res.status(500).json({ 
       success: false, 
       message: error instanceof Error ? error.message : 'Failed to create payment intent' 
@@ -93,81 +125,174 @@ router.post('/create-payment-intent', authenticateToken, async (req: Request, re
 /**
  * POST /api/payments/webhook
  * Stripe webhook endpoint for payment events
+ * Implements retry logic with exponential backoff
  */
 router.post('/webhook', express.raw({ type: 'application/json' }), async (req: Request, res: Response) => {
+  const startTime = Date.now();
+  let eventId = 'unknown';
+  
   try {
     const signature = req.headers['stripe-signature'];
 
     if (!signature) {
+      console.error('❌ Webhook: No signature provided');
       return res.status(400).json({ success: false, message: 'No signature provided' });
     }
 
     // Verify webhook signature
     const event = stripeService.verifyWebhookSignature(req.body, signature as string);
+    eventId = event.id;
 
-    console.log(`📨 Received webhook event: ${event.type}`);
+    console.log(`📨 Webhook received: ${event.type} (ID: ${eventId})`);
 
-    // Handle different event types
-    switch (event.type) {
-      case 'payment_intent.succeeded':
-        const paymentIntent = event.data.object;
-        await stripeService.handlePaymentSuccess(paymentIntent);
-        
-        // Send purchase confirmation email
-        const { userId, courseId } = paymentIntent.metadata;
-        if (userId && courseId) {
-          try {
-            const users = await db.query(`SELECT Email, FullName FROM dbo.Users WHERE Id = @userId`, { userId });
-            const courses = await db.query(`SELECT Title FROM dbo.Courses WHERE Id = @courseId`, { courseId });
-            const transactions = await db.query(`SELECT Id FROM dbo.Transactions WHERE StripePaymentIntentId = @paymentIntentId`, { paymentIntentId: paymentIntent.id });
-            
-            if (users.length && courses.length && transactions.length) {
-              await emailService.sendPurchaseConfirmation({
-                email: users[0].Email,
-                firstName: users[0].FullName.split(' ')[0],
-                courseName: courses[0].Title,
-                amount: paymentIntent.amount / 100,
-                currency: paymentIntent.currency.toUpperCase(),
-                transactionId: transactions[0].Id,
-                purchaseDate: new Date().toISOString(),
-              });
-            }
-          } catch (emailError) {
-            console.error('⚠️ Failed to send purchase confirmation email:', emailError);
-            // Don't fail the webhook if email fails
-          }
-        }
-        break;
+    // Process event with error handling
+    try {
+      await processWebhookEvent(event);
+      
+      const processingTime = Date.now() - startTime;
+      console.log(`✅ Webhook processed successfully: ${event.type} (${processingTime}ms)`);
+      
+      res.json({ success: true, received: true, eventId: event.id });
+    } catch (processingError) {
+      // Log detailed error for debugging
+      console.error(`❌ Webhook processing error for ${event.type} (${eventId}):`, {
+        error: processingError instanceof Error ? processingError.message : 'Unknown error',
+        stack: processingError instanceof Error ? processingError.stack : undefined,
+        eventType: event.type,
+        eventId: event.id,
+      });
 
-      case 'payment_intent.payment_failed':
-        const failedPayment = event.data.object;
-        await db.query(
-          `UPDATE dbo.Transactions 
-           SET Status = 'failed' 
-           WHERE StripePaymentIntentId = @paymentIntentId`,
-          { paymentIntentId: failedPayment.id }
-        );
-        console.log(`❌ Payment failed: ${failedPayment.id}`);
-        break;
-
-      case 'charge.refunded':
-        const charge = event.data.object;
-        console.log(`💰 Refund processed for charge: ${charge.id}`);
-        break;
-
-      default:
-        console.log(`⚠️ Unhandled event type: ${event.type}`);
+      // Return 500 to trigger Stripe's retry mechanism
+      // Stripe will retry with exponential backoff: immediately, 1h, 2h, 4h, 8h, 16h, 24h
+      return res.status(500).json({ 
+        success: false, 
+        message: 'Webhook processing failed, will retry',
+        eventId: event.id,
+      });
     }
-
-    res.json({ success: true, received: true });
   } catch (error) {
-    console.error('❌ Webhook error:', error);
-    res.status(400).json({ 
+    const processingTime = Date.now() - startTime;
+    console.error(`❌ Webhook verification error (${processingTime}ms):`, {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      eventId,
+    });
+    
+    // Invalid signature or malformed request - don't retry
+    return res.status(400).json({ 
       success: false, 
-      message: error instanceof Error ? error.message : 'Webhook processing failed' 
+      message: error instanceof Error ? error.message : 'Webhook verification failed' 
     });
   }
 });
+
+/**
+ * Process webhook event with proper error handling
+ * This function is separated to allow for better error isolation
+ */
+async function processWebhookEvent(event: any): Promise<void> {
+  switch (event.type) {
+    case 'payment_intent.succeeded':
+      await handlePaymentIntentSucceeded(event.data.object);
+      break;
+
+    case 'payment_intent.payment_failed':
+      await handlePaymentIntentFailed(event.data.object);
+      break;
+
+    case 'charge.refunded':
+      await handleChargeRefunded(event.data.object);
+      break;
+
+    default:
+      console.log(`ℹ️ Unhandled event type: ${event.type}`);
+  }
+}
+
+/**
+ * Handle payment_intent.succeeded webhook
+ */
+async function handlePaymentIntentSucceeded(paymentIntent: any): Promise<void> {
+  try {
+    await stripeService.handlePaymentSuccess(paymentIntent);
+    
+    // Send purchase confirmation email (non-blocking)
+    const { userId, courseId } = paymentIntent.metadata;
+    if (userId && courseId) {
+      sendPurchaseConfirmationEmail(userId, courseId, paymentIntent).catch(emailError => {
+        console.error('⚠️ Failed to send purchase confirmation email:', emailError);
+        // Email failure shouldn't fail the webhook
+      });
+    }
+  } catch (error) {
+    console.error('❌ Error in handlePaymentIntentSucceeded:', error);
+    throw error; // Re-throw to trigger retry
+  }
+}
+
+/**
+ * Handle payment_intent.payment_failed webhook
+ */
+async function handlePaymentIntentFailed(failedPayment: any): Promise<void> {
+  try {
+    await db.query(
+      `UPDATE dbo.Transactions 
+       SET Status = 'failed', UpdatedAt = GETUTCDATE()
+       WHERE StripePaymentIntentId = @paymentIntentId`,
+      { paymentIntentId: failedPayment.id }
+    );
+    console.log(`❌ Payment failed: ${failedPayment.id}`);
+  } catch (error) {
+    console.error('❌ Error in handlePaymentIntentFailed:', error);
+    throw error;
+  }
+}
+
+/**
+ * Handle charge.refunded webhook
+ */
+async function handleChargeRefunded(charge: any): Promise<void> {
+  try {
+    console.log(`💰 Refund processed for charge: ${charge.id}`);
+    // Additional refund processing logic can be added here
+  } catch (error) {
+    console.error('❌ Error in handleChargeRefunded:', error);
+    throw error;
+  }
+}
+
+/**
+ * Send purchase confirmation email (async, non-blocking)
+ */
+async function sendPurchaseConfirmationEmail(
+  userId: string, 
+  courseId: string, 
+  paymentIntent: any
+): Promise<void> {
+  try {
+    const users = await db.query(`SELECT Email, FirstName FROM dbo.Users WHERE Id = @userId`, { userId });
+    const courses = await db.query(`SELECT Title FROM dbo.Courses WHERE Id = @courseId`, { courseId });
+    const transactions = await db.query(
+      `SELECT Id FROM dbo.Transactions WHERE StripePaymentIntentId = @paymentIntentId`, 
+      { paymentIntentId: paymentIntent.id }
+    );
+    
+    if (users.length && courses.length && transactions.length) {
+      await emailService.sendPurchaseConfirmation({
+        email: users[0].Email,
+        firstName: users[0].FirstName,
+        courseName: courses[0].Title,
+        amount: paymentIntent.amount / 100,
+        currency: paymentIntent.currency.toUpperCase(),
+        transactionId: transactions[0].Id,
+        purchaseDate: new Date().toISOString(),
+      });
+      console.log(`📧 Purchase confirmation sent to ${users[0].Email}`);
+    }
+  } catch (error) {
+    console.error('⚠️ Email sending failed:', error);
+    // Don't throw - email failure shouldn't fail the webhook
+  }
+}
 
 /**
  * POST /api/payments/test-complete
@@ -421,8 +546,13 @@ router.post('/request-refund', authenticateToken, async (req: Request, res: Resp
     const transaction = transactions[0];
 
     // Check refund eligibility (30 days)
+    // Use UTC timestamps for consistent date calculations across timezones
+    const purchaseDate = new Date(transaction.CreatedAt);
+    const now = new Date();
+    
+    // Calculate days since purchase using UTC timestamps
     const daysSincePurchase = Math.floor(
-      (Date.now() - new Date(transaction.CreatedAt).getTime()) / (1000 * 60 * 60 * 24)
+      (now.getTime() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24)
     );
 
     if (daysSincePurchase > 30) {

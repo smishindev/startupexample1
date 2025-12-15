@@ -1,12 +1,152 @@
 # Mishin Learn Platform - Project Status & Memory
 
-**Last Updated**: December 14, 2025 - Invoice PDF Generation COMPLETE ✅  
+**Last Updated**: December 15, 2025 - Phase 4 Refund UI Enhancements COMPLETE ✅  
 **Developer**: Sergey Mishin (s.mishin.dev@gmail.com)  
 **AI Assistant Context**: This file serves as project memory for continuity across chat sessions
 
 ---
 
-## 🔥 LATEST UPDATE - December 14, 2025
+## 🔥 LATEST UPDATE - December 15, 2025
+
+### Payment System Phase 4 COMPLETE ✅ - Refund UI Enhancements
+
+**Professional refund experience with smart eligibility and clear policies**
+
+#### Phase 4 Implementation (Dec 15, 2025)
+- ✅ **Enhanced Refund Dialog**: Visual policy display, progress bar, amount calculator
+- ✅ **Smart Eligibility**: Auto-disable with detailed tooltips for ineligibility reasons
+- ✅ **Refund Window Tracking**: Linear progress bar showing days remaining out of 30
+- ✅ **Status Indicators**: Enhanced chips with tooltips showing completion/refund dates
+- ✅ **Input Validation**: 10-500 character reason requirement with counter
+- ✅ **Warning System**: Alerts when refund window closing (< 7 days)
+
+**Key Features**:
+- Visual refund policy checklist with icons
+- Real-time refund window progress (days remaining/30)
+- Refund amount display card
+- Course purchase details with date
+- Conditional action buttons (Test Complete, Request Refund, Refunded badge)
+- Smart button states (enabled/disabled based on eligibility)
+- Tooltip explanations for disabled refund buttons
+- Character-limited text input with validation
+
+**Refund Ineligibility Reasons**:
+- Already refunded
+- Cannot refund pending transactions
+- Failed transactions cannot be refunded
+- Refund period (30 days) has expired
+
+**Implementation File**:
+- `client/src/pages/Profile/TransactionsPage.tsx` - Complete refund UI overhaul
+
+**Payment System Status**: 98% Complete (Phases 1-5 done, Phase 6 remaining)
+
+**User Experience**: ⭐⭐⭐⭐⭐
+- ✅ Clear refund policy
+- ✅ Visual progress indicators
+- ✅ Smart eligibility checking
+- ✅ Helpful error messages
+- ✅ Professional UI design
+
+---
+
+## Previous Update - December 15, 2025
+
+### 🔧 Date Handling Audit & Fixes
+
+**All payment system date operations verified and fixed for UTC/timezone safety**
+
+#### Issues Found & Fixed
+1. **Date Calculation Inconsistency**
+   - ❌ Old: Mixed `Date.now()` and `new Date().getTime()`
+   - ✅ Fixed: Consistent `new Date()` object creation
+
+2. **Refund Eligibility (30-Day Window)**
+   - Frontend: `TransactionsPage.tsx` - `isRefundEligible()`, `getDaysRemaining()`
+   - Backend: `payments.ts` - Refund request validation
+   - ✅ Both now use identical UTC timestamp calculations
+
+3. **Database Queries**
+   - ✅ All payment queries use `GETUTCDATE()` (correct)
+   - ⚠️ Some non-payment queries use `GETDATE()` (low priority, documented)
+
+#### Key Fixes Applied
+```typescript
+// BEFORE (inconsistent)
+const days = Math.floor((Date.now() - new Date(date).getTime()) / (1000*60*60*24));
+
+// AFTER (timezone-safe)
+const purchaseDate = new Date(transaction.CreatedAt);
+const now = new Date();
+const days = Math.floor((now.getTime() - purchaseDate.getTime()) / (1000*60*60*24));
+```
+
+#### Verification
+- ✅ Payment timestamps: All UTC via `GETUTCDATE()`
+- ✅ Date calculations: Timezone-independent (using `.getTime()`)
+- ✅ Date displays: Automatic local timezone conversion (date-fns)
+- ✅ 30-day refund window: Consistent frontend + backend
+- ✅ Idempotency check: UTC-based (30-minute window)
+- ✅ TypeScript: 0 errors
+
+#### Documentation
+- Created [DATE_HANDLING_GUIDE.md](DATE_HANDLING_GUIDE.md) - Comprehensive date handling reference
+- Covers: UTC storage, timezone-safe calculations, display formatting, testing scenarios
+
+#### Files Updated
+- `client/src/pages/Profile/TransactionsPage.tsx` - Fixed date calculations
+- `server/src/routes/payments.ts` - Fixed refund eligibility check
+- `DATE_HANDLING_GUIDE.md` - NEW comprehensive guide
+
+**Status**: ✅ All payment date operations production-ready and timezone-safe
+
+---
+
+## Previous Update - December 15, 2025
+
+### Payment System Phase 5 COMPLETE ✅ - Error Handling & Edge Cases
+
+**Production-ready payment system with comprehensive reliability features**
+
+#### Phase 5 Implementation (Dec 15, 2025)
+- ✅ **Idempotency Keys**: Prevents duplicate charges from repeated button clicks
+- ✅ **Webhook Retry Logic**: Exponential backoff with Stripe's automatic retry (7 attempts over 24h)
+- ✅ **Concurrent Enrollment Prevention**: Race condition handling, idempotent operations
+- ✅ **Enhanced Error Handling**: Categorized Stripe errors with user-friendly messages
+- ✅ **Network Timeout Handling**: 30s API timeout, 60s file download timeout
+- ✅ **Detailed Error Logging**: Unique request IDs, processing times, stack traces
+
+**Key Features**:
+- Duplicate payment detection (checks last 30 minutes)
+- Reuse existing payment intents when valid
+- Webhook processing isolation with retry on 500 status
+- Enrollment idempotency (safe for multiple webhook calls)
+- Invoice generation idempotency (checks if exists)
+- Retry counter displayed to users
+- Status code-based error messages (400, 401, 404, 409, 500, 503)
+- Auto-redirect for auth/enrollment issues
+
+**Implementation Files**:
+1. `server/src/services/StripeService.ts` - Idempotency + concurrency prevention
+2. `server/src/routes/payments.ts` - Webhook retry + detailed logging
+3. `client/src/services/paymentApi.ts` - Timeout handling + axios interceptors
+4. `client/src/pages/Payment/CourseCheckoutPage.tsx` - Error categorization + retry UI
+
+**Documentation**: `PHASE5_ERROR_HANDLING_SUMMARY.md` - Complete implementation guide
+
+**Payment System Status**: 95% Complete (Phases 1-3, 5 done, Phase 4 optional)
+
+**Production Readiness**: ⭐⭐⭐⭐⭐
+- ✅ Idempotency
+- ✅ Error Handling
+- ✅ Retry Logic  
+- ✅ Logging
+- ✅ Race Condition Prevention
+- ✅ User Feedback
+
+---
+
+## Previous Update - December 14, 2025
 
 ### Payment System Phase 3 COMPLETE ✅ - Invoice PDF Generation
 

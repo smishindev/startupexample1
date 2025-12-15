@@ -1,11 +1,55 @@
 /**
  * Payment API Service
  * Handles all payment-related API calls for course purchases
+ * Implements timeout handling and retry logic
  */
 
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 
 const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:3001';
+
+// Configure axios with timeout and interceptors
+const paymentAxios = axios.create({
+  baseURL: API_BASE_URL,
+  timeout: 30000, // 30 second timeout for payment operations
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Add request interceptor for auth token
+paymentAxios.interceptors.request.use(
+  (config) => {
+    const authStorage = localStorage.getItem('auth-storage');
+    if (authStorage) {
+      try {
+        const parsed = JSON.parse(authStorage);
+        const token = parsed?.state?.token;
+        if (token) {
+          config.headers.Authorization = `Bearer ${token}`;
+        }
+      } catch (e) {
+        console.error('Error parsing auth storage:', e);
+      }
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+// Add response interceptor for error handling
+paymentAxios.interceptors.response.use(
+  (response) => response,
+  (error: AxiosError) => {
+    if (error.code === 'ECONNABORTED') {
+      throw new Error('Request timeout. Please check your internet connection and try again.');
+    }
+    if (!error.response) {
+      throw new Error('Network error. Please check your internet connection.');
+    }
+    throw error;
+  }
+);
 
 export interface PaymentIntent {
   clientSecret: string;
@@ -49,8 +93,8 @@ export const createPaymentIntent = async (
   currency: string = 'usd'
 ): Promise<PaymentIntent> => {
   try {
-    const response = await axios.post<{ success: boolean; data: PaymentIntent }>(
-      `${API_BASE_URL}/api/payments/create-payment-intent`,
+    const response = await paymentAxios.post<{ success: boolean; data: PaymentIntent }>(
+      '/api/payments/create-payment-intent',
       { courseId, amount, currency }
     );
 
@@ -70,8 +114,8 @@ export const createPaymentIntent = async (
  */
 export const getUserTransactions = async (): Promise<Transaction[]> => {
   try {
-    const response = await axios.get<{ success: boolean; data: Transaction[] }>(
-      `${API_BASE_URL}/api/payments/transactions`
+    const response = await paymentAxios.get<{ success: boolean; data: Transaction[] }>(
+      '/api/payments/transactions'
     );
 
     if (!response.data.success) {
@@ -90,14 +134,11 @@ export const getUserTransactions = async (): Promise<Transaction[]> => {
  */
 export const downloadInvoice = async (invoiceId: string): Promise<void> => {
   try {
-    const token = localStorage.getItem('token');
-    const response = await axios.get(
-      `${API_BASE_URL}/api/payments/invoice/${invoiceId}/download`,
+    const response = await paymentAxios.get(
+      `/api/payments/invoice/${invoiceId}/download`,
       {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
         responseType: 'blob', // Important for file download
+        timeout: 60000, // Extend timeout for file download (60 seconds)
       }
     );
 
@@ -121,8 +162,8 @@ export const downloadInvoice = async (invoiceId: string): Promise<void> => {
  */
 export const getTransaction = async (transactionId: string): Promise<Transaction> => {
   try {
-    const response = await axios.get<{ success: boolean; data: Transaction }>(
-      `${API_BASE_URL}/api/payments/transaction/${transactionId}`
+    const response = await paymentAxios.get<{ success: boolean; data: Transaction }>(
+      `/api/payments/transaction/${transactionId}`
     );
 
     if (!response.data.success) {
@@ -141,8 +182,8 @@ export const getTransaction = async (transactionId: string): Promise<Transaction
  */
 export const requestRefund = async (request: RefundRequest): Promise<RefundResponse> => {
   try {
-    const response = await axios.post<{ success: boolean; data: RefundResponse }>(
-      `${API_BASE_URL}/api/payments/request-refund`,
+    const response = await paymentAxios.post<{ success: boolean; data: RefundResponse }>(
+      '/api/payments/request-refund',
       request
     );
 
@@ -162,15 +203,9 @@ export const requestRefund = async (request: RefundRequest): Promise<RefundRespo
  */
 export const testCompleteTransaction = async (paymentIntentId: string): Promise<void> => {
   try {
-    const token = localStorage.getItem('token');
-    const response = await axios.post(
-      `${API_BASE_URL}/api/payments/test-complete`,
-      { paymentIntentId },
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
+    const response = await paymentAxios.post(
+      '/api/payments/test-complete',
+      { paymentIntentId }
     );
 
     if (!response.data.success) {

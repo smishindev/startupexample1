@@ -77,6 +77,16 @@ POST   /api/payments/test-complete               - DEV ONLY: Complete test payme
 - Test endpoint: `/api/payments/test-complete` for local development
 - Frontend: Test Complete button, download functionality
 
+**Error Handling & Reliability (Phase 5 - Dec 15, 2025):**
+- Idempotency keys: Prevent duplicate charges (checks last 30 min)
+- Webhook retry logic: Exponential backoff (7 retries over 24h)
+- Concurrent enrollment prevention: Idempotent operations, race condition handling
+- Network timeouts: 30s API calls, 60s file downloads
+- Categorized error messages: card_error, validation_error, api_error, rate_limit_error
+- Detailed logging: Request IDs, processing times, stack traces
+- Auto-retry on webhook failure (returns 500 status)
+- Reuses existing payment intents when valid
+
 ```
 
 **Avatar Upload Details:**

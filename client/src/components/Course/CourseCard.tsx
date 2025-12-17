@@ -12,6 +12,7 @@ import {
   Rating,
   useTheme,
   alpha,
+  CircularProgress,
 } from '@mui/material';
 import {
   PlayCircleOutline,
@@ -55,6 +56,7 @@ interface CourseCardProps {
   course: Course;
   variant?: 'default' | 'enrolled' | 'compact';
   currentUserId?: string; // Added to detect if user is instructor
+  isEnrolling?: boolean; // Disable enroll button during enrollment
   onEnroll?: (courseId: string) => void;
   onBookmark?: (courseId: string, isBookmarked: boolean) => void;
   onShare?: (courseId: string) => void;
@@ -65,6 +67,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({
   course,
   variant = 'default',
   currentUserId,
+  isEnrolling = false,
   onEnroll,
   onBookmark,
   onShare,
@@ -642,6 +645,8 @@ export const CourseCard: React.FC<CourseCardProps> = ({
               variant="contained"
               size="small"
               onClick={handleEnrollClick}
+              disabled={isEnrolling}
+              startIcon={isEnrolling ? <CircularProgress size={16} color="inherit" /> : null}
               sx={{
                 textTransform: 'none',
                 fontWeight: 'bold',
@@ -657,7 +662,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({
                 },
               }}
             >
-              Enroll Now
+              {isEnrolling ? 'Enrolling...' : 'Enroll Now'}
             </Button>
           ) : variant === 'enrolled' ? (
             <Button

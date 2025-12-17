@@ -77,6 +77,21 @@ POST   /api/payments/test-complete               - DEV ONLY: Complete test payme
 - Test endpoint: `/api/payments/test-complete` for local development
 - Frontend: Test Complete button, download functionality
 
+**Duplicate Transaction Prevention (Phase 6 - Dec 17, 2025):**
+- **Problem**: Race conditions causing multiple pending transactions for same course enrollment
+- **Root Cause**: Check-then-insert pattern in StripeService allowed simultaneous requests to both pass
+- **Solution Architecture** (3-Layer Defense):
+  1. **Database Level** (DEFINITIVE): Filtered unique index `IX_Transactions_Unique_Pending` on (UserId, CourseId) WHERE Status='pending'
+  2. **Backend Level**: Try-catch around INSERT, detects constraint violations (errors 2601/2627), returns existing payment intent
+  3. **Frontend Level**: Button debouncing, useRef with courseId tracking prevents React Strict Mode duplicates
+- **Technical Details**:
+  - Filtered index allows multiple completed/refunded transactions (purchase history)
+  - StripeService gracefully handles constraint violations without user-visible errors
+  - CourseCheckoutPage tracks courseId in useRef (not boolean) to prevent Strict Mode double-execution
+  - CoursesPage maintains Set of enrolling courseIds with loading states
+- **Result**: Mathematically impossible to create duplicate pending transactions
+- **Files**: `database/fix_duplicate_transactions.sql`, `server/src/services/StripeService.ts`, `DUPLICATE_FIX_FINAL.md`
+
 **Error Handling & Reliability (Phase 5 - Dec 15, 2025):**
 - Idempotency keys: Prevent duplicate charges (checks last 30 min)
 - Webhook retry logic: Exponential backoff (7 retries over 24h)

@@ -30,8 +30,9 @@ import { useAuthStore } from '../../stores/authStore';
 
 const PaymentSuccessPage: React.FC = () => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const courseId = searchParams.get('courseId');
+  const paymentIntentId = searchParams.get('payment_intent');
   const { token } = useAuthStore();
   const [course, setCourse] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -43,6 +44,14 @@ const PaymentSuccessPage: React.FC = () => {
   });
 
   useEffect(() => {
+    // Clean sensitive parameters from URL (client_secret)
+    if (searchParams.has('payment_intent_client_secret')) {
+      const cleanParams = new URLSearchParams(searchParams);
+      cleanParams.delete('payment_intent_client_secret');
+      cleanParams.delete('redirect_status');
+      setSearchParams(cleanParams, { replace: true });
+    }
+
     const loadCourseAndConfirmEnrollment = async () => {
       if (!courseId) {
         setError('Course ID is missing');
@@ -55,7 +64,8 @@ const PaymentSuccessPage: React.FC = () => {
         const courseData = await coursesApi.getCourse(courseId);
         setCourse(courseData);
 
-        // Confirm enrollment (in case webhook wasn't triggered)
+        // Confirm enrollment (in case webhook wasn't triggered yet)
+        // In test mode, webhook may not fire immediately - that's OK
         try {
           const API_BASE_URL = 'http://localhost:3001/api';
           const response = await fetch(`${API_BASE_URL}/payments/confirm-enrollment`, {
@@ -64,17 +74,19 @@ const PaymentSuccessPage: React.FC = () => {
               'Content-Type': 'application/json',
               'Authorization': `Bearer ${token}`,
             },
-            body: JSON.stringify({ courseId }),
+            body: JSON.stringify({ courseId, paymentIntentId }),
           });
           
           if (response.ok) {
-            console.log('✅ Enrollment confirmed');
+            console.log('✅ Enrollment confirmed immediately');
+          } else if (response.status === 403) {
+            console.log('⏳ Payment is processing - webhook will complete enrollment shortly');
           } else {
-            console.warn('Failed to confirm enrollment:', response.status);
+            console.warn('⚠️ Enrollment confirmation returned:', response.status);
           }
         } catch (enrollError) {
-          console.warn('Could not confirm enrollment:', enrollError);
-          // Non-critical, webhook might have already handled it
+          console.log('⏳ Enrollment will be completed by webhook');
+          // Non-critical, webhook will handle it
         }
 
         setLoading(false);

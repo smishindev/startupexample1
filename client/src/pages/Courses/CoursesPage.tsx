@@ -128,6 +128,7 @@ export const CoursesPage: React.FC = () => {
   const [searchLoading, setSearchLoading] = useState(false);
   const [bookmarksLoading, setBookmarksLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [enrollingCourses, setEnrollingCourses] = useState<Set<string>>(new Set());
   const [shareDialog, setShareDialog] = useState<{
     open: boolean;
     course: Course | null;
@@ -440,6 +441,14 @@ export const CoursesPage: React.FC = () => {
   };
 
   const handleEnroll = async (courseId: string) => {
+    // Prevent duplicate enrollments
+    if (enrollingCourses.has(courseId)) {
+      console.log('Enrollment already in progress for:', courseId);
+      return;
+    }
+
+    setEnrollingCourses(prev => new Set(prev).add(courseId));
+    
     try {
       await enrollmentApi.enrollInCourse(courseId);
       
@@ -462,6 +471,14 @@ export const CoursesPage: React.FC = () => {
       
       try {
         const errorData = JSON.parse(error.message);
+        
+        // Redirect to checkout if payment is required
+        if (errorData.code === 'PAYMENT_REQUIRED' || errorData.status === 402) {
+          console.log('Payment required, redirecting to checkout...');
+          navigate(`/checkout/${courseId}`);
+          return;
+        }
+        
         if (errorData.code === 'ALREADY_ENROLLED') {
           // User is already enrolled, update the UI to reflect this
           setAllCourses(prev => prev.map(course => 
@@ -477,6 +494,13 @@ export const CoursesPage: React.FC = () => {
       }
       
       setError(errorMessage);
+    } finally {
+      // Always remove from enrolling set
+      setEnrollingCourses(prev => {
+        const next = new Set(prev);
+        next.delete(courseId);
+        return next;
+      });
     }
   };
 
@@ -915,6 +939,7 @@ export const CoursesPage: React.FC = () => {
                         onEnroll={handleEnroll}
                         onBookmark={handleBookmark}
                         onShare={handleShare}
+                        isEnrolling={enrollingCourses.has(course.id)}
                         onClick={handleCourseClick}
                       />
                     </Grid>
@@ -1016,6 +1041,7 @@ export const CoursesPage: React.FC = () => {
                     onEnroll={handleEnroll}
                     onBookmark={handleBookmark}
                     onShare={handleShare}
+                    isEnrolling={enrollingCourses.has(course.id)}
                     onClick={handleCourseClick}
                   />
                 </Grid>

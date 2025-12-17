@@ -17,10 +17,19 @@ router.get('/stats', authenticateToken, authorize(['instructor', 'admin']), asyn
         COUNT(*) as totalCourses,
         SUM(CASE WHEN IsPublished = 1 THEN 1 ELSE 0 END) as publishedCourses,
         SUM(CASE WHEN IsPublished = 0 THEN 1 ELSE 0 END) as draftCourses,
-        AVG(CAST(Rating as FLOAT)) as avgRating,
-        SUM(Price * EnrollmentCount) as totalRevenue
+        AVG(CAST(Rating as FLOAT)) as avgRating
       FROM Courses 
       WHERE InstructorId = @instructorId
+    `, { instructorId: userId });
+
+    // Calculate revenue from completed transactions
+    const revenueStats = await db.query(`
+      SELECT 
+        ISNULL(SUM(t.Amount), 0) as totalRevenue
+      FROM Transactions t
+      INNER JOIN Courses c ON t.CourseId = c.Id
+      WHERE c.InstructorId = @instructorId 
+        AND t.Status = 'completed'
     `, { instructorId: userId });
 
     // Get total students enrolled
@@ -40,7 +49,7 @@ router.get('/stats', authenticateToken, authorize(['instructor', 'admin']), asyn
       totalStudents: studentStats[0]?.totalStudents || 0,
       totalEnrollments: studentStats[0]?.totalEnrollments || 0,
       avgRating: courseStats[0]?.avgRating || 0,
-      totalRevenue: courseStats[0]?.totalRevenue || 0,
+      totalRevenue: revenueStats[0]?.totalRevenue || 0,
       monthlyGrowth: 0, // TODO: Calculate from historical data
       completionRate: 0 // TODO: Calculate from course progress data
     };

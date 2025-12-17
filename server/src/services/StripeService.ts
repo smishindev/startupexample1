@@ -105,24 +105,56 @@ export class StripeService {
       });
 
       // Create pending transaction in database
-      await db.query(
-        `INSERT INTO dbo.Transactions (
-          Id, UserId, CourseId, Amount, Currency, Status,
-          StripePaymentIntentId, PaymentMethod, CreatedAt
-        ) VALUES (
-          NEWID(), @userId, @courseId, @amount, @currency, 'pending',
-          @paymentIntentId, 'card', GETUTCDATE()
-        )`,
-        {
-          userId,
-          courseId,
-          amount,
-          currency: currency.toUpperCase(),
-          paymentIntentId: paymentIntent.id,
-        }
-      );
+      // Wrapped in try-catch to handle race condition where duplicate is created
+      try {
+        await db.query(
+          `INSERT INTO dbo.Transactions (
+            Id, UserId, CourseId, Amount, Currency, Status,
+            StripePaymentIntentId, PaymentMethod, CreatedAt
+          ) VALUES (
+            NEWID(), @userId, @courseId, @amount, @currency, 'pending',
+            @paymentIntentId, 'card', GETUTCDATE()
+          )`,
+          {
+            userId,
+            courseId,
+            amount,
+            currency: currency.toUpperCase(),
+            paymentIntentId: paymentIntent.id,
+          }
+        );
 
-      console.log(`✅ Payment Intent created: ${paymentIntent.id} for user ${userId}, course ${courseId}`);
+        console.log(`✅ Payment Intent created: ${paymentIntent.id} for user ${userId}, course ${courseId}`);
+      } catch (insertError: any) {
+        // Check if it's a unique constraint violation (error 2601 or 2627)
+        if (insertError.number === 2601 || insertError.number === 2627) {
+          console.log(`⚠️ Duplicate pending transaction detected for user ${userId}, course ${courseId}`);
+          console.log(`🔄 Retrieving existing pending transaction...`);
+          
+          // Query for the existing pending transaction
+          const existingPending = await db.query<{ StripePaymentIntentId: string }>(
+            `SELECT StripePaymentIntentId FROM dbo.Transactions 
+             WHERE UserId = @userId AND CourseId = @courseId AND Status = 'pending'`,
+            { userId, courseId }
+          );
+
+          if (existingPending.length > 0 && existingPending[0].StripePaymentIntentId) {
+            // Return the existing payment intent instead
+            const existingIntent = await this.stripe.paymentIntents.retrieve(
+              existingPending[0].StripePaymentIntentId
+            );
+            
+            console.log(`♻️ Returning existing payment intent: ${existingIntent.id}`);
+            return {
+              paymentIntent: existingIntent,
+              clientSecret: existingIntent.client_secret!,
+            };
+          }
+        }
+        
+        // If it's not a unique constraint violation or we couldn't find existing, rethrow
+        throw insertError;
+      }
 
       return {
         paymentIntent,

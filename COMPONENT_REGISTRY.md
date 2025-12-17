@@ -36,8 +36,14 @@
 - Stripe PaymentElement integration
 - Loading states and error handling
 - Secure payment processing
+- **React Strict Mode Protection (Dec 17, 2025)**: useRef with courseId tracking prevents duplicate payment intent creation
 
-**Status**: ✅ Fully functional with Phase 2.1 complete
+**Implementation Details**:
+- `initializingCourseRef` stores courseId (not boolean) to prevent React 18 Strict Mode double-execution
+- Effect checks if already initializing same courseId before creating payment intent
+- Database constraint prevents duplicate pending transactions at backend
+
+**Status**: ✅ Fully functional with Phase 6 duplicate prevention complete
 
 ---
 

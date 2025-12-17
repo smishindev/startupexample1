@@ -41,13 +41,24 @@ Role: Student
 2. Login as instructor in one, student in other
 3. Test real-time features (presence, notifications, chat)
 
-**Payment Testing (Dec 14, 2025):**
+**Payment Testing (Dec 14-17, 2025):**
 - Navigate to Transactions page (`/profile/transactions`)
 - Pending transactions show green "Test Complete" button
 - Click to simulate webhook completion (DEV ONLY)
 - Invoice PDF generated automatically
 - Download invoice with branded PDF (Mishin Learn purple theme)
 - Stripe test card: 4242 4242 4242 4242, any future date, any CVC
+- **Duplicate Prevention (Dec 17)**: Database constraint prevents multiple pending transactions
+  - Only 1 pending transaction allowed per user+course combination
+  - Frontend buttons disable during enrollment with loading states
+  - Backend gracefully handles constraint violations
+
+**Testing Duplicate Prevention:**
+1. Open course checkout page
+2. Click "Enroll Now" button rapidly multiple times
+3. Verify: Only 1 pending transaction created (check Transactions page)
+4. Database query: `SELECT * FROM Transactions WHERE Status='pending' AND UserId=@id`
+5. Expected: Single row per course enrollment
 
 ---
 

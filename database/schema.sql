@@ -658,6 +658,12 @@ CREATE TABLE dbo.Transactions (
     -- Timestamps
     CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
     CompletedAt DATETIME2 NULL,
+
+-- ⚡ CRITICAL: Apply unique constraint to prevent duplicate pending transactions (Dec 17, 2025)
+-- After table creation, run: database/fix_duplicate_transactions.sql
+-- Creates filtered index: IX_Transactions_Unique_Pending on (UserId, CourseId) WHERE Status='pending'
+-- Backend handles constraint violations gracefully - see server/src/services/StripeService.ts
+-- Documentation: DUPLICATE_FIX_FINAL.md
     RefundedAt DATETIME2 NULL,
     UpdatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE()
 );

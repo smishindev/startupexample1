@@ -3,7 +3,7 @@
  * Integrates with Stripe Payment Element for secure payment processing
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -161,14 +161,38 @@ const CourseCheckoutPage: React.FC = () => {
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const initializingCourseRef = useRef<string | null>(null); // Track which course is being initialized
+
+  // Memoize Stripe options - must be at top level before any returns
+  const stripeOptions = useMemo(() => {
+    if (!clientSecret) return null;
+    return {
+      clientSecret,
+      appearance: {
+        theme: 'stripe' as const,
+        variables: {
+          colorPrimary: '#1976d2',
+          borderRadius: '8px',
+        },
+      },
+    };
+  }, [clientSecret]);
 
   useEffect(() => {
     const initializeCheckout = async () => {
+      // Prevent duplicate initialization for the same course (React 18 Strict Mode protection)
+      if (initializingCourseRef.current === courseId) {
+        console.log(`Checkout already initializing for course ${courseId}, skipping duplicate call`);
+        return;
+      }
+
       if (!courseId) {
         setError('Course ID is missing');
         setLoading(false);
         return;
       }
+
+      initializingCourseRef.current = courseId;
 
       try {
         // Fetch course details
@@ -221,10 +245,19 @@ const CourseCheckoutPage: React.FC = () => {
         
         setError(errorMessage);
         setLoading(false);
+        initializingCourseRef.current = null; // Reset on error to allow retry
       }
     };
 
     initializeCheckout();
+
+    // Cleanup function
+    return () => {
+      // Only reset if still initializing this specific course
+      if (initializingCourseRef.current === courseId) {
+        initializingCourseRef.current = null;
+      }
+    };
   }, [courseId, navigate]);
 
   const handlePaymentSuccess = () => {
@@ -243,7 +276,7 @@ const CourseCheckoutPage: React.FC = () => {
     );
   }
 
-  if (error || !course || !clientSecret) {
+  if (error || !course || !clientSecret || !stripeOptions) {
     return (
       <Container maxWidth="md" sx={{ py: 8 }}>
         <Alert severity="error" sx={{ mb: 3 }}>
@@ -255,17 +288,6 @@ const CourseCheckoutPage: React.FC = () => {
       </Container>
     );
   }
-
-  const stripeOptions = {
-    clientSecret,
-    appearance: {
-      theme: 'stripe' as const,
-      variables: {
-        colorPrimary: '#1976d2',
-        borderRadius: '8px',
-      },
-    },
-  };
 
   return (
     <>

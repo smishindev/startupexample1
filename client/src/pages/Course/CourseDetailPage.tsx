@@ -31,6 +31,7 @@ import {
   DialogActions,
   IconButton,
   Tooltip,
+  Snackbar,
 } from '@mui/material';
 import {
   PlayCircleOutline,
@@ -133,6 +134,11 @@ export const CourseDetailPage: React.FC = () => {
   const [enrollmentDialog, setEnrollmentDialog] = useState(false);
   const [enrollmentResult, setEnrollmentResult] = useState<any>(null);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [snackbar, setSnackbar] = useState<{
+    open: boolean;
+    message: string;
+    severity: 'success' | 'error' | 'warning' | 'info';
+  }>({ open: false, message: '', severity: 'info' });
 
   // Fetch real course data from API
   // Refresh enrollment status when returning from payment
@@ -330,20 +336,44 @@ export const CourseDetailPage: React.FC = () => {
   };
 
   const handleBookmark = async () => {
-    if (!courseId || !user) return;
+    if (!user) {
+      setSnackbar({
+        open: true,
+        message: 'Please log in to bookmark courses',
+        severity: 'warning'
+      });
+      return;
+    }
+
+    if (!courseId) return;
     
     try {
-      if (isBookmarked) {
-        await BookmarkApi.removeBookmark(courseId);
-        setIsBookmarked(false);
-      } else {
+      const newBookmarkState = !isBookmarked;
+      
+      if (newBookmarkState) {
         await BookmarkApi.addBookmark(courseId);
-        setIsBookmarked(true);
+        setSnackbar({
+          open: true,
+          message: 'Course bookmarked successfully',
+          severity: 'success'
+        });
+      } else {
+        await BookmarkApi.removeBookmark(courseId);
+        setSnackbar({
+          open: true,
+          message: 'Bookmark removed successfully',
+          severity: 'success'
+        });
       }
+      
+      setIsBookmarked(newBookmarkState);
     } catch (error) {
       console.error('Failed to update bookmark:', error);
-      // Revert the state if API call fails
-      setIsBookmarked(isBookmarked);
+      setSnackbar({
+        open: true,
+        message: 'Failed to update bookmark. Please try again.',
+        severity: 'error'
+      });
     }
   };
 
@@ -1174,6 +1204,24 @@ export const CourseDetailPage: React.FC = () => {
           }}
         />
       )}
+
+      {/* Snackbar for user feedback */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        sx={{ zIndex: 9999 }}
+      >
+        <Alert 
+          onClose={() => setSnackbar({ ...snackbar, open: false })} 
+          severity={snackbar.severity}
+          variant="filled"
+          sx={{ width: '100%', minWidth: '300px' }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

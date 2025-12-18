@@ -21,6 +21,7 @@ import {
   Card,
   CardContent,
   Rating,
+  Snackbar,
 } from '@mui/material';
 import { Search, FilterList, TrendingUp } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
@@ -143,6 +144,11 @@ export const CoursesPage: React.FC = () => {
     hasNext: false,
     hasPrev: false,
   });
+  const [snackbar, setSnackbar] = useState<{
+    open: boolean;
+    message: string;
+    severity: 'success' | 'error' | 'warning' | 'info';
+  }>({ open: false, message: '', severity: 'info' });
 
   // Debounce search query to prevent excessive API calls and flickering
   useEffect(() => {
@@ -507,14 +513,28 @@ export const CoursesPage: React.FC = () => {
   const handleBookmark = async (courseId: string, isBookmarked: boolean) => {
     try {
       if (!isAuthenticated) {
-        setError('Please log in to bookmark courses.');
+        setSnackbar({
+          open: true,
+          message: 'Please log in to bookmark courses',
+          severity: 'warning'
+        });
         return;
       }
 
       if (isBookmarked) {
         await BookmarkApi.addBookmark(courseId);
+        setSnackbar({
+          open: true,
+          message: 'Course bookmarked successfully',
+          severity: 'success'
+        });
       } else {
         await BookmarkApi.removeBookmark(courseId);
+        setSnackbar({
+          open: true,
+          message: 'Bookmark removed successfully',
+          severity: 'success'
+        });
       }
       
       // Update the course in all relevant states
@@ -538,7 +558,11 @@ export const CoursesPage: React.FC = () => {
       console.log(`Successfully ${isBookmarked ? 'added' : 'removed'} bookmark for course:`, courseId);
     } catch (error) {
       console.error('Failed to update bookmark:', error);
-      setError(`Failed to ${isBookmarked ? 'add' : 'remove'} bookmark. Please try again.`);
+      setSnackbar({
+        open: true,
+        message: `Failed to ${isBookmarked ? 'add' : 'remove'} bookmark. Please try again.`,
+        severity: 'error'
+      });
     }
   };
 
@@ -1072,6 +1096,24 @@ export const CoursesPage: React.FC = () => {
           course={shareDialog.course}
         />
       )}
+
+      {/* Snackbar for user feedback */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        sx={{ zIndex: 9999 }}
+      >
+        <Alert 
+          onClose={() => setSnackbar({ ...snackbar, open: false })} 
+          severity={snackbar.severity}
+          variant="filled"
+          sx={{ width: '100%', minWidth: '300px' }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

@@ -98,6 +98,22 @@ Role: Student
 4. Database query: `SELECT * FROM Transactions WHERE Status='pending' AND UserId=@id`
 5. Expected: Single row per course enrollment
 
+**Bookmark Testing (Dec 18, 2025):**
+- **CoursesPage**: All Courses, Enrolled, and Bookmarked tabs fully functional
+- **CourseDetail**: Bookmark button now persists to database (previously broken)
+- Test scenarios:
+  1. Not logged in: Click bookmark → Shows warning toast
+  2. Logged in: Click bookmark → Icon fills, success toast, persists on refresh
+  3. Navigate to Bookmarked tab: Course appears in list
+  4. Unbookmark from any page: Updates across all pages
+  5. Database check: `SELECT * FROM Bookmarks WHERE UserId=@yourUserId`
+- Features:
+  - Authentication required
+  - Duplicate prevention (UNIQUE constraint)
+  - Real-time state updates
+  - Snackbar feedback (success/error/warning)
+  - Cross-page synchronization (via page refresh)
+
 ---
 
 ## 📚 DOCUMENTATION FILES - WHAT TO READ WHEN

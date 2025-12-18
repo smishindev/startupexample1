@@ -117,7 +117,7 @@ POST   /api/payments/test-complete               - DEV ONLY: Complete test payme
 - Case conversion: Frontend camelCase ↔ Backend PascalCase
 - Time format: SQL Server TIME type, HTML5 HH:mm input
 - UPSERT logic: Creates default record if doesn't exist
-- ⚠️ Currently storage only - NOT enforced in notification sending (see TODO)
+- ✅ FULLY ENFORCED (Dec 18, 2025) - Queue system with cron job processing
 
 ---
 

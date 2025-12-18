@@ -31,6 +31,7 @@ import {
   DialogContent,
   DialogActions,
   Skeleton,
+  Snackbar,
 } from '@mui/material';
 import {
   PlayCircleOutline,
@@ -53,6 +54,7 @@ import {
 import { HeaderV4 as Header } from '../../components/Navigation/HeaderV4';
 import { coursesApi, CourseDetail as CourseDetailType, EnrollmentStatus } from '../../services/coursesApi';
 import { enrollmentApi } from '../../services/enrollmentApi';
+import { BookmarkApi } from '../../services/bookmarkApi';
 import { useAuthStore } from '../../stores/authStore';
 
 const CourseDetail: React.FC = () => {
@@ -68,15 +70,33 @@ const CourseDetail: React.FC = () => {
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [enrollmentDialog, setEnrollmentDialog] = useState(false);
   const [enrollmentResult, setEnrollmentResult] = useState<any>(null);
+  const [snackbar, setSnackbar] = useState<{
+    open: boolean;
+    message: string;
+    severity: 'success' | 'error' | 'warning' | 'info';
+  }>({ open: false, message: '', severity: 'info' });
 
   useEffect(() => {
     if (id) {
       loadCourseDetails();
       if (user) {
         loadEnrollmentStatus();
+        loadBookmarkStatus();
       }
     }
   }, [id, user]);
+
+  const loadBookmarkStatus = async () => {
+    try {
+      if (id && user) {
+        const status = await BookmarkApi.checkBookmarkStatus(id);
+        setIsBookmarked(status.isBookmarked);
+      }
+    } catch (err) {
+      console.error('Error loading bookmark status:', err);
+      // Don't show error to user, just default to not bookmarked
+    }
+  };
 
   const loadCourseDetails = async () => {
     try {
@@ -160,9 +180,49 @@ const CourseDetail: React.FC = () => {
     }
   };
 
-  const handleBookmark = () => {
-    setIsBookmarked(!isBookmarked);
-    // TODO: Implement bookmark API
+  const handleBookmark = async () => {
+    if (!user) {
+      setSnackbar({
+        open: true,
+        message: 'Please log in to bookmark courses',
+        severity: 'warning'
+      });
+      return;
+    }
+
+    try {
+      const newBookmarkState = !isBookmarked;
+      
+      if (newBookmarkState) {
+        await BookmarkApi.addBookmark(id!);
+        console.log('✅ Bookmark added successfully');
+        setSnackbar({
+          open: true,
+          message: 'Course bookmarked successfully',
+          severity: 'success'
+        });
+        console.log('Snackbar state set:', { open: true, message: 'Course bookmarked successfully' });
+      } else {
+        await BookmarkApi.removeBookmark(id!);
+        console.log('✅ Bookmark removed successfully');
+        setSnackbar({
+          open: true,
+          message: 'Bookmark removed successfully',
+          severity: 'success'
+        });
+        console.log('Snackbar state set:', { open: true, message: 'Bookmark removed successfully' });
+      }
+      
+      setIsBookmarked(newBookmarkState);
+      
+    } catch (error) {
+      console.error('Failed to update bookmark:', error);
+      setSnackbar({
+        open: true,
+        message: 'Failed to update bookmark. Please try again.',
+        severity: 'error'
+      });
+    }
   };
 
   const handleShare = () => {
@@ -610,6 +670,24 @@ const CourseDetail: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Snackbar for user feedback */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        sx={{ zIndex: 9999 }}
+      >
+        <Alert 
+          onClose={() => setSnackbar({ ...snackbar, open: false })} 
+          severity={snackbar.severity}
+          variant="filled"
+          sx={{ width: '100%', minWidth: '300px' }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

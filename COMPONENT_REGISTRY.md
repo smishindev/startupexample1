@@ -232,6 +232,7 @@
   - `course: CourseDetails | null` - Course data
   - `enrollmentStatus: any | null` - Enrollment + instructor status
   - `isBookmarked: boolean` - Bookmark state
+  - `snackbar: { open: boolean; message: string; severity: 'success' | 'error' | 'warning' | 'info' }` - Toast notifications
   - `loading: boolean` - Loading state
   - `error: string | null` - Error message
   - `isEnrolling: boolean` - Enrollment in progress
@@ -431,7 +432,7 @@ lessons.map(lesson => {
 - **Progress not saving**: Check if instructor preview mode (should not save)
 - **Video progress not resuming**: Check `videoProgressApi.getProgress()` call
 - **Completion button missing**: Check `isInstructorPreview` flag
-- **Bookmark not working**: Same logic as CourseDetailPage
+- **Bookmark functionality**: ✅ FULLY WORKING - Snackbar feedback, authentication check, persists to database (Fixed Dec 18, 2025)
 
 **Critical**: Instructors must NOT create progress records when previewing their own courses.
 

@@ -122,7 +122,6 @@ export const CourseCreationForm: React.FC = () => {
   const [currentLesson, setCurrentLesson] = useState<Partial<Lesson>>({});
   const [thumbnailPreview, setThumbnailPreview] = useState<string>('');
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
-  const [uploadedThumbnailUrl, setUploadedThumbnailUrl] = useState<string>('');
   const [saving, setSaving] = useState(false);
   
   // Upload progress state
@@ -504,7 +503,6 @@ export const CourseCreationForm: React.FC = () => {
         try {
           const uploadedFile = await fileUploadApi.uploadFile(thumbnailFile, { fileType: 'image' });
           thumbnailUrl = uploadedFile.url;
-          setUploadedThumbnailUrl(thumbnailUrl);
         } catch (error) {
           console.error('Thumbnail upload failed:', error);
           alert('Failed to upload thumbnail. Course will be created without thumbnail.');

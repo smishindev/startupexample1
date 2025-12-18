@@ -13,7 +13,6 @@ import {
   Tooltip,
   CircularProgress
 } from '@mui/material';
-import { toast } from 'sonner';
 import {
   Notifications as NotificationsIcon,
   NotificationsNone as NotificationsNoneIcon,
@@ -69,18 +68,25 @@ export const NotificationBell: React.FC = () => {
         socketService.onNotification((notification) => {
           console.log('Received real-time notification:', notification);
           
-          // Add to notifications list
-          setNotifications(prev => [{
+          // Add to notifications list (cast to proper type)
+          const newNotification: Notification = {
             Id: notification.id,
-            Type: notification.type,
-            Priority: notification.priority,
+            UserId: '',
+            Type: notification.type as any,
+            Priority: notification.priority as any,
             Title: notification.title,
             Message: notification.message,
-            ActionUrl: notification.actionUrl,
-            ActionText: notification.actionText,
+            Data: null,
+            RelatedEntityId: null,
+            RelatedEntityType: null,
+            ActionUrl: notification.actionUrl || null,
+            ActionText: notification.actionText || null,
             CreatedAt: new Date().toISOString(),
+            ReadAt: null,
+            ExpiresAt: null,
             IsRead: false
-          }, ...prev]);
+          };
+          setNotifications(prev => [newNotification, ...prev]);
           
           // Increment unread count
           setUnreadCount(prev => prev + 1);

@@ -110,7 +110,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     const handleComplete = () => {
       onComplete?.();
       if (videoLessonId && enableProgressTracking) {
-        updateVideoProgress(videoLessonId, Math.floor(video.currentTime), video.duration)
+        updateVideoProgress(videoLessonId, Math.floor(video.currentTime))
           .catch(err => console.error('Failed to save completion:', err));
       }
     };
@@ -136,7 +136,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         const currentPos = Math.floor(video.currentTime);
         // Only save if position changed by at least 1 second
         if (Math.abs(currentPos - lastSavedPosition.current) >= 1) {
-          updateVideoProgress(videoLessonId, currentPos, video.duration)
+          updateVideoProgress(videoLessonId, currentPos)
             .then(() => {
               lastSavedPosition.current = currentPos;
               // Show subtle notification

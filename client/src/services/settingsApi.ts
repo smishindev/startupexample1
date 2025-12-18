@@ -19,6 +19,31 @@ axios.interceptors.request.use((config) => {
   return config;
 });
 
+// Add response interceptor for privacy error handling
+axios.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    // Handle privacy-related errors
+    if (error.response?.data?.code === 'PROFILE_PRIVATE') {
+      error.privacyError = {
+        type: 'PROFILE_PRIVATE',
+        message: error.response.data.message || 'This profile is private'
+      };
+    } else if (error.response?.data?.code === 'PROGRESS_PRIVATE') {
+      error.privacyError = {
+        type: 'PROGRESS_PRIVATE',
+        message: error.response.data.message || 'This user\'s progress is private'
+      };
+    } else if (error.response?.data?.code === 'MESSAGES_DISABLED') {
+      error.privacyError = {
+        type: 'MESSAGES_DISABLED',
+        message: error.response.data.message || 'User does not accept direct messages'
+      };
+    }
+    return Promise.reject(error);
+  }
+);
+
 export interface UserSettings {
   id: string;
   userId: string;
@@ -75,4 +100,20 @@ export const deleteAccount = async (confirmPassword: string): Promise<{ success:
     confirmPassword
   });
   return response.data;
+};
+
+/**
+ * Get another user's public profile (with privacy checks)
+ */
+export const getUserProfile = async (userId: string): Promise<any> => {
+  const response = await axios.get(`${API_BASE}/profile/user/${userId}`);
+  return response.data.data;
+};
+
+/**
+ * Get another user's progress data (with privacy checks)
+ */
+export const getUserProgress = async (userId: string): Promise<any> => {
+  const response = await axios.get(`${API_BASE}/profile/user/${userId}/progress`);
+  return response.data.data;
 };

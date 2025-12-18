@@ -322,7 +322,7 @@ const CourseDetail: React.FC = () => {
                         {course.Instructor.FirstName} {course.Instructor.LastName}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
-                        {course.Instructor.Email}
+                        {course.Instructor.Email || 'Email not public'}
                       </Typography>
                     </Box>
                   </Box>
@@ -428,18 +428,20 @@ const CourseDetail: React.FC = () => {
                 />
               )}
 
-              {/* Price */}
-              <Box sx={{ mb: 3, textAlign: 'center' }}>
-                {course.Price === 0 ? (
-                  <Typography variant="h4" color="success.main" sx={{ fontWeight: 'bold' }}>
-                    Free
-                  </Typography>
-                ) : (
-                  <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
-                    ${course.Price}
-                  </Typography>
-                )}
-              </Box>
+              {/* Price - Only show if not enrolled and not instructor */}
+              {!enrollmentStatus?.isEnrolled && !enrollmentStatus?.isInstructor && (
+                <Box sx={{ mb: 3, textAlign: 'center' }}>
+                  {course.Price === 0 ? (
+                    <Typography variant="h4" color="success.main" sx={{ fontWeight: 'bold' }}>
+                      Free
+                    </Typography>
+                  ) : (
+                    <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+                      ${course.Price}
+                    </Typography>
+                  )}
+                </Box>
+              )}
 
               {/* Enrollment Button */}
               <Box sx={{ mb: 3 }}>

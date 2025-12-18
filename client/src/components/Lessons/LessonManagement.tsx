@@ -8,14 +8,9 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemSecondaryAction,
   Fab,
   Alert,
-  Chip,
-  Divider
+  Chip
 } from '@mui/material';
 import { lessonApi, Lesson } from '../../services/lessonApi';
 import { LessonEditor } from './LessonEditor';

@@ -241,11 +241,115 @@ Toast: "Preferences saved successfully"
 └─→ TODO: Modify NotificationService.createNotification() to check preferences
 ```
 
+**Privacy Settings Flow** (added Dec 18, 2025):
+```
+User → Settings Page (/settings) → Privacy tab
+  ↓
+Load: settingsApi.getSettings()
+  ↓ (GET /api/settings)
+Backend SettingsService.getUserSettings()
+  ↓ (UserSettings table: ProfileVisibility, ShowEmail, ShowProgress, AllowMessages)
+Frontend: Display 4 privacy controls
+  ├─ Profile Visibility: public / students / private (radio)
+  ├─ Show Email: true / false (toggle)
+  ├─ Show Progress: true / false (toggle)
+  └─ Allow Messages: true / false (toggle)
+  ↓ (user changes setting)
+settingsApi.updateSettings(data)
+  ↓ (PATCH /api/settings with partial update)
+Backend SettingsService.updateUserSettings()
+  └─→ Update UserSettings table (UPSERT if not exists)
+  ↓
+Toast: "Privacy settings updated"
+
+✅ FULLY ENFORCED at API level (9 endpoints)
+```
+
+**Privacy Enforcement Architecture** (added Dec 18, 2025):
+```
+ANY API Request for User Data
+  ↓
+authenticateToken middleware → Extract viewerId
+  ↓
+Route handler → Get targetUserId from params/query
+  ↓
+SettingsService.canViewProfile(viewerId, targetUserId)
+  ├─→ Query UserSettings for ProfileVisibility
+  ├─→ Check visibility tier:
+  │     ├─ Public → ALLOW
+  │     ├─ Students → Check areStudentsTogether() → ALLOW/DENY
+  │     └─ Private → Check viewerId === targetUserId → ALLOW/DENY
+  ├─→ **Instructor Override Check**:
+  │     ├─ Get target's enrolled courses: SELECT CourseId FROM Enrollments
+  │     ├─ Check if viewer is instructor: SELECT FROM Courses WHERE InstructorId=viewerId
+  │     └─ If match found → ALLOW (override privacy)
+  └─→ Return: { allowed: true/false, reason: string }
+  ↓
+If allowed=false:
+  └─→ Return 403 with error code: PROFILE_PRIVATE
+  ↓
+If allowed=true:
+  ├─→ SettingsService.filterUserData(user, viewerId)
+  │     ├─ Query ShowEmail setting
+  │     ├─ **Instructor Override**: Check if viewer owns any target's courses
+  │     ├─ If ShowEmail=false AND not owner AND not instructor → email = NULL
+  │     └─ Return filtered user object
+  └─→ Return user data
+
+Similarly for Progress Viewing:
+  ↓
+SettingsService.canViewProgress(viewerId, targetUserId)
+  ├─→ Query ShowProgress setting
+  ├─→ **Instructor Override**: Check if viewer owns any target's courses
+  ├─→ If ShowProgress=false AND not owner AND not instructor → DENY
+  └─→ Return 403 with PROGRESS_PRIVATE or allow
+
+**Instructor Override Logic** (ALL 3 privacy settings):
+1. Get all courses where target is enrolled
+2. Check if viewer is instructor of ANY of those courses
+3. If yes → ALLOW access (override privacy)
+4. If no → Apply normal privacy rules
+```
+
+**Endpoints with Privacy Enforcement**:
+1. `/api/profile/user/:userId` - Profile viewing
+2. `/api/profile/user/:userId/progress` - Progress viewing
+3. `/api/users/instructors` - Instructor lists (email filtering)
+4. `/api/analytics/course/:id` - Recent activity (email filtering)
+5. `/api/presence/online` - Online users (email filtering, 2 endpoints)
+6. `/api/office-hours/queue` - Office hours queue (email filtering)
+7. `/api/study-groups/:id/members` - Study group members (email filtering)
+8. `/api/instructor/at-risk/:courseId` - At-risk students (email filtering, instructor override)
+9. `/api/instructor/low-progress/:courseId` - Low-progress students (email filtering, instructor override)
+10. `/api/students` - Student management (instructor override, always shows emails to course instructors)
+
+**Security Features**:
+- Fail-closed defaults: Error → Privacy denied
+- SQL injection prevention: Parameterized queries
+- Authentication required: All endpoints check JWT
+- Instructor verification: Query-based, not client-provided flags
+- Owner bypass: Users always see their own data
+
+**Frontend Privacy Handling**:
+```
+API Response with Hidden Email:
+  { Id: 123, FirstName: "John", LastName: "Doe", Email: null }
+  ↓
+UI Rendering:
+  {student.Email || 'Email hidden'}
+  ↓
+Conditional Actions:
+  <Button disabled={!student.Email} tooltip="Student's email is hidden">
+    Email Student
+  </Button>
+```
+
 **Key Files**:
 - `client/src/stores/authStore.ts` - Zustand store with token + user
 - `client/src/pages/Auth/LoginForm.tsx` - Login UI
 - `server/src/routes/auth.ts` - Auth endpoints
 - `server/src/middleware/auth.ts` - JWT verification
+- `server/src/services/SettingsService.ts` - Privacy enforcement logic
 
 **Token Storage**:
 ```javascript
@@ -257,7 +361,7 @@ localStorage['auth-storage'] = {
 }
 ```
 
-**Used By**: ALL API services (coursesApi, enrollmentApi, progressApi, bookmarkApi, etc.)
+**Used By**: ALL API services (coursesApi, enrollmentApi, progressApi, bookmarkApi, settingsApi, etc.)
 
 ---
 

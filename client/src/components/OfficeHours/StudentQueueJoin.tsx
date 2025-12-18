@@ -227,7 +227,7 @@ const StudentQueueJoin: React.FC<StudentQueueJoinProps> = ({
               </MenuItem>
               {instructors.map((instructor) => (
                 <MenuItem key={instructor.Id} value={instructor.Id}>
-                  {instructor.FirstName} {instructor.LastName} ({instructor.Email})
+                  {instructor.FirstName} {instructor.LastName} ({instructor.Email || 'Email hidden'})
                 </MenuItem>
               ))}
             </Select>

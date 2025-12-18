@@ -287,7 +287,7 @@ export const InstructorStudentAnalytics: React.FC = () => {
                           {student.studentName}
                         </Typography>
                         <Typography variant="caption" color="text.secondary">
-                          {student.email}
+                          {student.email || 'Email hidden'}
                         </Typography>
                       </Box>
                     </TableCell>

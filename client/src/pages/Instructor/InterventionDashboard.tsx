@@ -287,7 +287,7 @@ export const InterventionDashboard: React.FC = () => {
                             {student.FirstName} {student.LastName}
                           </Typography>
                           <Typography variant="caption" color="text.secondary">
-                            {student.Email}
+                            {student.Email || 'Email hidden'}
                           </Typography>
                         </Box>
                       </Stack>
@@ -341,14 +341,17 @@ export const InterventionDashboard: React.FC = () => {
                       >
                         View Analytics
                       </Button>
-                      <Tooltip title="Send Email">
-                        <IconButton
-                          size="small"
-                          color="primary"
-                          onClick={() => handleSendMessage(student.Email)}
-                        >
-                          <EmailIcon />
-                        </IconButton>
+                      <Tooltip title={student.Email ? "Send Email" : "Email hidden"}>
+                        <span>
+                          <IconButton
+                            size="small"
+                            color="primary"
+                            onClick={() => student.Email && handleSendMessage(student.Email)}
+                            disabled={!student.Email}
+                          >
+                            <EmailIcon />
+                          </IconButton>
+                        </span>
                       </Tooltip>
                     </CardActions>
                   </Card>
@@ -386,7 +389,7 @@ export const InterventionDashboard: React.FC = () => {
                         secondary={
                           <React.Fragment>
                             <Typography variant="body2" color="text.secondary" component="span" display="block">
-                              📧 {student.Email}
+                              📧 {student.Email || 'Email hidden'}
                             </Typography>
                             <Typography variant="body2" component="span" display="block">
                               📚 {student.CourseName}
@@ -417,13 +420,16 @@ export const InterventionDashboard: React.FC = () => {
                               <ViewIcon />
                             </IconButton>
                           </Tooltip>
-                          <Tooltip title="Send Message">
-                            <IconButton
-                              edge="end"
-                              onClick={() => handleSendMessage(student.Email)}
-                            >
-                              <MessageIcon />
-                            </IconButton>
+                          <Tooltip title={student.Email ? "Send Message" : "Email hidden"}>
+                            <span>
+                              <IconButton
+                                edge="end"
+                                onClick={() => student.Email && handleSendMessage(student.Email)}
+                                disabled={!student.Email}
+                              >
+                                <MessageIcon />
+                              </IconButton>
+                            </span>
                           </Tooltip>
                         </Stack>
                       </ListItemSecondaryAction>

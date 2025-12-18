@@ -1,9 +1,11 @@
 import { Router } from 'express';
 import { Server } from 'socket.io';
 import { StudyGroupService } from '../services/StudyGroupService';
+import { SettingsService } from '../services/SettingsService';
 import { authenticateToken, AuthRequest } from '../middleware/auth';
 
 const router = Router();
+const settingsService = new SettingsService();
 
 /**
  * @route   POST /api/study-groups
@@ -237,16 +239,31 @@ router.post('/:groupId/leave', authenticateToken, async (req: AuthRequest, res) 
 router.get('/:groupId/members', authenticateToken, async (req: AuthRequest, res) => {
   try {
     const { groupId } = req.params;
+    const viewerId = req.user!.userId;
 
     // Check if user is a member
-    const isMember = await StudyGroupService.isMember(groupId, req.user!.userId);
+    const isMember = await StudyGroupService.isMember(groupId, viewerId);
     if (!isMember) {
       return res.status(403).json({ message: 'You are not a member of this group' });
     }
 
     const members = await StudyGroupService.getMembers(groupId);
 
-    res.json({ members, count: members.length });
+    // Apply privacy filtering (group members can see each other, respect email)
+    const filteredMembers = await Promise.all(
+      members.map(async (member: any) => {
+        try {
+          const settings = await settingsService.getUserSettings(member.UserId);
+          const isOwnProfile = member.UserId === viewerId;
+          return settingsService.filterUserData(member, settings, isOwnProfile);
+        } catch (error) {
+          console.error(`Error filtering member ${member.UserId}:`, error);
+          return { ...member, Email: null };
+        }
+      })
+    );
+
+    res.json({ members: filteredMembers, count: filteredMembers.length });
   } catch (error) {
     console.error('Error fetching group members:', error);
     res.status(500).json({ 

@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { authenticateToken, AuthRequest } from '../middleware/auth';
 import { DatabaseService } from '../services/DatabaseService';
+import { SettingsService } from '../services/SettingsService';
 import { logger } from '../utils/logger';
 import bcrypt from 'bcryptjs';
 import multer from 'multer';
@@ -11,6 +12,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 const router = Router();
 const db = DatabaseService.getInstance();
+const settingsService = new SettingsService();
 
 // Configure multer for avatar uploads
 const UPLOAD_DIR = path.join(__dirname, '../../../uploads/images');
@@ -100,6 +102,138 @@ router.get('/', authenticateToken, async (req: AuthRequest, res) => {
     res.status(500).json({ 
       success: false, 
       message: 'Failed to fetch profile' 
+    });
+  }
+});
+
+// GET /api/profile/user/:userId - View another user's profile (with privacy checks)
+router.get('/user/:userId', authenticateToken, async (req: AuthRequest, res) => {
+  try {
+    const targetUserId = req.params.userId;
+    const viewerId = req.user!.userId;
+
+    logger.info(`Profile view request: ${viewerId} viewing ${targetUserId}`);
+
+    // Check if viewer can see this profile
+    const visibilityCheck = await settingsService.canViewProfile(targetUserId, viewerId);
+
+    if (!visibilityCheck.allowed) {
+      logger.warn(`Profile access denied: ${viewerId} cannot view ${targetUserId} - ${visibilityCheck.reason}`);
+      return res.status(403).json({ 
+        success: false,
+        error: 'Profile access denied',
+        code: 'PROFILE_PRIVATE',
+        message: visibilityCheck.reason || 'This profile is private'
+      });
+    }
+
+    // Get user data with privacy filtering applied
+    const filteredUser = await settingsService.getUserWithPrivacy(targetUserId, viewerId, 'profile');
+
+    if (!filteredUser) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'User not found' 
+      });
+    }
+
+    // Return limited profile data (not billing address or sensitive info)
+    const publicProfile = {
+      id: filteredUser.Id,
+      username: filteredUser.Username,
+      firstName: filteredUser.FirstName,
+      lastName: filteredUser.LastName,
+      avatar: filteredUser.Avatar,
+      role: filteredUser.Role,
+      learningStyle: filteredUser.LearningStyle,
+      email: filteredUser.Email, // Will be null if ShowEmail = false
+      createdAt: filteredUser.CreatedAt
+    };
+
+    logger.info(`Profile viewed successfully: ${viewerId} → ${targetUserId}`);
+
+    res.json({ 
+      success: true, 
+      data: publicProfile 
+    });
+  } catch (error) {
+    logger.error('View profile error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to fetch profile' 
+    });
+  }
+});
+
+// GET /api/profile/user/:userId/progress - View another user's progress (with privacy checks)
+router.get('/user/:userId/progress', authenticateToken, async (req: AuthRequest, res) => {
+  try {
+    const targetUserId = req.params.userId;
+    const viewerId = req.user!.userId;
+
+    logger.info(`Progress view request: ${viewerId} viewing ${targetUserId}'s progress`);
+
+    // Check if viewer can see this user's progress
+    const canView = await settingsService.canViewProgress(targetUserId, viewerId);
+
+    if (!canView) {
+      logger.warn(`Progress access denied: ${viewerId} cannot view ${targetUserId}'s progress`);
+      return res.status(403).json({ 
+        success: false,
+        error: 'Progress access denied',
+        code: 'PROGRESS_PRIVATE',
+        message: 'This user\'s progress is private'
+      });
+    }
+
+    // Get user progress data
+    const progressData = await db.query(`
+      SELECT 
+        COUNT(DISTINCT cp.CourseId) as totalCourses,
+        AVG(CAST(cp.OverallProgress as FLOAT)) as avgProgress,
+        SUM(cp.TimeSpent) as totalTimeSpent,
+        COUNT(CASE WHEN cp.OverallProgress = 100 THEN 1 END) as completedCourses,
+        COUNT(CASE WHEN cp.OverallProgress > 0 AND cp.OverallProgress < 100 THEN 1 END) as inProgressCourses
+      FROM dbo.CourseProgress cp
+      INNER JOIN dbo.Enrollments e ON cp.UserId = e.UserId AND cp.CourseId = e.CourseId
+      WHERE cp.UserId = @userId AND e.Status = 'active'
+    `, { userId: targetUserId });
+
+    // Get recent course activity
+    const recentActivity = await db.query(`
+      SELECT TOP 5
+        cp.CourseId,
+        c.Title as courseTitle,
+        cp.OverallProgress,
+        cp.LastAccessedAt,
+        cp.TimeSpent
+      FROM dbo.CourseProgress cp
+      INNER JOIN dbo.Courses c ON cp.CourseId = c.Id
+      INNER JOIN dbo.Enrollments e ON cp.UserId = e.UserId AND cp.CourseId = e.CourseId
+      WHERE cp.UserId = @userId AND e.Status = 'active'
+      ORDER BY cp.LastAccessedAt DESC
+    `, { userId: targetUserId });
+
+    logger.info(`Progress viewed successfully: ${viewerId} → ${targetUserId}`);
+
+    res.json({ 
+      success: true, 
+      data: {
+        overview: progressData[0] || {
+          totalCourses: 0,
+          avgProgress: 0,
+          totalTimeSpent: 0,
+          completedCourses: 0,
+          inProgressCourses: 0
+        },
+        recentActivity
+      }
+    });
+  } catch (error) {
+    logger.error('View progress error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to fetch progress data' 
     });
   }
 });

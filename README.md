@@ -19,6 +19,7 @@ An innovative EdTech startup providing personalized learning experiences through
 - **Study Groups** - Peer collaboration spaces with online member tracking ✅  
 - **Virtual Office Hours** - Queue-based instructor support with presence badges ✅
 - **Presence System** - Real-time online/away/busy status tracking ✅
+- **Privacy Settings** - Comprehensive privacy controls (profile visibility, email, progress, messages) ✅
 - **User Profile Management** - Comprehensive profile with 5 tabs (personal info, password, billing, preferences, account info) ✅
 - **Payment System** - Stripe integration with secure checkout, professional invoice PDFs, production-ready error handling, enhanced refund UI, **database-level duplicate prevention** (Phases 1-6 Complete - 100%) ✅
 - **Notification Preferences** - Customizable notification settings with quiet hours and email digest options (FULLY ENFORCED) ✅
@@ -29,6 +30,35 @@ An innovative EdTech startup providing personalized learning experiences through
 - **Mobile Responsive** - Seamless experience across all devices
 - **Social Learning** - Community features and collaborative projects
 - **Gamification** - Points, badges, and achievement systems
+
+## 🔒 Privacy Features
+
+**Complete Privacy Control System** (Implemented December 18, 2025)
+
+Users can customize their privacy settings to control what information others can see:
+
+### Profile Visibility
+- **Public**: Anyone can view your profile
+- **Students Only**: Only classmates in your courses can view
+- **Private**: Only you can view your profile
+
+### Email Privacy
+- **Show Email**: Display your email in user lists and profiles
+- **Hide Email**: Keep your email private (shown as "Email hidden")
+
+### Progress Privacy
+- **Show Progress**: Allow others to view your learning progress
+- **Hide Progress**: Keep your progress private
+
+### Message Privacy (Ready for Chat Re-enablement)
+- **Allow Messages**: Accept messages from other users
+- **Block Messages**: Prevent users from messaging you
+
+**Instructor Override**: Instructors can always view enrolled students' profiles, emails, and progress regardless of privacy settings.
+
+**Access Settings**: Navigate to Settings page (`/settings`) to customize your privacy preferences.
+
+**Privacy Testing**: Run `node test-privacy-settings.js` for comprehensive automated testing.
 
 ## 🛠 Tech Stack
 

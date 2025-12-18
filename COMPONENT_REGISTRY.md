@@ -1376,27 +1376,150 @@ Check current state
 
 ---
 
-## 📝 WHEN TO UPDATE THIS REGISTRY
+## 🔒 PRIVACY ENFORCEMENT (Added December 18, 2025)
 
-**Update this file when**:
-- New component created
-- Component dependencies change
-- New API service added
-- Major refactoring occurs
-- Common issue discovered
-- Component relationships change
+### SettingsService (Backend)
+**Path**: `server/src/services/SettingsService.ts`  
+**Purpose**: Centralized privacy enforcement logic with instructor overrides
 
-**How to add a new component**:
-1. Copy the template structure
-2. Fill in all sections (Path, Purpose, Services Used, etc.)
-3. Document key logic with code examples
-4. List common issues with solutions
-5. Update "Used By" and "Related Components" sections
+**Privacy Helper Methods**:
+1. **`canViewProfile(viewerId, targetUserId)`** - 3-tier profile visibility
+   - Public: Anyone can view
+   - Students: Only classmates can view
+   - Private: Only owner can view
+   - **Instructor Override**: Instructors can view enrolled students (lines 203-223)
+
+2. **`canViewProgress(viewerId, targetUserId)`** - Progress visibility
+   - Respects ShowProgress setting
+   - **Instructor Override**: Instructors can view enrolled students (lines 269-289)
+
+3. **`getUserWithPrivacy(viewerId, targetUserId)`** - Fetch user with privacy filtering
+   - Returns user data with email filtered based on ShowEmail
+   - Applies ProfileVisibility checks
+
+4. **`filterUserData(user, viewerId)`** - Email filtering
+   - Returns email=NULL if ShowEmail=false
+   - Exception: Owner always sees own email
+   - **Instructor Override**: Instructors see enrolled students' emails
+
+5. **`canReceiveMessages(userId)`** - Message permission check
+   - Ready for chat re-enablement
+
+6. **`areStudentsTogether(student1Id, student2Id)`** - Classmate verification
+   - Checks if two students share any courses
+
+7. **`isInstructorOfCourse(instructorId, courseId)`** - Instructor verification
+
+8. **`isStudentEnrolledInCourse(studentId, courseId)`** - Enrollment check
+
+**Instructor Override Logic**:
+```typescript
+// Example: canViewProfile with override
+1. Check if viewer is instructor
+2. Get target user's enrolled courses
+3. Query: SELECT CourseId FROM Enrollments WHERE UserId=@targetId
+4. For each courseId:
+   - Check if viewer is instructor: WHERE InstructorId=@viewerId
+5. If viewer owns any of target's courses → ALLOW
+6. Otherwise, apply normal privacy rules
+```
+
+**Security Implementation**:
+- Fail-closed defaults: Error → return PRIVATE/false/NULL
+- Parameterized queries: SQL injection prevention
+- Authentication required: All methods check authentication
+
+**Used By**:
+- `server/src/routes/profile.ts` - Profile viewing
+- `server/src/routes/users.ts` - Instructor lists
+- `server/src/routes/analytics.ts` - Course analytics
+- `server/src/routes/presence.ts` - Online users
+- `server/src/routes/officeHours.ts` - Office hours queue
+- `server/src/routes/studyGroups.ts` - Study group members
+- `server/src/routes/instructor.ts` - At-risk students
 
 ---
 
-**Quick Search**: Use Ctrl+F to find components by name
+### Privacy API Endpoints
+**Added**: December 18, 2025
 
-**See Also**: 
-- `ARCHITECTURE.md` - System-level architecture
-- `PRE_FLIGHT_CHECKLIST.md` - Checklist before making changes
+**Profile Viewing**:
+```
+GET /api/profile/user/:userId
+- Returns: User profile (name, avatar, learning style)
+- Privacy: 3-tier visibility (public/students/private)
+- Instructor Override: Can view enrolled students
+- Error: 403 with code PROFILE_PRIVATE if blocked
+- Excludes: Billing address (sensitive data)
+
+GET /api/profile/user/:userId/progress
+- Returns: Course progress and activity stats
+- Privacy: Respects ShowProgress setting
+- Instructor Override: Can view enrolled students
+- Error: 403 with code PROGRESS_PRIVATE if blocked
+```
+
+**Email Filtering** (9 endpoints):
+- `/api/users/instructors` - Instructor lists
+- `/api/analytics/course/:id` - Recent activity
+- `/api/presence/online` - Online users (2 endpoints)
+- `/api/office-hours/queue` - Office hours queue
+- `/api/study-groups/:id/members` - Group members
+- `/api/instructor/at-risk/:courseId` - At-risk students
+- `/api/instructor/low-progress/:courseId` - Low-progress students
+- `/api/students` - Student management (instructor override always shows emails)
+
+**API Error Codes**:
+| Code | Status | Description |
+|------|--------|-------------|
+| `PROFILE_PRIVATE` | 403 | User's profile is not visible |
+| `PROGRESS_PRIVATE` | 403 | User's progress is not visible |
+| `MESSAGES_DISABLED` | 403 | User doesn't accept messages |
+
+---
+
+### Privacy Frontend Components
+
+**settingsApi.ts** (Frontend Service)
+**Path**: `client/src/services/settingsApi.ts`  
+**Added Methods** (December 18, 2025):
+- `getUserProfile(userId)` - View another user's profile
+- `getUserProgress(userId)` - View user's progress
+
+**Privacy Error Interceptor**:
+```typescript
+axios.interceptors.response.use(
+  response => response,
+  error => {
+    if (error.response?.data?.code === 'PROFILE_PRIVATE') {
+      // Show user-friendly message
+    }
+    // Similar for PROGRESS_PRIVATE, MESSAGES_DISABLED
+  }
+);
+```
+
+**UI Components Updated** (December 18, 2025):
+1. **InterventionDashboard.tsx** - Shows "Email hidden" for students with privacy enabled
+2. **StudentManagement.tsx** - Shows "Email hidden" (but instructors see all emails via API)
+3. **InstructorStudentAnalytics.tsx** - Handles null emails gracefully
+4. **CourseDetail.tsx** - Shows "Email not public" when viewing instructors
+5. **StudentQueueJoin.tsx** - Handles hidden emails in queue
+
+**Common Patterns**:
+```typescript
+// Display email with privacy handling
+{student.Email || 'Email hidden'}
+
+// Check for email privacy
+if (!student.Email) {
+  // Show "Email hidden" message
+}
+
+// Disable action if email hidden
+disabled={!student.Email}
+tooltip={!student.Email ? "Student's email is hidden" : ""}
+```
+
+---
+

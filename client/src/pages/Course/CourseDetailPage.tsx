@@ -869,38 +869,40 @@ export const CourseDetailPage: React.FC = () => {
                   </Box>
                 )}
 
-                {/* Price */}
-                <Box sx={{ mb: 3 }}>
-                  {course.price > 0 ? (
-                    <>
-                      <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 2, mb: 1 }}>
-                        <Typography variant="h3" sx={{ fontWeight: 800 }}>
-                          {formatCurrency(course.price)}
-                        </Typography>
-                        {course.originalPrice && (
-                          <Typography variant="h6" sx={{ textDecoration: 'line-through', color: 'text.secondary' }}>
-                            {formatCurrency(course.originalPrice)}
+                {/* Price - Only show if not enrolled and not instructor */}
+                {!course.isEnrolled && !enrollmentStatus?.isInstructor && (
+                  <Box sx={{ mb: 3 }}>
+                    {course.price > 0 ? (
+                      <>
+                        <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 2, mb: 1 }}>
+                          <Typography variant="h3" sx={{ fontWeight: 800 }}>
+                            {formatCurrency(course.price)}
                           </Typography>
+                          {course.originalPrice && (
+                            <Typography variant="h6" sx={{ textDecoration: 'line-through', color: 'text.secondary' }}>
+                              {formatCurrency(course.originalPrice)}
+                            </Typography>
+                          )}
+                        </Box>
+                        {course.originalPrice && (
+                          <Chip 
+                            label={`${Math.round((1 - course.price / course.originalPrice) * 100)}% OFF`}
+                            size="small"
+                            sx={{ 
+                              bgcolor: 'error.light',
+                              color: 'error.contrastText',
+                              fontWeight: 700
+                            }}
+                          />
                         )}
-                      </Box>
-                      {course.originalPrice && (
-                        <Chip 
-                          label={`${Math.round((1 - course.price / course.originalPrice) * 100)}% OFF`}
-                          size="small"
-                          sx={{ 
-                            bgcolor: 'error.light',
-                            color: 'error.contrastText',
-                            fontWeight: 700
-                          }}
-                        />
-                      )}
-                    </>
-                  ) : (
-                    <Typography variant="h3" sx={{ fontWeight: 800, color: 'success.main' }}>
-                      FREE
-                    </Typography>
-                  )}
-                </Box>
+                      </>
+                    ) : (
+                      <Typography variant="h3" sx={{ fontWeight: 800, color: 'success.main' }}>
+                        FREE
+                      </Typography>
+                    )}
+                  </Box>
+                )}
 
                 {/* Action Buttons */}
                 {enrollmentStatus?.isInstructor ? (

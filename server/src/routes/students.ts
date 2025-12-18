@@ -1,9 +1,11 @@
 import express from 'express';
 import { authenticateToken } from '../middleware/auth';
 import { DatabaseService } from '../services/DatabaseService';
+import { SettingsService } from '../services/SettingsService';
 
 const router = express.Router();
 const db = DatabaseService.getInstance();
+const settingsService = new SettingsService();
 
 // Get all students for instructor's courses
 router.get('/', authenticateToken, async (req: any, res) => {
@@ -79,30 +81,33 @@ router.get('/', authenticateToken, async (req: any, res) => {
     console.log('[STUDENT API] Fetching students for instructor:', instructorId);
     const students = await db.query(query, params);
 
-    // Transform the data
-    const transformedStudents = students.map((student: any) => ({
-      id: student.userId,
-      firstName: student.FirstName,
-      lastName: student.LastName,
-      email: student.Email,
-      avatar: student.Avatar,
-      userCreatedAt: student.userCreatedAt,
-      enrollment: {
-        id: student.enrollmentId,
-        courseId: student.CourseId,
-        courseTitle: student.courseTitle,
-        enrolledAt: student.EnrolledAt,
-        completedAt: student.CompletedAt,
-        status: student.enrollmentStatus
-      },
-      progress: {
-        overall: student.OverallProgress || 0,
-        timeSpent: student.TimeSpent || 0,
-        lastAccessedAt: student.LastAccessedAt,
-        completedLessons: student.CompletedLessons ? JSON.parse(student.CompletedLessons) : [],
-        totalLessons: student.totalLessons
-      }
-    }));
+    // Since this endpoint is only accessible by instructors viewing THEIR students,
+    // instructors should always see emails (instructor override)
+    const transformedStudents = students.map((student: any) => {
+      return {
+        id: student.userId,
+        firstName: student.FirstName,
+        lastName: student.LastName,
+        email: student.Email, // Instructor override: always show email
+        avatar: student.Avatar,
+        userCreatedAt: student.userCreatedAt,
+        enrollment: {
+          id: student.enrollmentId,
+          courseId: student.CourseId,
+          courseTitle: student.courseTitle,
+          enrolledAt: student.EnrolledAt,
+          completedAt: student.CompletedAt,
+          status: student.enrollmentStatus
+        },
+        progress: {
+          overall: student.OverallProgress || 0,
+          timeSpent: student.TimeSpent || 0,
+          lastAccessedAt: student.LastAccessedAt,
+          completedLessons: student.CompletedLessons ? JSON.parse(student.CompletedLessons) : [],
+          totalLessons: student.totalLessons
+        }
+      };
+    });
 
     res.json(transformedStudents);
   } catch (error) {

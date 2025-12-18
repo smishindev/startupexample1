@@ -1,9 +1,11 @@
 import express, { Request, Response } from 'express';
 import { DatabaseService } from '../services/DatabaseService';
+import { SettingsService } from '../services/SettingsService';
 import { authenticateToken } from '../middleware/auth';
 import sql from 'mssql';
 
 const router = express.Router();
+const settingsService = new SettingsService();
 
 /**
  * GET /api/dashboard/stats
@@ -16,6 +18,9 @@ router.get('/stats', authenticateToken, async (req: Request, res: Response) => {
     if (!userId) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
+
+    // Note: Dashboard stats are for own profile, so no privacy filtering needed
+    // Privacy filtering only applies when viewing OTHER users' stats
 
     const db = DatabaseService.getInstance();
 

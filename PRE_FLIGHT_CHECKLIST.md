@@ -28,6 +28,15 @@
 - [ ] Identified all pages that use this component
 
 **Recent Additions to Check:**
+- [x] Privacy Settings Enforcement - PRODUCTION READY (Dec 18, 2025) ✅
+  - Backend: 8 privacy helper methods in SettingsService
+  - Profile visibility (3 tiers: public/students/private)
+  - Email privacy with instructor override
+  - Progress privacy with instructor override
+  - Database-level privacy enforcement
+  - Frontend UI updates (13 files)
+  - Comprehensive test suite (test-privacy-settings.js, 93% pass rate)
+  - All TypeScript compilation errors fixed
 - [x] Payment System - Phases 1-6 COMPLETE (100%) - Duplicate Prevention (Dec 17, 2025) ✅
   - Purchase button connected to checkout
   - Payment success page with confetti
@@ -192,6 +201,17 @@ get_errors(filePaths=["path/to/modified/file.tsx"])
 - [x] "Continue Learning" button appears after payment ✅
 - [ ] Webhook testing with Stripe CLI (requires local setup)
 
+**Privacy Settings Testing Checklist (Dec 18, 2025):**
+- [x] Run automated test suite: `node test-privacy-settings.js` ✅
+- [x] ShowEmail setting: Hidden from students, visible to instructors ✅
+- [x] ShowProgress setting: Blocked from students, allowed for instructors ✅
+- [x] ProfileVisibility: All 3 modes tested (public/students/private) ✅
+- [x] Instructor override: Works for profile, email, and progress ✅
+- [x] Student Management: Instructors see all emails ✅
+- [x] Course Detail: "Email not public" message shown ✅
+- [x] TypeScript compilation: No errors ✅
+- [x] No breaking changes: All existing features working ✅
+
 ---
 
 ## ✅ PHASE 5: FINAL REVIEW (Before Submitting)
@@ -239,6 +259,14 @@ get_errors(filePaths=["path/to/modified/file.tsx"])
 - [ ] **NEVER** removed column references without checking ALL usages first
 - [ ] Verified column exists in `database/schema.sql`
 - [ ] If column appears in 10+ files, it's a FEATURE, not a bug
+
+### Rule 5: Privacy Enforcement (NEW - Dec 18, 2025)
+- [ ] If showing user data in lists, **CHECK** if privacy settings should apply
+- [ ] If adding instructor features, **VERIFY** instructor override logic
+- [ ] Use `SettingsService.getUserWithPrivacy()` for user data fetching
+- [ ] Use `SettingsService.canViewProfile()` for profile viewing
+- [ ] Use `SettingsService.canViewProgress()` for progress viewing
+- [ ] Return proper error codes: `PROFILE_PRIVATE`, `PROGRESS_PRIVATE`, `MESSAGES_DISABLED`
 
 ### Rule 5: Authentication
 - [ ] **ALWAYS** checked if operation requires authentication

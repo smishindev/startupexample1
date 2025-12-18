@@ -1,9 +1,11 @@
 import { Router } from 'express';
 import { OfficeHoursService } from '../services/OfficeHoursService';
+import { SettingsService } from '../services/SettingsService';
 import { authenticateToken, AuthRequest } from '../middleware/auth';
 import { checkRole } from '../middleware/roleCheck';
 
 const router = Router();
+const settingsService = new SettingsService();
 
 /**
  * @route   POST /api/office-hours/schedule
@@ -164,9 +166,29 @@ router.get('/queue/:instructorId', authenticateToken, async (req: AuthRequest, r
     const queue = await OfficeHoursService.getQueue(instructorId);
     const stats = await OfficeHoursService.getQueueStats(instructorId);
 
+    // Apply privacy filtering (instructors can see enrolled students)
+    const filteredQueue = await Promise.all(
+      queue.map(async (entry: any) => {
+        try {
+          if (entry.StudentId) {
+            const settings = await settingsService.getUserSettings(entry.StudentId);
+            // Instructor viewing their office hours queue - respect email privacy
+            return {
+              ...entry,
+              StudentEmail: settings?.ShowEmail ? entry.StudentEmail : null
+            };
+          }
+          return entry;
+        } catch (error) {
+          console.error(`Error filtering queue entry:`, error);
+          return { ...entry, StudentEmail: null };
+        }
+      })
+    );
+
     res.json({ 
-      queue, 
-      count: queue.length,
+      queue: filteredQueue, 
+      count: filteredQueue.length,
       stats
     });
   } catch (error) {

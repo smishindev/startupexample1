@@ -17,7 +17,6 @@ import {
   ListItemText,
   ListItemAvatar,
   Avatar,
-  Divider,
   Paper
 } from '@mui/material';
 import {
@@ -134,7 +133,7 @@ export const CourseAnalyticsDashboard: React.FC = () => {
         title="Analytics Hub"
         subtitle={selectedCourse === 'dashboard' 
           ? 'Overview of all your courses' 
-          : courses.find(c => c.CourseId.toString() === selectedCourse)?.Title || 'Course Analytics'
+          : courses.find(c => c.id?.toString() === selectedCourse)?.title || 'Course Analytics'
         }
         icon={<TrendingUpIcon sx={{ fontSize: 32 }} />}
         actions={
@@ -150,8 +149,8 @@ export const CourseAnalyticsDashboard: React.FC = () => {
             >
               <MenuItem value="dashboard">All Courses Overview</MenuItem>
               {courses.map((course, index) => (
-                <MenuItem key={course.CourseId || `course-${index}`} value={course.CourseId?.toString() || course.CourseId}>
-                  {course.Title}
+                <MenuItem key={course.id || `course-${index}`} value={course.id?.toString() || course.id}>
+                  {course.title}
                 </MenuItem>
               ))}
             </Select>
@@ -169,7 +168,7 @@ export const CourseAnalyticsDashboard: React.FC = () => {
           <CourseView 
             data={courseData} 
             distribution={performanceDistribution}
-            courseTitle={courses.find(c => c.CourseId.toString() === selectedCourse)?.Title || 'Course'}
+            courseTitle={courses.find(c => c.id?.toString() === selectedCourse)?.title || 'Course'}
           />
         )}
       </Container>
@@ -309,7 +308,7 @@ const DashboardView: React.FC<{ data: DashboardAnalytics }> = ({ data }) => {
             {topCourses && topCourses.length > 0 ? (
               <List dense>
                 {topCourses.map((course, index) => (
-                  <ListItem key={course.CourseId || `course-${index}`}>
+                  <ListItem key={index}>
                     <ListItemAvatar>
                       <Avatar sx={{ bgcolor: 'primary.main' }}>
                         {index + 1}
@@ -346,8 +345,8 @@ const DashboardView: React.FC<{ data: DashboardAnalytics }> = ({ data }) => {
             {coursePerformance && coursePerformance.length > 0 ? (
               <Box overflow="auto">
                 <Grid container spacing={2}>
-                  {coursePerformance.map((course) => (
-                    <Grid item xs={12} sm={6} md={4} key={course.Id || course.CourseId}>
+                  {coursePerformance.map((course, index) => (
+                    <Grid item xs={12} sm={6} md={4} key={course.Id || index}>
                       <Paper sx={{ p: 2 }}>
                         <Typography variant="subtitle1" fontWeight="medium" noWrap>
                           {course.Title}
@@ -568,7 +567,7 @@ const CourseView: React.FC<{
             </Typography>
             <List>
               {recentActivity.map((activity, index) => (
-                <ListItem key={activity.UserId || `activity-${index}`} divider={index < recentActivity.length - 1}>
+                <ListItem key={index} divider={index < recentActivity.length - 1}>
                   <ListItemAvatar>
                     <Avatar>
                       {activity.FirstName[0]}{activity.LastName[0]}

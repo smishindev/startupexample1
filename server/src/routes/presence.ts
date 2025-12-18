@@ -1,8 +1,10 @@
 import { Router } from 'express';
 import { PresenceService } from '../services/PresenceService';
+import { SettingsService } from '../services/SettingsService';
 import { authenticateToken, AuthRequest } from '../middleware/auth';
 
 const router = Router();
+const settingsService = new SettingsService();
 
 /**
  * @route   GET /api/presence/online
@@ -12,12 +14,26 @@ const router = Router();
 router.get('/online', authenticateToken, async (req: AuthRequest, res) => {
   try {
     const limit = parseInt(req.query.limit as string) || 100;
+    const viewerId = req.user!.userId;
     
     const users = await PresenceService.getOnlineUsers(limit);
     const count = await PresenceService.getOnlineUsersCount();
 
+    // Apply privacy filtering
+    const filteredUsers = await Promise.all(
+      users.map(async (user: any) => {
+        try {
+          const settings = await settingsService.getUserSettings(user.UserId);
+          const isOwnProfile = user.UserId === viewerId;
+          return settingsService.filterUserData(user, settings, isOwnProfile);
+        } catch (error) {
+          return { ...user, Email: null };
+        }
+      })
+    );
+
     res.json({ 
-      users, 
+      users: filteredUsers, 
       count,
       limit 
     });
@@ -38,12 +54,26 @@ router.get('/online', authenticateToken, async (req: AuthRequest, res) => {
 router.get('/course/:courseId', authenticateToken, async (req: AuthRequest, res) => {
   try {
     const { courseId } = req.params;
+    const viewerId = req.user!.userId;
     
     const users = await PresenceService.getOnlineUsersInCourse(courseId);
 
+    // Apply privacy filtering
+    const filteredUsers = await Promise.all(
+      users.map(async (user: any) => {
+        try {
+          const settings = await settingsService.getUserSettings(user.UserId);
+          const isOwnProfile = user.UserId === viewerId;
+          return settingsService.filterUserData(user, settings, isOwnProfile);
+        } catch (error) {
+          return { ...user, Email: null };
+        }
+      })
+    );
+
     res.json({ 
-      users, 
-      count: users.length,
+      users: filteredUsers, 
+      count: filteredUsers.length,
       courseId 
     });
   } catch (error) {

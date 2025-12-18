@@ -19,7 +19,6 @@ import {
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import ReceiptIcon from '@mui/icons-material/Receipt';
-import ShareIcon from '@mui/icons-material/Share';
 import TwitterIcon from '@mui/icons-material/Twitter';
 import FacebookIcon from '@mui/icons-material/Facebook';
 import LinkedInIcon from '@mui/icons-material/LinkedIn';

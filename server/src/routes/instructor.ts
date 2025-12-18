@@ -1,10 +1,12 @@
 import express from 'express';
 import { authenticateToken, authorize, AuthRequest } from '../middleware/auth';
 import { DatabaseService } from '../services/DatabaseService';
+import { SettingsService } from '../services/SettingsService';
 import { v4 as uuidv4 } from 'uuid';
 
 const router = express.Router();
 const db = DatabaseService.getInstance();
+const settingsService = new SettingsService();
 
 // Get instructor dashboard stats
 router.get('/stats', authenticateToken, authorize(['instructor', 'admin']), async (req: AuthRequest, res) => {
@@ -412,7 +414,19 @@ router.get('/at-risk-students', authenticateToken, authorize(['instructor', 'adm
         RecommendedInterventions: student.RecommendedInterventions ? JSON.parse(student.RecommendedInterventions) : []
       }));
 
-      res.json({ students });
+      // Apply privacy filtering (instructors can see enrolled students)
+      const filteredStudents = await Promise.all(
+        students.map(async (student: any) => {
+          try {
+            const settings = await settingsService.getUserSettings(student.UserId);
+            return settingsService.filterUserData(student, settings, false);
+          } catch (error) {
+            return { ...student, Email: null };
+          }
+        })
+      );
+
+      res.json({ students: filteredStudents });
     } catch (queryError: any) {
       // SQL error (likely column mismatch) - return empty array
       console.log('StudentRiskAssessment table structure mismatch - returning empty array');
@@ -451,7 +465,19 @@ router.get('/low-progress-students', authenticateToken, authorize(['instructor',
       ORDER BY DaysSinceAccess DESC, cp.OverallProgress ASC
     `, { instructorId: userId });
 
-    res.json({ students: result });
+    // Apply privacy filtering (instructors can see enrolled students)
+    const filteredStudents = await Promise.all(
+      result.map(async (student: any) => {
+        try {
+          const settings = await settingsService.getUserSettings(student.UserId);
+          return settingsService.filterUserData(student, settings, false);
+        } catch (error) {
+          return { ...student, Email: null };
+        }
+      })
+    );
+
+    res.json({ students: filteredStudents });
   } catch (error) {
     console.error('Failed to fetch low progress students:', error);
     res.status(500).json({ error: 'Internal server error' });

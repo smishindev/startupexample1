@@ -55,8 +55,7 @@ export interface CourseVideoProgress {
  */
 export const updateVideoProgress = async (
   videoLessonId: string,
-  currentPosition: number,
-  duration: number
+  currentPosition: number
 ): Promise<VideoProgressResponse> => {
   const token = getAuthToken();
   const response = await axios.post(

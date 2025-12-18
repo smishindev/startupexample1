@@ -404,7 +404,7 @@ const StudentManagement: React.FC = () => {
                             {student.firstName} {student.lastName}
                           </Typography>
                           <Typography variant="caption" color="textSecondary">
-                            {student.email}
+                            {student.email || 'Email hidden'}
                           </Typography>
                         </Box>
                       </Box>

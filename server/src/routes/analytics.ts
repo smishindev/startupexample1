@@ -1,9 +1,11 @@
 import { Router, Request, Response } from 'express';
 import { DatabaseService } from '../services/DatabaseService';
+import { SettingsService } from '../services/SettingsService';
 import { AuthRequest, authenticateToken, authorize } from '../middleware/auth';
 
 const router = Router();
 const db = DatabaseService.getInstance();
+const settingsService = new SettingsService();
 
 // Get course analytics overview
 router.get('/courses/:courseId', authenticateToken, authorize(['instructor']), async (req: AuthRequest, res: Response) => {
@@ -71,6 +73,7 @@ router.get('/courses/:courseId', authenticateToken, authorize(['instructor']), a
       // Recent activity
       db.query(`
         SELECT TOP 10
+          u.Id as UserId,
           u.FirstName,
           u.LastName,
           u.Email,
@@ -85,11 +88,25 @@ router.get('/courses/:courseId', authenticateToken, authorize(['instructor']), a
       `, { courseId })
     ]);
 
+    // Apply privacy filtering to recent activity (instructors can see enrolled student data)
+    const filteredActivity = await Promise.all(
+      recentActivity.map(async (student) => {
+        try {
+          const settings = await settingsService.getUserSettings(student.UserId);
+          // Instructors viewing their course students - can see progress, respect ShowEmail
+          return settingsService.filterUserData(student, settings, false);
+        } catch (error) {
+          console.error(`Error filtering student ${student.UserId}:`, error);
+          return { ...student, Email: null };
+        }
+      })
+    );
+
     const analytics = {
       enrollment: enrollmentStats[0] || {},
       progress: progressStats[0] || {},
       engagement: engagementStats[0] || {},
-      recentActivity: recentActivity || []
+      recentActivity: filteredActivity || []
     };
 
     console.log(`[Analytics] Returning analytics data:`, {

@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import {
   Box,
   Container,
-  Paper,
   Typography,
   Switch,
   FormControlLabel,
@@ -12,7 +11,6 @@ import {
   Card,
   CardContent,
   Stack,
-  Chip,
   Select,
   MenuItem,
   FormControl,
@@ -196,7 +194,7 @@ const SettingsPage: React.FC = () => {
                     </Select>
                   </FormControl>
                   <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
-                    Control who can view your profile information
+                    Control who can view your profile information. "Students" means users in your same courses.
                   </Typography>
                 </Box>
 
@@ -214,7 +212,7 @@ const SettingsPage: React.FC = () => {
                     <Box>
                       <Typography variant="body1">Show Email Address</Typography>
                       <Typography variant="caption" color="text.secondary">
-                        Display your email on your public profile
+                        Display your email in user lists, profiles, and group member lists. You always see your own email.
                       </Typography>
                     </Box>
                   }
@@ -232,7 +230,7 @@ const SettingsPage: React.FC = () => {
                     <Box>
                       <Typography variant="body1">Show Learning Progress</Typography>
                       <Typography variant="caption" color="text.secondary">
-                        Allow others to see your course progress and achievements
+                        Allow others to view your course progress and achievements. Note: Instructors can always see progress in their courses.
                       </Typography>
                     </Box>
                   }
@@ -250,7 +248,7 @@ const SettingsPage: React.FC = () => {
                     <Box>
                       <Typography variant="body1">Allow Direct Messages</Typography>
                       <Typography variant="caption" color="text.secondary">
-                        Let other students and instructors send you messages
+                        Let other students and instructors send you direct messages (when chat is enabled)
                       </Typography>
                     </Box>
                   }

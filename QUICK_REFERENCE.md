@@ -1,6 +1,6 @@
 # 🚀 Quick Reference - Development Workflow
 
-**Last Updated**: December 4, 2025
+**Last Updated**: December 18, 2025
 
 ---
 
@@ -13,9 +13,16 @@ Password: Aa123456
 Role: Instructor
 ```
 
-**Student Account:**
+**Student Account 1:**
 ```
 Email: student1@gmail.com
+Password: Aa123456
+Role: Student
+```
+
+**Student Account 2:**
+```
+Email: student2@gmail.com
 Password: Aa123456
 Role: Student
 ```
@@ -28,6 +35,19 @@ Role: Student
 - Configure notification preferences (toggles, email digest, quiet hours)
 - Note: Notification preferences are stored but not yet enforced in notification system
 
+**Privacy Settings Testing (Dec 18, 2025):**
+- Navigate to Settings page (`/settings`)
+- Test privacy controls:
+  - **Profile Visibility**: Public / Students Only / Private
+  - **Show Email**: Toggle to hide/show email in lists
+  - **Show Progress**: Toggle to hide/show learning progress
+  - **Allow Messages**: Toggle to enable/disable messaging (ready for chat)
+- Test privacy enforcement:
+  - Student Management: Instructors see all emails (override)
+  - Course Detail: "Email not public" for hidden emails
+  - Progress viewing: 403 error for hidden progress
+- Run automated tests: `node test-privacy-settings.js` (93% pass rate)
+
 **Use these accounts for:**
 - Testing role-based features
 - Office Hours (instructor creates schedule, student joins queue)
@@ -35,11 +55,13 @@ Role: Student
 - Study Groups (both can create/join)
 - Presence System (test multi-user scenarios)
 - Chat/messaging features
+- **Privacy Features** (test instructor override, student-to-student blocking)
 
 **Testing Multi-User Features:**
 1. Open two browser windows (or use Incognito)
 2. Login as instructor in one, student in other
 3. Test real-time features (presence, notifications, chat)
+4. **Privacy Testing**: Login as student1 and student2, change privacy settings, test visibility
 
 **Payment Testing (Dec 14-17, 2025):**
 - Navigate to Transactions page (`/profile/transactions`)
@@ -76,6 +98,7 @@ Role: Student
 │  Understand data flows                │  ARCHITECTURE.md     │
 │  Find API endpoints                   │  ARCHITECTURE.md     │
 │  Implement notification preferences   │  NOTIFICATION_PREFS  │
+│  Test privacy features                │  test-privacy-*.js   │
 └─────────────────────────────────────────────────────────────┘
 ```
 

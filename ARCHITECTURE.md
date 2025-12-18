@@ -237,8 +237,109 @@ Backend NotificationService.updatePreferences()
   ↓
 Toast: "Preferences saved successfully"
 
-⚠️ NOTE: Preferences are STORED but NOT ENFORCED
-└─→ TODO: Modify NotificationService.createNotification() to check preferences
+✅ FULLY ENFORCED (Dec 18, 2025):
+├─→ NotificationService.createNotification() checks preferences
+├─→ Quiet Hours: Queue notification in NotificationQueue table
+├─→ Type Filtering: Skip notification if type disabled
+├─→ Cron Job: Runs every 5 minutes, processes queue
+└─→ Real-time Socket.IO delivery after quiet hours end
+```
+
+**Notification Preferences Enforcement Architecture** (Dec 18, 2025):
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                   Notification Creation Flow                     │
+└─────────────────────────────────────────────────────────────────┘
+
+OfficeHoursService / InterventionService / Other Services
+  ↓
+NotificationService.createNotification(params)
+  ↓
+getUserPreferences(userId)
+  ↓
+┌──────────────────┐
+│ Preference Check │
+└──────────────────┘
+  ↓
+shouldSendNotification(type, preferences)?
+  ├─ No → Return '' (notification blocked)
+  └─ Yes → Continue
+       ↓
+isInQuietHours(preferences)?
+  ├─ Yes → queueNotification(params)
+  │         ↓
+  │    INSERT INTO NotificationQueue
+  │    Status='queued', QueuedAt=NOW()
+  │         ↓
+  │    Return queueId
+  └─ No → Create directly
+            ↓
+       INSERT INTO Notifications
+            ↓
+       Emit Socket.IO event
+            ↓
+       Return notificationId
+
+┌──────────────────────────────────────────────────────────────────┐
+│                   Cron Job Processing (Every 5 Min)               │
+└──────────────────────────────────────────────────────────────────┘
+
+Cron Scheduler (server/src/index.ts)
+  ↓ (Every */5 * * * *)
+processQueuedNotifications()
+  ↓
+SELECT * FROM NotificationQueue
+WHERE Status='queued' AND ExpiresAt > GETUTCDATE()
+  ↓
+For each queued notification:
+  ├─ getUserPreferences(userId)
+  ├─ isInQuietHours(preferences)?
+  │   ├─ Yes → Skip (still in quiet hours)
+  │   └─ No → Deliver
+  │            ↓
+  │       createNotificationDirect(params)
+  │            ↓
+  │       INSERT INTO Notifications
+  │            ↓
+  │       Emit Socket.IO event
+  │            ↓
+  │       markQueuedAsDelivered(queueId)
+  │            ↓
+  │       UPDATE NotificationQueue
+  │       SET Status='delivered', DeliveredAt=NOW()
+  └─→ Log: "✅ Delivered queued notification"
+  ↓
+cleanupExpiredQueue()
+  ↓
+UPDATE NotificationQueue SET Status='expired'
+WHERE Status='queued' AND ExpiresAt <= GETUTCDATE()
+  ↓
+Log: "✅ [CRON] Queue processing complete: X delivered, Y expired"
+
+┌──────────────────────────────────────────────────────────────────┐
+│                   Database Tables                                 │
+└──────────────────────────────────────────────────────────────────┘
+
+NotificationQueue (new Dec 18, 2025):
+- Id, UserId, Type, Priority, Title, Message, Data
+- ActionUrl, ActionText, RelatedEntityId, RelatedEntityType
+- ExpiresAt, QueuedAt, DeliveredAt, Status (queued/delivered/expired)
+- 3 Indexes: UserId, Status (filtered), QueuedAt
+
+Notifications (existing):
+- Final destination after preferences check passes
+- Real-time delivery via Socket.IO
+- Displayed in NotificationBell component
+
+NotificationPreferences (existing):
+- User's quiet hours and type toggles
+- Referenced by createNotification() and processQueuedNotifications()
+```
+
+**API Endpoints Added (Dec 18, 2025):**
+```
+GET    /api/notifications/queue/count  - Get queued notification count
+POST   /api/notifications/test          - Test notification (dev only)
 ```
 
 **Privacy Settings Flow** (added Dec 18, 2025):

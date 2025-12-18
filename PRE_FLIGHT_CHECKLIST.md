@@ -28,6 +28,15 @@
 - [ ] Identified all pages that use this component
 
 **Recent Additions to Check:**
+- [x] Notification Preferences Enforcement - PRODUCTION READY (Dec 18, 2025) ✅
+  - Backend: 6 queue management methods in NotificationService
+  - NotificationQueue database table with 3 indexes
+  - Cron job runs every 5 minutes to process queue
+  - Quiet hours queueing (notifications delayed until quiet hours end)
+  - Type filtering (5 toggles: progress, achievements, risk, course, assignment)
+  - Frontend: Clear (X) buttons for quiet hours time inputs
+  - 2 new API endpoints (/queue/count, /test)
+  - Manual testing verified: Queue → Deliver → Bell update
 - [x] Privacy Settings Enforcement - PRODUCTION READY (Dec 18, 2025) ✅
   - Backend: 8 privacy helper methods in SettingsService
   - Profile visibility (3 tiers: public/students/private)
@@ -211,6 +220,20 @@ get_errors(filePaths=["path/to/modified/file.tsx"])
 - [x] Course Detail: "Email not public" message shown ✅
 - [x] TypeScript compilation: No errors ✅
 - [x] No breaking changes: All existing features working ✅
+
+**Notification Preferences Testing Checklist (Dec 18, 2025):**
+- [x] Database: NotificationQueue table created with 3 indexes ✅
+- [x] Backend: 6 queue methods added to NotificationService ✅
+- [x] Cron job: Runs every 5 minutes (check server logs for "⏰ [CRON]") ✅
+- [x] Quiet hours: Set 13:00-23:59, trigger notification, verify queued ✅
+- [x] Database check: `SELECT * FROM NotificationQueue WHERE Status='queued'` ✅
+- [x] Clear quiet hours: Click X buttons, save preferences ✅
+- [x] Wait 5 minutes: Cron job delivers queued notifications ✅
+- [x] Bell icon: Check notifications appear after page refresh ✅
+- [x] Type filtering: Disable progress, complete lesson, verify no notification ✅
+- [x] Server logs: "✅ [CRON] Queue processing complete: 3 delivered, 0 expired" ✅
+- [x] TypeScript compilation: No errors ✅
+- [x] No breaking changes: Existing notifications still work ✅
 
 ---
 

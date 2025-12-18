@@ -9,6 +9,7 @@ import { Server } from 'socket.io';
 import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
+import cron from 'node-cron';
 
 // Load environment variables
 dotenv.config({ path: path.join(__dirname, '..', '.env') });
@@ -58,7 +59,7 @@ const io = new Server(server, {
   }
 });
 
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3000;
 
 // Rate limiting - More permissive for development
 const limiter = rateLimit({
@@ -237,6 +238,28 @@ app.use(errorHandler);
 
 // Socket.IO setup
 setupSocketHandlers(io);
+
+// Schedule notification queue processing every 5 minutes
+cron.schedule('*/5 * * * *', async () => {
+  try {
+    console.log('⏰ [CRON] Running scheduled notification queue processing...');
+    const notificationService = new NotificationService(io);
+    
+    // Process queued notifications (quiet hours ended)
+    const processed = await notificationService.processQueuedNotifications();
+    
+    // Clean up expired queue items
+    const expired = await notificationService.cleanupExpiredQueue();
+    
+    if (processed > 0 || expired > 0) {
+      console.log(`✅ [CRON] Queue processing complete: ${processed} delivered, ${expired} expired`);
+    }
+  } catch (error) {
+    console.error('❌ [CRON] Error in notification queue processing:', error);
+  }
+});
+
+console.log('✅ Notification queue processor scheduled (every 5 minutes)');
 
 // Graceful shutdown
 process.on('SIGTERM', async () => {

@@ -33,7 +33,11 @@ Role: Student
 - Test all 5 tabs: Personal Info, Password, Billing Address, Preferences, Account Info
 - Upload avatar (JPEG/PNG/GIF/WebP, max 5MB)
 - Configure notification preferences (toggles, email digest, quiet hours)
-- Note: Notification preferences are stored but not yet enforced in notification system
+- **Notification Preferences (Dec 18, 2025)**: Fully enforced
+  - Quiet hours: Notifications queued during specified time range
+  - Type filtering: Disable specific notification types (progress, achievements, risk, course, assignment)
+  - Clear buttons (X) to remove quiet hours settings
+  - Cron job processes queue every 5 minutes
 
 **Privacy Settings Testing (Dec 18, 2025):**
 - Navigate to Settings page (`/settings`)
@@ -62,6 +66,18 @@ Role: Student
 2. Login as instructor in one, student in other
 3. Test real-time features (presence, notifications, chat)
 4. **Privacy Testing**: Login as student1 and student2, change privacy settings, test visibility
+
+**Notification Preferences Testing (Dec 18, 2025):**
+- Navigate to Profile → Settings → Notifications tab
+- Set quiet hours (e.g., 13:00-23:59)
+- Trigger notification (join office hours, complete lesson)
+- Verify notification queued (not delivered immediately)
+- Check database: `SELECT * FROM NotificationQueue WHERE Status='queued'`
+- Clear quiet hours (click X buttons) or wait for end time
+- Within 5 minutes: Cron job delivers notifications
+- Check bell icon: Notifications should appear
+- Test type filtering: Disable "Progress Updates", complete lesson, verify no notification
+- Server logs: Look for "⏰ [CRON]" messages every 5 minutes
 
 **Payment Testing (Dec 14-17, 2025):**
 - Navigate to Transactions page (`/profile/transactions`)

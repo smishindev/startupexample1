@@ -35,7 +35,8 @@ import {
   VisibilityOff,
   Save as SaveIcon,
   History as HistoryIcon,
-  PhotoCamera as PhotoCameraIcon
+  PhotoCamera as PhotoCameraIcon,
+  Close as CloseIcon
 } from '@mui/icons-material';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
@@ -750,6 +751,17 @@ const ProfilePage: React.FC = () => {
                           value={notifPreferences.quietHoursStart || ''}
                           onChange={(e) => handlePreferenceChange('quietHoursStart', e.target.value || null)}
                           InputLabelProps={{ shrink: true }}
+                          InputProps={{
+                            endAdornment: notifPreferences.quietHoursStart && (
+                              <IconButton
+                                size="small"
+                                onClick={() => handlePreferenceChange('quietHoursStart', null)}
+                                edge="end"
+                              >
+                                <CloseIcon fontSize="small" />
+                              </IconButton>
+                            )
+                          }}
                         />
                       </Grid>
                       <Grid item xs={12} md={6}>
@@ -760,6 +772,17 @@ const ProfilePage: React.FC = () => {
                           value={notifPreferences.quietHoursEnd || ''}
                           onChange={(e) => handlePreferenceChange('quietHoursEnd', e.target.value || null)}
                           InputLabelProps={{ shrink: true }}
+                          InputProps={{
+                            endAdornment: notifPreferences.quietHoursEnd && (
+                              <IconButton
+                                size="small"
+                                onClick={() => handlePreferenceChange('quietHoursEnd', null)}
+                                edge="end"
+                              >
+                                <CloseIcon fontSize="small" />
+                              </IconButton>
+                            )
+                          }}
                         />
                       </Grid>
                     </Grid>

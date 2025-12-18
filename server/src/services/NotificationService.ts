@@ -80,8 +80,8 @@ export class NotificationService {
       // Check quiet hours
       if (this.isInQuietHours(preferences)) {
         console.log(`🔕 Notification delayed for user ${params.userId} - quiet hours active`);
-        // TODO: Queue notification for later delivery
-        return '';
+        // Queue notification for later delivery
+        return await this.queueNotification(params);
       }
 
       const request = await this.dbService.getRequest();
@@ -501,6 +501,238 @@ export class NotificationService {
       return deletedCount;
     } catch (error) {
       console.error('❌ Error cleaning up expired notifications:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Queue notification for later delivery (during quiet hours)
+   */
+  async queueNotification(params: CreateNotificationParams): Promise<string> {
+    try {
+      const request = await this.dbService.getRequest();
+      const result = await request
+        .input('UserId', sql.UniqueIdentifier, params.userId)
+        .input('Type', sql.NVarChar(50), params.type)
+        .input('Priority', sql.NVarChar(20), params.priority)
+        .input('Title', sql.NVarChar(200), params.title)
+        .input('Message', sql.NVarChar(sql.MAX), params.message)
+        .input('Data', sql.NVarChar(sql.MAX), params.data ? JSON.stringify(params.data) : null)
+        .input('ActionUrl', sql.NVarChar(500), params.actionUrl || null)
+        .input('ActionText', sql.NVarChar(100), params.actionText || null)
+        .input('RelatedEntityId', sql.UniqueIdentifier, params.relatedEntityId || null)
+        .input('RelatedEntityType', sql.NVarChar(50), params.relatedEntityType || null)
+        .input('ExpiresAt', sql.DateTime2, params.expiresAt || null)
+        .query(`
+          INSERT INTO NotificationQueue (
+            UserId, Type, Priority, Title, Message, Data,
+            ActionUrl, ActionText, RelatedEntityId, RelatedEntityType, ExpiresAt
+          )
+          OUTPUT INSERTED.Id
+          VALUES (
+            @UserId, @Type, @Priority, @Title, @Message, @Data,
+            @ActionUrl, @ActionText, @RelatedEntityId, @RelatedEntityType, @ExpiresAt
+          )
+        `);
+
+      const queueId = result.recordset[0].Id;
+      console.log(`⏰ Notification queued: ${queueId} for user ${params.userId} (quiet hours)`);
+      return queueId;
+    } catch (error) {
+      console.error('❌ Error queueing notification:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Process queued notifications for all users whose quiet hours have ended
+   */
+  async processQueuedNotifications(): Promise<number> {
+    try {
+      console.log('🔄 Processing queued notifications...');
+      
+      // Get all queued notifications with user preferences
+      const request = await this.dbService.getRequest();
+      const result = await request.query(`
+        SELECT 
+          Q.Id, Q.UserId, Q.Type, Q.Priority, Q.Title, Q.Message, Q.Data,
+          Q.ActionUrl, Q.ActionText, Q.RelatedEntityId, Q.RelatedEntityType, Q.ExpiresAt,
+          NP.QuietHoursStart, NP.QuietHoursEnd
+        FROM NotificationQueue Q
+        LEFT JOIN NotificationPreferences NP ON Q.UserId = NP.UserId
+        WHERE Q.Status = 'queued'
+          AND (Q.ExpiresAt IS NULL OR Q.ExpiresAt > GETUTCDATE())
+      `);
+
+      const queuedNotifications = result.recordset;
+      let processedCount = 0;
+
+      for (const queued of queuedNotifications) {
+        const preferences: NotificationPreferences = {
+          UserId: queued.UserId,
+          EnableProgressNotifications: true,
+          EnableRiskAlerts: true,
+          EnableAchievementNotifications: true,
+          EnableCourseUpdates: true,
+          EnableAssignmentReminders: true,
+          EnableEmailNotifications: false,
+          EmailDigestFrequency: 'none',
+          QuietHoursStart: queued.QuietHoursStart,
+          QuietHoursEnd: queued.QuietHoursEnd
+        };
+
+        // Check if still in quiet hours
+        if (this.isInQuietHours(preferences)) {
+          continue; // Still in quiet hours, skip for now
+        }
+
+        // Quiet hours ended, deliver notification
+        try {
+          // Create the actual notification (recursive call without preferences check)
+          const notificationId = await this.createNotificationDirect({
+            userId: queued.UserId,
+            type: queued.Type,
+            priority: queued.Priority,
+            title: queued.Title,
+            message: queued.Message,
+            data: queued.Data ? JSON.parse(queued.Data) : undefined,
+            actionUrl: queued.ActionUrl || undefined,
+            actionText: queued.ActionText || undefined,
+            relatedEntityId: queued.RelatedEntityId || undefined,
+            relatedEntityType: queued.RelatedEntityType as any,
+            expiresAt: queued.ExpiresAt ? new Date(queued.ExpiresAt) : undefined
+          });
+
+          // Mark as delivered
+          await this.markQueuedAsDelivered(queued.Id);
+          processedCount++;
+          
+          console.log(`✅ Delivered queued notification: ${queued.Id} → ${notificationId} to user ${queued.UserId}`);
+        } catch (error) {
+          console.error(`❌ Failed to deliver queued notification ${queued.Id}:`, error);
+        }
+      }
+
+      if (processedCount > 0) {
+        console.log(`🎯 Processed ${processedCount} queued notifications`);
+      }
+      return processedCount;
+    } catch (error) {
+      console.error('❌ Error processing queued notifications:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Create notification directly without preferences check (for internal use)
+   */
+  private async createNotificationDirect(params: CreateNotificationParams): Promise<string> {
+    try {
+      const request = await this.dbService.getRequest();
+      const result = await request
+        .input('UserId', sql.UniqueIdentifier, params.userId)
+        .input('Type', sql.NVarChar(50), params.type)
+        .input('Priority', sql.NVarChar(20), params.priority)
+        .input('Title', sql.NVarChar(200), params.title)
+        .input('Message', sql.NVarChar(sql.MAX), params.message)
+        .input('Data', sql.NVarChar(sql.MAX), params.data ? JSON.stringify(params.data) : null)
+        .input('ActionUrl', sql.NVarChar(500), params.actionUrl || null)
+        .input('ActionText', sql.NVarChar(100), params.actionText || null)
+        .input('RelatedEntityId', sql.UniqueIdentifier, params.relatedEntityId || null)
+        .input('RelatedEntityType', sql.NVarChar(50), params.relatedEntityType || null)
+        .input('ExpiresAt', sql.DateTime2, params.expiresAt || null)
+        .query(`
+          INSERT INTO Notifications (
+            UserId, Type, Priority, Title, Message, Data,
+            ActionUrl, ActionText, RelatedEntityId, RelatedEntityType, ExpiresAt
+          )
+          OUTPUT INSERTED.Id
+          VALUES (
+            @UserId, @Type, @Priority, @Title, @Message, @Data,
+            @ActionUrl, @ActionText, @RelatedEntityId, @RelatedEntityType, @ExpiresAt
+          )
+        `);
+
+      const notificationId = result.recordset[0].Id;
+      
+      // Emit real-time notification via Socket.io
+      if (this.io) {
+        this.io.to(`user-${params.userId}`).emit('notification-created', {
+          id: notificationId,
+          type: params.type,
+          priority: params.priority,
+          title: params.title,
+          message: params.message,
+          data: params.data,
+          actionUrl: params.actionUrl,
+          actionText: params.actionText
+        });
+        console.log(`📡 Real-time notification sent to user-${params.userId}`);
+      }
+      
+      return notificationId;
+    } catch (error) {
+      console.error('❌ Error creating notification directly:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Mark queued notification as delivered
+   */
+  private async markQueuedAsDelivered(queueId: string): Promise<void> {
+    const request = await this.dbService.getRequest();
+    await request
+      .input('Id', sql.UniqueIdentifier, queueId)
+      .query(`
+        UPDATE NotificationQueue
+        SET Status = 'delivered', DeliveredAt = GETUTCDATE(), UpdatedAt = GETUTCDATE()
+        WHERE Id = @Id
+      `);
+  }
+
+  /**
+   * Clean up expired queued notifications
+   */
+  async cleanupExpiredQueue(): Promise<number> {
+    try {
+      const request = await this.dbService.getRequest();
+      const result = await request.query(`
+        UPDATE NotificationQueue
+        SET Status = 'expired', UpdatedAt = GETUTCDATE()
+        WHERE Status = 'queued'
+          AND ExpiresAt IS NOT NULL 
+          AND ExpiresAt < GETUTCDATE()
+      `);
+
+      const expiredCount = result.rowsAffected[0];
+      if (expiredCount > 0) {
+        console.log(`🧹 Marked ${expiredCount} queued notifications as expired`);
+      }
+      
+      return expiredCount;
+    } catch (error) {
+      console.error('❌ Error cleaning up expired queue:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get queued notification count for a user
+   */
+  async getQueuedCount(userId: string): Promise<number> {
+    try {
+      const request = await this.dbService.getRequest();
+      const result = await request
+        .input('UserId', sql.UniqueIdentifier, userId)
+        .query(`
+          SELECT COUNT(*) as QueuedCount
+          FROM NotificationQueue
+          WHERE UserId = @UserId AND Status = 'queued'
+        `);
+      return result.recordset[0].QueuedCount;
+    } catch (error) {
+      console.error('❌ Error getting queued count:', error);
       throw error;
     }
   }

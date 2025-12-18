@@ -227,4 +227,63 @@ router.post('/', authenticateToken, async (req: AuthRequest, res: Response) => {
   }
 });
 
+/**
+ * GET /api/notifications/queue/count
+ * Get count of queued notifications for the authenticated user
+ */
+router.get('/queue/count', authenticateToken, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const notificationService = getNotificationService(req);
+    const count = await notificationService.getQueuedCount(userId);
+    
+    res.json({
+      success: true,
+      count
+    });
+  } catch (error) {
+    console.error('Error getting queued count:', error);
+    res.status(500).json({ error: 'Failed to get queued count' });
+  }
+});
+
+/**
+ * POST /api/notifications/test
+ * Test notification endpoint (Development only)
+ */
+router.post('/test', authenticateToken, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const notificationService = getNotificationService(req);
+    const { type, priority, title, message } = req.body;
+    
+    const params: CreateNotificationParams = {
+      userId,
+      type: type || 'progress',
+      priority: priority || 'normal',
+      title: title || 'Test Notification',
+      message: message || 'This is a test notification'
+    };
+    
+    const notificationId = await notificationService.createNotification(params);
+    
+    res.json({
+      success: true,
+      message: notificationId ? 'Test notification created' : 'Notification queued or blocked by preferences',
+      notificationId
+    });
+  } catch (error) {
+    console.error('Error creating test notification:', error);
+    res.status(500).json({ error: 'Failed to create test notification' });
+  }
+});
+
 export default router;

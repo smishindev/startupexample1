@@ -626,6 +626,42 @@ CREATE TABLE dbo.UserSettings (
 CREATE NONCLUSTERED INDEX IX_UserSettings_UserId ON dbo.UserSettings(UserId);
 
 -- ========================================
+-- NOTIFICATION QUEUE TABLE
+-- ========================================
+
+-- NotificationQueue Table (for quiet hours delivery)
+CREATE TABLE dbo.NotificationQueue (
+    Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    UserId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id) ON DELETE CASCADE,
+    
+    -- Notification Details (same structure as Notifications table)
+    Type NVARCHAR(50) NOT NULL CHECK (Type IN ('progress', 'risk', 'achievement', 'intervention', 'assignment', 'course')),
+    Priority NVARCHAR(20) NOT NULL CHECK (Priority IN ('low', 'normal', 'high', 'urgent')),
+    Title NVARCHAR(200) NOT NULL,
+    Message NVARCHAR(MAX) NOT NULL,
+    Data NVARCHAR(MAX) NULL,
+    ActionUrl NVARCHAR(500) NULL,
+    ActionText NVARCHAR(100) NULL,
+    RelatedEntityId UNIQUEIDENTIFIER NULL,
+    RelatedEntityType NVARCHAR(50) NULL CHECK (RelatedEntityType IN ('course', 'lesson', 'assessment', 'student') OR RelatedEntityType IS NULL),
+    ExpiresAt DATETIME2 NULL,
+    
+    -- Queue Management
+    QueuedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    DeliveredAt DATETIME2 NULL,
+    Status NVARCHAR(20) NOT NULL DEFAULT 'queued' CHECK (Status IN ('queued', 'delivered', 'expired')),
+    
+    -- Timestamps
+    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    UpdatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE()
+);
+
+-- NotificationQueue Indexes
+CREATE NONCLUSTERED INDEX IX_NotificationQueue_UserId ON dbo.NotificationQueue(UserId);
+CREATE NONCLUSTERED INDEX IX_NotificationQueue_Status ON dbo.NotificationQueue(Status) WHERE Status='queued';
+CREATE NONCLUSTERED INDEX IX_NotificationQueue_QueuedAt ON dbo.NotificationQueue(QueuedAt);
+
+-- ========================================
 -- PAYMENT SYSTEM TABLES
 -- ========================================
 

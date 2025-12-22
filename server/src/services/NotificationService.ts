@@ -208,7 +208,11 @@ export class NotificationService {
           WHERE Id = @Id AND UserId = @UserId
         `);
 
-      return result.rowsAffected[0] > 0;
+      const success = result.rowsAffected[0] > 0;
+      if (success && this.io) {
+        this.io.to(`user-${userId}`).emit('notification-read', { notificationId });
+      }
+      return success;
     } catch (error) {
       console.error('❌ Error marking notification as read:', error);
       throw error;
@@ -229,7 +233,11 @@ export class NotificationService {
           WHERE UserId = @UserId AND IsRead = 0
         `);
 
-      return result.rowsAffected[0];
+      const count = result.rowsAffected[0];
+      if (count > 0 && this.io) {
+        this.io.to(`user-${userId}`).emit('notifications-read-all', { count });
+      }
+      return count;
     } catch (error) {
       console.error('❌ Error marking all notifications as read:', error);
       throw error;
@@ -250,7 +258,11 @@ export class NotificationService {
           WHERE Id = @Id AND UserId = @UserId
         `);
 
-      return result.rowsAffected[0] > 0;
+      const success = result.rowsAffected[0] > 0;
+      if (success && this.io) {
+        this.io.to(`user-${userId}`).emit('notification-deleted', { notificationId });
+      }
+      return success;
     } catch (error) {
       console.error('❌ Error deleting notification:', error);
       throw error;

@@ -36,6 +36,7 @@ import { InstructorStudentAnalytics } from './pages/Instructor/InstructorStudent
 import { VideoAnalyticsPage } from './pages/Instructor/VideoAnalyticsPage';
 import LandingPage from './pages/Landing/LandingPage';
 import MyLearningPage from './pages/Learning/MyLearningPage';
+import NotificationsPage from './pages/Notifications/NotificationsPage';
 
 // Phase 2 - Collaborative Features
 import { LiveSessionsPage } from './pages/LiveSessions/LiveSessionsPage';
@@ -190,6 +191,15 @@ function App() {
           element={
             <ProtectedRoute>
               <SettingsPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/notifications"
+          element={
+            <ProtectedRoute>
+              <NotificationsPage />
             </ProtectedRoute>
           }
         />

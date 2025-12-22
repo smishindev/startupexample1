@@ -68,6 +68,14 @@ export const notificationApi = {
   },
 
   /**
+   * Get queued notification count (quiet hours)
+   */
+  getQueuedCount: async (): Promise<number> => {
+    const response = await api.get('/api/notifications/queue/count');
+    return response.data.count;
+  },
+
+  /**
    * Mark a notification as read
    */
   markAsRead: async (notificationId: string): Promise<void> => {

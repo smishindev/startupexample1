@@ -175,6 +175,18 @@ class SocketService {
     }
   }
 
+  onNotificationsReadAll(callback: (data: { count: number }) => void): void {
+    if (this.socket) {
+      this.socket.on('notifications-read-all', callback);
+    }
+  }
+
+  onNotificationDeleted(callback: (data: { notificationId: string }) => void): void {
+    if (this.socket) {
+      this.socket.on('notification-deleted', callback);
+    }
+  }
+
   // Remove all listeners
   removeAllListeners(): void {
     if (this.socket) {

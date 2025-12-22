@@ -32,6 +32,7 @@ export const NotificationBell: React.FC = () => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [queuedCount, setQueuedCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -41,12 +42,14 @@ export const NotificationBell: React.FC = () => {
   const fetchNotifications = async () => {
     try {
       setLoading(true);
-      const [allNotifications, count] = await Promise.all([
+      const [allNotifications, count, qCount] = await Promise.all([
         notificationApi.getNotifications(false), // Only unread
-        notificationApi.getUnreadCount()
+        notificationApi.getUnreadCount(),
+        notificationApi.getQueuedCount().catch(() => 0)
       ]);
       setNotifications(allNotifications);
       setUnreadCount(count);
+      setQueuedCount(qCount || 0);
     } catch (error) {
       console.error('Error fetching notifications:', error);
     } finally {
@@ -104,6 +107,20 @@ export const NotificationBell: React.FC = () => {
           setNotifications(prev => prev.filter(n => n.Id !== data.notificationId));
           setUnreadCount(prev => Math.max(0, prev - 1));
         });
+
+        // Listen for mark-all-read events
+        socketService.onNotificationsReadAll((data) => {
+          console.log('All notifications marked as read on another tab');
+          setNotifications([]);
+          setUnreadCount(0);
+        });
+
+        // Listen for notification-deleted events from other tabs/page
+        socketService.onNotificationDeleted((data) => {
+          console.log('Notification deleted:', data.notificationId);
+          setNotifications(prev => prev.filter(n => n.Id !== data.notificationId));
+          setUnreadCount(prev => Math.max(0, prev - 1));
+        });
         
       } catch (error) {
         console.error('Socket connection failed, will use REST API only:', error);
@@ -121,9 +138,7 @@ export const NotificationBell: React.FC = () => {
 
   const handleClick = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
-    if (unreadCount > 0) {
-      fetchNotifications(); // Refresh when opening
-    }
+    fetchNotifications(); // Refresh when opening to sync counts and queued
   };
 
   const handleClose = () => {
@@ -207,16 +222,31 @@ export const NotificationBell: React.FC = () => {
 
   return (
     <>
-      <Tooltip title="Notifications">
+      <Tooltip title={queuedCount > 0 ? `Notifications (quiet hours: ${queuedCount} queued)` : 'Notifications'}>
         <IconButton
           onClick={handleClick}
           size="large"
           aria-label={`show ${unreadCount} new notifications`}
           color="inherit"
         >
-          <Badge badgeContent={unreadCount} color="error">
-            {unreadCount > 0 ? <NotificationsIcon /> : <NotificationsNoneIcon />}
-          </Badge>
+          <Box sx={{ position: 'relative' }}>
+            <Badge badgeContent={unreadCount} color="error">
+              {unreadCount > 0 ? <NotificationsIcon /> : <NotificationsNoneIcon />}
+            </Badge>
+            {queuedCount > 0 && (
+              <Badge
+                overlap="circular"
+                color="info"
+                badgeContent={queuedCount > 9 ? '9+' : queuedCount}
+                sx={{
+                  position: 'absolute',
+                  top: -6,
+                  right: -6,
+                  '& .MuiBadge-badge': { fontSize: '0.6rem', height: 16, minWidth: 16 }
+                }}
+              />
+            )}
+          </Box>
         </IconButton>
       </Tooltip>
 
@@ -281,6 +311,8 @@ export const NotificationBell: React.FC = () => {
                     py: 1.5,
                     px: 2,
                     alignItems: 'flex-start',
+                    whiteSpace: 'normal',
+                    wordBreak: 'break-word',
                     '&:hover': {
                       backgroundColor: 'action.hover',
                     },
@@ -289,20 +321,20 @@ export const NotificationBell: React.FC = () => {
                   <Box sx={{ mr: 1.5, mt: 0.5 }}>
                     {getNotificationIcon(notification.Type)}
                   </Box>
-                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <Box sx={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 0.5 }}>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 600, wordBreak: 'break-word', pr: 1 }}>
                         {notification.Title}
                       </Typography>
                       <IconButton
                         size="small"
                         onClick={(e) => handleDeleteNotification(notification.Id, e)}
-                        sx={{ ml: 1 }}
+                        sx={{ ml: 1, flexShrink: 0 }}
                       >
                         <CloseIcon fontSize="small" />
                       </IconButton>
                     </Box>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1, wordBreak: 'break-word' }}>
                       {notification.Message}
                     </Typography>
                     <Stack direction="row" spacing={1} alignItems="center">

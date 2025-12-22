@@ -42,12 +42,12 @@ export const NotificationBell: React.FC = () => {
   const fetchNotifications = async () => {
     try {
       setLoading(true);
-      const [allNotifications, count, qCount] = await Promise.all([
+      const [notificationsResult, count, qCount] = await Promise.all([
         notificationApi.getNotifications(false), // Only unread
         notificationApi.getUnreadCount(),
         notificationApi.getQueuedCount().catch(() => 0)
       ]);
-      setNotifications(allNotifications);
+      setNotifications(notificationsResult.notifications);
       setUnreadCount(count);
       setQueuedCount(qCount || 0);
     } catch (error) {

@@ -1,6 +1,6 @@
 # 🚀 Quick Reference - Development Workflow
 
-**Last Updated**: December 18, 2025
+**Last Updated**: December 22, 2025
 
 ---
 
@@ -113,6 +113,31 @@ Role: Student
   - Real-time state updates
   - Snackbar feedback (success/error/warning)
   - Cross-page synchronization (via page refresh)
+
+**Notifications Center Testing (Dec 22, 2025):**
+- **NotificationsPage** (`/notifications`): Full-page notification management
+- **NotificationBell**: Enhanced dropdown with unread + queued counts
+- Test scenarios:
+  1. **Pagination**: Load 100+ notifications, verify 20 per page
+  2. **Filtering**: Test All/Unread toggle, type filter (6 options), priority filter (4 options)
+  3. **Real-time Sync**: Open two tabs, delete in one → removed from both
+  4. **Cross-tab Updates**: Mark read in tab A → count updates in tab B
+  5. **Navigation**: Click notification with ActionUrl → navigates to target page
+  6. **Queued Notifications**: Set quiet hours, trigger notification → appears in bell badge (blue)
+  7. Database check: `SELECT * FROM Notifications WHERE UserId=@yourUserId ORDER BY CreatedAt DESC`
+- Socket.IO events to verify:
+  - `notification-created`: New notification appears instantly
+  - `notification-read`: Read status syncs across tabs
+  - `notifications-read-all`: All marked read syncs
+  - `notification-deleted`: Delete syncs across tabs
+- Features:
+  - Server-side pagination (limit/offset)
+  - Client-side pagination (20 items/page)
+  - Type/priority filtering
+  - Mark read/delete actions
+  - Settings shortcut button
+  - Text wrapping for long messages
+  - Date display: "5 minutes ago" (relative time)
 
 ---
 

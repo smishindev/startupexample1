@@ -15,7 +15,8 @@ import {
   FormControl,
   InputLabel,
   Paper,
-  CircularProgress
+  CircularProgress,
+  Pagination
 } from '@mui/material';
 import {
   Notifications as NotificationsIcon,
@@ -27,17 +28,20 @@ import {
   School as CourseIcon,
   Delete as DeleteIcon,
   DoneAll as DoneAllIcon,
+  Settings as SettingsIcon,
 } from '@mui/icons-material';
 import { HeaderV4 } from '../../components/Navigation/HeaderV4';
 import { notificationApi, Notification } from '../../services/notificationApi';
 import { socketService } from '../../services/socketService';
 import { formatDistanceToNow } from 'date-fns';
+import { useNavigate } from 'react-router-dom';
 
 const NotificationItem: React.FC<{
   item: Notification;
   onMarkRead: (id: string) => void;
   onDelete: (id: string) => void;
-}> = ({ item, onMarkRead, onDelete }) => {
+  onNavigate: (url: string) => void;
+}> = ({ item, onMarkRead, onDelete, onNavigate }) => {
   const icon = useMemo(() => {
     switch (item.Type) {
       case 'risk':
@@ -70,15 +74,34 @@ const NotificationItem: React.FC<{
     }
   }, [item.Priority]);
 
+  const handleClick = () => {
+    if (item.ActionUrl) {
+      if (!item.IsRead) {
+        onMarkRead(item.Id);
+      }
+      onNavigate(item.ActionUrl);
+    }
+  };
+
   return (
-    <Box sx={{ p: 2, display: 'flex', gap: 2, alignItems: 'flex-start' }}>
+    <Box 
+      sx={{ 
+        p: 2, 
+        display: 'flex', 
+        gap: 2, 
+        alignItems: 'flex-start',
+        cursor: item.ActionUrl ? 'pointer' : 'default',
+        '&:hover': item.ActionUrl ? { bgcolor: 'action.hover' } : {}
+      }}
+      onClick={handleClick}
+    >
       <Box sx={{ mt: 0.5 }}>{icon}</Box>
       <Box sx={{ flex: 1, minWidth: 0 }}>
         <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={1}>
           <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
             {item.Title}
           </Typography>
-          <Stack direction="row" spacing={1} alignItems="center">
+          <Stack direction="row" spacing={1} alignItems="center" onClick={(e) => e.stopPropagation()}>
             {!item.IsRead && (
               <Button size="small" onClick={() => onMarkRead(item.Id)}>
                 Mark read
@@ -102,6 +125,9 @@ const NotificationItem: React.FC<{
           ) : (
             <Chip size="small" color="primary" label="Unread" />
           )}
+          {item.ActionUrl && (
+            <Chip size="small" label={item.ActionText || 'View'} variant="outlined" />
+          )}
         </Stack>
       </Box>
     </Box>
@@ -109,11 +135,14 @@ const NotificationItem: React.FC<{
 };
 
 export const NotificationsPage: React.FC = () => {
+  const navigate = useNavigate();
   const [items, setItems] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(false);
   const [show, setShow] = useState<'all' | 'unread'>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
+  const [page, setPage] = useState(1);
+  const pageSize = 20;
 
   const filtered = useMemo(() => {
     return items.filter(n => {
@@ -124,11 +153,18 @@ export const NotificationsPage: React.FC = () => {
     });
   }, [items, show, typeFilter, priorityFilter]);
 
+  const totalPages = Math.ceil(filtered.length / pageSize);
+  const paginatedItems = filtered.slice((page - 1) * pageSize, page * pageSize);
+
   const fetchAll = async () => {
     try {
       setLoading(true);
-      const data = await notificationApi.getNotifications(true);
-      setItems(data);
+      const { notifications } = await notificationApi.getNotifications(true, {
+        type: typeFilter !== 'all' ? typeFilter : undefined,
+        priority: priorityFilter !== 'all' ? priorityFilter : undefined,
+        limit: 100
+      });
+      setItems(notifications);
     } catch (err) {
       console.error('Failed to load notifications', err);
     } finally {
@@ -165,7 +201,10 @@ export const NotificationsPage: React.FC = () => {
 
   useEffect(() => {
     fetchAll();
+    setPage(1); // Reset to first page when filters change
+  }, [show, typeFilter, priorityFilter]);
 
+  useEffect(() => {
     // Setup socket listeners for real-time updates
     const connectSocket = async () => {
       try {
@@ -234,6 +273,14 @@ export const NotificationsPage: React.FC = () => {
             <Typography variant="h5">Notifications</Typography>
           </Stack>
           <Stack direction="row" spacing={1}>
+            <Button
+              startIcon={<SettingsIcon />}
+              onClick={() => navigate('/settings')}
+              variant="outlined"
+              size="small"
+            >
+              Preferences
+            </Button>
             <Button startIcon={<DoneAllIcon />} onClick={markAll} disabled={items.every(i => i.IsRead)}>
               Mark all read
             </Button>
@@ -291,12 +338,27 @@ export const NotificationsPage: React.FC = () => {
             </Box>
           ) : (
             <>
-              {filtered.map((n, i) => (
+              {paginatedItems.map((n, i) => (
                 <React.Fragment key={n.Id}>
                   {i > 0 && <Divider />}
-                  <NotificationItem item={n} onMarkRead={markRead} onDelete={remove} />
+                  <NotificationItem item={n} onMarkRead={markRead} onDelete={remove} onNavigate={navigate} />
                 </React.Fragment>
               ))}
+              {totalPages > 1 && (
+                <>
+                  <Divider />
+                  <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
+                    <Pagination 
+                      count={totalPages} 
+                      page={page} 
+                      onChange={(_, val) => setPage(val)} 
+                      color="primary"
+                      showFirstButton
+                      showLastButton
+                    />
+                  </Box>
+                </>
+              )}
             </>
           )}
         </Paper>

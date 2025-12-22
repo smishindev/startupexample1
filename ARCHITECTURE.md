@@ -342,6 +342,98 @@ GET    /api/notifications/queue/count  - Get queued notification count
 POST   /api/notifications/test          - Test notification (dev only)
 ```
 
+**Notifications Center Real-time Architecture** (Dec 22, 2025):
+```
+┌─────────────────────────────────────────────────────────────────┐
+│         Notifications Page & Bell Real-time Sync Flow            │
+└─────────────────────────────────────────────────────────────────┘
+
+User opens /notifications or clicks bell icon
+  ↓
+GET /api/notifications?type=X&priority=Y&limit=100&offset=0
+  ↓
+NotificationService.getUserNotifications(userId, includeRead, { type, priority, limit, offset })
+  ↓
+SELECT * FROM Notifications
+WHERE UserId=@UserId AND (filters...)
+ORDER BY CreatedAt DESC
+OFFSET @Offset ROWS FETCH NEXT @Limit ROWS ONLY
+  ↓
+Format dates: FORMAT(CreatedAt, 'yyyy-MM-ddTHH:mm:ss.fff') + 'Z'
+  ↓
+Return { notifications: [...], pagination: { limit, offset, hasMore } }
+  ↓
+Frontend displays with client-side pagination (20 items/page)
+
+┌──────────────────────────────────────────────────────────────────┐
+│                   Socket.IO Real-time Events                      │
+└──────────────────────────────────────────────────────────────────┘
+
+Server Emits (NotificationService):
+├─ notification-created  → When new notification sent to user
+├─ notification-read     → When single notification marked as read
+├─ notifications-read-all → When all notifications marked as read
+└─ notification-deleted  → When notification is deleted
+
+Client Listeners (NotificationBell + NotificationsPage):
+├─ notification-created    → Add to list, increment count
+├─ notification-read       → Update IsRead=true, decrement count
+├─ notifications-read-all  → Mark all IsRead=true, count=0
+└─ notification-deleted    → Remove from list, decrement count
+
+Cross-Tab Synchronization:
+User Tab A: Marks notification as read
+  ↓
+PATCH /api/notifications/:id/read
+  ↓
+NotificationService.markAsRead(id, userId)
+  ↓
+UPDATE Notifications SET IsRead=1, ReadAt=GETUTCDATE()
+  ↓
+io.to(`user-${userId}`).emit('notification-read', { notificationId })
+  ↓
+User Tab B: Receives socket event
+  ↓
+setNotifications(prev => prev.filter(n => n.Id !== notificationId))
+setUnreadCount(prev => Math.max(0, prev - 1))
+  ↓
+Both tabs now in sync without page refresh
+
+┌──────────────────────────────────────────────────────────────────┐
+│             NotificationsPage Features (Dec 22, 2025)             │
+└──────────────────────────────────────────────────────────────────┘
+
+Filters:
+├─ All/Unread toggle
+├─ Type filter: progress, risk, intervention, achievement, assignment, course
+└─ Priority filter: urgent, high, normal, low
+
+Pagination:
+├─ Server-side: limit=100, offset=0 (initial load)
+├─ Client-side: 20 items per page with MUI Pagination
+└─ Resets to page 1 when filters change
+
+Actions:
+├─ Mark individual as read → PATCH /api/notifications/:id/read
+├─ Mark all as read → PATCH /api/notifications/read-all
+├─ Delete notification → DELETE /api/notifications/:id
+└─ Click notification → Navigate to ActionUrl (if present)
+
+Real-time Updates:
+├─ New notification appears at top instantly
+├─ Read status syncs across all tabs
+├─ Delete removes from all tabs
+└─ No page refresh needed
+```
+
+**Date Display (Dec 22, 2025):**
+```
+Database (UTC):           2025-12-22T10:30:00.000Z
+Server Format:            'yyyy-MM-ddTHH:mm:ss.fff' + 'Z'
+Client Display:           formatDistanceToNow() → "5 minutes ago"
+Timezone Conversion:      Automatic via date-fns (user's local timezone)
+```
+
 **Privacy Settings Flow** (added Dec 18, 2025):
 ```
 User → Settings Page (/settings) → Privacy tab

@@ -52,11 +52,26 @@ export const notificationApi = {
   /**
    * Get all notifications for the authenticated user
    */
-  getNotifications: async (includeRead: boolean = true): Promise<Notification[]> => {
-    const response = await api.get('/api/notifications', {
-      params: { includeRead }
-    });
-    return response.data.notifications;
+  getNotifications: async (
+    includeRead: boolean = true,
+    options?: {
+      type?: string;
+      priority?: string;
+      limit?: number;
+      offset?: number;
+    }
+  ): Promise<{ notifications: Notification[]; hasMore: boolean }> => {
+    const params: any = { includeRead };
+    if (options?.type) params.type = options.type;
+    if (options?.priority) params.priority = options.priority;
+    if (options?.limit) params.limit = options.limit;
+    if (options?.offset) params.offset = options.offset;
+
+    const response = await api.get('/api/notifications', { params });
+    return {
+      notifications: response.data.notifications,
+      hasMore: response.data.pagination?.hasMore || false
+    };
   },
 
   /**

@@ -1,6 +1,6 @@
 # Mishin Learn Platform - Component Registry
 
-**Last Updated**: December 2, 2025  
+**Last Updated**: December 22, 2025  
 **Purpose**: Quick reference for all major components, their dependencies, and relationships
 
 ---
@@ -17,6 +17,48 @@
 ---
 
 ## 🎯 PAGES (Entry Point Components)
+
+### Notification Pages
+
+#### NotificationsPage
+**Path**: `client/src/pages/Notifications/NotificationsPage.tsx`  
+**Route**: `/notifications`  
+**Purpose**: Full-featured notifications management center with filters and pagination
+
+**Services Used**:
+- `notificationApi.getNotifications(includeRead, { type, priority, limit, offset })` - Fetch notifications with filters
+- `notificationApi.markAsRead(id)` - Mark single notification as read
+- `notificationApi.markAllAsRead()` - Mark all notifications as read
+- `notificationApi.deleteNotification(id)` - Delete notification
+- `socketService` - Real-time notification updates
+
+**Features**:
+- HeaderV4 navigation
+- All/Unread toggle filter
+- Type filter (progress, risk, intervention, achievement, assignment, course)
+- Priority filter (urgent, high, normal, low)
+- Pagination (20 items per page)
+- Individual mark read and delete actions
+- Mark all read button
+- Settings/Preferences shortcut button
+- Click-to-navigate for notifications with ActionUrl
+- Real-time cross-tab synchronization via Socket.IO
+
+**Socket Events**:
+- Listens: `notification-created`, `notification-read`, `notifications-read-all`, `notification-deleted`
+- Auto-updates list when events received from other tabs/devices
+
+**State Management**:
+- `items: Notification[]` - All notifications
+- `loading: boolean` - Loading state
+- `show: 'all' | 'unread'` - View filter
+- `typeFilter: string` - Type filter
+- `priorityFilter: string` - Priority filter
+- `page: number` - Current pagination page
+
+**Status**: ✅ Complete (Dec 22, 2025)
+
+---
 
 ### Payment & Checkout Pages
 
@@ -1438,6 +1480,42 @@ Check current state
 - `server/src/routes/officeHours.ts` - Office hours queue
 - `server/src/routes/studyGroups.ts` - Study group members
 - `server/src/routes/instructor.ts` - At-risk students
+
+---
+
+### Notification Components
+
+#### NotificationBell
+**Path**: `client/src/components/Notifications/NotificationBell.tsx`  
+**Purpose**: Real-time notification dropdown with unread and queued count badges
+
+**Services Used**:
+- `notificationApi.getNotifications(false)` - Fetch unread notifications
+- `notificationApi.getUnreadCount()` - Get unread count
+- `notificationApi.getQueuedCount()` - Get queued count (quiet hours)
+- `notificationApi.markAsRead(id)` - Mark notification as read
+- `notificationApi.markAllAsRead()` - Mark all as read
+- `notificationApi.deleteNotification(id)` - Delete notification
+- `socketService` - Real-time updates
+
+**Features**:
+- Unread count badge (red, primary position)
+- Queued count badge (blue, secondary position for quiet hours)
+- Dropdown with last 10 unread notifications
+- "View All Notifications" link to /notifications page
+- "Mark all read" button
+- Individual delete buttons
+- Text wrapping for long notification messages
+- Real-time cross-tab synchronization
+
+**Socket Events**:
+- Listens: `notification-created`, `notification-read`, `notifications-read-all`, `notification-deleted`
+- Updates dropdown and counts in real-time
+
+**Used By**:
+- HeaderV4 (always visible in navigation)
+
+**Status**: ✅ Enhanced (Dec 22, 2025)
 
 ---
 

@@ -137,26 +137,58 @@ export class NotificationService {
   /**
    * Get all notifications for a user
    */
-  async getUserNotifications(userId: string, includeRead: boolean = true): Promise<Notification[]> {
+  async getUserNotifications(
+    userId: string, 
+    includeRead: boolean = true,
+    options?: {
+      type?: string;
+      priority?: string;
+      limit?: number;
+      offset?: number;
+    }
+  ): Promise<Notification[]> {
     try {
       const request = await this.dbService.getRequest();
-      const result = await request
-        .input('UserId', sql.UniqueIdentifier, userId)
-        .input('IncludeRead', sql.Bit, includeRead)
-        .query(`
-          SELECT 
-            Id, UserId, Type, Priority, Title, Message, Data,
-            IsRead, 
-            FORMAT(CreatedAt, 'yyyy-MM-ddTHH:mm:ss.fff') + 'Z' as CreatedAt,
-            FORMAT(ReadAt, 'yyyy-MM-ddTHH:mm:ss.fff') + 'Z' as ReadAt,
-            FORMAT(ExpiresAt, 'yyyy-MM-ddTHH:mm:ss.fff') + 'Z' as ExpiresAt,
-            ActionUrl, ActionText, RelatedEntityId, RelatedEntityType
-          FROM Notifications
-          WHERE UserId = @UserId
-            AND (@IncludeRead = 1 OR IsRead = 0)
-            AND (ExpiresAt IS NULL OR ExpiresAt > GETUTCDATE())
-          ORDER BY CreatedAt DESC
-        `);
+      request.input('UserId', sql.UniqueIdentifier, userId);
+      request.input('IncludeRead', sql.Bit, includeRead);
+
+      let whereConditions = [
+        'UserId = @UserId',
+        '(@IncludeRead = 1 OR IsRead = 0)',
+        '(ExpiresAt IS NULL OR ExpiresAt > GETUTCDATE())'
+      ];
+
+      // Add type filter
+      if (options?.type && options.type !== 'all') {
+        request.input('Type', sql.NVarChar(50), options.type);
+        whereConditions.push('Type = @Type');
+      }
+
+      // Add priority filter
+      if (options?.priority && options.priority !== 'all') {
+        request.input('Priority', sql.NVarChar(20), options.priority);
+        whereConditions.push('Priority = @Priority');
+      }
+
+      const limit = options?.limit || 50;
+      const offset = options?.offset || 0;
+      request.input('Limit', sql.Int, limit);
+      request.input('Offset', sql.Int, offset);
+
+      const result = await request.query(`
+        SELECT 
+          Id, UserId, Type, Priority, Title, Message, Data,
+          IsRead, 
+          FORMAT(CreatedAt, 'yyyy-MM-ddTHH:mm:ss.fff') + 'Z' as CreatedAt,
+          FORMAT(ReadAt, 'yyyy-MM-ddTHH:mm:ss.fff') + 'Z' as ReadAt,
+          FORMAT(ExpiresAt, 'yyyy-MM-ddTHH:mm:ss.fff') + 'Z' as ExpiresAt,
+          ActionUrl, ActionText, RelatedEntityId, RelatedEntityType
+        FROM Notifications
+        WHERE ${whereConditions.join(' AND ')}
+        ORDER BY CreatedAt DESC
+        OFFSET @Offset ROWS
+        FETCH NEXT @Limit ROWS ONLY
+      `);
 
       return result.recordset.map((record: any) => ({
         ...record,

@@ -13,6 +13,7 @@ const getNotificationService = (req: Request): NotificationService => {
 /**
  * GET /api/notifications
  * Get all notifications for the authenticated user
+ * Query params: includeRead, type, priority, limit, offset
  */
 router.get('/', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
@@ -23,11 +24,26 @@ router.get('/', authenticateToken, async (req: AuthRequest, res: Response) => {
 
     const notificationService = getNotificationService(req);
     const includeRead = req.query.includeRead !== 'false'; // default true
-    const notifications = await notificationService.getUserNotifications(userId, includeRead);
+    const type = req.query.type as string | undefined;
+    const priority = req.query.priority as string | undefined;
+    const limit = req.query.limit ? parseInt(req.query.limit as string) : 50;
+    const offset = req.query.offset ? parseInt(req.query.offset as string) : 0;
+
+    const notifications = await notificationService.getUserNotifications(userId, includeRead, {
+      type,
+      priority,
+      limit,
+      offset
+    });
     
     res.json({
       success: true,
-      notifications
+      notifications,
+      pagination: {
+        limit,
+        offset,
+        hasMore: notifications.length === limit
+      }
     });
   } catch (error) {
     console.error('Error fetching notifications:', error);

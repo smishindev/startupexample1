@@ -493,20 +493,31 @@ CREATE TABLE dbo.Notifications (
     CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
     ReadAt DATETIME2 NULL,
     ExpiresAt DATETIME2 NULL, -- Optional expiration for temporary notifications
-    ActionUrl NVARCHAR(500) NULL, -- Deep link to relevant page
+    ActionUrl NVARCHAR(500) NULL, -- Deep link to relevant page (used in NotificationsPage for click-to-navigate)
     ActionText NVARCHAR(100) NULL, -- Button text for action
     RelatedEntityId UNIQUEIDENTIFIER NULL, -- Course, Lesson, Assessment ID etc
     RelatedEntityType NVARCHAR(50) NULL -- 'course', 'lesson', 'assessment', 'student'
 );
+-- NOTIFICATIONS CENTER STATUS (Dec 22, 2025):
+--   ✅ NotificationsPage (/notifications): Full-page management with pagination, filtering
+--   ✅ NotificationBell: Enhanced dropdown with unread + queued count badges
+--   ✅ Real-time updates: 4 socket events (created, read, read-all, deleted)
+--   ✅ Server-side filtering: type, priority, limit, offset
+--   ✅ Client pagination: 20 items/page with MUI Pagination
+--   ✅ Click-to-navigate: ActionUrl navigation on notification click
+--   ✅ Settings shortcut: Button linking to /settings
+--   ✅ Cross-tab sync: Delete/read syncs across all tabs
+--   ✅ Date handling: UTC storage, ISO format, formatDistanceToNow display
 
 -- NotificationPreferences Table - User preferences for notification delivery
--- IMPLEMENTATION STATUS (Dec 11, 2025):
+-- IMPLEMENTATION STATUS (Dec 18, 2025):
 --   ✅ Database table created and functional
 --   ✅ UI fully implemented (/profile → Preferences tab)
 --   ✅ API endpoints working (GET/PATCH /api/notifications/preferences)
---   ⚠️  Preferences are STORED but NOT ENFORCED in notification sending
---   📝 TODO: Connect preferences to NotificationService.createNotification()
---        See: NOTIFICATION_PREFERENCES_TODO.md for implementation plan
+--   ✅ Preferences FULLY ENFORCED with quiet hours queueing and type filtering
+--   ✅ NotificationQueue table with cron job processing every 5 minutes
+--   ✅ Quiet hours: Notifications queued during specified time range
+--   ✅ Type filtering: 5 toggles (progress, achievements, risk, course, assignment)
 CREATE TABLE dbo.NotificationPreferences (
     Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
     UserId UNIQUEIDENTIFIER NOT NULL UNIQUE FOREIGN KEY REFERENCES dbo.Users(Id) ON DELETE CASCADE,

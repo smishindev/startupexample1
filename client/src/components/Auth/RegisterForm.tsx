@@ -16,6 +16,11 @@ import {
   Stepper,
   Step,
   StepLabel,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
 } from '@mui/material';
 import {
   Visibility,
@@ -25,9 +30,11 @@ import {
   Person,
   AccountCircle,
   PersonAdd,
+  MarkEmailRead,
 } from '@mui/icons-material';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { useAuthStore, RegisterData } from '../../stores/authStore';
+import { toast } from 'sonner';
 
 const learningStyles = [
   { value: 'visual', label: 'Visual (I learn best with images and diagrams)' },
@@ -65,6 +72,8 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [showVerificationDialog, setShowVerificationDialog] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleChange = (field: keyof RegisterData | 'confirmPassword') => (
     event: React.ChangeEvent<HTMLInputElement>
@@ -158,8 +167,12 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
   };
 
   const handleNext = () => {
+    console.log('handleNext called, current activeStep:', activeStep);
     if (validateStep(activeStep)) {
+      console.log('Validation passed, incrementing step from', activeStep, 'to', activeStep + 1);
       setActiveStep(prev => prev + 1);
+    } else {
+      console.log('Validation failed');
     }
   };
 
@@ -167,22 +180,63 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
     setActiveStep(prev => prev - 1);
   };
 
+  const handleKeyDown = (event: React.KeyboardEvent) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      event.stopPropagation();
+      console.log('Enter pressed on step:', activeStep);
+      if (activeStep < steps.length - 1) {
+        console.log('Calling handleNext');
+        handleNext();
+      } else if (activeStep === steps.length - 1) {
+        console.log('On final step, calling handleSubmit');
+        handleSubmit(event as any);
+      }
+    }
+  };
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
+    event.stopPropagation();
     
-    if (!validateStep(activeStep)) return;
+    console.log('handleSubmit called, activeStep:', activeStep, 'steps.length - 1:', steps.length - 1, 'isSubmitting:', isSubmitting);
     
-    const success = await register({
-      ...formData,
-      email: formData.email.trim(),
-      username: formData.username.trim(),
-      firstName: formData.firstName.trim(),
-      lastName: formData.lastName.trim(),
-    });
+    // Prevent double submission
+    if (isSubmitting) {
+      console.log('Already submitting, ignoring');
+      return;
+    }
     
-    if (success) {
-      onSuccess?.();
-      navigate('/dashboard');
+    // Only submit if we're on the final step
+    if (activeStep !== steps.length - 1) {
+      console.log('Not on final step, ignoring submit');
+      return;
+    }
+    
+    console.log('On final step, validating and submitting');
+    if (!validateStep(activeStep)) {
+      console.log('Validation failed');
+      return;
+    }
+    
+    setIsSubmitting(true);
+    
+    try {
+      const success = await register({
+        ...formData,
+        email: formData.email.trim(),
+        username: formData.username.trim(),
+        firstName: formData.firstName.trim(),
+        lastName: formData.lastName.trim(),
+      });
+      
+      if (success) {
+        onSuccess?.();
+        toast.success('Registration successful! Please check your email to verify your account.');
+        setShowVerificationDialog(true);
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -197,6 +251,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
               label="First Name"
               value={formData.firstName}
               onChange={handleChange('firstName')}
+              onKeyDown={handleKeyDown}
               error={!!validationErrors.firstName}
               helperText={validationErrors.firstName}
               margin="normal"
@@ -219,6 +274,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
               label="Last Name"
               value={formData.lastName}
               onChange={handleChange('lastName')}
+              onKeyDown={handleKeyDown}
               error={!!validationErrors.lastName}
               helperText={validationErrors.lastName}
               margin="normal"
@@ -261,6 +317,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
               type="email"
               value={formData.email}
               onChange={handleChange('email')}
+              onKeyDown={handleKeyDown}
               error={!!validationErrors.email}
               helperText={validationErrors.email}
               margin="normal"
@@ -287,6 +344,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
               label="Username"
               value={formData.username}
               onChange={handleChange('username')}
+              onKeyDown={handleKeyDown}
               error={!!validationErrors.username}
               helperText={validationErrors.username || 'This will be your unique identifier'}
               margin="normal"
@@ -309,6 +367,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
               type={showPassword ? 'text' : 'password'}
               value={formData.password}
               onChange={handleChange('password')}
+              onKeyDown={handleKeyDown}
               error={!!validationErrors.password}
               helperText={validationErrors.password}
               margin="normal"
@@ -343,6 +402,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
               type={showConfirmPassword ? 'text' : 'password'}
               value={confirmPassword}
               onChange={handleChange('confirmPassword')}
+              onKeyDown={handleKeyDown}
               error={!!validationErrors.confirmPassword}
               helperText={validationErrors.confirmPassword}
               margin="normal"
@@ -385,8 +445,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
               id="learningStyle"
               label="Learning Style (Optional)"
               value={formData.learningStyle}
-              onChange={handleChange('learningStyle')}
-              margin="normal"
+              onChange={handleChange('learningStyle')}              onKeyDown={handleKeyDown}              margin="normal"
               disabled={isLoading}
               helperText="We'll use this to recommend the best content for you"
             >
@@ -448,13 +507,24 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
             </Alert>
           )}
 
-          <Box component="form" onSubmit={handleSubmit} noValidate>
+          <Box component="form" onSubmit={(e) => {
+            console.log('Form onSubmit triggered, activeStep:', activeStep);
+            e.preventDefault();
+            e.stopPropagation();
+            // ONLY allow submission on final step
+            if (activeStep === steps.length - 1) {
+              handleSubmit(e);
+            } else {
+              console.log('Form submit prevented - not on final step');
+            }
+          }} noValidate>
             {renderStepContent(activeStep)}
 
             <Box sx={{ display: 'flex', flexDirection: 'row', pt: 2 }}>
               <Button
+                type="button"
                 color="inherit"
-                disabled={activeStep === 0 || isLoading}
+                disabled={activeStep === 0 || isLoading || isSubmitting}
                 onClick={handleBack}
                 sx={{ mr: 1 }}
               >
@@ -465,10 +535,10 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
                 <Button
                   type="submit"
                   variant="contained"
-                  disabled={isLoading}
+                  disabled={isLoading || isSubmitting}
                   sx={{ minWidth: 120 }}
                 >
-                  {isLoading ? (
+                  {isLoading || isSubmitting ? (
                     <>
                       <CircularProgress size={20} sx={{ mr: 1 }} />
                       Creating...
@@ -478,7 +548,17 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
                   )}
                 </Button>
               ) : (
-                <Button onClick={handleNext} variant="contained">
+                <Button 
+                  onClick={(e) => {
+                    console.log('Next button clicked, current step:', activeStep);
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleNext();
+                  }} 
+                  variant="contained" 
+                  type="button"
+                  disabled={isLoading || isSubmitting}
+                >
                   Next
                 </Button>
               )}
@@ -501,12 +581,59 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
                 underline="hover"
                 fontWeight="medium"
               >
-                Sign In
+                Sign in
               </Link>
             </Typography>
           </Box>
         </CardContent>
       </Card>
+
+      {/* Email Verification Dialog */}
+      <Dialog
+        open={showVerificationDialog}
+        onClose={() => {
+          setShowVerificationDialog(false);
+          navigate('/verify-email');
+        }}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <MarkEmailRead color="primary" />
+          Verify Your Email
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            <strong>Welcome to our platform!</strong>
+            <br /><br />
+            We've sent a verification code to <strong>{formData.email}</strong>.
+            <br /><br />
+            Please check your email (including spam folder) and enter the 6-digit code to verify your account.
+            <br /><br />
+            The code will expire in 24 hours.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => {
+            setShowVerificationDialog(false);
+            navigate('/dashboard');
+          }}>
+            Verify Later
+          </Button>
+          <Button
+            variant="contained"
+            onClick={() => {
+              setShowVerificationDialog(false);
+              navigate('/verify-email');
+            }}
+            autoFocus
+          >
+            Verify Now
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
+
+export default RegisterForm;

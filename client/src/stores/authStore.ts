@@ -34,6 +34,7 @@ export interface AuthState {
   clearError: () => void;
   setLoading: (loading: boolean) => void;
   updateUser: (userData: Partial<User>) => void;
+  updateEmailVerified: (verified: boolean) => void;
   
   // Token validation
   validateToken: () => Promise<boolean>;
@@ -245,6 +246,15 @@ export const useAuthStore = create<AuthState>()(
         if (user) {
           set({
             user: { ...user, ...userData },
+          });
+        }
+      },
+
+      updateEmailVerified: (verified: boolean) => {
+        const { user } = get();
+        if (user) {
+          set({
+            user: { ...user, emailVerified: verified },
           });
         }
       },

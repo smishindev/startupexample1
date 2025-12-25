@@ -36,7 +36,9 @@ import {
   Save as SaveIcon,
   History as HistoryIcon,
   PhotoCamera as PhotoCameraIcon,
-  Close as CloseIcon
+  Close as CloseIcon,
+  CheckCircle as CheckCircleIcon,
+  MarkEmailRead
 } from '@mui/icons-material';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
@@ -399,6 +401,7 @@ const ProfilePage: React.FC = () => {
                       label="Email Verified"
                       size="small"
                       color="success"
+                      icon={<CheckCircleIcon />}
                       sx={{ bgcolor: 'success.light' }}
                     />
                   ) : (
@@ -407,6 +410,9 @@ const ProfilePage: React.FC = () => {
                       size="small"
                       color="warning"
                       sx={{ bgcolor: 'warning.light' }}
+                      onClick={() => navigate('/verify-email')}
+                      onDelete={() => navigate('/verify-email')}
+                      deleteIcon={<MarkEmailRead />}
                     />
                   )}
                 </Stack>

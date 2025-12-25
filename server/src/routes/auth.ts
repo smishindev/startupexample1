@@ -4,6 +4,7 @@ import jwt, { JwtPayload, SignOptions } from 'jsonwebtoken';
 import { DatabaseService } from '../services/DatabaseService';
 import { authenticateToken, AuthRequest } from '../middleware/auth';
 import { logger } from '../utils/logger';
+import VerificationService from '../services/VerificationService';
 
 const router = Router();
 const db = DatabaseService.getInstance();
@@ -149,8 +150,15 @@ router.post('/register', async (req, res, next) => {
 
     logger.info(`User registered successfully: ${email} (Email verified: false)`);
     
-    // TODO: Send verification email in production
+    // Send verification email
     console.log(`[EMAIL VERIFICATION] User ${email} needs to verify their email`);
+    try {
+      await VerificationService.sendVerificationCode(newUser.Id);
+      console.log(`✅ Verification email sent to ${email}`);
+    } catch (emailError) {
+      console.error(`⚠️ Failed to send verification email to ${email}:`, emailError);
+      // Don't fail registration if email fails
+    }
 
     res.status(201).json({
       success: true,

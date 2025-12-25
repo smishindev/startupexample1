@@ -27,6 +27,7 @@ import { useAuthStore } from '../../stores/authStore';
 import { enrollmentApi } from '../../services/enrollmentApi';
 import { dashboardApi } from '../../services/dashboardApi';
 import { formatCategory, getCategoryGradient, getLevelColor } from '../../utils/courseHelpers';
+import EmailVerificationBanner from '../Auth/EmailVerificationBanner';
 
 // Helper function to format last accessed date
 const formatLastAccessed = (dateString: string | null): string => {
@@ -432,6 +433,7 @@ export const DashboardLayout: React.FC = () => {
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       <Header />
+      <EmailVerificationBanner />
       
       <Container maxWidth="xl" sx={{ mt: 4, mb: 4, flex: 1 }}>
         {/* Welcome Section */}

@@ -1,9 +1,9 @@
 /**
- * Email Service - Nodemailer + Gmail Integration
- * Alternative to SendGrid - Uses Gmail SMTP
+ * Email Service - SendGrid Integration
+ * Handles all email communications for the platform
  */
 
-import nodemailer from 'nodemailer';
+import sgMail from '@sendgrid/mail';
 
 interface EmailOptions {
   to: string;
@@ -45,39 +45,17 @@ interface RefundConfirmationData {
 }
 
 class EmailService {
-  private transporter: any = null;
   private isConfigured: boolean = false;
-  private fromEmail: string = 'noreply@mishinlearn.com';
 
   constructor() {
-    const gmailUser = process.env.GMAIL_USER;
-    const gmailAppPassword = process.env.GMAIL_APP_PASSWORD;
+    const apiKey = process.env.SENDGRID_API_KEY;
     
-    if (gmailUser && gmailAppPassword && gmailAppPassword !== 'your-gmail-app-password-here') {
-      // Configure nodemailer with Gmail
-      this.transporter = nodemailer.createTransport({
-        service: 'gmail',
-        auth: {
-          user: gmailUser,
-          pass: gmailAppPassword
-        }
-      });
-      
-      this.fromEmail = gmailUser;
+    if (apiKey && apiKey !== 'your-sendgrid-api-key-here') {
+      sgMail.setApiKey(apiKey);
       this.isConfigured = true;
-      console.log('✅ Gmail email service configured');
-      
-      // Verify connection
-      this.transporter.verify((error: any, success: any) => {
-        if (error) {
-          console.error('❌ Gmail connection failed:', error);
-          this.isConfigured = false;
-        } else {
-          console.log('✅ Gmail SMTP ready to send emails');
-        }
-      });
+      console.log('✅ SendGrid email service configured');
     } else {
-      console.warn('⚠️ Gmail credentials not configured. Emails will be logged to console.');
+      console.warn('⚠️ SendGrid API key not configured. Emails will be logged to console.');
     }
   }
 
@@ -96,15 +74,21 @@ class EmailService {
         return true;
       }
 
-      const mailOptions = {
-        from: `"Mishin Learn" <${this.fromEmail}>`,
+      const msg: any = {
         to: options.to,
+        from: process.env.SENDGRID_FROM_EMAIL || 'noreply@mishinlearn.com',
         subject: options.subject,
-        text: options.text,
-        html: options.html
       };
 
-      await this.transporter.sendMail(mailOptions);
+      // Add text or html content (at least one is required)
+      if (options.html) {
+        msg.html = options.html;
+      }
+      if (options.text) {
+        msg.text = options.text;
+      }
+
+      await sgMail.send(msg);
       console.log(`✅ Email sent to ${options.to}: ${options.subject}`);
       return true;
     } catch (error) {
@@ -370,7 +354,7 @@ class EmailService {
   }
 
   /**
-   * Send password reset email
+   * Send password reset email (enhanced from existing)
    */
   async sendPasswordResetEmail(email: string, firstName: string, resetCode: string): Promise<boolean> {
     const html = `

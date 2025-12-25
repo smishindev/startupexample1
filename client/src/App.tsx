@@ -10,6 +10,7 @@ import { ForgotPasswordForm } from './components/Auth/ForgotPasswordForm';
 import { ResetPasswordForm } from './components/Auth/ResetPasswordForm';
 import { ProtectedRoute } from './components/Auth/ProtectedRoute';
 import { TokenExpirationWarning } from './components/Auth/TokenExpirationWarning';
+import EmailVerificationPage from './pages/Auth/EmailVerificationPage';
 
 // Main Pages
 import { DashboardLayout } from './components/Layout/DashboardLayout';
@@ -125,6 +126,7 @@ function App() {
         />
         <Route path="/forgot-password" element={<ForgotPasswordForm />} />
         <Route path="/reset-password" element={<ResetPasswordForm />} />
+        <Route path="/verify-email" element={<EmailVerificationPage />} />
 
         {/* Protected Routes */}
         <Route

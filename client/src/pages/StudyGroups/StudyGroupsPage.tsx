@@ -119,10 +119,8 @@ export const StudyGroupsPage: React.FC = () => {
   }, [activeTab, selectedCourse]);
 
   useEffect(() => {
-    if (courses.length > 0) {
-      fetchGroups();
-    }
-  }, [courses, fetchGroups]);
+    fetchGroups();
+  }, [fetchGroups]);
 
   // Load online users for presence indicators
   useEffect(() => {

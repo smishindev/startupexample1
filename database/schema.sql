@@ -64,8 +64,10 @@ CREATE TABLE dbo.Users (
     PreferencesJson NVARCHAR(MAX) NULL, -- JSON string for user preferences
     IsActive BIT NOT NULL DEFAULT 1,
     EmailVerified BIT NOT NULL DEFAULT 0,
-    VerificationCode NVARCHAR(6) NULL, -- 6-digit verification code
-    VerificationExpiry DATETIME2 NULL, -- Expiry time for verification code
+    VerificationCode NVARCHAR(6) NULL, -- 6-digit verification code (DEPRECATED - use EmailVerificationCode)
+    VerificationExpiry DATETIME2 NULL, -- Expiry time for verification code (DEPRECATED - use EmailVerificationExpiry)
+    EmailVerificationCode NVARCHAR(10) NULL, -- Email verification code (6-digit)
+    EmailVerificationExpiry DATETIME2 NULL, -- Expiry time for email verification
     PasswordResetToken NVARCHAR(10) NULL, -- For password reset functionality
     PasswordResetExpiry DATETIME2 NULL, -- Expiry time for reset token
     -- Billing Address Fields

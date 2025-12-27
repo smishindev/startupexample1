@@ -58,7 +58,6 @@ export const LessonEditor: React.FC<LessonEditorProps> = ({
     title: '',
     description: '',
     orderIndex: 0,
-    isPublished: false,
     content: []
   });
 
@@ -82,7 +81,12 @@ export const LessonEditor: React.FC<LessonEditorProps> = ({
     try {
       setLoading(true);
       const loadedLesson = await lessonApi.getLesson(lessonId);
-      setLesson(loadedLesson);
+      // Ensure all fields have proper defaults
+      setLesson({
+        ...loadedLesson,
+        orderIndex: loadedLesson.orderIndex ?? 0,
+        content: loadedLesson.content ?? []
+      });
       
       // Check if lesson has video content and determine if it's a file or URL
       const videoContent = loadedLesson.content.find(c => c.type === 'video');
@@ -154,7 +158,12 @@ export const LessonEditor: React.FC<LessonEditorProps> = ({
         ? await lessonApi.updateLesson(lessonId, lessonData)
         : await lessonApi.createLesson(lessonData);
 
-      setLesson(savedLesson);
+      // Ensure all fields have proper defaults
+      setLesson({
+        ...savedLesson,
+        orderIndex: savedLesson.orderIndex ?? 0,
+        content: savedLesson.content ?? []
+      });
       setSuccess(`Lesson ${lessonId ? 'updated' : 'created'} successfully`);
       
       if (onSave) {
@@ -241,18 +250,6 @@ export const LessonEditor: React.FC<LessonEditorProps> = ({
                 value={lesson.orderIndex}
                 onChange={(e) => setLesson({ ...lesson, orderIndex: parseInt(e.target.value) || 0 })}
                 inputProps={{ min: 0 }}
-              />
-            </Grid>
-            
-            <Grid item xs={12} sm={6}>
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={lesson.isPublished}
-                    onChange={(e) => setLesson({ ...lesson, isPublished: e.target.checked })}
-                  />
-                }
-                label="Published"
               />
             </Grid>
           </Grid>

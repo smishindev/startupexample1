@@ -171,9 +171,6 @@ export const LessonManagement: React.FC<LessonManagementProps> = ({ courseId }) 
                     <Box sx={{ flexGrow: 1 }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
                         <Typography variant="h6" fontWeight={600}>{lesson.title}</Typography>
-                        {lesson.isPublished && (
-                          <Chip label="Published" color="success" size="small" />
-                        )}
                         {hasVideoContent(lesson) && (
                           <Chip label="📹 Video" color="primary" size="small" />
                         )}
@@ -242,6 +239,7 @@ export const LessonManagement: React.FC<LessonManagementProps> = ({ courseId }) 
         onClose={handleEditorCancel}
         maxWidth="lg"
         fullWidth
+        disableEnforceFocus
         PaperProps={{
           sx: { height: '90vh' }
         }}

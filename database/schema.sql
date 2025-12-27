@@ -1,6 +1,11 @@
 -- Mishin Learn Platform Database Schema
 -- SQL Server Database: startUp1
 
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
 -- Create database if it doesn't exist
 IF NOT EXISTS (SELECT name FROM sys.databases WHERE name = 'startUp1')
 BEGIN
@@ -705,12 +710,6 @@ CREATE TABLE dbo.Transactions (
     -- Timestamps
     CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
     CompletedAt DATETIME2 NULL,
-
--- ⚡ CRITICAL: Apply unique constraint to prevent duplicate pending transactions (Dec 17, 2025)
--- After table creation, run: database/fix_duplicate_transactions.sql
--- Creates filtered index: IX_Transactions_Unique_Pending on (UserId, CourseId) WHERE Status='pending'
--- Backend handles constraint violations gracefully - see server/src/services/StripeService.ts
--- Documentation: DUPLICATE_FIX_FINAL.md
     RefundedAt DATETIME2 NULL,
     UpdatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE()
 );
@@ -755,6 +754,14 @@ CREATE NONCLUSTERED INDEX IX_Transactions_CourseId ON dbo.Transactions(CourseId)
 CREATE NONCLUSTERED INDEX IX_Transactions_Status ON dbo.Transactions(Status);
 CREATE NONCLUSTERED INDEX IX_Transactions_CreatedAt ON dbo.Transactions(CreatedAt DESC);
 CREATE NONCLUSTERED INDEX IX_Transactions_StripePaymentIntentId ON dbo.Transactions(StripePaymentIntentId);
+
+-- ⚡ CRITICAL: Filtered unique index to prevent duplicate pending transactions
+-- Allows only ONE pending transaction per user/course combination
+-- Multiple completed/failed transactions are allowed
+CREATE UNIQUE NONCLUSTERED INDEX IX_Transactions_Unique_Pending 
+ON dbo.Transactions (UserId, CourseId) 
+WHERE Status = 'pending';
+
 CREATE NONCLUSTERED INDEX IX_Invoices_TransactionId ON dbo.Invoices(TransactionId);
 CREATE NONCLUSTERED INDEX IX_Invoices_InvoiceNumber ON dbo.Invoices(InvoiceNumber);
 CREATE NONCLUSTERED INDEX IX_Invoices_CreatedAt ON dbo.Invoices(CreatedAt DESC);

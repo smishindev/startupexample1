@@ -1,6 +1,6 @@
 # 🚀 Quick Reference - Development Workflow
 
-**Last Updated**: December 22, 2025
+**Last Updated**: December 27, 2025
 
 ---
 
@@ -26,6 +26,27 @@ Email: student2@gmail.com
 Password: Aa123456
 Role: Student
 ```
+
+**Email Verification Testing (Dec 27, 2025):**
+- Register new account → Receive email with 6-digit code
+- Check Gmail inbox: s.mishin.dev@gmail.com
+- Dialog appears: "Verify Now" or "Verify Later"
+- Navigate to `/verify-email` or click banner "Verify Now"
+- Enter code → Click "Verify Email"
+- Welcome email sent on success
+- Profile badge updates: "Email Verified ✓" (green)
+- Banner disappears from dashboard
+- Test resend: 60-second cooldown timer
+- Test expired code: 24-hour expiry window
+- Test invalid code: Error message display
+- Database: `SELECT EmailVerificationCode, EmailVerificationExpiry, EmailVerified FROM Users WHERE Id=@id`
+
+**Email Service Configuration:**
+- Service: Gmail SMTP (Nodemailer)
+- Account: s.mishin.dev@gmail.com
+- App Password: tfjubtheusandbiy
+- Templates: Verification (6-digit code), Welcome (post-verification)
+- See: `server/src/services/EmailService.ts`
 
 **Profile Testing:**
 - Login with either account

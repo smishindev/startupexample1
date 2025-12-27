@@ -39,6 +39,34 @@ GET    /api/notifications/preferences  - Get notification preferences
 PATCH  /api/notifications/preferences  - Update notification preferences
 ```
 
+### Email Verification (added Dec 27, 2025)
+```
+POST   /api/verification/send          - Send 6-digit verification code to user email
+POST   /api/verification/verify        - Verify code provided by user
+POST   /api/verification/resend        - Resend verification code
+GET    /api/verification/status        - Check verification status
+
+All endpoints require JWT authentication (authenticateToken middleware)
+```
+
+**Email Verification Details:**
+- **Code Generation**: 6-digit random number (100000-999999)
+- **Storage**: EmailVerificationCode (NVARCHAR 10), EmailVerificationExpiry (DATETIME2) in Users table
+- **Expiry**: 24 hours from code generation
+- **Email Service**: Gmail SMTP via Nodemailer
+- **Templates**: HTML emails with purple gradient header, professional styling
+- **Welcome Email**: Sent automatically after successful verification
+- **Security**: Codes are one-time use, cleared after verification
+- **Validation**: Code match check, expiry check, already verified check
+
+**Frontend Integration:**
+- verificationApi.ts service with 4 methods
+- EmailVerificationPage (/verify-email) standalone page
+- EmailVerificationBanner in DashboardLayout
+- Profile badge integration (clickable for unverified)
+- Registration dialog with verification prompt
+- authStore.updateEmailVerified() for state management
+
 ### Payment & Billing (added Dec 11, updated Dec 14, 2025)
 ```
 POST   /api/payments/create-payment-intent       - Create Stripe payment intent

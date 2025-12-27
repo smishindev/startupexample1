@@ -1,13 +1,13 @@
-# Date Handling Guide - Payment System
+# Date Handling Guide - Payment System & Email Verification
 
-**Last Updated**: December 15, 2025  
+**Last Updated**: December 27, 2025  
 **Status**: ✅ Fixed and Verified
 
 ---
 
 ## Overview
 
-This guide documents the correct date handling across the payment system to ensure timezone-safe operations.
+This guide documents the correct date handling across the payment system and email verification to ensure timezone-safe operations.
 
 ## Critical Date Handling Rules
 
@@ -97,6 +97,63 @@ WHERE UserId = @userId
 ---
 
 ## Date Fields Reference
+
+### Email Verification System (Added Dec 27, 2025)
+
+#### EmailVerificationExpiry Field
+
+| Field | Type | Value | Usage |
+|-------|------|-------|-------|
+| `EmailVerificationExpiry` | DATETIME2 | UTC | 24-hour code expiration |
+
+**Database Query** (VerificationService.ts):
+```sql
+UPDATE dbo.Users 
+SET EmailVerificationCode = @code,
+    EmailVerificationExpiry = DATEADD(HOUR, 24, GETUTCDATE())
+WHERE UserId = @userId
+```
+
+**Validation Logic** (Backend):
+```typescript
+const user = await db.query(`
+  SELECT EmailVerificationCode, EmailVerificationExpiry 
+  FROM dbo.Users 
+  WHERE UserId = @userId
+`);
+
+// Check if code expired (UTC comparison)
+if (user.EmailVerificationExpiry && new Date(user.EmailVerificationExpiry) < new Date()) {
+  return { success: false, message: 'Verification code has expired' };
+}
+```
+
+**Key Points:**
+- **Code Generation**: `DATEADD(HOUR, 24, GETUTCDATE())` sets 24-hour expiry in UTC
+- **Validation**: `new Date(expiry) < new Date()` compares UTC timestamps (timezone-independent)
+- **Frontend Display**: No expiry shown to user (backend validation only)
+- **Resend Logic**: Generates new code + new 24-hour expiry window
+- **Cleanup**: Code cleared on successful verification (`EmailVerificationCode = NULL`)
+
+**Why This Works:**
+- Database stores UTC timestamp
+- JavaScript `new Date()` creates UTC-based Date object
+- Comparison uses `.getTime()` internally (milliseconds since epoch)
+- Timezone-independent: Works correctly for users in any timezone
+
+**Example Scenario:**
+```typescript
+// User requests code at 10:00 AM PST (6:00 PM UTC)
+// Database: EmailVerificationExpiry = "2025-12-28 18:00:00.000" (UTC)
+
+// User verifies at 9:00 AM PST next day (5:00 PM UTC)
+// Check: "2025-12-28 18:00:00.000" > "2025-12-28 17:00:00.000" ✅ (valid)
+
+// User verifies at 11:00 AM PST next day (7:00 PM UTC)
+// Check: "2025-12-28 18:00:00.000" > "2025-12-28 19:00:00.000" ❌ (expired)
+```
+
+---
 
 ### Transaction Table Timestamps
 

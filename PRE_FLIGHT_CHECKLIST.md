@@ -28,6 +28,19 @@
 - [ ] Identified all pages that use this component
 
 **Recent Additions to Check:**
+- [x] Email Verification System - PRODUCTION READY (Dec 27, 2025) ✅
+  - EmailVerificationPage: Standalone /verify-email page with 6-digit code input
+  - EmailVerificationBanner: Dashboard warning banner for unverified users
+  - Profile badge: Clickable verification status in profile Personal Info tab
+  - Registration dialog: Post-registration verification prompt
+  - Gmail SMTP: Nodemailer integration with s.mishin.dev@gmail.com
+  - 6-digit codes: 24-hour expiry, one-time use
+  - 4 API endpoints: /send, /verify, /resend, /status
+  - Real-time updates: authStore.updateEmailVerified() syncs state
+  - Resend cooldown: 60-second timer prevents spam
+  - Database: EmailVerificationCode + EmailVerificationExpiry columns
+  - Files created: 3 (verificationApi, EmailVerificationPage, EmailVerificationBanner)
+  - Files modified: 5 (authStore, App, DashboardLayout, ProfilePage, RegisterForm)
 - [x] Notifications Center - PRODUCTION READY (Dec 22, 2025) ✅
   - NotificationsPage: Full-page notification management with pagination
   - NotificationBell: Enhanced with queued count badge and real-time sync

@@ -1,6 +1,6 @@
 # Mishin Learn Platform - Component Registry
 
-**Last Updated**: December 22, 2025  
+**Last Updated**: December 27, 2025  
 **Purpose**: Quick reference for all major components, their dependencies, and relationships
 
 ---
@@ -17,6 +17,48 @@
 ---
 
 ## 🎯 PAGES (Entry Point Components)
+
+### Authentication Pages
+
+#### EmailVerificationPage
+**Path**: `client/src/pages/Auth/EmailVerificationPage.tsx`  
+**Route**: `/verify-email`  
+**Purpose**: Standalone page for email verification with 6-digit code input
+
+**Services Used**:
+- `verificationApi.verifyCode(code)` - Validate verification code
+- `verificationApi.resendVerificationCode()` - Request new code
+- `authStore.updateEmailVerified(true)` - Update user state after verification
+
+**Features**:
+- Beautiful gradient purple background with glassmorphism
+- 6-digit code input (numeric only, auto-format)
+- Verify button with loading state
+- Resend code button with 60-second cooldown timer
+- Success/error messages with toast notifications
+- Auto-redirect to dashboard after successful verification (2s delay)
+- Auto-redirect if already verified (no duplicate toast)
+- Tips section: check spam folder, 24h expiry, resend anytime
+- Back to Dashboard button
+
+**State Management**:
+- `code: string` - 6-digit verification code
+- `isVerifying: boolean` - Verification in progress
+- `isResending: boolean` - Resend in progress
+- `error: string | null` - Error message
+- `success: boolean` - Verification succeeded
+- `resendCooldown: number` - Countdown timer (60 seconds)
+
+**User Flow**:
+1. Enter 6-digit code from email
+2. Click "Verify Email" or press Enter
+3. On success: Toast message + welcome email + redirect
+4. On error: Show error message, allow retry
+5. Click "Resend Code": New code sent, timer starts
+
+**Status**: ✅ Complete (Dec 27, 2025)
+
+---
 
 ### Notification Pages
 
@@ -220,11 +262,17 @@
 **Key Features**:
 ```typescript
 // 5 Tabs
-0: Personal Info - Name, username, learning style, avatar upload
+0: Personal Info - Name, username, learning style, avatar upload, email verification badge
 1: Password - Change password with current verification
 2: Billing Address - Street, city, state, postal, country
 3: Preferences - Notification settings (5 toggles, email digest, quiet hours)
 4: Account Info - Read-only account details, role badge, dates
+
+// Email Verification Badge (Dec 27, 2025)
+- Shows in Personal Info tab header
+- "Email Verified ✓" (green) with CheckCircle icon
+- "Email Not Verified" (orange) - clickable, opens /verify-email
+- Delete icon on unverified badge for quick access
 
 // Avatar Upload
 - Camera button overlay on avatar
@@ -233,7 +281,7 @@
 - Preview before upload
 - Full server URL: http://localhost:3001/uploads/images/avatar_123_abc.webp
 
-// Notification Preferences (STORAGE ONLY - NOT ENFORCED YET)
+// Notification Preferences (FULLY ENFORCED - Dec 18, 2025)
 - 5 in-app notification toggles
 - Email notifications toggle
 - Email digest frequency (none/realtime/daily/weekly)
@@ -1516,6 +1564,42 @@ Check current state
 - HeaderV4 (always visible in navigation)
 
 **Status**: ✅ Enhanced (Dec 22, 2025)
+
+---
+
+### EmailVerificationBanner
+**Path**: `client/src/components/Auth/EmailVerificationBanner.tsx`  
+**Purpose**: Warning banner shown to unverified users in dashboard
+
+**Services Used**:
+- `authStore.user` - Check emailVerified status
+- `navigate()` - Navigate to /verify-email
+
+**Features**:
+- MUI Alert component with warning severity
+- MarkEmailRead icon
+- Message: "Please verify your email address to access all features"
+- "Verify Now" button → navigate to /verify-email
+- Dismiss button (X) → temporarily hides banner
+- Auto-shows on page reload if still unverified
+- Auto-hides when emailVerified becomes true
+
+**State Management**:
+- `dismissed: boolean` - Temporary dismissal state (not persisted)
+
+**Used By**:
+- DashboardLayout (shown below Header, above content)
+
+**Display Logic**:
+```typescript
+// Only show if:
+// 1. User exists
+// 2. User NOT verified
+// 3. NOT dismissed
+if (!user || user.emailVerified || dismissed) return null;
+```
+
+**Status**: ✅ Complete (Dec 27, 2025)
 
 ---
 

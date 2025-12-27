@@ -741,8 +741,7 @@ CREATE TABLE dbo.Invoices (
     TaxId NVARCHAR(50) NULL, -- Customer's tax ID if provided
     
     -- PDF Storage
-    PdfUrl NVARCHAR(500) NULL,
-    PdfPath NVARCHAR(500) NULL, -- Added Dec 14, 2025 - Local file path for invoice PDF
+    PdfUrl NVARCHAR(500) NULL, -- Local file path for invoice PDF
     PdfGeneratedAt DATETIME2 NULL,
     
     -- Timestamps

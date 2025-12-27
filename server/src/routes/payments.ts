@@ -442,11 +442,11 @@ router.get('/invoice/:invoiceId/download', authenticateToken, async (req: Reques
 
     // Get invoice with transaction verification
     const invoices = await db.query<{
-      PdfPath: string;
+      PdfUrl: string;
       InvoiceNumber: string;
       UserId: string;
     }>(
-      `SELECT i.PdfPath, i.InvoiceNumber, t.UserId
+      `SELECT i.PdfUrl, i.InvoiceNumber, t.UserId
        FROM dbo.Invoices i
        INNER JOIN dbo.Transactions t ON i.TransactionId = t.Id
        WHERE i.Id = @invoiceId`,
@@ -471,16 +471,16 @@ router.get('/invoice/:invoiceId/download', authenticateToken, async (req: Reques
     }
 
     // Check if PDF exists
-    if (!invoice.PdfPath) {
+    if (!invoice.PdfUrl) {
       return res.status(404).json({ 
         success: false, 
         message: 'Invoice PDF not generated yet' 
       });
     }
 
-    const filepath = InvoicePdfService.getInvoiceFilePath(invoice.PdfPath);
+    const filepath = InvoicePdfService.getInvoiceFilePath(invoice.PdfUrl);
 
-    if (!InvoicePdfService.invoiceExists(invoice.PdfPath)) {
+    if (!InvoicePdfService.invoiceExists(invoice.PdfUrl)) {
       return res.status(404).json({ 
         success: false, 
         message: 'Invoice PDF file not found' 

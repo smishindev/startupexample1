@@ -473,9 +473,9 @@ export class StripeService {
       // Insert invoice with PDF path
       await db.query(
         `INSERT INTO dbo.Invoices (
-          Id, TransactionId, InvoiceNumber, Amount, TaxAmount, TotalAmount, PdfPath, CreatedAt
+          Id, TransactionId, InvoiceNumber, Amount, TaxAmount, TotalAmount, PdfUrl, CreatedAt
         ) VALUES (
-          NEWID(), @transactionId, @invoiceNumber, @amount, @taxAmount, @totalAmount, @pdfPath, GETUTCDATE()
+          NEWID(), @transactionId, @invoiceNumber, @amount, @taxAmount, @totalAmount, @pdfUrl, GETUTCDATE()
         )`,
         {
           transactionId: transaction.Id,
@@ -483,7 +483,7 @@ export class StripeService {
           amount: transaction.Amount,
           taxAmount,
           totalAmount,
-          pdfPath: pdfUrl,
+          pdfUrl: pdfUrl,
         }
       );
 
@@ -526,7 +526,7 @@ export class StripeService {
           t.Id, t.Amount, t.Currency, t.Status, t.CreatedAt, t.CompletedAt, t.RefundedAt,
           t.StripePaymentIntentId,
           c.Title as CourseTitle, c.Thumbnail as CourseThumbnail,
-          i.Id as InvoiceId, i.InvoiceNumber, i.PdfPath as InvoicePdfUrl
+          i.Id as InvoiceId, i.InvoiceNumber, i.PdfUrl as InvoicePdfUrl
         FROM dbo.Transactions t
         LEFT JOIN dbo.Courses c ON t.CourseId = c.Id
         LEFT JOIN dbo.Invoices i ON t.Id = i.TransactionId

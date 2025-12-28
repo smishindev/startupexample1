@@ -83,11 +83,8 @@ router.get('/courses', authenticateToken, authorize(['instructor', 'admin']), as
         c.EnrollmentCount as students,
         c.CreatedAt as createdAt,
         c.UpdatedAt as updatedAt,
-        COUNT(l.Id) as lessons,
-        CASE 
-          WHEN c.IsPublished = 1 THEN c.Price * c.EnrollmentCount
-          ELSE 0
-        END as revenue
+        COUNT(DISTINCT l.Id) as lessons,
+        ISNULL((SELECT SUM(Amount) FROM Transactions WHERE CourseId = c.Id AND Status = 'completed'), 0) as revenue
       FROM Courses c
       LEFT JOIN Lessons l ON c.Id = l.CourseId
       WHERE c.InstructorId = @instructorId

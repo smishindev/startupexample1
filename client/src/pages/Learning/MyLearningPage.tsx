@@ -204,7 +204,7 @@ const MyLearningPage: React.FC = () => {
             <Button
               variant="contained"
               size="large"
-              onClick={() => navigate(isInstructor ? '/instructor/courses' : '/courses')}
+              onClick={() => navigate(isInstructor ? '/instructor/courses/create' : '/courses')}
             >
               {isInstructor ? 'Create Course' : 'Browse Courses'}
             </Button>
@@ -250,7 +250,10 @@ const MyLearningPage: React.FC = () => {
                       </Avatar>
                       <Box>
                         <Typography variant="h6">
-                          {enrollments.filter(e => e.Status === 'completed').length}
+                          {isInstructor 
+                            ? enrollments.length // All instructor courses are published (filtered by backend)
+                            : enrollments.filter(e => e.Status === 'completed').length
+                          }
                         </Typography>
                         <Typography variant="body2" color="text.secondary">
                           {isInstructor ? 'Published' : 'Completed'}

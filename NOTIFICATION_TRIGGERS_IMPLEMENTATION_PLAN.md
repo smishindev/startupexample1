@@ -2,8 +2,92 @@
 
 **Created**: December 28, 2025  
 **Last Updated**: December 29, 2025  
-**Status**: In Progress (2/31 Complete)  
-**Goal**: Integrate automatic notification creation throughout the application
+**Status**: In Progress (2/31 Complete + Hybrid Controls Design)  
+**Goal**: Integrate automatic notification creation throughout the application with granular user controls
+
+---
+
+## 🎛️ HYBRID NOTIFICATION CONTROL SYSTEM
+
+### **Architecture Overview**
+
+**User Experience Philosophy:**
+- Users can control **in-app notifications** and **email notifications** independently
+- **Category-level toggles** provide broad control (5 main categories)
+- **Subcategory toggles** provide granular control for common notification types
+- **Global master toggles** for one-click disable of all notifications
+
+### **Control Hierarchy**
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  GLOBAL CONTROLS (Master Toggles)                           │
+├─────────────────────────────────────────────────────────────┤
+│  • Enable In-App Notifications (Bell icon)                  │
+│  • Enable Email Notifications (Email delivery)              │
+│  • Email Digest Frequency (realtime/daily/weekly/none)      │
+│  • Quiet Hours (affects both in-app and email)              │
+└─────────────────────────────────────────────────────────────┘
+                            ↓
+┌─────────────────────────────────────────────────────────────┐
+│  CATEGORY CONTROLS (5 Main Categories)                      │
+├─────────────────────────────────────────────────────────────┤
+│  1. Progress Updates                                         │
+│  2. Course Updates                                           │
+│  3. Community Updates                                        │
+│  4. Assessment Updates                                       │
+│  5. System Alerts                                            │
+└─────────────────────────────────────────────────────────────┘
+                            ↓
+┌─────────────────────────────────────────────────────────────┐
+│  SUBCATEGORY CONTROLS (Granular - Optional)                 │
+├─────────────────────────────────────────────────────────────┤
+│  Progress Updates ▼                                          │
+│    → Lesson Completion (in-app ☑ | email ☑)                │
+│    → Video Completion (in-app ☑ | email ☐)                 │
+│    → Course Milestones (in-app ☑ | email ☑)                │
+│                                                              │
+│  Course Updates ▼                                            │
+│    → New Lessons (in-app ☑ | email ☑)                      │
+│    → Live Sessions (in-app ☑ | email ☑)                    │
+│    → Instructor Announcements (in-app ☑ | email ☑)         │
+│                                                              │
+│  Community Updates ▼                                         │
+│    → Comments & Replies (in-app ☑ | email ☐)               │
+│    → Mentions (in-app ☑ | email ☑)                         │
+│    → Group Activity (in-app ☑ | email ☐)                   │
+│                                                              │
+│  Assessment Updates ▼                                        │
+│    → Assessment Graded (in-app ☑ | email ☑)                │
+│    → Due Date Reminders (in-app ☑ | email ☑)               │
+│    → Feedback Received (in-app ☑ | email ☑)                │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### **Logic Flow**
+
+```typescript
+When creating notification:
+1. Check Global → EnableInAppNotifications? 
+   → NO: Skip in-app notification
+   → YES: Continue
+   
+2. Check Category → EnableProgressUpdates?
+   → NO: Skip notification
+   → YES: Continue
+   
+3. Check Subcategory (if exists) → EnableLessonCompletion?
+   → NO: Skip notification
+   → YES: Create in-app notification
+   
+4. Check Email Global → EnableEmailNotifications?
+   → NO: Skip email
+   → YES: Continue
+   
+5. Check Email Subcategory (if exists) → EmailLessonCompletion?
+   → NO: Skip email
+   → YES: Send email based on digest frequency
+```
 
 ---
 
@@ -947,29 +1031,446 @@ MAX_NOTIFICATIONS_PER_HOUR: 10  // Rate limiting
 1. **Lesson completion** (45 min)
    - Add to progress.ts line ~260
    - Student notification + instructor milestone notification
-   
+---
+
+## 🗂️ TRIGGER-TO-CATEGORY MAPPING
+
+### **Category 1: Progress Updates**
+
+| Trigger | Subcategory | In-App Default | Email Default | Priority |
+|---------|-------------|----------------|---------------|----------|
+| Lesson Completion (Student) | `EnableLessonCompletion` | ✅ ON | ✅ ON | normal |
+| Lesson Completion (Instructor Milestone) | `EnableCourseMilestones` | ✅ ON | ✅ ON | normal |
+| Video Completion | `EnableVideoCompletion` | ✅ ON | ☐ OFF | low |
+| Course Milestone (25%, 50%, 75%, 100%) | `EnableCourseMilestones` | ✅ ON | ✅ ON | normal |
+| Weekly Progress Summary | `EnableProgressSummary` | ✅ ON | ✅ ON | low |
+
+### **Category 2: Course Updates**
+
+| Trigger | Subcategory | In-App Default | Email Default | Priority |
+|---------|-------------|----------------|---------------|----------|
+| Course Enrollment (Welcome) | `EnableCourseEnrollment` | ✅ ON | ✅ ON | high |
+| New Lesson Created | `EnableNewLessons` | ✅ ON | ✅ ON | normal |
+| Live Session Created | `EnableLiveSessions` | ✅ ON | ✅ ON | high |
+| Live Session Starting Soon (15 min) | `EnableLiveSessions` | ✅ ON | ✅ ON | urgent |
+| Course Published | `EnableCourseUpdates` | ✅ ON | ✅ ON | high |
+| Instructor Announcement | `EnableInstructorAnnouncements` | ✅ ON | ✅ ON | normal |
+
+### **Category 3: Assessment Updates**
+
+| Trigger | Subcategory | In-App Default | Email Default | Priority |
+|---------|-------------|----------------|---------------|----------|
+| Assessment Submission Confirmation | `EnableAssessmentSubmitted` | ✅ ON | ✅ ON | normal |
+| Assessment Graded | `EnableAssessmentGraded` | ✅ ON | ✅ ON | high |
+| New Assessment Available | `EnableNewAssessment` | ✅ ON | ✅ ON | high |
+| Assessment Due Soon (2 days) | `EnableAssessmentDue` | ✅ ON | ✅ ON | high |
+| New Submission to Grade (Instructor) | `EnableSubmissionToGrade` | ✅ ON | ✅ ON | high |
+
+### **Category 4: Community Updates**
+
+| Trigger | Subcategory | In-App Default | Email Default | Priority |
+|---------|-------------|----------------|---------------|----------|
+| New Comment on Course | `EnableComments` | ✅ ON | ☐ OFF | low |
+| Reply to Your Comment | `EnableReplies` | ✅ ON | ✅ ON | normal |
+| Mentioned in Comment | `EnableMentions` | ✅ ON | ✅ ON | normal |
+| Study Group Invitation | `EnableGroupInvites` | ✅ ON | ✅ ON | normal |
+| Office Hours Available | `EnableOfficeHours` | ✅ ON | ✅ ON | normal |
+
+### **Category 5: System Alerts**
+
+| Trigger | Subcategory | In-App Default | Email Default | Priority |
+|---------|-------------|----------------|---------------|----------|
+| Payment Successful | `EnablePaymentConfirmation` | ✅ ON | ✅ ON | high |
+| Refund Processed | `EnableRefundConfirmation` | ✅ ON | ✅ ON | high |
+| Certificate Earned | `EnableCertificates` | ✅ ON | ✅ ON | high |
+| Account Security Alert | `EnableSecurityAlerts` | ✅ ON | ✅ ON | urgent |
+| Profile Update Confirmation | `EnableProfileUpdates` | ✅ ON | ☐ OFF | low |
+
+---
+
+## 🗄️ DATABASE SCHEMA CHANGES
+
+### **New Columns in NotificationPreferences Table**
+
+```sql
+-- Migration Script: add_notification_subcategories.sql
+
+-- Global Controls (already exist)
+-- EnableEmailNotifications BIT (existing)
+-- EmailDigestFrequency NVARCHAR(20) (existing)
+-- QuietHoursStart/End TIME (existing)
+
+-- Add new global toggle for in-app notifications
+ALTER TABLE NotificationPreferences
+ADD EnableInAppNotifications BIT NOT NULL DEFAULT 1;
+
+-- Category Controls (5 main - already exist)
+-- EnableProgressNotifications BIT (existing → rename to EnableProgressUpdates)
+-- EnableCourseUpdates BIT (existing)
+-- EnableAssignmentReminders BIT (existing → rename to EnableAssessmentUpdates)
+-- EnableRiskAlerts BIT (existing)
+-- EnableAchievementNotifications BIT (existing)
+
+-- Rename for clarity
+EXEC sp_rename 'NotificationPreferences.EnableProgressNotifications', 'EnableProgressUpdates', 'COLUMN';
+EXEC sp_rename 'NotificationPreferences.EnableAssignmentReminders', 'EnableAssessmentUpdates', 'COLUMN';
+EXEC sp_rename 'NotificationPreferences.EnableAchievementNotifications', 'EnableCommunityUpdates', 'COLUMN';
+EXEC sp_rename 'NotificationPreferences.EnableRiskAlerts', 'EnableSystemAlerts', 'COLUMN';
+
+-- Progress Updates Subcategories
+ALTER TABLE NotificationPreferences
+ADD EnableLessonCompletion BIT NULL, -- NULL = inherit from category
+    EnableVideoCompletion BIT NULL,
+    EnableCourseMilestones BIT NULL,
+    EnableProgressSummary BIT NULL,
+    -- Email-specific toggles
+    EmailLessonCompletion BIT NULL,
+    EmailVideoCompletion BIT NULL,
+    EmailCourseMilestones BIT NULL,
+    EmailProgressSummary BIT NULL;
+
+-- Course Updates Subcategories
+ALTER TABLE NotificationPreferences
+ADD EnableCourseEnrollment BIT NULL,
+    EnableNewLessons BIT NULL,
+    EnableLiveSessions BIT NULL,
+    EnableCoursePublished BIT NULL,
+    EnableInstructorAnnouncements BIT NULL,
+    -- Email-specific toggles
+    EmailCourseEnrollment BIT NULL,
+    EmailNewLessons BIT NULL,
+    EmailLiveSessions BIT NULL,
+    EmailCoursePublished BIT NULL,
+    EmailInstructorAnnouncements BIT NULL;
+
+-- Assessment Updates Subcategories
+ALTER TABLE NotificationPreferences
+ADD EnableAssessmentSubmitted BIT NULL,
+    EnableAssessmentGraded BIT NULL,
+    EnableNewAssessment BIT NULL,
+    EnableAssessmentDue BIT NULL,
+    EnableSubmissionToGrade BIT NULL,
+    -- Email-specific toggles
+    EmailAssessmentSubmitted BIT NULL,
+    EmailAssessmentGraded BIT NULL,
+    EmailNewAssessment BIT NULL,
+    EmailAssessmentDue BIT NULL,
+    EmailSubmissionToGrade BIT NULL;
+
+-- Community Updates Subcategories
+ALTER TABLE NotificationPreferences
+ADD EnableComments BIT NULL,
+    EnableReplies BIT NULL,
+    EnableMentions BIT NULL,
+    EnableGroupInvites BIT NULL,
+    EnableOfficeHours BIT NULL,
+    -- Email-specific toggles
+    EmailComments BIT NULL,
+    EmailReplies BIT NULL,
+    EmailMentions BIT NULL,
+    EmailGroupInvites BIT NULL,
+    EmailOfficeHours BIT NULL;
+
+-- System Alerts Subcategories
+ALTER TABLE NotificationPreferences
+ADD EnablePaymentConfirmation BIT NULL,
+    EnableRefundConfirmation BIT NULL,
+    EnableCertificates BIT NULL,
+    EnableSecurityAlerts BIT NULL,
+    EnableProfileUpdates BIT NULL,
+    -- Email-specific toggles
+    EmailPaymentConfirmation BIT NULL,
+    EmailRefundConfirmation BIT NULL,
+    EmailCertificates BIT NULL,
+    EmailSecurityAlerts BIT NULL,
+    EmailProfileUpdates BIT NULL;
+```
+
+### **Logic: NULL = Inherit from Category**
+
+- If subcategory toggle is `NULL` → Use category toggle
+- If subcategory toggle is `0` (OFF) → Disabled
+- If subcategory toggle is `1` (ON) → Enabled
+
+**Example:**
+- `EnableProgressUpdates = 1` (category ON)
+- `EnableLessonCompletion = NULL` → Inherits, so ON
+- `EnableVideoCompletion = 0` → Explicitly OFF, overrides category
+
+---
+
+## 🔧 NOTIFICATIONSERVICE UPDATES
+
+### **Updated shouldSendNotification Method**
+
+```typescript
+interface NotificationCheckParams {
+  category: 'progress' | 'course' | 'assessment' | 'community' | 'system';
+  subcategory?: string; // e.g., 'lesson-completion', 'video-completion'
+  checkEmail?: boolean; // Check email-specific toggle
+}
+
+private shouldSendNotification(
+  params: NotificationCheckParams,
+  preferences: NotificationPreferences
+): boolean {
+  const { category, subcategory, checkEmail = false } = params;
+
+  // 1. Check global toggle
+  if (checkEmail) {
+    if (!preferences.EnableEmailNotifications) return false;
+  } else {
+    if (!preferences.EnableInAppNotifications) return false;
+  }
+
+  // 2. Check category toggle
+  let categoryEnabled = false;
+  switch (category) {
+    case 'progress':
+      categoryEnabled = preferences.EnableProgressUpdates;
+      break;
+    case 'course':
+      categoryEnabled = preferences.EnableCourseUpdates;
+      break;
+    case 'assessment':
+      categoryEnabled = preferences.EnableAssessmentUpdates;
+      break;
+    case 'community':
+      categoryEnabled = preferences.EnableCommunityUpdates;
+      break;
+    case 'system':
+      categoryEnabled = preferences.EnableSystemAlerts;
+      break;
+  }
+
+  if (!categoryEnabled) return false;
+
+  // 3. Check subcategory toggle (if exists)
+  if (subcategory) {
+    const subcategoryKey = checkEmail 
+      ? `Email${subcategory}` 
+      : `Enable${subcategory}`;
+    
+    const subcategoryValue = preferences[subcategoryKey];
+    
+    // NULL = inherit from category, 0 = OFF, 1 = ON
+    if (subcategoryValue === null || subcategoryValue === undefined) {
+      return categoryEnabled; // Inherit
+    }
+    return subcategoryValue === 1;
+  }
+
+  return categoryEnabled;
+}
+```
+
+### **Usage Example in Trigger Code**
+
+```typescript
+// In progress.ts - Lesson Completion
+const io = req.app.get('io');
+const notificationService = new NotificationService(io);
+
+// Check if should send in-app notification
+const shouldSendInApp = await notificationService.shouldSendNotification({
+  category: 'progress',
+  subcategory: 'LessonCompletion',
+  checkEmail: false
+}, preferences);
+
+if (shouldSendInApp) {
+  await notificationService.createNotification({
+    userId,
+    type: 'progress',
+    priority: 'normal',
+    title: 'Lesson Completed!',
+    message: `Great work! You completed "${lessonTitle}"`,
+    actionUrl: `/courses/${courseId}`,
+    actionText: 'Continue Learning'
+  });
+}
+```
+
+---
+
+## 🎨 FRONTEND: DEDICATED NOTIFICATIONS SETTINGS PAGE
+
+### **Page Structure: /settings/notifications**
+
+```
+Settings Page (Profile → Settings → Notifications Tab)
+├── Global Controls Section
+│   ├── Enable In-App Notifications (master toggle)
+│   ├── Enable Email Notifications (master toggle)
+│   ├── Email Digest Frequency (realtime/daily/weekly/none)
+│   └── Quiet Hours (time range picker)
+│
+├── Progress Updates (Collapsible Section)
+│   ├── Category Toggle: Enable All Progress Updates
+│   ├── Subcategory:
+│   │   ├── Lesson Completion: [In-App ☑] [Email ☑]
+│   │   ├── Video Completion: [In-App ☑] [Email ☐]
+│   │   ├── Course Milestones: [In-App ☑] [Email ☑]
+│   │   └── Weekly Summary: [In-App ☑] [Email ☑]
+│
+├── Course Updates (Collapsible Section)
+│   ├── Category Toggle: Enable All Course Updates
+│   ├── Subcategory:
+│   │   ├── Course Enrollment: [In-App ☑] [Email ☑]
+│   │   ├── New Lessons: [In-App ☑] [Email ☑]
+│   │   ├── Live Sessions: [In-App ☑] [Email ☑]
+│   │   └── Instructor Announcements: [In-App ☑] [Email ☑]
+│
+├── Assessment Updates (Collapsible Section)
+│   ├── Category Toggle: Enable All Assessment Updates
+│   ├── Subcategory:
+│   │   ├── Assessment Graded: [In-App ☑] [Email ☑]
+│   │   ├── Due Date Reminders: [In-App ☑] [Email ☑]
+│   │   └── New Assessment: [In-App ☑] [Email ☑]
+│
+├── Community Updates (Collapsible Section)
+│   ├── Category Toggle: Enable All Community Updates
+│   ├── Subcategory:
+│   │   ├── Comments: [In-App ☑] [Email ☐]
+│   │   ├── Mentions: [In-App ☑] [Email ☑]
+│   │   └── Group Invites: [In-App ☑] [Email ☑]
+│
+└── System Alerts (Collapsible Section)
+    ├── Category Toggle: Enable All System Alerts
+    ├── Subcategory:
+    │   ├── Payment Confirmation: [In-App ☑] [Email ☑]
+    │   ├── Certificates: [In-App ☑] [Email ☑]
+    │   └── Security Alerts: [In-App ☑] [Email ☑] (cannot disable)
+```
+
+### **UI Component: NotificationSettingsPage.tsx**
+
+```typescript
+// client/src/pages/Settings/NotificationSettingsPage.tsx
+interface SubcategoryControl {
+  name: string;
+  label: string;
+  inAppKey: keyof NotificationPreferences;
+  emailKey: keyof NotificationPreferences;
+  canDisable: boolean; // Security alerts = false
+}
+
+const PROGRESS_SUBCATEGORIES: SubcategoryControl[] = [
+  {
+    name: 'lesson-completion',
+    label: 'Lesson Completion',
+    inAppKey: 'EnableLessonCompletion',
+    emailKey: 'EmailLessonCompletion',
+    canDisable: true
+  },
+  {
+    name: 'video-completion',
+    label: 'Video Completion',
+    inAppKey: 'EnableVideoCompletion',
+    emailKey: 'EmailVideoCompletion',
+    canDisable: true
+  },
+  {
+    name: 'course-milestones',
+    label: 'Course Milestones (25%, 50%, 75%, 100%)',
+    inAppKey: 'EnableCourseMilestones',
+    emailKey: 'EmailCourseMilestones',
+    canDisable: true
+  }
+];
+
+// Collapsible accordion with category + subcategories
+<Accordion>
+  <AccordionSummary>
+    <Switch 
+      checked={preferences.EnableProgressUpdates}
+      onChange={handleCategoryToggle('EnableProgressUpdates')}
+    />
+    <Typography>Progress Updates</Typography>
+  </AccordionSummary>
+  <AccordionDetails>
+    {PROGRESS_SUBCATEGORIES.map(sub => (
+      <Box key={sub.name} sx={{ display: 'flex', gap: 2, mb: 1 }}>
+        <Typography sx={{ flex: 1 }}>{sub.label}</Typography>
+        <FormControlLabel
+          control={<Switch checked={getToggleValue(sub.inAppKey)} />}
+          label="In-App"
+        />
+        <FormControlLabel
+          control={<Switch checked={getToggleValue(sub.emailKey)} />}
+          label="Email"
+        />
+      </Box>
+    ))}
+  </AccordionDetails>
+</Accordion>
+```
+
+---
+
+## 📅 IMPLEMENTATION PHASES (UPDATED)
+
+### **Phase 0: Hybrid Control System (4-5 hours) - DO THIS FIRST**
+
+1. **Database Migration** (1 hour)
+   - Run `add_notification_subcategories.sql`
+   - Add 40+ new columns to NotificationPreferences
+   - Update default preferences creation logic
+
+2. **Update NotificationService** (1.5 hours)
+   - Modify `shouldSendNotification()` method
+   - Add subcategory checking logic
+   - Add email-specific checking logic
+   - Update interface types
+
+3. **Create Dedicated Settings Page** (2 hours)
+   - Create `NotificationSettingsPage.tsx`
+   - Build collapsible category sections
+   - Implement in-app/email toggle pairs
+   - Add route: `/settings/notifications`
+
+4. **Update API Endpoints** (30 min)
+   - Update `PATCH /api/notifications/preferences` to handle new fields
+   - Update `GET /api/notifications/preferences` response
+
+5. **Testing** (30 min)
+   - Toggle category → All subcategories inherit
+   - Toggle subcategory → Override category
+   - Disable email for one type → In-app still works
+   - Verify database updates
+
+### **Phase 1: Student Progress Notifications (3-4 hours)**
+
+**Note**: Now with granular controls implemented in Phase 0
+
 2. **Course enrollment** (30 min)
    - Add to enrollment.ts line ~135
    - Student welcome + instructor notification
+   - Check: `category: 'course', subcategory: 'CourseEnrollment'`
    
 3. **Assessment submission** (45 min)
    - Add to assessments.ts line ~816
    - Student confirmation + instructor grading notification
+   - Check: `category: 'assessment', subcategory: 'AssessmentSubmitted'`
    
 4. **New lesson created** (30 min)
    - Add to lessons.ts line ~144
    - Notify all enrolled students
+   - Check: `category: 'course', subcategory: 'NewLessons'`
    
 5. **Payment successful** (30 min)
    - Add to payments.ts webhook handler
    - In-app notification (email already sent)
+   - Check: `category: 'system', subcategory: 'PaymentConfirmation'`
 
 6. **Testing** (30 min)
    - Set email to realtime
+   - Toggle subcategories in settings
    - Complete lesson, enroll, submit
    - Check email inbox and in-app notifications
+   - Verify granular controls work
 
-**This gives you 80% of user value with 25% of the effort.**
+**This gives you 80% of user value with full control system in place.**
 
 ---
 
@@ -977,13 +1478,44 @@ MAX_NOTIFICATIONS_PER_HOUR: 10  // Rate limiting
 
 Before implementation, decide:
 
-1. **Instructor milestone notifications**: Which thresholds? (25%, 50%, 75%, 100%)
-2. **At-risk threshold**: 7 days inactive? 14 days?
-3. **Assignment reminders**: 2 days before? Also 1 day before?
-4. **Batch notifications**: Group similar events? (e.g., "3 students completed lessons")
-5. **Rate limiting**: Max notifications per hour per user?
-6. **Email tracking opt-out**: Add preference toggle?
+1. ✅ **Control Granularity**: Hybrid system (category + subcategory) - DECIDED
+2. ✅ **In-App vs Email**: Separate controls - DECIDED
+3. ✅ **UI Location**: Dedicated Settings → Notifications page - DECIDED
+4. **Instructor milestone notifications**: Which thresholds? (25%, 50%, 75%, 100%) - Currently: All 4
+5. **At-risk threshold**: 7 days inactive? 14 days?
+6. **Assignment reminders**: 2 days before? Also 1 day before?
+7. **Batch notifications**: Group similar events? (e.g., "3 students completed lessons")
+8. **Rate limiting**: Max notifications per hour per user?
+9. **Email tracking opt-out**: Add preference toggle?
+10. **Security Alerts**: Should these be ALWAYS enabled (cannot disable)?
 
 ---
 
-**Ready to implement? Start with Phase 1.1 (Lesson Completion)**
+## 🎯 RECOMMENDED IMPLEMENTATION ORDER
+
+### **Step 1: Hybrid Control System (Phase 0)** ← START HERE
+- Database migration
+- NotificationService update
+- Settings page creation
+- **Duration**: 4-5 hours
+- **Deliverable**: Users can control all notification types granularly
+
+### **Step 2: Apply Controls to Existing Triggers**
+- Update lesson completion trigger (already implemented)
+- Update live session trigger (already implemented)
+- Test with real user preferences
+- **Duration**: 1 hour
+
+### **Step 3: Implement Phase 1 Triggers**
+- Video completion, enrollment, assessments
+- **Duration**: 3-4 hours
+- **Deliverable**: 7/31 triggers complete
+
+### **Step 4: Implement Phase 2 & 3**
+- Remaining 24 triggers
+- **Duration**: 8-10 hours
+- **Deliverable**: All 31 triggers complete
+
+---
+
+**Ready to implement Phase 0 (Hybrid Control System)?**

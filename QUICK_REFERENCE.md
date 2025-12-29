@@ -51,14 +51,21 @@ Role: Student
 **Profile Testing:**
 - Login with either account
 - Navigate to `/profile` or click profile icon in header
-- Test all 5 tabs: Personal Info, Password, Billing Address, Preferences, Account Info
+- Test Personal Info, Password, Billing Address, Account Info tabs
 - Upload avatar (JPEG/PNG/GIF/WebP, max 5MB)
-- Configure notification preferences (toggles, email digest, quiet hours)
-- **Notification Preferences (Dec 18, 2025)**: Fully enforced
-  - Quiet hours: Notifications queued during specified time range
-  - Type filtering: Disable specific notification types (progress, achievements, risk, course, assignment)
-  - Clear buttons (X) to remove quiet hours settings
-  - Cron job processes queue every 5 minutes
+- **OLD**: Configure notification preferences from Profile → Preferences tab (REMOVED Dec 29, 2025)
+- **NEW**: Access notification settings via Header → Settings dropdown → Notifications
+- Navigate to dedicated page: `/settings/notifications`
+- **Hybrid Notification Control (Dec 29, 2025)**: 3-level system fully functional
+  - **Global toggles**: Enable In-App Notifications, Enable Email Notifications
+  - **5 Categories**: Progress Updates, Course Updates, Assessment Updates, Community Updates, System Alerts
+  - **50+ Subcategories**: Individual in-app/email toggles for each notification type
+  - **NULL inheritance**: Subcategory NULL = inherits from category toggle
+  - **Quiet hours**: Notifications queued during specified time range
+  - **Email digest**: None, Realtime, Daily (8 AM), Weekly (Monday 8 AM)
+  - **Cron job**: Processes queue every 5 minutes
+  - **UI**: 5 expandable accordion sections, professional MUI design (734 lines)
+  - **Persistence**: All 64 settings save to database and persist across sessions
 
 **Privacy Settings Testing (Dec 18, 2025):**
 - Navigate to Settings page (`/settings`)
@@ -81,16 +88,36 @@ Role: Student
 - Presence System (test multi-user scenarios)
 - Chat/messaging features
 - **Privacy Features** (test instructor override, student-to-student blocking)
-
-**Testing Multi-User Features:**
-1. Open two browser windows (or use Incognito)
-2. Login as instructor in one, student in other
-3. Test real-time features (presence, notifications, chat)
-4. **Privacy Testing**: Login as student1 and student2, change privacy settings, test visibility
-
-**Notification Preferences Testing (Dec 18, 2025):**
-- Navigate to Profile → Settings → Notifications tab
-- Set quiet hours (e.g., 13:00-23:59)
+29, 2025):**
+- Navigate to Header → Settings dropdown → Notifications (dedicated page)
+- URL: `/settings/notifications`
+- **Test Global Controls:**
+  - Toggle "Enable In-App Notifications" OFF → All in-app notifications blocked
+  - Toggle "Enable Email Notifications" OFF → All email notifications blocked
+  - Change "Email Digest Frequency" → realtime/daily/weekly/never
+- **Test Category Controls:**
+  - Expand "Progress Updates" accordion
+  - Toggle category OFF → All subcategories inherit (disabled)
+  - Toggle category ON → Subcategories with NULL inherit (enabled)
+- **Test Subcategory Overrides:**
+  - Category: ON, Subcategory: Set to OFF → Only that subcategory disabled
+  - Category: OFF, Subcategory: Set to ON → Only that subcategory enabled (override)
+  - Category: ON, Subcategory: NULL → Inherits category (enabled)
+- **Test Quiet Hours:**
+  - Set start/end times (e.g., 22:00-08:00)
+  - Trigger notification during quiet hours → Queued (not delivered)
+  - Check database: `SELECT * FROM NotificationQueue WHERE Status='queued'`
+  - Wait for quiet hours to end (or clear with X button)
+  - Cron job delivers within 5 minutes
+- **Test Persistence:**
+  - Change multiple settings across all 5 categories
+  - Click "Save Settings" → Toast confirmation
+  - Refresh page → All settings should persist
+- **Test UI:**
+  - All 5 accordion sections expand/collapse correctly
+  - Each subcategory shows 2 toggles: [In-App Switch] [Email Switch]
+  - No React warnings in console
+  - Professional MUI design with proper spacing/colors
 - Trigger notification (join office hours, complete lesson)
 - Verify notification queued (not delivered immediately)
 - Check database: `SELECT * FROM NotificationQueue WHERE Status='queued'`

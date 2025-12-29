@@ -178,12 +178,17 @@ POST   /api/payments/test-complete               - DEV ONLY: Complete test payme
 - Storage: uploads/images/avatar_${userId}_${uuid}.webp
 - Returns: { avatarUrl: 'http://localhost:3001/uploads/images/...' }
 
-**Notification Preferences Details:**
-- 13 fields: EnableProgressNotifications, EnableRiskAlerts, EnableAchievements, EnableCourseUpdates, EnableAssignmentReminders, EnableEmailNotifications, EmailDigestFrequency, QuietHoursStart, QuietHoursEnd, etc.
-- Case conversion: Frontend camelCase ↔ Backend PascalCase
-- Time format: SQL Server TIME type, HTML5 HH:mm input
-- UPSERT logic: Creates default record if doesn't exist
-- ✅ FULLY ENFORCED (Dec 18, 2025) - Queue system with cron job processing
+**Notification Preferences Details (UPDATED Dec 29, 2025):**
+- **64 fields total**: 2 global toggles, 5 category toggles, 50 subcategory pairs, 5 metadata
+- **Global**: EnableInAppNotifications, EnableEmailNotifications (separate control)
+- **Categories**: EnableProgressUpdates, EnableCourseUpdates, EnableAssessmentUpdates, EnableCommunityUpdates, EnableSystemAlerts
+- **Subcategories**: 50 Enable*/Email* pairs (LessonCompletion, VideoCompletion, CourseMilestones, etc.)
+- **Case**: All PascalCase (EnableInAppNotifications, EnableLessonCompletion) - backend, frontend, API aligned
+- **NULL Inheritance**: Subcategory NULL = inherits category value
+- **Time format**: SQL Server TIME type, HTML5 HH:mm input
+- **UPSERT logic**: Creates default record if doesn't exist, updates dynamically (all 64 fields)
+- **UI**: Dedicated /settings/notifications page with 5 accordion sections (734 lines)
+- ✅ **FULLY FUNCTIONAL** (Dec 29, 2025) - 3-level cascade with queue system + cron job
 
 ---
 
@@ -275,53 +280,75 @@ authStore.updateUser({ AvatarUrl })
 Header avatar auto-updates
 ```
 
-**Notification Preferences Flow** (added Dec 11, 2025):
+**Notification Preferences Flow** (UPDATED Dec 29, 2025):
 ```
-User → ProfilePage → Preferences tab
+User → Header → Settings dropdown → Notifications
+  ↓
+Navigate to: /settings/notifications (dedicated page)
   ↓
 Load: notificationPreferencesApi.getPreferences()
   ↓ (GET /api/notifications/preferences)
 Backend NotificationService.getUserPreferences()
-  ↓ (PascalCase fields from NotificationPreferences table)
-Frontend: Convert PascalCase → camelCase
-  ├─ EnableProgressNotifications → enableProgressNotifications
-  ├─ QuietHoursStart → quietHoursStart (ISO → HH:mm)
-  └─ QuietHoursEnd → quietHoursEnd (ISO → HH:mm)
+  ↓ (SELECT all 64 PascalCase fields from NotificationPreferences table)
+Frontend: Extract response.data.preferences (no conversion needed)
+  ├─ All fields use PascalCase: EnableInAppNotifications, EnableLessonCompletion, etc.
+  ├─ QuietHoursStart → format to HH:mm (if exists)
+  └─ QuietHoursEnd → format to HH:mm (if exists)
   ↓
-Render form with 5 toggles + email dropdown + 2 time pickers
-  ↓ (user edits)
-notificationPreferencesApi.updatePreferences(data)
+Render NotificationSettingsPage with 5 accordion sections:
+  ├─ Global toggles (2): EnableInAppNotifications, EnableEmailNotifications
+  ├─ Email digest frequency selector
+  ├─ Quiet hours time pickers with clear (X) buttons
+  ├─ Progress Updates (8 subcategories × 2 toggles = 16 switches)
+  ├─ Course Updates (10 subcategories × 2 toggles = 20 switches)
+  ├─ Assessment Updates (14 subcategories × 2 toggles = 28 switches)
+  ├─ Community Updates (10 subcategories × 2 toggles = 20 switches)
+  └─ System Alerts (10 subcategories × 2 toggles = 20 switches)
+  ↓ (user edits any of 64 fields)
+Click "Save Settings"
+  ↓
+notificationPreferencesApi.updatePreferences(preferences)
   ↓ (PATCH /api/notifications/preferences)
-Frontend: Convert camelCase → PascalCase
-  ├─ quietHoursStart (HH:mm → Date object)
-  └─ quietHoursEnd (HH:mm → Date object)
+Send all 64 fields as-is (PascalCase, no conversion)
   ↓
 Backend NotificationService.updatePreferences()
   ├─ Check if record exists
   ├─ Create default if not (UPSERT)
-  └─ Update NotificationPreferences table
+  ├─ Build dynamic UPDATE query with all provided fields
+  └─ Update NotificationPreferences table (all 64 columns)
   ↓
-Toast: "Preferences saved successfully"
+Toast: "Notification settings saved!"
 
-✅ FULLY ENFORCED (Dec 18, 2025):
-├─→ NotificationService.createNotification() checks preferences
+✅ FULLY FUNCTIONAL (Dec 29, 2025):
+├─→ 3-level cascade: Global → Category → Subcategory (NULL inheritance)
+├─→ NotificationService.shouldSendNotification() enforces all levels
 ├─→ Quiet Hours: Queue notification in NotificationQueue table
-├─→ Type Filtering: Skip notification if type disabled
+├─→ Type Filtering: Skip if global/category/subcategory disabled
 ├─→ Cron Job: Runs every 5 minutes, processes queue
+├─→ All 64 settings persist correctly across sessions
 └─→ Real-time Socket.IO delivery after quiet hours end
 ```
 
-**Notification Preferences Enforcement Architecture** (Dec 18, 2025):
+**Notification Preferences Enforcement Architecture** (UPDATED Dec 29, 2025):
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                   Notification Creation Flow                     │
+│                Hybrid Notification Control Flow                  │
 └─────────────────────────────────────────────────────────────────┘
 
 OfficeHoursService / InterventionService / Other Services
   ↓
-NotificationService.createNotification(params)
+NotificationService.createNotificationWithControls(params)
+  ├─ category: 'progress' | 'course' | 'assessment' | 'community' | 'system'
+  ├─ subcategory: 'LessonCompletion' | 'VideoCompletion' | 'LiveSessions' | etc.
+  └─ type: 'in-app' | 'email' | 'both'
   ↓
-getUserPreferences(userId)
+getUserPreferences(userId) → Get all 64 fields
+  ↓
+shouldSendNotification(preferences, category, subcategory, type)
+  ├─ Level 1: Check global toggle (EnableInAppNotifications or EnableEmailNotifications)
+  ├─ Level 2: Check category toggle (e.g., EnableProgressUpdates)
+  ├─ Level 3: Check subcategory toggle (e.g., EnableLessonCompletion)
+  └─ NULL subcategory inherits category value (3-level cascade)
   ↓
 ┌──────────────────┐
 │ Preference Check │

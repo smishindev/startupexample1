@@ -281,24 +281,30 @@
 - Preview before upload
 - Full server URL: http://localhost:3001/uploads/images/avatar_123_abc.webp
 
-// Notification Preferences (FULLY ENFORCED - Dec 18, 2025)
-- 5 in-app notification toggles
-- Email notifications toggle
-- Email digest frequency (none/realtime/daily/weekly)
-- Quiet hours (start/end time in HH:mm format)
-- Case conversion: camelCase ↔ PascalCase
-- Time format: ISO timestamp ↔ HH:mm
-- Local timezone preservation
+// Notification Preferences (HYBRID SYSTEM - FULLY FUNCTIONAL Dec 29, 2025)
+- **Page**: /settings/notifications (734 lines, dedicated page)
+- **Navigation**: Header → Settings dropdown → Notifications
+- **Global Controls**: EnableInAppNotifications, EnableEmailNotifications toggles
+- **Category Controls**: 5 accordion sections (Progress, Course, Assessment, Community, System)
+- **Subcategory Controls**: 50+ individual toggles (each with in-app + email switches)
+- **3-Level Cascade**: Global → Category → Subcategory with NULL inheritance
+- **Quiet Hours**: Start/end time pickers with clear (X) buttons
+- **Email Digest**: None, Realtime, Daily (8 AM), Weekly (Monday 8 AM)
+- **Database**: 64 columns in NotificationPreferences table (all PascalCase)
+- **API**: GET/PATCH /api/notifications/preferences (fully aligned)
+- **Persistence**: All settings save to database and persist across sessions
+- **Enforcement**: NotificationService.shouldSendNotification() enforces all 3 levels
+- **Queue System**: Cron job processes queued notifications every 5 minutes
 ```
 
 **Common Issues**:
 - **Avatar not updating**: Check multer config and sharp processing in backend
-- **Controlled input warning**: Ensure all Switch `checked` props have || false fallback
-- **Time showing wrong**: Verify using getHours() not getUTCHours()
-- **Preferences not saving**: Check case conversion in notificationPreferencesApi
-- **Notification preferences don't work**: Known limitation - preferences are stored but not enforced in NotificationService.createNotification() (see TODO in PROJECT_STATUS.md)
+- **Settings not persisting**: Fixed Dec 29, 2025 - Ensure API extracts response.data.preferences
+- **React warnings**: Fixed Dec 29, 2025 - All switches use controlled components with getToggleValue()
+- **TypeScript errors**: Fixed Dec 29, 2025 - All interfaces use identical PascalCase field names
+- ~~**Notification preferences don't work**: Known limitation~~ ✅ **RESOLVED** - Fully functional 3-level system
 
-**Last Modified**: December 11, 2025 - Complete profile system with notification preferences UI
+**Last Modified**: December 29, 2025 - Hybrid notification control system with 64 columns, fixed all bugs
 
 ---
 

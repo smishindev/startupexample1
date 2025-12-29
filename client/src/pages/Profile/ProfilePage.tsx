@@ -20,30 +20,24 @@ import {
   Chip,
   Stack,
   IconButton,
-  InputAdornment,
-  Switch,
-  FormControlLabel,
-  FormGroup
+  InputAdornment
 } from '@mui/material';
 import {
   Person as PersonIcon,
   Lock as LockIcon,
   CreditCard as CreditCardIcon,
-  Settings as SettingsIcon,
   Info as InfoIcon,
   Visibility,
   VisibilityOff,
   Save as SaveIcon,
   History as HistoryIcon,
   PhotoCamera as PhotoCameraIcon,
-  Close as CloseIcon,
   CheckCircle as CheckCircleIcon,
   MarkEmailRead
 } from '@mui/icons-material';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import profileApi, { UserProfile, UpdatePersonalInfoData, UpdateBillingAddressData, ChangePasswordData } from '../../services/profileApi';
-import notificationPreferencesApi, { NotificationPreferences, UpdatePreferencesData } from '../../services/notificationPreferencesApi';
 import { useAuthStore } from '../../stores/authStore';
 import { HeaderV4 } from '../../components/Navigation/HeaderV4';
 
@@ -105,10 +99,6 @@ const ProfilePage: React.FC = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
-
-  // Notification Preferences State
-  const [notifPreferences, setNotifPreferences] = useState<NotificationPreferences | null>(null);
-  const [loadingPreferences, setLoadingPreferences] = useState(false);
 
   // Load profile data
   useEffect(() => {
@@ -227,68 +217,6 @@ const ProfilePage: React.FC = () => {
       }
     }
   };
-
-  // Notification Preferences Handlers
-  const loadNotificationPreferences = async () => {
-    try {
-      setLoadingPreferences(true);
-      const prefs = await notificationPreferencesApi.getPreferences();
-      // Ensure all boolean fields have defined values
-      setNotifPreferences({
-        ...prefs,
-        enableProgressNotifications: prefs.enableProgressNotifications ?? true,
-        enableRiskAlerts: prefs.enableRiskAlerts ?? true,
-        enableAchievementNotifications: prefs.enableAchievementNotifications ?? true,
-        enableCourseUpdates: prefs.enableCourseUpdates ?? true,
-        enableAssignmentReminders: prefs.enableAssignmentReminders ?? true,
-        enableEmailNotifications: prefs.enableEmailNotifications ?? true,
-        emailDigestFrequency: prefs.emailDigestFrequency || 'daily',
-      });
-    } catch (err: any) {
-      console.error('Failed to load notification preferences:', err);
-      toast.error('Failed to load notification preferences');
-    } finally {
-      setLoadingPreferences(false);
-    }
-  };
-
-  const handlePreferenceChange = (key: keyof UpdatePreferencesData, value: any) => {
-    if (notifPreferences) {
-      setNotifPreferences({ ...notifPreferences, [key]: value });
-    }
-  };
-
-  const handleSavePreferences = async () => {
-    if (!notifPreferences) return;
-
-    try {
-      setSaving(true);
-      await notificationPreferencesApi.updatePreferences({
-        enableProgressNotifications: notifPreferences.enableProgressNotifications,
-        enableRiskAlerts: notifPreferences.enableRiskAlerts,
-        enableAchievementNotifications: notifPreferences.enableAchievementNotifications,
-        enableCourseUpdates: notifPreferences.enableCourseUpdates,
-        enableAssignmentReminders: notifPreferences.enableAssignmentReminders,
-        enableEmailNotifications: notifPreferences.enableEmailNotifications,
-        emailDigestFrequency: notifPreferences.emailDigestFrequency,
-        quietHoursStart: notifPreferences.quietHoursStart,
-        quietHoursEnd: notifPreferences.quietHoursEnd,
-      });
-      toast.success('Notification preferences saved successfully');
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Failed to save preferences');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  // Load preferences when Preferences tab is opened
-  useEffect(() => {
-    if (tabValue === 3 && !notifPreferences && !loadingPreferences) {
-      loadNotificationPreferences();
-    }
-  }, [tabValue]);
-
   // Password Change Handlers
   const handleChangePassword = async () => {
     if (passwordData.newPassword !== confirmPassword) {
@@ -426,7 +354,6 @@ const ProfilePage: React.FC = () => {
               <Tab icon={<PersonIcon />} label="Personal Info" iconPosition="start" />
               <Tab icon={<LockIcon />} label="Password" iconPosition="start" />
               <Tab icon={<CreditCardIcon />} label="Billing Address" iconPosition="start" />
-              <Tab icon={<SettingsIcon />} label="Preferences" iconPosition="start" />
               <Tab icon={<InfoIcon />} label="Account Info" iconPosition="start" />
             </Tabs>
           </Box>
@@ -645,175 +572,8 @@ const ProfilePage: React.FC = () => {
               </Grid>
             </TabPanel>
 
-            {/* Tab 4: Preferences */}
+            {/* Tab 4: Account Info */}
             <TabPanel value={tabValue} index={3}>
-              <Typography variant="h6" gutterBottom fontWeight="bold">
-                Notification Preferences
-              </Typography>
-              
-              {loadingPreferences ? (
-                <Box display="flex" justifyContent="center" py={4}>
-                  <CircularProgress />
-                </Box>
-              ) : notifPreferences ? (
-                <>
-                  <Alert severity="info" sx={{ mb: 3 }}>
-                    Control which notifications you receive and how often
-                  </Alert>
-
-                  <FormGroup>
-                    <Typography variant="subtitle2" fontWeight="bold" sx={{ mt: 2, mb: 1 }}>
-                      In-App Notifications
-                    </Typography>
-                    <FormControlLabel
-                      control={
-                        <Switch
-                          checked={notifPreferences.enableProgressNotifications || false}
-                          onChange={(e) => handlePreferenceChange('enableProgressNotifications', e.target.checked)}
-                        />
-                      }
-                      label="Progress Updates"
-                    />
-                    <FormControlLabel
-                      control={
-                        <Switch
-                          checked={notifPreferences.enableRiskAlerts || false}
-                          onChange={(e) => handlePreferenceChange('enableRiskAlerts', e.target.checked)}
-                        />
-                      }
-                      label="Risk Alerts (when falling behind)"
-                    />
-                    <FormControlLabel
-                      control={
-                        <Switch
-                          checked={notifPreferences.enableAchievementNotifications || false}
-                          onChange={(e) => handlePreferenceChange('enableAchievementNotifications', e.target.checked)}
-                        />
-                      }
-                      label="Achievement & Milestones"
-                    />
-                    <FormControlLabel
-                      control={
-                        <Switch
-                          checked={notifPreferences.enableCourseUpdates || false}
-                          onChange={(e) => handlePreferenceChange('enableCourseUpdates', e.target.checked)}
-                        />
-                      }
-                      label="Course Updates"
-                    />
-                    <FormControlLabel
-                      control={
-                        <Switch
-                          checked={notifPreferences.enableAssignmentReminders || false}
-                          onChange={(e) => handlePreferenceChange('enableAssignmentReminders', e.target.checked)}
-                        />
-                      }
-                      label="Assignment Reminders"
-                    />
-
-                    <Divider sx={{ my: 3 }} />
-
-                    <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 1 }}>
-                      Email Notifications
-                    </Typography>
-                  <FormControlLabel
-                    control={
-                      <Switch
-                        checked={notifPreferences.enableEmailNotifications || false}
-                        onChange={(e) => handlePreferenceChange('enableEmailNotifications', e.target.checked)}
-                      />
-                    }
-                    label="Enable Email Notifications"
-                  />                    {notifPreferences.enableEmailNotifications && (
-                      <FormControl sx={{ mt: 2, mb: 2, minWidth: 250 }}>
-                        <InputLabel>Email Digest Frequency</InputLabel>
-                        <Select
-                          value={notifPreferences.emailDigestFrequency || 'daily'}
-                          onChange={(e) => handlePreferenceChange('emailDigestFrequency', e.target.value)}
-                          label="Email Digest Frequency"
-                        >
-                          <MenuItem value="none">None</MenuItem>
-                          <MenuItem value="realtime">Real-time (immediate)</MenuItem>
-                          <MenuItem value="daily">Daily Digest</MenuItem>
-                          <MenuItem value="weekly">Weekly Digest</MenuItem>
-                        </Select>
-                      </FormControl>
-                    )}
-
-                    <Divider sx={{ my: 3 }} />
-
-                    <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 2 }}>
-                      Quiet Hours (Optional)
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                      Mute notifications during these hours
-                    </Typography>
-                    <Grid container spacing={2}>
-                      <Grid item xs={12} md={6}>
-                        <TextField
-                          fullWidth
-                          label="Start Time"
-                          type="time"
-                          value={notifPreferences.quietHoursStart || ''}
-                          onChange={(e) => handlePreferenceChange('quietHoursStart', e.target.value || null)}
-                          InputLabelProps={{ shrink: true }}
-                          InputProps={{
-                            endAdornment: notifPreferences.quietHoursStart && (
-                              <IconButton
-                                size="small"
-                                onClick={() => handlePreferenceChange('quietHoursStart', null)}
-                                edge="end"
-                              >
-                                <CloseIcon fontSize="small" />
-                              </IconButton>
-                            )
-                          }}
-                        />
-                      </Grid>
-                      <Grid item xs={12} md={6}>
-                        <TextField
-                          fullWidth
-                          label="End Time"
-                          type="time"
-                          value={notifPreferences.quietHoursEnd || ''}
-                          onChange={(e) => handlePreferenceChange('quietHoursEnd', e.target.value || null)}
-                          InputLabelProps={{ shrink: true }}
-                          InputProps={{
-                            endAdornment: notifPreferences.quietHoursEnd && (
-                              <IconButton
-                                size="small"
-                                onClick={() => handlePreferenceChange('quietHoursEnd', null)}
-                                edge="end"
-                              >
-                                <CloseIcon fontSize="small" />
-                              </IconButton>
-                            )
-                          }}
-                        />
-                      </Grid>
-                    </Grid>
-
-                    <Box sx={{ mt: 4 }}>
-                      <Button
-                        variant="contained"
-                        startIcon={<SaveIcon />}
-                        onClick={handleSavePreferences}
-                        disabled={saving}
-                      >
-                        {saving ? 'Saving...' : 'Save Preferences'}
-                      </Button>
-                    </Box>
-                  </FormGroup>
-                </>
-              ) : (
-                <Alert severity="error">
-                  Failed to load notification preferences. Please refresh the page.
-                </Alert>
-              )}
-            </TabPanel>
-
-            {/* Tab 5: Account Info */}
-            <TabPanel value={tabValue} index={4}>
               <Typography variant="h6" gutterBottom fontWeight="bold">
                 Account Information
               </Typography>

@@ -41,6 +41,7 @@ import {
   Close as CloseIcon,
   ExpandLess,
   ExpandMore,
+  Notifications as NotificationsIcon,
 } from '@mui/icons-material';
 import { styled, alpha } from '@mui/material/styles';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
@@ -161,8 +162,10 @@ export const HeaderV4 = () => {
 
   const isActivePath = (path: string) => location.pathname === path || location.pathname.startsWith(path + '/');
 
+  // Profile menu items with notifications
   const profileMenuItems = [
     { text: 'Profile', icon: <AccountCircle />, action: () => navigate('/profile') },
+    { text: 'Notifications', icon: <NotificationsIcon />, action: () => navigate('/settings/notifications') },
     { text: 'Settings', icon: <SettingsIcon />, action: () => navigate('/settings') },
     { text: 'Logout', icon: <ExitToAppIcon />, action: handleLogout },
   ];

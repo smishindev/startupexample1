@@ -76,15 +76,22 @@
   - Backend API: 6 endpoints already functional (no changes needed)
   - Files modified: 2 (CourseDetailPage.tsx, CoursesPage.tsx)
   - Implementation time: ~15 minutes
-- [x] Notification Preferences Enforcement - PRODUCTION READY (Dec 18, 2025) ✅
-  - Backend: 6 queue management methods in NotificationService
-  - NotificationQueue database table with 3 indexes
-  - Cron job runs every 5 minutes to process queue
-  - Quiet hours queueing (notifications delayed until quiet hours end)
-  - Type filtering (5 toggles: progress, achievements, risk, course, assignment)
-  - Frontend: Clear (X) buttons for quiet hours time inputs
-  - 2 new API endpoints (/queue/count, /test)
-  - Manual testing verified: Queue → Deliver → Bell update
+- [x] Notification Preferences - Hybrid 3-Level Control System (Dec 29, 2025) ✅
+  - **Database**: 64 columns (2 global, 5 categories, 50 subcategories) + migration applied
+  - **Backend**: NotificationService updated with 3-level cascade enforcement
+  - **Frontend**: Dedicated /settings/notifications page (734 lines, professional MUI design)
+  - **Navigation**: Header → Settings dropdown → Notifications
+  - **Global Controls**: EnableInAppNotifications, EnableEmailNotifications (separate)
+  - **Category Controls**: Progress, Course, Assessment, Community, System (5 accordions)
+  - **Subcategory Controls**: 50+ individual in-app/email toggle pairs
+  - **NULL Inheritance**: Subcategory NULL inherits from category toggle
+  - **Quiet Hours**: Time pickers with clear (X) buttons, queueing system
+  - **Cron Job**: Processes queue every 5 minutes
+  - **Persistence**: All 64 settings save correctly and persist across sessions
+  - **API Fixed**: Interface updated from 13 to 73 fields, PascalCase aligned
+  - **Zero Errors**: No TypeScript errors, no React warnings, no console errors
+  - **Files**: 8 modified (NotificationService, NotificationSettingsPage, API, Header, ProfilePage, schema.sql)
+  - **Duration**: ~6 hours implementation + bug fixes
 - [x] Privacy Settings Enforcement - PRODUCTION READY (Dec 18, 2025) ✅
   - Backend: 8 privacy helper methods in SettingsService
   - Profile visibility (3 tiers: public/students/private)
@@ -106,9 +113,9 @@
   - **Backend graceful constraint violation handling**
   - **Frontend debouncing and React Strict Mode fixes**
 - [x] TransactionsPage (`/transactions`) - Payment history with invoice download (Dec 14, 2025) ✅
-- [x] ProfilePage (`/profile`) - 5-tab user profile system (Dec 11, 2025) ✅
+- [x] ProfilePage (`/profile`) - 4-tab user profile system (Personal, Password, Billing, Account - Dec 29, 2025) ✅
 - [x] Settings page - Privacy, appearance, data management with backend API (Dec 11, 2025) ✅
-- [x] Notification preferences - Fully enforced with quiet hours and type filtering (Dec 11, 2025) ✅
+- [x] Notification settings page - Dedicated /settings/notifications with 64 controls (Dec 29, 2025) ✅
 - [x] Avatar upload system - multer + sharp processing (Dec 11, 2025) ✅
 
 **Commands to run**:

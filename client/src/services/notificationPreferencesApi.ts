@@ -27,46 +27,93 @@ api.interceptors.request.use((config) => {
 });
 
 export interface NotificationPreferences {
-  id: string;
-  userId: string;
-  enableProgressNotifications: boolean;
-  enableRiskAlerts: boolean;
-  enableAchievementNotifications: boolean;
-  enableCourseUpdates: boolean;
-  enableAssignmentReminders: boolean;
-  enableEmailNotifications: boolean;
-  emailDigestFrequency: 'none' | 'realtime' | 'daily' | 'weekly';
-  quietHoursStart: string | null;
-  quietHoursEnd: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface UpdatePreferencesData {
-  enableProgressNotifications?: boolean;
-  enableRiskAlerts?: boolean;
-  enableAchievementNotifications?: boolean;
-  enableCourseUpdates?: boolean;
-  enableAssignmentReminders?: boolean;
-  enableEmailNotifications?: boolean;
-  emailDigestFrequency?: 'none' | 'realtime' | 'daily' | 'weekly';
-  quietHoursStart?: string | null;
-  quietHoursEnd?: string | null;
+  UserId: string;
+  // Global toggles
+  EnableInAppNotifications: boolean;
+  EnableEmailNotifications: boolean;
+  EmailDigestFrequency: 'none' | 'realtime' | 'daily' | 'weekly';
+  QuietHoursStart: string | null;
+  QuietHoursEnd: string | null;
+  
+  // Category toggles
+  EnableProgressUpdates: boolean;
+  EnableCourseUpdates: boolean;
+  EnableAssessmentUpdates: boolean;
+  EnableCommunityUpdates: boolean;
+  EnableSystemAlerts: boolean;
+  
+  // Progress Updates subcategories
+  EnableLessonCompletion: boolean | null;
+  EnableVideoCompletion: boolean | null;
+  EnableCourseMilestones: boolean | null;
+  EnableProgressSummary: boolean | null;
+  EmailLessonCompletion: boolean | null;
+  EmailVideoCompletion: boolean | null;
+  EmailCourseMilestones: boolean | null;
+  EmailProgressSummary: boolean | null;
+  
+  // Course Updates subcategories
+  EnableCourseEnrollment: boolean | null;
+  EnableNewLessons: boolean | null;
+  EnableLiveSessions: boolean | null;
+  EnableCoursePublished: boolean | null;
+  EnableInstructorAnnouncements: boolean | null;
+  EmailCourseEnrollment: boolean | null;
+  EmailNewLessons: boolean | null;
+  EmailLiveSessions: boolean | null;
+  EmailCoursePublished: boolean | null;
+  EmailInstructorAnnouncements: boolean | null;
+  
+  // Assessment Updates subcategories
+  EnableAssessmentSubmitted: boolean | null;
+  EnableAssessmentGraded: boolean | null;
+  EnableNewAssessment: boolean | null;
+  EnableAssessmentDue: boolean | null;
+  EnableSubmissionToGrade: boolean | null;
+  EmailAssessmentSubmitted: boolean | null;
+  EmailAssessmentGraded: boolean | null;
+  EmailNewAssessment: boolean | null;
+  EmailAssessmentDue: boolean | null;
+  EmailSubmissionToGrade: boolean | null;
+  
+  // Community Updates subcategories
+  EnableComments: boolean | null;
+  EnableReplies: boolean | null;
+  EnableMentions: boolean | null;
+  EnableGroupInvites: boolean | null;
+  EnableOfficeHours: boolean | null;
+  EmailComments: boolean | null;
+  EmailReplies: boolean | null;
+  EmailMentions: boolean | null;
+  EmailGroupInvites: boolean | null;
+  EmailOfficeHours: boolean | null;
+  
+  // System Alerts subcategories
+  EnablePaymentConfirmation: boolean | null;
+  EnableRefundConfirmation: boolean | null;
+  EnableCertificates: boolean | null;
+  EnableSecurityAlerts: boolean | null;
+  EnableProfileUpdates: boolean | null;
+  EmailPaymentConfirmation: boolean | null;
+  EmailRefundConfirmation: boolean | null;
+  EmailCertificates: boolean | null;
+  EmailSecurityAlerts: boolean | null;
+  EmailProfileUpdates: boolean | null;
 }
 
 const notificationPreferencesApi = {
   // Get user's notification preferences
   getPreferences: async (): Promise<NotificationPreferences> => {
     const response = await api.get('/notifications/preferences');
-    const prefs = response.data.preferences;
+    const prefs = response.data.preferences; // Backend returns {success: true, preferences: {...}}
     
     // Helper function to convert time to HH:mm format
     const formatTime = (timeValue: any): string | null => {
       if (!timeValue) return null;
       
       // If it's already in HH:mm format, return as is
-      if (typeof timeValue === 'string' && /^\d{2}:\d{2}$/.test(timeValue)) {
-        return timeValue;
+      if (typeof timeValue === 'string' && /^\d{2}:\d{2}/.test(timeValue)) {
+        return timeValue.substring(0, 5);
       }
       
       // If it's a full ISO timestamp or Date object, extract time
@@ -84,39 +131,22 @@ const notificationPreferencesApi = {
       return null;
     };
     
-    // Convert PascalCase from backend to camelCase for frontend
-    return {
-      id: prefs.Id || prefs.id,
-      userId: prefs.UserId || prefs.userId,
-      enableProgressNotifications: prefs.EnableProgressNotifications ?? prefs.enableProgressNotifications,
-      enableRiskAlerts: prefs.EnableRiskAlerts ?? prefs.enableRiskAlerts,
-      enableAchievementNotifications: prefs.EnableAchievementNotifications ?? prefs.enableAchievementNotifications,
-      enableCourseUpdates: prefs.EnableCourseUpdates ?? prefs.enableCourseUpdates,
-      enableAssignmentReminders: prefs.EnableAssignmentReminders ?? prefs.enableAssignmentReminders,
-      enableEmailNotifications: prefs.EnableEmailNotifications ?? prefs.enableEmailNotifications,
-      emailDigestFrequency: prefs.EmailDigestFrequency || prefs.emailDigestFrequency,
-      quietHoursStart: formatTime(prefs.QuietHoursStart ?? prefs.quietHoursStart),
-      quietHoursEnd: formatTime(prefs.QuietHoursEnd ?? prefs.quietHoursEnd),
-      createdAt: prefs.CreatedAt || prefs.createdAt,
-      updatedAt: prefs.UpdatedAt || prefs.updatedAt,
-    };
+    // Format time fields
+    if (prefs.QuietHoursStart) {
+      prefs.QuietHoursStart = formatTime(prefs.QuietHoursStart);
+    }
+    if (prefs.QuietHoursEnd) {
+      prefs.QuietHoursEnd = formatTime(prefs.QuietHoursEnd);
+    }
+    
+    // Return as-is (PascalCase from backend matches interface)
+    return prefs;
   },
 
   // Update notification preferences
-  updatePreferences: async (data: UpdatePreferencesData): Promise<void> => {
-    // Convert camelCase to PascalCase for backend
-    const backendData = {
-      EnableProgressNotifications: data.enableProgressNotifications,
-      EnableRiskAlerts: data.enableRiskAlerts,
-      EnableAchievementNotifications: data.enableAchievementNotifications,
-      EnableCourseUpdates: data.enableCourseUpdates,
-      EnableAssignmentReminders: data.enableAssignmentReminders,
-      EnableEmailNotifications: data.enableEmailNotifications,
-      EmailDigestFrequency: data.emailDigestFrequency,
-      QuietHoursStart: data.quietHoursStart,
-      QuietHoursEnd: data.quietHoursEnd,
-    };
-    const response = await api.patch('/notifications/preferences', backendData);
+  updatePreferences: async (data: Partial<NotificationPreferences>): Promise<void> => {
+    // Data already in PascalCase, send directly to backend
+    const response = await api.patch('/notifications/preferences', data);
     return response.data;
   }
 };

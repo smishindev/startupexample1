@@ -38,15 +38,83 @@ export interface Notification {
 
 export interface NotificationPreferences {
   UserId: string;
-  EnableProgressNotifications: boolean;
-  EnableRiskAlerts: boolean;
-  EnableAchievementNotifications: boolean;
-  EnableCourseUpdates: boolean;
-  EnableAssignmentReminders: boolean;
+  // Global toggles
+  EnableInAppNotifications: boolean;
   EnableEmailNotifications: boolean;
   EmailDigestFrequency: 'none' | 'realtime' | 'daily' | 'weekly';
   QuietHoursStart: string | null;
   QuietHoursEnd: string | null;
+  
+  // Category toggles
+  EnableProgressUpdates: boolean;
+  EnableCourseUpdates: boolean;
+  EnableAssessmentUpdates: boolean;
+  EnableCommunityUpdates: boolean;
+  EnableSystemAlerts: boolean;
+  
+  // Progress Updates subcategories
+  EnableLessonCompletion: boolean | null;
+  EnableVideoCompletion: boolean | null;
+  EnableCourseMilestones: boolean | null;
+  EnableProgressSummary: boolean | null;
+  EmailLessonCompletion: boolean | null;
+  EmailVideoCompletion: boolean | null;
+  EmailCourseMilestones: boolean | null;
+  EmailProgressSummary: boolean | null;
+  
+  // Course Updates subcategories
+  EnableCourseEnrollment: boolean | null;
+  EnableNewLessons: boolean | null;
+  EnableLiveSessions: boolean | null;
+  EnableCoursePublished: boolean | null;
+  EnableInstructorAnnouncements: boolean | null;
+  EmailCourseEnrollment: boolean | null;
+  EmailNewLessons: boolean | null;
+  EmailLiveSessions: boolean | null;
+  EmailCoursePublished: boolean | null;
+  EmailInstructorAnnouncements: boolean | null;
+  
+  // Assessment Updates subcategories
+  EnableAssessmentSubmitted: boolean | null;
+  EnableAssessmentGraded: boolean | null;
+  EnableNewAssessment: boolean | null;
+  EnableAssessmentDue: boolean | null;
+  EnableSubmissionToGrade: boolean | null;
+  EmailAssessmentSubmitted: boolean | null;
+  EmailAssessmentGraded: boolean | null;
+  EmailNewAssessment: boolean | null;
+  EmailAssessmentDue: boolean | null;
+  EmailSubmissionToGrade: boolean | null;
+  
+  // Community Updates subcategories
+  EnableComments: boolean | null;
+  EnableReplies: boolean | null;
+  EnableMentions: boolean | null;
+  EnableGroupInvites: boolean | null;
+  EnableOfficeHours: boolean | null;
+  EmailComments: boolean | null;
+  EmailReplies: boolean | null;
+  EmailMentions: boolean | null;
+  EmailGroupInvites: boolean | null;
+  EmailOfficeHours: boolean | null;
+  
+  // System Alerts subcategories
+  EnablePaymentConfirmation: boolean | null;
+  EnableRefundConfirmation: boolean | null;
+  EnableCertificates: boolean | null;
+  EnableSecurityAlerts: boolean | null;
+  EnableProfileUpdates: boolean | null;
+  EmailPaymentConfirmation: boolean | null;
+  EmailRefundConfirmation: boolean | null;
+  EmailCertificates: boolean | null;
+  EmailSecurityAlerts: boolean | null;
+  EmailProfileUpdates: boolean | null;
+}
+
+export interface NotificationCheckParams {
+  category: 'progress' | 'course' | 'assessment' | 'community' | 'system';
+  subcategory?: string; // e.g., 'LessonCompletion', 'VideoCompletion'
+  checkEmail?: boolean; // Check email-specific toggle
 }
 
 export class NotificationService {
@@ -74,7 +142,10 @@ export class NotificationService {
     try {
       // Check user preferences before creating notification
       const preferences = await this.getUserPreferences(params.userId);
-      if (!this.shouldSendNotification(params.type, preferences)) {
+      
+      // Use legacy checking for backwards compatibility
+      // TODO: Update all triggers to use new NotificationCheckParams format
+      if (!this.shouldSendNotificationLegacy(params.type, preferences)) {
         console.log(`📵 Notification skipped for user ${params.userId} - type ${params.type} disabled in preferences`);
         return '';
       }
@@ -162,6 +233,129 @@ export class NotificationService {
     } catch (error) {
       console.error('❌ Error creating notification:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Create a notification with hybrid control checking (NEW METHOD)
+   * Use this method for new triggers to support granular subcategory controls
+   * 
+   * @param params Notification parameters
+   * @param checkParams Control check parameters (category + subcategory)
+   * @returns Notification ID or empty string if skipped
+   */
+  async createNotificationWithControls(
+    params: CreateNotificationParams,
+    checkParams: NotificationCheckParams
+  ): Promise<string> {
+    try {
+      // Check user preferences with hybrid control system
+      const preferences = await this.getUserPreferences(params.userId);
+      
+      // Check if in-app notification should be sent
+      if (!this.shouldSendNotification(checkParams, preferences)) {
+        console.log(`📵 In-app notification skipped for user ${params.userId} - disabled in preferences`);
+        return '';
+      }
+
+      // Check quiet hours
+      if (this.isInQuietHours(preferences)) {
+        console.log(`🔕 Notification delayed for user ${params.userId} - quiet hours active`);
+        // Queue notification for later delivery
+        return await this.queueNotification(params);
+      }
+
+      const request = await this.dbService.getRequest();
+      const result = await request
+        .input('UserId', sql.UniqueIdentifier, params.userId)
+        .input('Type', sql.NVarChar(50), params.type)
+        .input('Priority', sql.NVarChar(20), params.priority)
+        .input('Title', sql.NVarChar(200), params.title)
+        .input('Message', sql.NVarChar(sql.MAX), params.message)
+        .input('Data', sql.NVarChar(sql.MAX), params.data ? JSON.stringify(params.data) : null)
+        .input('ActionUrl', sql.NVarChar(500), params.actionUrl || null)
+        .input('ActionText', sql.NVarChar(100), params.actionText || null)
+        .input('RelatedEntityId', sql.UniqueIdentifier, params.relatedEntityId || null)
+        .input('RelatedEntityType', sql.NVarChar(50), params.relatedEntityType || null)
+        .input('ExpiresAt', sql.DateTime2, params.expiresAt || null)
+        .query(`
+          INSERT INTO Notifications (
+            UserId, Type, Priority, Title, Message, Data,
+            ActionUrl, ActionText, RelatedEntityId, RelatedEntityType, ExpiresAt
+          )
+          OUTPUT INSERTED.Id
+          VALUES (
+            @UserId, @Type, @Priority, @Title, @Message, @Data,
+            @ActionUrl, @ActionText, @RelatedEntityId, @RelatedEntityType, @ExpiresAt
+          )
+        `);
+
+      const notificationId = result.recordset[0].Id;
+      console.log(`✅ Notification created: ${notificationId} for user ${params.userId}`);
+      
+      // Emit real-time notification via Socket.io
+      if (this.io) {
+        this.io.to(`user-${params.userId}`).emit('notification-created', {
+          id: notificationId,
+          userId: params.userId,
+          type: params.type,
+          priority: params.priority,
+          title: params.title,
+          message: params.message,
+          actionUrl: params.actionUrl,
+          actionText: params.actionText,
+          createdAt: new Date().toISOString()
+        });
+        console.log(`🔔 Socket.io event emitted to user-${params.userId}`);
+      }
+
+      // Check if email should be sent
+      const emailCheckParams: NotificationCheckParams = {
+        ...checkParams,
+        checkEmail: true
+      };
+      
+      const shouldSendEmail = this.shouldSendNotification(emailCheckParams, preferences);
+      
+      if (!shouldSendEmail) {
+        console.log(`📧 Email skipped for user ${params.userId} - disabled in preferences`);
+        return notificationId;
+      }
+
+      // Send email based on digest preference
+      if (preferences.EmailDigestFrequency === 'realtime') {
+        console.log(`📧 Sending realtime email to user ${params.userId}`);
+        // Get user info for email
+        const userResult = await (await this.dbService.getRequest())
+          .input('userId', sql.VarChar(50), params.userId)
+          .query('SELECT Email, FirstName FROM Users WHERE UserID = @userId');
+        
+        if (userResult.recordset.length > 0) {
+          const user = userResult.recordset[0];
+          await EmailService.sendNotificationEmail({
+            email: user.Email,
+            firstName: user.FirstName,
+            userId: params.userId,
+            notificationId: notificationId,
+            notification: {
+              title: params.title,
+              message: params.message,
+              type: params.type as 'progress' | 'risk' | 'achievement' | 'intervention' | 'assignment' | 'course',
+              priority: params.priority,
+              actionUrl: params.actionUrl,
+              actionText: params.actionText
+            }
+          });
+        }
+      } else if (preferences.EmailDigestFrequency === 'daily' || preferences.EmailDigestFrequency === 'weekly') {
+        console.log(`📧 Notification will be included in ${preferences.EmailDigestFrequency} digest`);
+        // Will be picked up by digest cron job
+      }
+
+      return notificationId;
+    } catch (error) {
+      console.error('❌ Error creating notification with controls:', error);
+      return '';
     }
   }
 
@@ -342,10 +536,34 @@ export class NotificationService {
         .input('UserId', sql.UniqueIdentifier, userId)
         .query(`
           SELECT 
-            UserId, EnableProgressNotifications, EnableRiskAlerts,
-            EnableAchievementNotifications, EnableCourseUpdates,
-            EnableAssignmentReminders, EnableEmailNotifications,
-            EmailDigestFrequency, QuietHoursStart, QuietHoursEnd
+            UserId, EnableInAppNotifications, EnableProgressUpdates, EnableSystemAlerts,
+            EnableCommunityUpdates, EnableCourseUpdates,
+            EnableAssessmentUpdates, EnableEmailNotifications,
+            EmailDigestFrequency, QuietHoursStart, QuietHoursEnd,
+            EnableLessonCompletion, EmailLessonCompletion,
+            EnableVideoCompletion, EmailVideoCompletion,
+            EnableCourseMilestones, EmailCourseMilestones,
+            EnableProgressSummary, EmailProgressSummary,
+            EnableCourseEnrollment, EmailCourseEnrollment,
+            EnableNewLessons, EmailNewLessons,
+            EnableLiveSessions, EmailLiveSessions,
+            EnableCoursePublished, EmailCoursePublished,
+            EnableInstructorAnnouncements, EmailInstructorAnnouncements,
+            EnableAssessmentSubmitted, EmailAssessmentSubmitted,
+            EnableAssessmentGraded, EmailAssessmentGraded,
+            EnableNewAssessment, EmailNewAssessment,
+            EnableAssessmentDue, EmailAssessmentDue,
+            EnableSubmissionToGrade, EmailSubmissionToGrade,
+            EnableComments, EmailComments,
+            EnableReplies, EmailReplies,
+            EnableMentions, EmailMentions,
+            EnableGroupInvites, EmailGroupInvites,
+            EnableOfficeHours, EmailOfficeHours,
+            EnablePaymentConfirmation, EmailPaymentConfirmation,
+            EnableRefundConfirmation, EmailRefundConfirmation,
+            EnableCertificates, EmailCertificates,
+            EnableSecurityAlerts, EmailSecurityAlerts,
+            EnableProfileUpdates, EmailProfileUpdates
           FROM NotificationPreferences
           WHERE UserId = @UserId
         `);
@@ -394,25 +612,30 @@ export class NotificationService {
       const updateRequest = await this.dbService.getRequest();
       updateRequest.input('UserId', sql.UniqueIdentifier, userId);
 
-      if (preferences.EnableProgressNotifications !== undefined) {
-        updates.push('EnableProgressNotifications = @EnableProgressNotifications');
-        updateRequest.input('EnableProgressNotifications', sql.Bit, preferences.EnableProgressNotifications);
+      // Global and category controls
+      if (preferences.EnableInAppNotifications !== undefined) {
+        updates.push('EnableInAppNotifications = @EnableInAppNotifications');
+        updateRequest.input('EnableInAppNotifications', sql.Bit, preferences.EnableInAppNotifications);
       }
-      if (preferences.EnableRiskAlerts !== undefined) {
-        updates.push('EnableRiskAlerts = @EnableRiskAlerts');
-        updateRequest.input('EnableRiskAlerts', sql.Bit, preferences.EnableRiskAlerts);
+      if (preferences.EnableProgressUpdates !== undefined) {
+        updates.push('EnableProgressUpdates = @EnableProgressUpdates');
+        updateRequest.input('EnableProgressUpdates', sql.Bit, preferences.EnableProgressUpdates);
       }
-      if (preferences.EnableAchievementNotifications !== undefined) {
-        updates.push('EnableAchievementNotifications = @EnableAchievementNotifications');
-        updateRequest.input('EnableAchievementNotifications', sql.Bit, preferences.EnableAchievementNotifications);
+      if (preferences.EnableSystemAlerts !== undefined) {
+        updates.push('EnableSystemAlerts = @EnableSystemAlerts');
+        updateRequest.input('EnableSystemAlerts', sql.Bit, preferences.EnableSystemAlerts);
+      }
+      if (preferences.EnableCommunityUpdates !== undefined) {
+        updates.push('EnableCommunityUpdates = @EnableCommunityUpdates');
+        updateRequest.input('EnableCommunityUpdates', sql.Bit, preferences.EnableCommunityUpdates);
       }
       if (preferences.EnableCourseUpdates !== undefined) {
         updates.push('EnableCourseUpdates = @EnableCourseUpdates');
         updateRequest.input('EnableCourseUpdates', sql.Bit, preferences.EnableCourseUpdates);
       }
-      if (preferences.EnableAssignmentReminders !== undefined) {
-        updates.push('EnableAssignmentReminders = @EnableAssignmentReminders');
-        updateRequest.input('EnableAssignmentReminders', sql.Bit, preferences.EnableAssignmentReminders);
+      if (preferences.EnableAssessmentUpdates !== undefined) {
+        updates.push('EnableAssessmentUpdates = @EnableAssessmentUpdates');
+        updateRequest.input('EnableAssessmentUpdates', sql.Bit, preferences.EnableAssessmentUpdates);
       }
       if (preferences.EnableEmailNotifications !== undefined) {
         updates.push('EnableEmailNotifications = @EnableEmailNotifications');
@@ -422,6 +645,37 @@ export class NotificationService {
         updates.push('EmailDigestFrequency = @EmailDigestFrequency');
         updateRequest.input('EmailDigestFrequency', sql.NVarChar(20), preferences.EmailDigestFrequency);
       }
+      
+      // Progress subcategories
+      const progressFields = ['EnableLessonCompletion', 'EmailLessonCompletion', 'EnableVideoCompletion', 'EmailVideoCompletion',
+        'EnableCourseMilestones', 'EmailCourseMilestones', 'EnableProgressSummary', 'EmailProgressSummary'];
+      // Course subcategories
+      const courseFields = ['EnableCourseEnrollment', 'EmailCourseEnrollment', 'EnableNewLessons', 'EmailNewLessons',
+        'EnableLiveSessions', 'EmailLiveSessions', 'EnableCoursePublished', 'EmailCoursePublished',
+        'EnableInstructorAnnouncements', 'EmailInstructorAnnouncements'];
+      // Assessment subcategories
+      const assessmentFields = ['EnableAssessmentSubmitted', 'EmailAssessmentSubmitted', 'EnableAssessmentGraded', 'EmailAssessmentGraded',
+        'EnableNewAssessment', 'EmailNewAssessment', 'EnableAssessmentDue', 'EmailAssessmentDue',
+        'EnableSubmissionToGrade', 'EmailSubmissionToGrade'];
+      // Community subcategories
+      const communityFields = ['EnableComments', 'EmailComments', 'EnableReplies', 'EmailReplies',
+        'EnableMentions', 'EmailMentions', 'EnableGroupInvites', 'EmailGroupInvites',
+        'EnableOfficeHours', 'EmailOfficeHours'];
+      // System subcategories
+      const systemFields = ['EnablePaymentConfirmation', 'EmailPaymentConfirmation', 'EnableRefundConfirmation', 'EmailRefundConfirmation',
+        'EnableCertificates', 'EmailCertificates', 'EnableSecurityAlerts', 'EmailSecurityAlerts',
+        'EnableProfileUpdates', 'EmailProfileUpdates'];
+      
+      const allSubcategoryFields = [...progressFields, ...courseFields, ...assessmentFields, ...communityFields, ...systemFields];
+      
+      for (const field of allSubcategoryFields) {
+        const value = (preferences as any)[field];
+        if (value !== undefined) {
+          updates.push(`${field} = @${field}`);
+          updateRequest.input(field, sql.Bit, value);
+        }
+      }
+      
       if (preferences.QuietHoursStart !== undefined) {
         updates.push('QuietHoursStart = @QuietHoursStart');
         // Handle null or convert time string properly
@@ -484,19 +738,44 @@ export class NotificationService {
           VALUES (@UserId)
         `);
 
-      // Return default preferences
-      return {
-        UserId: userId,
-        EnableProgressNotifications: true,
-        EnableRiskAlerts: true,
-        EnableAchievementNotifications: true,
-        EnableCourseUpdates: true,
-        EnableAssignmentReminders: true,
-        EnableEmailNotifications: true,
-        EmailDigestFrequency: 'daily',
-        QuietHoursStart: null,
-        QuietHoursEnd: null
-      };
+      // Re-fetch the preferences to get database default values
+      const result = await request
+        .input('UserId2', sql.UniqueIdentifier, userId)
+        .query(`
+          SELECT 
+            UserId, EnableInAppNotifications, EnableProgressUpdates, EnableSystemAlerts,
+            EnableCommunityUpdates, EnableCourseUpdates,
+            EnableAssessmentUpdates, EnableEmailNotifications,
+            EmailDigestFrequency, QuietHoursStart, QuietHoursEnd,
+            EnableLessonCompletion, EmailLessonCompletion,
+            EnableVideoCompletion, EmailVideoCompletion,
+            EnableCourseMilestones, EmailCourseMilestones,
+            EnableProgressSummary, EmailProgressSummary,
+            EnableCourseEnrollment, EmailCourseEnrollment,
+            EnableNewLessons, EmailNewLessons,
+            EnableLiveSessions, EmailLiveSessions,
+            EnableCoursePublished, EmailCoursePublished,
+            EnableInstructorAnnouncements, EmailInstructorAnnouncements,
+            EnableAssessmentSubmitted, EmailAssessmentSubmitted,
+            EnableAssessmentGraded, EmailAssessmentGraded,
+            EnableNewAssessment, EmailNewAssessment,
+            EnableAssessmentDue, EmailAssessmentDue,
+            EnableSubmissionToGrade, EmailSubmissionToGrade,
+            EnableComments, EmailComments,
+            EnableReplies, EmailReplies,
+            EnableMentions, EmailMentions,
+            EnableGroupInvites, EmailGroupInvites,
+            EnableOfficeHours, EmailOfficeHours,
+            EnablePaymentConfirmation, EmailPaymentConfirmation,
+            EnableRefundConfirmation, EmailRefundConfirmation,
+            EnableCertificates, EmailCertificates,
+            EnableSecurityAlerts, EmailSecurityAlerts,
+            EnableProfileUpdates, EmailProfileUpdates
+          FROM NotificationPreferences
+          WHERE UserId = @UserId2
+        `);
+
+      return result.recordset[0];
     } catch (error) {
       console.error('❌ Error creating default preferences:', error);
       throw error;
@@ -505,20 +784,97 @@ export class NotificationService {
 
   /**
    * Check if a notification type should be sent based on user preferences
+   * Supports hybrid control: Global → Category → Subcategory
+   * 
+   * @param params Notification check parameters
+   * @param preferences User notification preferences
+   * @returns true if notification should be sent, false otherwise
    */
-  private shouldSendNotification(type: string, preferences: NotificationPreferences): boolean {
+  private shouldSendNotification(
+    params: NotificationCheckParams,
+    preferences: NotificationPreferences
+  ): boolean {
+    const { category, subcategory, checkEmail = false } = params;
+
+    // 1. Check global toggle
+    if (checkEmail) {
+      if (!preferences.EnableEmailNotifications) {
+        console.log(`📵 Email disabled globally for user`);
+        return false;
+      }
+    } else {
+      if (!preferences.EnableInAppNotifications) {
+        console.log(`📵 In-app notifications disabled globally for user`);
+        return false;
+      }
+    }
+
+    // 2. Check category toggle
+    let categoryEnabled = false;
+    switch (category) {
+      case 'progress':
+        categoryEnabled = preferences.EnableProgressUpdates;
+        break;
+      case 'course':
+        categoryEnabled = preferences.EnableCourseUpdates;
+        break;
+      case 'assessment':
+        categoryEnabled = preferences.EnableAssessmentUpdates;
+        break;
+      case 'community':
+        categoryEnabled = preferences.EnableCommunityUpdates;
+        break;
+      case 'system':
+        categoryEnabled = preferences.EnableSystemAlerts;
+        break;
+    }
+
+    if (!categoryEnabled) {
+      console.log(`📵 Category '${category}' disabled for user`);
+      return false;
+    }
+
+    // 3. Check subcategory toggle (if specified)
+    if (subcategory) {
+      const subcategoryKey = (checkEmail ? `Email${subcategory}` : `Enable${subcategory}`) as keyof NotificationPreferences;
+      const subcategoryValue = preferences[subcategoryKey];
+
+      // NULL/undefined = inherit from category, 0 = OFF, 1 = ON
+      if (subcategoryValue === null || subcategoryValue === undefined) {
+        console.log(`✅ Subcategory '${subcategory}' inherits from category '${category}' (enabled)`);
+        return categoryEnabled; // Inherit from category
+      }
+
+      if (subcategoryValue === false) {
+        console.log(`📵 Subcategory '${subcategory}' explicitly disabled`);
+        return false;
+      }
+
+      console.log(`✅ Subcategory '${subcategory}' explicitly enabled`);
+      return true;
+    }
+
+    console.log(`✅ Category '${category}' enabled (no subcategory check)`);
+    return categoryEnabled;
+  }
+
+  /**
+   * LEGACY: Check if notification should be sent based on old 'type' parameter
+   * @deprecated Use shouldSendNotification() with NotificationCheckParams instead
+   */
+  private shouldSendNotificationLegacy(type: string, preferences: NotificationPreferences): boolean {
     switch (type) {
       case 'progress':
-        return preferences.EnableProgressNotifications;
+        return preferences.EnableProgressUpdates;
       case 'risk':
       case 'intervention':
-        return preferences.EnableRiskAlerts;
+        return preferences.EnableSystemAlerts;
       case 'achievement':
-        return preferences.EnableAchievementNotifications;
+        return preferences.EnableCommunityUpdates;
       case 'course':
         return preferences.EnableCourseUpdates;
       case 'assignment':
-        return preferences.EnableAssignmentReminders;
+        return preferences.EnableAssessmentUpdates;
       default:
         return true;
     }
@@ -713,15 +1069,65 @@ export class NotificationService {
       for (const queued of queuedNotifications) {
         const preferences: NotificationPreferences = {
           UserId: queued.UserId,
-          EnableProgressNotifications: true,
-          EnableRiskAlerts: true,
-          EnableAchievementNotifications: true,
+          EnableInAppNotifications: true,
+          EnableProgressUpdates: true,
+          EnableSystemAlerts: true,
+          EnableCommunityUpdates: true,
           EnableCourseUpdates: true,
-          EnableAssignmentReminders: true,
+          EnableAssessmentUpdates: true,
           EnableEmailNotifications: false,
           EmailDigestFrequency: 'none',
           QuietHoursStart: queued.QuietHoursStart,
-          QuietHoursEnd: queued.QuietHoursEnd
+          QuietHoursEnd: queued.QuietHoursEnd,
+          // Subcategory fields default to NULL (inherit)
+          EnableLessonCompletion: null,
+          EmailLessonCompletion: null,
+          EnableVideoCompletion: null,
+          EmailVideoCompletion: null,
+          EnableCourseMilestones: null,
+          EmailCourseMilestones: null,
+          EnableProgressSummary: null,
+          EmailProgressSummary: null,
+          EnableCourseEnrollment: null,
+          EmailCourseEnrollment: null,
+          EnableNewLessons: null,
+          EmailNewLessons: null,
+          EnableLiveSessions: null,
+          EmailLiveSessions: null,
+          EnableCoursePublished: null,
+          EmailCoursePublished: null,
+          EnableInstructorAnnouncements: null,
+          EmailInstructorAnnouncements: null,
+          EnableAssessmentSubmitted: null,
+          EmailAssessmentSubmitted: null,
+          EnableAssessmentGraded: null,
+          EmailAssessmentGraded: null,
+          EnableNewAssessment: null,
+          EmailNewAssessment: null,
+          EnableAssessmentDue: null,
+          EmailAssessmentDue: null,
+          EnableSubmissionToGrade: null,
+          EmailSubmissionToGrade: null,
+          EnableComments: null,
+          EmailComments: null,
+          EnableReplies: null,
+          EmailReplies: null,
+          EnableMentions: null,
+          EmailMentions: null,
+          EnableGroupInvites: null,
+          EmailGroupInvites: null,
+          EnableOfficeHours: null,
+          EmailOfficeHours: null,
+          EnablePaymentConfirmation: null,
+          EmailPaymentConfirmation: null,
+          EnableRefundConfirmation: null,
+          EmailRefundConfirmation: null,
+          EnableCertificates: null,
+          EmailCertificates: null,
+          EnableSecurityAlerts: null,
+          EmailSecurityAlerts: null,
+          EnableProfileUpdates: null,
+          EmailProfileUpdates: null
         };
 
         // Check if still in quiet hours
@@ -729,128 +1135,44 @@ export class NotificationService {
           continue; // Still in quiet hours, skip for now
         }
 
-        // Quiet hours ended, deliver notification
-        try {
-          // Get full user preferences to check email settings
-          const fullPreferences = await this.getUserPreferences(queued.UserId);
+        // Quiet hours ended, deliver notification using legacy createNotification
+        // Note: This will recursively call createNotification which handles email/socket
+        await this.createNotification({
+          userId: queued.UserId,
+          type: queued.Type,
+          priority: queued.Priority,
+          title: queued.Title,
+          message: queued.Message,
+          data: queued.Data ? JSON.parse(queued.Data) : undefined,
+          actionUrl: queued.ActionUrl || undefined,
+          actionText: queued.ActionText || undefined,
+          relatedEntityId: queued.RelatedEntityId || undefined,
+          relatedEntityType: queued.RelatedEntityType as any,
+          expiresAt: queued.ExpiresAt ? new Date(queued.ExpiresAt) : undefined
+        });
 
-          // Create the actual notification (recursive call without preferences check)
-          const notificationId = await this.createNotificationDirect({
-            userId: queued.UserId,
-            type: queued.Type,
-            priority: queued.Priority,
-            title: queued.Title,
-            message: queued.Message,
-            data: queued.Data ? JSON.parse(queued.Data) : undefined,
-            actionUrl: queued.ActionUrl || undefined,
-            actionText: queued.ActionText || undefined,
-            relatedEntityId: queued.RelatedEntityId || undefined,
-            relatedEntityType: queued.RelatedEntityType as any,
-            expiresAt: queued.ExpiresAt ? new Date(queued.ExpiresAt) : undefined
-          });
-
-          // Send email if enabled and frequency is 'realtime'
-          if (fullPreferences.EnableEmailNotifications && fullPreferences.EmailDigestFrequency === 'realtime') {
-            console.log(`📧 Sending email for queued notification to user ${queued.UserId}`);
-            this.sendEmailNotification(queued.UserId, {
-              id: notificationId,
-              type: queued.Type,
-              priority: queued.Priority,
-              title: queued.Title,
-              message: queued.Message,
-              actionUrl: queued.ActionUrl || undefined,
-              actionText: queued.ActionText || undefined
-            }).catch(error => {
-              console.error(`❌ Failed to send email for queued notification: ${error.message}`);
-            });
-          }
-
-          // Mark as delivered
-          await this.markQueuedAsDelivered(queued.Id);
-          processedCount++;
-          
-          console.log(`✅ Delivered queued notification: ${queued.Id} → ${notificationId} to user ${queued.UserId}`);
-        } catch (error) {
-          console.error(`❌ Failed to deliver queued notification ${queued.Id}:`, error);
-        }
+        // Mark as delivered
+        const updateRequest = await this.dbService.getRequest();
+        await updateRequest
+          .input('Id', sql.UniqueIdentifier, queued.Id)
+          .query(`
+            UPDATE NotificationQueue
+            SET Status = 'delivered', DeliveredAt = GETUTCDATE(), UpdatedAt = GETUTCDATE()
+            WHERE Id = @Id
+          `);
+        
+        processedCount++;
+        console.log(`✅ Delivered queued notification: ${queued.Id} to user ${queued.UserId}`);
       }
 
       if (processedCount > 0) {
         console.log(`🎯 Processed ${processedCount} queued notifications`);
       }
       return processedCount;
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Error processing queued notifications:', error);
       throw error;
     }
-  }
-
-  /**
-   * Create notification directly without preferences check (for internal use)
-   */
-  private async createNotificationDirect(params: CreateNotificationParams): Promise<string> {
-    try {
-      const request = await this.dbService.getRequest();
-      const result = await request
-        .input('UserId', sql.UniqueIdentifier, params.userId)
-        .input('Type', sql.NVarChar(50), params.type)
-        .input('Priority', sql.NVarChar(20), params.priority)
-        .input('Title', sql.NVarChar(200), params.title)
-        .input('Message', sql.NVarChar(sql.MAX), params.message)
-        .input('Data', sql.NVarChar(sql.MAX), params.data ? JSON.stringify(params.data) : null)
-        .input('ActionUrl', sql.NVarChar(500), params.actionUrl || null)
-        .input('ActionText', sql.NVarChar(100), params.actionText || null)
-        .input('RelatedEntityId', sql.UniqueIdentifier, params.relatedEntityId || null)
-        .input('RelatedEntityType', sql.NVarChar(50), params.relatedEntityType || null)
-        .input('ExpiresAt', sql.DateTime2, params.expiresAt || null)
-        .query(`
-          INSERT INTO Notifications (
-            UserId, Type, Priority, Title, Message, Data,
-            ActionUrl, ActionText, RelatedEntityId, RelatedEntityType, ExpiresAt
-          )
-          OUTPUT INSERTED.Id
-          VALUES (
-            @UserId, @Type, @Priority, @Title, @Message, @Data,
-            @ActionUrl, @ActionText, @RelatedEntityId, @RelatedEntityType, @ExpiresAt
-          )
-        `);
-
-      const notificationId = result.recordset[0].Id;
-      
-      // Emit real-time notification via Socket.io
-      if (this.io) {
-        this.io.to(`user-${params.userId}`).emit('notification-created', {
-          id: notificationId,
-          type: params.type,
-          priority: params.priority,
-          title: params.title,
-          message: params.message,
-          data: params.data,
-          actionUrl: params.actionUrl,
-          actionText: params.actionText
-        });
-        console.log(`📡 Real-time notification sent to user-${params.userId}`);
-      }
-      
-      return notificationId;
-    } catch (error) {
-      console.error('❌ Error creating notification directly:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Mark queued notification as delivered
-   */
-  private async markQueuedAsDelivered(queueId: string): Promise<void> {
-    const request = await this.dbService.getRequest();
-    await request
-      .input('Id', sql.UniqueIdentifier, queueId)
-      .query(`
-        UPDATE NotificationQueue
-        SET Status = 'delivered', DeliveredAt = GETUTCDATE(), UpdatedAt = GETUTCDATE()
-        WHERE Id = @Id
-      `);
   }
 
   /**

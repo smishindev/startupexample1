@@ -51,6 +51,7 @@ import PaymentSuccessPage from './pages/Payment/PaymentSuccessPage';
 import TransactionsPage from './pages/Profile/TransactionsPage';
 import ProfilePage from './pages/Profile/ProfilePage';
 import SettingsPage from './pages/Settings/SettingsPage';
+import NotificationSettingsPage from './pages/Settings/NotificationSettingsPage';
 
 import { StudentProgressPage } from './pages/Progress/StudentProgressPage';
 import Chat from './pages/Chat/Chat';
@@ -193,6 +194,15 @@ function App() {
           element={
             <ProtectedRoute>
               <SettingsPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/settings/notifications"
+          element={
+            <ProtectedRoute>
+              <NotificationSettingsPage />
             </ProtectedRoute>
           }
         />

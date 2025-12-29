@@ -302,4 +302,105 @@ router.post('/test', authenticateToken, async (req: AuthRequest, res: Response) 
   }
 });
 
+/**
+ * POST /api/notifications/test-all-types
+ * Test all 6 notification types with email (Development only)
+ */
+router.post('/test-all-types', authenticateToken, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const notificationService = getNotificationService(req);
+    const results = [];
+
+    // Define all 6 notification types with realistic examples
+    const testNotifications = [
+      {
+        type: 'progress' as const,
+        priority: 'normal' as const,
+        title: 'Lesson Completed!',
+        message: 'Congratulations! You have completed "Introduction to TypeScript" with a score of 95%. Keep up the great work!',
+        actionUrl: '/courses/typescript-101/lessons/intro',
+        actionText: 'Continue Learning'
+      },
+      {
+        type: 'risk' as const,
+        priority: 'urgent' as const,
+        title: 'At-Risk Alert',
+        message: 'Your performance in "Advanced JavaScript" has declined. You haven\'t completed any lessons in the past 7 days. Your instructor recommends reviewing the material.',
+        actionUrl: '/courses/javascript-advanced',
+        actionText: 'View Course'
+      },
+      {
+        type: 'achievement' as const,
+        priority: 'high' as const,
+        title: '🏆 Achievement Unlocked!',
+        message: 'You\'ve earned the "Week Streak Master" badge! You\'ve completed lessons for 7 consecutive days. Amazing dedication!',
+        actionUrl: '/profile',
+        actionText: 'View Achievements'
+      },
+      {
+        type: 'intervention' as const,
+        priority: 'high' as const,
+        title: 'Instructor Feedback',
+        message: 'Your instructor has reviewed your latest assignment and provided detailed feedback. Great work on the project structure!',
+        actionUrl: '/courses/web-dev/assignments/final-project',
+        actionText: 'View Feedback'
+      },
+      {
+        type: 'assignment' as const,
+        priority: 'normal' as const,
+        title: 'Assignment Due Soon',
+        message: 'Reminder: "Build a REST API" assignment is due in 2 days (Dec 30, 2025). You\'ve completed 60% of the requirements.',
+        actionUrl: '/courses/backend-dev/assignments/rest-api',
+        actionText: 'Continue Assignment'
+      },
+      {
+        type: 'course' as const,
+        priority: 'low' as const,
+        title: 'New Content Available',
+        message: 'New lessons have been added to "React Mastery": Advanced Hooks, Performance Optimization, and Testing Best Practices.',
+        actionUrl: '/courses/react-mastery',
+        actionText: 'Explore New Content'
+      }
+    ];
+
+    // Send each notification
+    for (const notification of testNotifications) {
+      try {
+        const notificationId = await notificationService.createNotification({
+          userId,
+          ...notification
+        });
+        
+        results.push({
+          type: notification.type,
+          success: true,
+          notificationId,
+          message: notificationId ? 'Sent' : 'Queued or blocked'
+        });
+      } catch (error: any) {
+        results.push({
+          type: notification.type,
+          success: false,
+          error: error.message
+        });
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `Sent ${testNotifications.length} test notifications of all types`,
+      results,
+      info: 'Check your email (if realtime notifications enabled) and notification bell'
+    });
+  } catch (error) {
+    console.error('Error sending test notifications:', error);
+    res.status(500).json({ error: 'Failed to send test notifications' });
+  }
+});
+
 export default router;

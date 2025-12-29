@@ -1,9 +1,12 @@
 /**
  * Email Service - Nodemailer + Gmail Integration
  * Alternative to SendGrid - Uses Gmail SMTP
+ * 
+ * Enhanced with email tracking and analytics
  */
 
 import nodemailer from 'nodemailer';
+import EmailAnalyticsService from './EmailAnalyticsService';
 
 interface EmailOptions {
   to: string;
@@ -44,6 +47,22 @@ interface RefundConfirmationData {
   processDate: string;
 }
 
+interface DigestEmailData {
+  email: string;
+  firstName: string;
+  frequency: 'daily' | 'weekly';
+  notifications: Array<{
+    Id: string;
+    Type: string;
+    Priority: string;
+    Title: string;
+    Message: string;
+    ActionUrl: string | null;
+    ActionText: string | null;
+    CreatedAt: string;
+  }>;
+}
+
 class EmailService {
   private transporter: any = null;
   private isConfigured: boolean = false;
@@ -78,6 +97,36 @@ class EmailService {
       });
     } else {
       console.warn('⚠️ Gmail credentials not configured. Emails will be logged to console.');
+    }
+  }
+
+  /**
+   * Wrap URL with click tracking
+   */
+  private wrapUrlWithTracking(url: string, trackingToken: string): string {
+    const serverUrl = process.env.SERVER_URL || 'http://localhost:3001';
+    return `${serverUrl}/api/email/track/${trackingToken}/click?url=${encodeURIComponent(url)}`;
+  }
+
+  /**
+   * Generate tracking pixel HTML
+   */
+  private getTrackingPixel(trackingToken: string): string {
+    const serverUrl = process.env.SERVER_URL || 'http://localhost:3001';
+    return `<img src="${serverUrl}/api/email/track/${trackingToken}/pixel.gif" width="1" height="1" alt="" style="display:block" />`;
+  }
+
+  /**
+   * Generate unsubscribe link HTML
+   */
+  private async getUnsubscribeLink(userId: string, emailType?: 'notification' | 'digest'): Promise<string> {
+    try {
+      const token = await EmailAnalyticsService.generateUnsubscribeToken(userId, emailType || null);
+      const serverUrl = process.env.SERVER_URL || 'http://localhost:3001';
+      return `<a href="${serverUrl}/api/email/unsubscribe/${token}" style="color: #999; text-decoration: underline;">Unsubscribe</a>`;
+    } catch (error) {
+      console.error('Error generating unsubscribe link:', error);
+      return '<span style="color: #999;">Unsubscribe</span>';
     }
   }
 
@@ -418,6 +467,372 @@ class EmailService {
     return this.sendEmail({
       to: email,
       subject: '🔒 Password Reset Code - Mishin Learn',
+      html
+    });
+  }
+
+  /**
+   * Send notification email based on notification type
+   * Enhanced with tracking and unsubscribe functionality
+   */
+  async sendNotificationEmail(data: {
+    email: string;
+    firstName: string;
+    userId: string;
+    notificationId?: string;
+    notification: {
+      title: string;
+      message: string;
+      type: 'progress' | 'risk' | 'achievement' | 'intervention' | 'assignment' | 'course';
+      priority: 'low' | 'normal' | 'high' | 'urgent';
+      actionUrl?: string;
+      actionText?: string;
+    }
+  }): Promise<boolean> {
+    const { email, firstName, userId, notificationId, notification } = data;
+    
+    // Define type-specific styling
+    const typeConfig: Record<string, { icon: string; color: string; gradient: string; subject: string }> = {
+      progress: {
+        icon: '📈',
+        color: '#43e97b',
+        gradient: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+        subject: 'Learning Progress Update'
+      },
+      risk: {
+        icon: '⚠️',
+        color: '#f5576c',
+        gradient: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+        subject: 'Attention Required'
+      },
+      achievement: {
+        icon: '🏆',
+        color: '#ffd700',
+        gradient: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+        subject: 'New Achievement Unlocked!'
+      },
+      intervention: {
+        icon: '💬',
+        color: '#667eea',
+        gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        subject: 'Instructor Message'
+      },
+      assignment: {
+        icon: '📝',
+        color: '#ff9800',
+        gradient: 'linear-gradient(135deg, #ff9800 0%, #f44336 100%)',
+        subject: 'Assignment Reminder'
+      },
+      course: {
+        icon: '📚',
+        color: '#667eea',
+        gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        subject: 'Course Update'
+      }
+    };
+
+    const config = typeConfig[notification.type];
+    
+    // Generate tracking token
+    let trackingToken = '';
+    try {
+      trackingToken = await EmailAnalyticsService.recordEmailSent(
+        userId,
+        'notification',
+        notificationId
+      );
+    } catch (error) {
+      console.error('Error generating tracking token:', error);
+    }
+
+    // Generate unsubscribe link
+    const unsubscribeLink = await this.getUnsubscribeLink(userId, 'notification');
+    
+    // Wrap action URL with tracking
+    const trackedActionUrl = notification.actionUrl && trackingToken
+      ? this.wrapUrlWithTracking(notification.actionUrl, trackingToken)
+      : notification.actionUrl;
+    
+    const priorityBadge = notification.priority === 'urgent' || notification.priority === 'high' 
+      ? `<div style="background: #f5576c; color: white; padding: 5px 15px; border-radius: 20px; display: inline-block; font-size: 12px; font-weight: bold; margin-bottom: 15px;">
+           ${notification.priority.toUpperCase()} PRIORITY
+         </div>` 
+      : '';
+
+    const actionButton = trackedActionUrl && notification.actionText
+      ? `<div style="text-align: center; margin: 30px 0;">
+           <a href="${trackedActionUrl}" style="display: inline-block; padding: 15px 40px; background: ${config.color}; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
+             ${notification.actionText}
+           </a>
+         </div>`
+      : '';
+
+    const trackingPixel = trackingToken ? this.getTrackingPixel(trackingToken) : '';
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: ${config.gradient}; color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+          .header h1 { margin: 0; font-size: 28px; }
+          .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+          .notification-box { background: white; padding: 20px; border-left: 4px solid ${config.color}; border-radius: 5px; margin: 20px 0; }
+          .message { font-size: 15px; line-height: 1.8; color: #555; }
+          .footer { text-align: center; margin-top: 20px; padding: 20px; color: #666; font-size: 12px; border-top: 1px solid #e0e0e0; }
+          .footer a { color: ${config.color}; text-decoration: none; }
+          .button { display: inline-block; padding: 15px 40px; background: ${config.color}; color: white !important; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px; }
+          .button:hover { opacity: 0.9; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>${config.icon} ${config.subject}</h1>
+          </div>
+          <div class="content">
+            <p>Hi ${firstName},</p>
+            ${priorityBadge}
+            
+            <div class="notification-box">
+              <h2 style="margin-top: 0; color: ${config.color};">${notification.title}</h2>
+              <div class="message">
+                ${notification.message}
+              </div>
+            </div>
+            
+            ${actionButton}
+            
+            <p style="margin-top: 30px; font-size: 14px; color: #666;">
+              You received this email because you have email notifications enabled in your preferences. 
+              You can manage your notification settings in your <a href="http://localhost:5173/settings" style="color: ${config.color};">profile settings</a>.
+            </p>
+            
+            <p>Best regards,<br>The Mishin Learn Team</p>
+          </div>
+          <div class="footer">
+            <p>© ${new Date().getFullYear()} Mishin Learn Platform. All rights reserved.</p>
+            <p style="margin-top: 10px;">
+              <a href="http://localhost:5173/settings">Manage Preferences</a> | 
+              <a href="http://localhost:5173/notifications">View All Notifications</a> |
+              ${unsubscribeLink}
+            </p>
+          </div>
+        </div>
+        ${trackingPixel}
+      </body>
+      </html>
+    `;
+
+    const text = `
+${config.icon} ${config.subject}
+
+Hi ${firstName},
+
+${notification.title}
+
+${notification.message}
+
+${notification.actionUrl ? `${notification.actionText || 'View Details'}: ${notification.actionUrl}` : ''}
+
+---
+You received this email because you have email notifications enabled in your preferences.
+Manage your notification settings: http://localhost:5173/settings
+
+Best regards,
+The Mishin Learn Team
+
+© ${new Date().getFullYear()} Mishin Learn Platform. All rights reserved.
+    `;
+
+    return this.sendEmail({
+      to: email,
+      subject: `${config.icon} ${config.subject} - Mishin Learn`,
+      text,
+      html
+    });
+  }
+
+  /**
+   * Send email digest (daily or weekly summary)
+   * Enhanced with tracking and unsubscribe functionality
+   */
+  async sendDigestEmail(data: DigestEmailData & { userId: string; digestId?: string }): Promise<boolean> {
+    const { email, firstName, userId, digestId, frequency, notifications } = data;
+    
+    // Generate tracking token
+    let trackingToken = '';
+    try {
+      trackingToken = await EmailAnalyticsService.recordEmailSent(
+        userId,
+        'digest',
+        undefined,
+        digestId
+      );
+    } catch (error) {
+      console.error('Error generating tracking token:', error);
+    }
+
+    // Generate unsubscribe link
+    const unsubscribeLink = await this.getUnsubscribeLink(userId, 'digest');
+    
+    const frequencyText = frequency === 'daily' ? 'Daily' : 'Weekly';
+    const notificationCount = notifications.length;
+    
+    // Group notifications by type
+    const grouped = notifications.reduce((acc, notif) => {
+      if (!acc[notif.Type]) {
+        acc[notif.Type] = [];
+      }
+      acc[notif.Type].push(notif);
+      return acc;
+    }, {} as Record<string, typeof notifications>);
+
+    // Type icons and colors
+    const typeConfig: Record<string, { icon: string; color: string; label: string }> = {
+      progress: { icon: '📈', color: '#43e97b', label: 'Progress Updates' },
+      risk: { icon: '⚠️', color: '#f5576c', label: 'Risk Alerts' },
+      achievement: { icon: '🏆', color: '#ffd700', label: 'Achievements' },
+      intervention: { icon: '💬', color: '#667eea', label: 'Instructor Messages' },
+      assignment: { icon: '📝', color: '#ff9800', label: 'Assignment Reminders' },
+      course: { icon: '📚', color: '#667eea', label: 'Course Updates' }
+    };
+
+    // Build summary section
+    const summary = Object.keys(grouped).map(type => {
+      const config = typeConfig[type] || { icon: '📌', color: '#667eea', label: type };
+      return `<div style="padding: 10px; margin: 5px 0; border-left: 4px solid ${config.color}; background: white; border-radius: 5px;">
+        <strong>${config.icon} ${config.label}:</strong> ${grouped[type].length}
+      </div>`;
+    }).join('');
+
+    // Build notification list
+    const notificationList = notifications.slice(0, 20).map(notif => {
+      const config = typeConfig[notif.Type] || { icon: '📌', color: '#667eea', label: notif.Type };
+      const priorityBadge = notif.Priority === 'urgent' || notif.Priority === 'high'
+        ? `<span style="background: #f5576c; color: white; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: bold; margin-left: 10px;">${notif.Priority.toUpperCase()}</span>`
+        : '';
+      
+      // Wrap action URL with tracking
+      let actionLink = '';
+      if (notif.ActionUrl) {
+        const trackedUrl = trackingToken 
+          ? this.wrapUrlWithTracking(notif.ActionUrl, trackingToken)
+          : notif.ActionUrl;
+        actionLink = `<a href="${trackedUrl}" style="color: ${config.color}; text-decoration: none; font-weight: bold;">${notif.ActionText || 'View'} →</a>`;
+      }
+
+      return `
+      <div style="background: white; padding: 15px; margin: 10px 0; border-left: 4px solid ${config.color}; border-radius: 5px;">
+        <div style="font-size: 16px; font-weight: bold; color: #333; margin-bottom: 5px;">
+          ${config.icon} ${notif.Title} ${priorityBadge}
+        </div>
+        <div style="color: #666; font-size: 14px; line-height: 1.6; margin-bottom: 10px;">
+          ${notif.Message.substring(0, 200)}${notif.Message.length > 200 ? '...' : ''}
+        </div>
+        ${actionLink ? `<div style="margin-top: 10px;">${actionLink}</div>` : ''}
+      </div>`;
+    }).join('');
+
+    const showingCount = Math.min(notifications.length, 20);
+    const remaining = notifications.length - showingCount;
+    const remainingMessage = remaining > 0
+      ? `<p style="text-align: center; color: #666; margin-top: 20px;">+ ${remaining} more notification${remaining > 1 ? 's' : ''} in your <a href="http://localhost:5173/notifications" style="color: #667eea;">notification center</a></p>`
+      : '';
+
+    const trackingPixel = trackingToken ? this.getTrackingPixel(trackingToken) : '';
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background: #f5f5f5; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+          .header h1 { margin: 0; font-size: 28px; }
+          .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+          .footer { text-align: center; margin-top: 20px; padding: 20px; color: #666; font-size: 12px; border-top: 1px solid #e0e0e0; }
+          .footer a { color: #667eea; text-decoration: none; }
+          .button { display: inline-block; padding: 12px 30px; background: #667eea; color: white !important; text-decoration: none; border-radius: 8px; font-weight: bold; margin: 20px 0; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>📬 Your ${frequencyText} Digest</h1>
+            <p style="margin: 10px 0 0 0; font-size: 16px;">You have ${notificationCount} notification${notificationCount > 1 ? 's' : ''}</p>
+          </div>
+          <div class="content">
+            <p>Hi ${firstName},</p>
+            <p>Here's your ${frequency} summary of what happened in your learning journey:</p>
+            
+            <div style="margin: 20px 0;">
+              <h3 style="color: #667eea; margin-bottom: 15px;">📊 Summary</h3>
+              ${summary}
+            </div>
+            
+            <div style="margin: 30px 0;">
+              <h3 style="color: #667eea; margin-bottom: 15px;">📋 Recent Notifications</h3>
+              ${notificationList}
+              ${remainingMessage}
+            </div>
+            
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="http://localhost:5173/notifications" class="button">View All Notifications</a>
+            </div>
+            
+            <p style="margin-top: 30px; font-size: 14px; color: #666;">
+              You're receiving this ${frequency} digest because you have email notifications set to "${frequency}" in your preferences. 
+              You can <a href="http://localhost:5173/settings" style="color: #667eea;">change your email preferences</a> anytime.
+            </p>
+            
+            <p>Best regards,<br>The Mishin Learn Team</p>
+          </div>
+          <div class="footer">
+            <p>© ${new Date().getFullYear()} Mishin Learn Platform. All rights reserved.</p>
+            <p style="margin-top: 10px;">
+              <a href="http://localhost:5173/settings">Manage Preferences</a> | 
+              <a href="http://localhost:5173/notifications">View All Notifications</a> |
+              ${unsubscribeLink}
+            </p>
+          </div>
+        </div>
+        ${trackingPixel}
+      </body>
+      </html>
+    `;
+
+    const text = `
+${frequencyText} Digest - Mishin Learn
+
+Hi ${firstName},
+
+You have ${notificationCount} notification${notificationCount > 1 ? 's' : ''} in your ${frequency} digest.
+
+${notifications.slice(0, 20).map((n, i) => `
+${i + 1}. ${n.Title}
+   ${n.Message.substring(0, 150)}${n.Message.length > 150 ? '...' : ''}
+   ${n.ActionUrl || ''}
+`).join('\n')}
+
+${remaining > 0 ? `\n+ ${remaining} more notifications\n` : ''}
+
+View all notifications: http://localhost:5173/notifications
+Manage your preferences: http://localhost:5173/settings
+
+Best regards,
+The Mishin Learn Team
+
+© ${new Date().getFullYear()} Mishin Learn Platform. All rights reserved.
+    `;
+
+    return this.sendEmail({
+      to: email,
+      subject: `📬 Your ${frequencyText} Digest - Mishin Learn`,
+      text,
       html
     });
   }

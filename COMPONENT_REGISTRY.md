@@ -1,6 +1,6 @@
 # Mishin Learn Platform - Component Registry
 
-**Last Updated**: December 27, 2025  
+**Last Updated**: December 29, 2025  
 **Purpose**: Quick reference for all major components, their dependencies, and relationships
 
 ---
@@ -1535,35 +1535,55 @@ Check current state
 
 #### NotificationBell
 **Path**: `client/src/components/Notifications/NotificationBell.tsx`  
-**Purpose**: Real-time notification dropdown with unread and queued count badges
+**Purpose**: Real-time notification bell icon in header with unread count badge
 
 **Services Used**:
-- `notificationApi.getNotifications(false)` - Fetch unread notifications
-- `notificationApi.getUnreadCount()` - Get unread count
-- `notificationApi.getQueuedCount()` - Get queued count (quiet hours)
-- `notificationApi.markAsRead(id)` - Mark notification as read
-- `notificationApi.markAllAsRead()` - Mark all as read
-- `notificationApi.deleteNotification(id)` - Delete notification
-- `socketService` - Real-time updates
+- `notificationsApi.getNotifications()` - Fetch initial notifications
+- `socketService.connect()` - WebSocket connection
+- `socketService.onNotification()` - Real-time notification events
+- `socketService.disconnect()` - Cleanup on unmount
+
+**Socket Events Listened** (Dec 29, 2025 - Real-time Updates Working):
+- `notification-created` - New notification arrives, increment unread count instantly
+- `notification-read` - Notification marked read, update UI
+- `notification-read-all` - All marked read, clear unread count
+- `notification-deleted` - Notification deleted, remove from list
+
+**State Management**:
+- `unreadCount: number` - Number of unread notifications
+- `queuedCount: number` - Number of notifications in queue (quiet hours)
+- `anchorEl: HTMLElement | null` - Popover anchor
+- `notifications: Notification[]` - Recent notifications (limit 5 in popover)
+
+**Components Used**:
+- `<IconButton />` - Bell icon button
+- `<Badge />` - Unread count badge
+- `<Popover />` - Notification dropdown
+- `<NotificationIcon />` - Bell icon
+- `<Card />, <CardActionArea />` - Notification items
+
+**Critical Implementation Detail** (Dec 29, 2025):
+- Socket.io integration REQUIRES NotificationService on backend to have `io` instance
+- Backend pattern: `const io = req.app.get('io'); const notificationService = new NotificationService(io);`
+- Emits to user rooms: `io.to(\`user-${userId}\`).emit('notification-created', {...})`
+- Frontend auto-joins room on connection: `socket.join(\`user-${userId}\`)`
+- Real-time updates working for all notification types
 
 **Features**:
-- Unread count badge (red, primary position)
-- Queued count badge (blue, secondary position for quiet hours)
-- Dropdown with last 10 unread notifications
-- "View All Notifications" link to /notifications page
-- "Mark all read" button
-- Individual delete buttons
-- Text wrapping for long notification messages
-- Real-time cross-tab synchronization
-
-**Socket Events**:
-- Listens: `notification-created`, `notification-read`, `notifications-read-all`, `notification-deleted`
-- Updates dropdown and counts in real-time
+- Red badge with unread count
+- Blue badge with queued count (quiet hours)
+- Click bell → Open popover with 5 recent notifications
+- Click notification → Navigate to actionUrl
+- "View All" button → Navigate to /notifications
+- "Settings" button → Navigate to /settings
+- Empty state when no notifications
+- Date formatting: formatDistanceToNow (e.g., "2 hours ago")
 
 **Used By**:
-- HeaderV4 (always visible in navigation)
+- Header component (always visible in app bar)
+- All authenticated pages
 
-**Status**: ✅ Enhanced (Dec 22, 2025)
+**Status**: ✅ Real-time updates working (Dec 29, 2025)
 
 ---
 

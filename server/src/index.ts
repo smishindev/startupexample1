@@ -44,6 +44,7 @@ import { videoProgressRoutes } from './routes/videoProgress';
 import { videoAnalyticsRoutes } from './routes/videoAnalytics';
 import dashboardRoutes from './routes/dashboard';
 import settingsRoutes from './routes/settings';
+import emailRoutes from './routes/email';
 const studentProgressRoutes = require('./routes/student-progress');
 import { DatabaseService } from './services/DatabaseService';
 import { setupSocketHandlers } from './sockets';
@@ -221,6 +222,7 @@ app.use('/api/video-progress', videoProgressRoutes);
 app.use('/api/video-analytics', videoAnalyticsRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/email', emailRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {
@@ -260,6 +262,48 @@ cron.schedule('*/5 * * * *', async () => {
 });
 
 console.log('✅ Notification queue processor scheduled (every 5 minutes)');
+
+// Schedule daily digest sending at 8 AM every day
+cron.schedule('0 8 * * *', async () => {
+  try {
+    console.log('⏰ [CRON] Running daily digest sending (8 AM)...');
+    const EmailDigestService = (await import('./services/EmailDigestService')).default;
+    
+    const sent = await EmailDigestService.sendDailyDigests();
+    
+    if (sent > 0) {
+      console.log(`✅ [CRON] Daily digests sent: ${sent} users`);
+    }
+    
+    // Clean up old digests
+    const cleaned = await EmailDigestService.cleanupOldDigests();
+    if (cleaned > 0) {
+      console.log(`🧹 [CRON] Cleaned up ${cleaned} old digest entries`);
+    }
+  } catch (error) {
+    console.error('❌ [CRON] Error in daily digest sending:', error);
+  }
+});
+
+console.log('✅ Daily digest scheduler active (8 AM daily)');
+
+// Schedule weekly digest sending at 8 AM every Monday
+cron.schedule('0 8 * * 1', async () => {
+  try {
+    console.log('⏰ [CRON] Running weekly digest sending (Monday 8 AM)...');
+    const EmailDigestService = (await import('./services/EmailDigestService')).default;
+    
+    const sent = await EmailDigestService.sendWeeklyDigests();
+    
+    if (sent > 0) {
+      console.log(`✅ [CRON] Weekly digests sent: ${sent} users`);
+    }
+  } catch (error) {
+    console.error('❌ [CRON] Error in weekly digest sending:', error);
+  }
+});
+
+console.log('✅ Weekly digest scheduler active (Monday 8 AM)');
 
 // Graceful shutdown
 process.on('SIGTERM', async () => {

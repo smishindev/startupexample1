@@ -677,6 +677,61 @@ CREATE NONCLUSTERED INDEX IX_NotificationQueue_UserId ON dbo.NotificationQueue(U
 CREATE NONCLUSTERED INDEX IX_NotificationQueue_Status ON dbo.NotificationQueue(Status) WHERE Status='queued';
 CREATE NONCLUSTERED INDEX IX_NotificationQueue_QueuedAt ON dbo.NotificationQueue(QueuedAt);
 
+-- EmailDigests Table (for daily/weekly digest delivery)
+CREATE TABLE dbo.EmailDigests (
+    Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    UserId UNIQUEIDENTIFIER NOT NULL,
+    NotificationId UNIQUEIDENTIFIER NOT NULL,
+    Frequency NVARCHAR(20) NOT NULL CHECK (Frequency IN ('daily', 'weekly')),
+    ScheduledFor DATETIME2 NOT NULL,
+    Sent BIT NOT NULL DEFAULT 0,
+    SentAt DATETIME2 NULL,
+    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    FOREIGN KEY (UserId) REFERENCES dbo.Users(Id) ON DELETE NO ACTION,
+    FOREIGN KEY (NotificationId) REFERENCES dbo.Notifications(Id) ON DELETE NO ACTION
+);
+
+-- EmailDigests Indexes
+CREATE NONCLUSTERED INDEX IX_EmailDigests_UserId ON dbo.EmailDigests(UserId);
+CREATE NONCLUSTERED INDEX IX_EmailDigests_Frequency_Sent ON dbo.EmailDigests(Frequency, Sent) INCLUDE (ScheduledFor, UserId);
+CREATE NONCLUSTERED INDEX IX_EmailDigests_ScheduledFor ON dbo.EmailDigests(ScheduledFor) WHERE Sent = 0;
+
+-- Email Tracking and Analytics Tables
+CREATE TABLE dbo.EmailTrackingEvents (
+    Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    UserId UNIQUEIDENTIFIER NOT NULL,
+    EmailType NVARCHAR(50) NOT NULL,
+    EventType NVARCHAR(20) NOT NULL CHECK (EventType IN ('sent', 'opened', 'clicked', 'bounced', 'failed')),
+    NotificationId UNIQUEIDENTIFIER NULL,
+    DigestId UNIQUEIDENTIFIER NULL,
+    TrackingToken NVARCHAR(255) NOT NULL UNIQUE,
+    ClickedUrl NVARCHAR(2000) NULL,
+    BounceReason NVARCHAR(1000) NULL,
+    UserAgent NVARCHAR(500) NULL,
+    IpAddress NVARCHAR(50) NULL,
+    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    FOREIGN KEY (UserId) REFERENCES dbo.Users(Id) ON DELETE NO ACTION
+);
+
+CREATE NONCLUSTERED INDEX IX_EmailTrackingEvents_UserId ON dbo.EmailTrackingEvents(UserId);
+CREATE NONCLUSTERED INDEX IX_EmailTrackingEvents_TrackingToken ON dbo.EmailTrackingEvents(TrackingToken);
+CREATE NONCLUSTERED INDEX IX_EmailTrackingEvents_EventType_CreatedAt ON dbo.EmailTrackingEvents(EventType, CreatedAt DESC);
+CREATE NONCLUSTERED INDEX IX_EmailTrackingEvents_NotificationId ON dbo.EmailTrackingEvents(NotificationId) WHERE NotificationId IS NOT NULL;
+
+CREATE TABLE dbo.EmailUnsubscribeTokens (
+    Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    UserId UNIQUEIDENTIFIER NOT NULL,
+    Token NVARCHAR(255) NOT NULL UNIQUE,
+    EmailType NVARCHAR(50) NULL,
+    ExpiresAt DATETIME2 NULL,
+    UsedAt DATETIME2 NULL,
+    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    FOREIGN KEY (UserId) REFERENCES dbo.Users(Id) ON DELETE NO ACTION
+);
+
+CREATE NONCLUSTERED INDEX IX_EmailUnsubscribeTokens_Token ON dbo.EmailUnsubscribeTokens(Token);
+CREATE NONCLUSTERED INDEX IX_EmailUnsubscribeTokens_UserId ON dbo.EmailUnsubscribeTokens(UserId);
+
 -- ========================================
 -- PAYMENT SYSTEM TABLES
 -- ========================================

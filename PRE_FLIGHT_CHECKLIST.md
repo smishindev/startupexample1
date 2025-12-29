@@ -28,6 +28,19 @@
 - [ ] Identified all pages that use this component
 
 **Recent Additions to Check:**
+- [x] **Notification Triggers** - 2/31 ACTIVE (Dec 29, 2025) ✅
+  - Lesson completion: Student progress + instructor milestones
+  - Live session created: All enrolled students notified
+  - Socket.io real-time updates: Notification bell updates instantly
+  - Implementation pattern: Get io from req.app.get('io'), create NotificationService(io)
+  - 29 triggers remaining: Video completion, enrollment, assessments, etc.
+  - Reference: NOTIFICATION_TRIGGERS_IMPLEMENTATION_PLAN.md
+- [x] Email Notification System - PHASES 1-3 COMPLETE (Dec 28, 2025) ✅
+  - Realtime email delivery with Gmail SMTP
+  - Daily digest (8 AM UTC) and weekly digest (Monday 8 AM UTC)
+  - Email tracking (opens, clicks) and analytics
+  - One-click unsubscribe with token management
+  - Beautiful HTML templates with type-specific styling
 - [x] Email Verification System - PRODUCTION READY (Dec 27, 2025) ✅
   - EmailVerificationPage: Standalone /verify-email page with 6-digit code input
   - EmailVerificationBanner: Dashboard warning banner for unverified users

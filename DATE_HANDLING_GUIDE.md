@@ -155,6 +155,122 @@ if (user.EmailVerificationExpiry && new Date(user.EmailVerificationExpiry) < new
 
 ---
 
+### Email Digest System (Added Dec 28, 2025)
+
+#### EmailDigests Table Fields
+
+| Field | Type | Value | Usage |
+|-------|------|-------|-------|
+| `ScheduledFor` | DATETIME2 | UTC | Next digest delivery time |
+| `SentAt` | DATETIME2 | UTC | Actual delivery timestamp |
+| `CreatedAt` | DATETIME2 | UTC | Digest entry creation |
+
+**Database Schema** (add_email_digests.sql):
+```sql
+CREATE TABLE dbo.EmailDigests (
+    Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    UserId UNIQUEIDENTIFIER NOT NULL,
+    NotificationId UNIQUEIDENTIFIER NOT NULL,
+    Frequency NVARCHAR(20) NOT NULL CHECK (Frequency IN ('daily', 'weekly')),
+    ScheduledFor DATETIME2 NOT NULL,
+    Sent BIT NOT NULL DEFAULT 0,
+    SentAt DATETIME2 NULL,
+    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    -- Foreign keys...
+);
+```
+
+**Scheduling Logic** (EmailDigestService.ts):
+```typescript
+// ✅ CORRECT - Uses UTC methods for timezone-independent scheduling
+private calculateScheduledTime(frequency: 'daily' | 'weekly'): Date {
+  const now = new Date();
+  const scheduled = new Date(now);
+
+  if (frequency === 'daily') {
+    // Schedule for next 8 AM UTC
+    scheduled.setUTCHours(8, 0, 0, 0);
+    
+    // If it's already past 8 AM UTC today, schedule for tomorrow
+    if (now.getUTCHours() >= 8) {
+      scheduled.setUTCDate(scheduled.getUTCDate() + 1);
+    }
+  } else {
+    // Schedule for next Monday 8 AM UTC
+    scheduled.setUTCHours(8, 0, 0, 0);
+    
+    const dayOfWeek = scheduled.getUTCDay();
+    const daysUntilMonday = dayOfWeek === 0 ? 1 : (8 - dayOfWeek) % 7;
+    
+    scheduled.setUTCDate(scheduled.getUTCDate() + daysUntilMonday);
+  }
+
+  return scheduled;
+}
+```
+
+**Query Logic** (EmailDigestService.ts):
+```typescript
+// Fetch digests ready to send
+const result = await db.query(`
+  SELECT DISTINCT ED.UserId
+  FROM EmailDigests ED
+  WHERE ED.Frequency = @Frequency
+    AND ED.Sent = 0
+    AND ED.ScheduledFor <= GETUTCDATE()  -- Compare with UTC time
+`);
+
+// Mark as sent
+await db.query(`
+  UPDATE EmailDigests
+  SET Sent = 1, SentAt = GETUTCDATE()    -- Store UTC timestamp
+  WHERE UserId = @UserId
+    AND Frequency = @Frequency
+    AND Sent = 0
+    AND ScheduledFor <= GETUTCDATE()
+`);
+```
+
+**Cleanup Logic** (EmailDigestService.ts):
+```typescript
+// Delete digests older than 30 days
+const result = await db.query(`
+  DELETE FROM EmailDigests
+  WHERE Sent = 1
+    AND SentAt < DATEADD(DAY, -30, GETUTCDATE())  -- 30 days ago in UTC
+`);
+```
+
+**Key Points:**
+- **Schedule Calculation**: Uses UTC methods (`setUTCHours`, `getUTCHours`, `setUTCDate`, `getUTCDay`)
+- **Database Queries**: All use `GETUTCDATE()` for consistent UTC comparison
+- **Cron Jobs**: Run at 8 AM UTC daily/weekly (server's cron scheduler)
+- **Timezone Independence**: All users get digests at same UTC time (8 AM UTC = various local times)
+- **Cleanup**: 30-day retention using UTC date arithmetic
+
+**Why This Works:**
+- `setUTCHours()` / `getUTCHours()` work with UTC time regardless of server's local timezone
+- Database stores UTC timestamps (`GETUTCDATE()`)
+- Cron jobs run in server timezone but calculations are UTC-based
+- Users in different timezones receive digests at their local equivalent of 8 AM UTC
+
+**Example Scenario:**
+```typescript
+// User queues notification at 3:00 PM PST (11:00 PM UTC)
+// ScheduledFor calculated: Next 8:00 AM UTC (12:00 AM PST)
+// Database: ScheduledFor = "2025-12-29 08:00:00.000" (UTC)
+
+// Cron job runs at 8:05 AM UTC (12:05 AM PST)
+// Query: WHERE ScheduledFor <= "2025-12-29 08:05:00.000" ✅ (found)
+// Email sent with SentAt = "2025-12-29 08:05:00.000" (UTC)
+
+// User in Tokyo (UTC+9) queues at same UTC time
+// ScheduledFor = "2025-12-29 08:00:00.000" (5:00 PM JST)
+// Both users receive digest at exact same UTC moment ✅
+```
+
+---
+
 ### Transaction Table Timestamps
 
 | Field | Type | Value | Usage |
@@ -324,6 +440,9 @@ const diff = now.getTime() - past.getTime();
 - [x] No mix of `Date.now()` and `new Date().getTime()`
 - [x] 30-day refund window calculated consistently (frontend + backend)
 - [x] Idempotency window (30 minutes) uses UTC comparison
+- [x] Email verification expiry uses UTC (24-hour window)
+- [x] Email digest scheduling uses UTC methods (`setUTCHours`, `getUTCDate`, etc.)
+- [x] Email digest queries use `GETUTCDATE()` for comparisons
 - [x] TypeScript errors: 0
 - [x] Both frontend and backend use identical calculation logic
 

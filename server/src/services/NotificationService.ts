@@ -1,6 +1,8 @@
 import sql from 'mssql';
 import { DatabaseService } from './DatabaseService';
 import { Server } from 'socket.io';
+import EmailService from './EmailService';
+import EmailDigestService from './EmailDigestService';
 
 export interface CreateNotificationParams {
   userId: string;
@@ -125,6 +127,35 @@ export class NotificationService {
           actionText: params.actionText
         });
         console.log(`📡 Real-time notification sent to user-${params.userId}`);
+      }
+
+      // Handle email notifications based on frequency preference
+      if (preferences.EnableEmailNotifications) {
+        if (preferences.EmailDigestFrequency === 'realtime') {
+          // Send email immediately
+          console.log(`📧 Sending realtime email notification to user ${params.userId}`);
+          this.sendEmailNotification(params.userId, {
+            id: notificationId,
+            type: params.type,
+            priority: params.priority,
+            title: params.title,
+            message: params.message,
+            actionUrl: params.actionUrl,
+            actionText: params.actionText
+          }).catch(error => {
+            console.error(`❌ Failed to send email notification: ${error.message}`);
+          });
+        } else if (preferences.EmailDigestFrequency === 'daily' || preferences.EmailDigestFrequency === 'weekly') {
+          // Add to digest queue
+          console.log(`📬 Adding notification to ${preferences.EmailDigestFrequency} digest for user ${params.userId}`);
+          EmailDigestService.addToDigest(
+            params.userId,
+            notificationId,
+            preferences.EmailDigestFrequency as 'daily' | 'weekly'
+          ).catch(error => {
+            console.error(`❌ Failed to add to digest: ${error.message}`);
+          });
+        }
       }
       
       return notificationId;
@@ -526,6 +557,74 @@ export class NotificationService {
   }
 
   /**
+   * Send email notification to user
+   */
+  private async sendEmailNotification(
+    userId: string,
+    notification: {
+      id: string;
+      type: 'progress' | 'risk' | 'achievement' | 'intervention' | 'assignment' | 'course';
+      priority: 'low' | 'normal' | 'high' | 'urgent';
+      title: string;
+      message: string;
+      actionUrl?: string;
+      actionText?: string;
+    }
+  ): Promise<void> {
+    try {
+      // Fetch user details (email and name)
+      const request = await this.dbService.getRequest();
+      const userResult = await request
+        .input('UserId', sql.UniqueIdentifier, userId)
+        .query(`
+          SELECT Email, FirstName 
+          FROM Users 
+          WHERE Id = @UserId
+        `);
+
+      if (userResult.recordset.length === 0) {
+        console.error(`❌ User not found for email notification: ${userId}`);
+        return;
+      }
+
+      const user = userResult.recordset[0];
+      
+      // Convert actionUrl to absolute URL if it's relative
+      let absoluteActionUrl = notification.actionUrl;
+      if (absoluteActionUrl && !absoluteActionUrl.startsWith('http')) {
+        // Use frontend URL from environment or default to localhost:5173
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+        absoluteActionUrl = `${frontendUrl}${absoluteActionUrl}`;
+      }
+
+      // Send email via EmailService
+      const emailSent = await EmailService.sendNotificationEmail({
+        email: user.Email,
+        firstName: user.FirstName,
+        userId: userId,
+        notificationId: notification.id,
+        notification: {
+          title: notification.title,
+          message: notification.message,
+          type: notification.type,
+          priority: notification.priority,
+          actionUrl: absoluteActionUrl,
+          actionText: notification.actionText
+        }
+      });
+
+      if (emailSent) {
+        console.log(`✅ Email notification sent to ${user.Email} (${user.FirstName})`);
+      } else {
+        console.error(`❌ Failed to send email notification to ${user.Email}`);
+      }
+    } catch (error) {
+      console.error('❌ Error in sendEmailNotification:', error);
+      // Don't throw - email failures shouldn't break notification creation
+    }
+  }
+
+  /**
    * Clean up expired notifications
    */
   async cleanupExpiredNotifications(): Promise<number> {
@@ -632,6 +731,9 @@ export class NotificationService {
 
         // Quiet hours ended, deliver notification
         try {
+          // Get full user preferences to check email settings
+          const fullPreferences = await this.getUserPreferences(queued.UserId);
+
           // Create the actual notification (recursive call without preferences check)
           const notificationId = await this.createNotificationDirect({
             userId: queued.UserId,
@@ -646,6 +748,22 @@ export class NotificationService {
             relatedEntityType: queued.RelatedEntityType as any,
             expiresAt: queued.ExpiresAt ? new Date(queued.ExpiresAt) : undefined
           });
+
+          // Send email if enabled and frequency is 'realtime'
+          if (fullPreferences.EnableEmailNotifications && fullPreferences.EmailDigestFrequency === 'realtime') {
+            console.log(`📧 Sending email for queued notification to user ${queued.UserId}`);
+            this.sendEmailNotification(queued.UserId, {
+              id: notificationId,
+              type: queued.Type,
+              priority: queued.Priority,
+              title: queued.Title,
+              message: queued.Message,
+              actionUrl: queued.ActionUrl || undefined,
+              actionText: queued.ActionText || undefined
+            }).catch(error => {
+              console.error(`❌ Failed to send email for queued notification: ${error.message}`);
+            });
+          }
 
           // Mark as delivered
           await this.markQueuedAsDelivered(queued.Id);

@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import bcrypt from 'bcryptjs';
 import { authenticateToken, AuthRequest } from '../middleware/auth';
 import { DatabaseService } from '../services/DatabaseService';
+import { NotificationService } from '../services/NotificationService';
 
 const router = Router();
 const db = DatabaseService.getInstance();
@@ -256,6 +257,65 @@ router.post('/lessons/:lessonId/complete', authenticateToken, async (req: AuthRe
 
     // Update overall course progress
     await updateCourseProgress(userId!, courseId);
+
+    // Get course title and progress for notifications
+    const courseInfo = await db.query(`
+      SELECT c.Title as CourseTitle, c.InstructorId, cp.OverallProgress
+      FROM dbo.Courses c
+      LEFT JOIN dbo.CourseProgress cp ON c.Id = cp.CourseId AND cp.UserId = @userId
+      WHERE c.Id = @courseId
+    `, { courseId, userId });
+
+    const courseTitle = courseInfo[0]?.CourseTitle || 'your course';
+    const instructorId = courseInfo[0]?.InstructorId;
+    const courseProgress = courseInfo[0]?.OverallProgress || 0;
+
+    // Get io instance and create notification service
+    const io = req.app.get('io');
+    const notificationService = new NotificationService(io);
+
+    // Notify student of lesson completion
+    try {
+      await notificationService.createNotification({
+        userId: userId!,
+        type: 'progress',
+        priority: 'normal',
+        title: 'Lesson Completed!',
+        message: `Great work! You completed "${lesson[0].Title}" in ${courseTitle}. Course progress: ${Math.floor(courseProgress)}%`,
+        actionUrl: `/courses/${courseId}`,
+        actionText: 'Continue Learning'
+      });
+      console.log(`✅ Lesson completion notification sent to user ${userId}`);
+    } catch (notifError) {
+      console.error('⚠️ Failed to send lesson completion notification:', notifError);
+    }
+
+    // Notify instructor at milestones (25%, 50%, 75%, 100%)
+    const milestone = Math.floor(courseProgress);
+    if (instructorId && [25, 50, 75, 100].includes(milestone)) {
+      try {
+        const studentInfo = await db.query(`
+          SELECT FirstName, LastName FROM dbo.Users WHERE Id = @userId
+        `, { userId });
+        
+        const studentName = studentInfo[0] 
+          ? `${studentInfo[0].FirstName} ${studentInfo[0].LastName}`.trim()
+          : 'A student';
+
+        await notificationService.createNotification({
+          userId: instructorId,
+          type: 'progress',
+          priority: 'normal',
+          title: 'Student Progress Milestone',
+          message: `${studentName} reached ${milestone}% completion in "${courseTitle}"`,
+          actionUrl: `/instructor/students`,
+          actionText: 'View Students'
+        });
+        console.log(`✅ Milestone notification sent to instructor ${instructorId} (${milestone}%)`);
+      } catch (notifError) {
+        console.error('⚠️ Failed to send milestone notification:', notifError);
+      }
+    }
 
     res.json({ message: 'Lesson marked as completed', lessonId, timeSpent });
 

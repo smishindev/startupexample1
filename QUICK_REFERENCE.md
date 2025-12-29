@@ -98,6 +98,21 @@ Role: Student
 - Within 5 minutes: Cron job delivers notifications
 - Check bell icon: Notifications should appear
 - Test type filtering: Disable "Progress Updates", complete lesson, verify no notification
+
+**Email Notification & Trigger Testing (Dec 28-29, 2025):**
+- **Active Triggers** (2/31):
+  1. Lesson Completion → Student + Instructor emails
+  2. Live Session Created → All enrolled students notified
+- Navigate to Profile → Preferences tab
+- Test delivery options:
+  - **Realtime**: Complete lesson → Receive email immediately
+  - **Daily Digest**: Change to daily → Check email at 8 AM UTC next day
+  - **Weekly Digest**: Change to weekly → Check email Monday 8 AM UTC
+- Test notification bell: Real-time updates via Socket.io (should update instantly)
+- Test email tracking: Click links in email → Check analytics
+- Test unsubscribe: Click unsubscribe link → Re-enable in preferences
+- Check Gmail: s.mishin.dev@gmail.com
+- Database verification: `SELECT * FROM Notifications WHERE UserId=X ORDER BY CreatedAt DESC LIMIT 5`
 - Server logs: Look for "⏰ [CRON]" messages every 5 minutes
 
 **Payment Testing (Dec 14-17, 2025):**

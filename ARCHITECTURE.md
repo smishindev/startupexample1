@@ -67,6 +67,44 @@ All endpoints require JWT authentication (authenticateToken middleware)
 - Registration dialog with verification prompt
 - authStore.updateEmailVerified() for state management
 
+### Email Notifications (added Dec 28-29, 2025)
+```
+GET    /api/notifications/preferences  - Get notification preferences
+PATCH  /api/notifications/preferences  - Update notification preferences
+GET    /api/email-analytics/stats      - Get email tracking statistics
+POST   /api/email-unsubscribe/verify   - Verify unsubscribe token
+POST   /api/email-unsubscribe/confirm  - Confirm unsubscribe
+POST   /api/email-unsubscribe/resubscribe - Resubscribe to emails
+```
+
+**Email System (Phases 1-3 Complete):**
+- **Realtime Delivery**: Sends emails immediately based on notification triggers
+- **Daily Digest**: Cron job at 8 AM UTC aggregates previous day's notifications
+- **Weekly Digest**: Cron job Monday 8 AM UTC aggregates previous week's notifications
+- **Email Tracking**: Opens (1x1 pixel), Clicks (wrapped URLs), Analytics service
+- **Unsubscribe**: One-click token-based unsubscribe with database tracking
+- **Templates**: Beautiful HTML emails with type-specific styling (progress, course, system, social, assessment)
+
+**Notification Triggers (2/31 Active - Dec 29, 2025):**
+- ✅ **Lesson Completion**: Student progress update + instructor milestones (25%, 50%, 75%, 100%)
+- ✅ **Live Session Created**: All enrolled students notified with session details
+- 🔜 **29 Remaining**: Video completion, course enrollment, assessments, new content, etc.
+
+**Implementation Pattern:**
+```typescript
+// Backend route (e.g., progress.ts)
+const io = req.app.get('io'); // Get Socket.io instance
+const notificationService = new NotificationService(io);
+await notificationService.createNotification({
+  userId, type, priority, title, message, actionUrl, actionText
+});
+```
+
+**Real-time Updates:**
+- Socket.io emits to user-specific rooms: `io.to(\`user-${userId}\`).emit('notification-created', {...})`
+- Frontend NotificationBell listens and updates count instantly
+- Cross-tab synchronization via socket events
+
 ### Payment & Billing (added Dec 11, updated Dec 14, 2025)
 ```
 POST   /api/payments/create-payment-intent       - Create Stripe payment intent

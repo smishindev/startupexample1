@@ -280,20 +280,43 @@ const NotificationSettingsPage: React.FC = () => {
       setLoading(true);
       const prefs = await notificationPreferencesApi.default.getPreferences();
       
-      // Normalize all null/undefined values to false for controlled inputs
+      // Normalize data but PRESERVE NULL for subcategories (inheritance)
       const normalizedPrefs: any = { ...prefs };
+      
+      // List of category and global fields that should never be NULL (convert to false if needed)
+      const requiredBooleanFields = [
+        'EnableInAppNotifications',
+        'EnableEmailNotifications',
+        'EnableProgressUpdates',
+        'EnableCourseUpdates',
+        'EnableAssessmentUpdates',
+        'EnableCommunityUpdates',
+        'EnableSystemAlerts'
+      ];
+      
       Object.keys(normalizedPrefs).forEach(key => {
-        // Skip UserId/userId and string fields (handle both PascalCase and camelCase)
+        // Skip non-boolean fields
         if (key === 'UserId' || key === 'userId' || key === 'EmailDigestFrequency' || key === 'QuietHoursStart' || key === 'QuietHoursEnd') {
           return;
         }
         
         const value = normalizedPrefs[key];
-        if (typeof value === 'boolean' || value === null || value === undefined || typeof value === 'number') {
+        
+        // Only normalize required fields (global/category) - subcategories keep NULL
+        if (requiredBooleanFields.includes(key)) {
           if (value === null || value === undefined) {
             normalizedPrefs[key] = false;
           } else if (typeof value === 'number') {
             normalizedPrefs[key] = Boolean(value);
+          }
+        } else {
+          // Subcategories: preserve NULL, convert numbers to boolean, keep false
+          if (typeof value === 'number') {
+            normalizedPrefs[key] = value === 1 ? true : value === 0 ? false : null;
+          }
+          // Keep null/undefined as null for inheritance
+          if (value === undefined) {
+            normalizedPrefs[key] = null;
           }
         }
       });
@@ -331,20 +354,50 @@ const NotificationSettingsPage: React.FC = () => {
   };
 
   const handleSubcategoryToggle = (field: keyof NotificationPreferences) => (event: React.ChangeEvent<HTMLInputElement>) => {
-    setPreferences(prev => prev ? { ...prev, [field]: event.target.checked } : null);
+    setPreferences(prev => {
+      if (!prev) return null;
+      
+      // Shift+Click: Set to Inherit (null), Normal click: Toggle between true/false
+      let newValue: boolean | null;
+      
+      if (event.nativeEvent && (event.nativeEvent as MouseEvent).shiftKey) {
+        // Shift+Click: Set to Inherit (null)
+        newValue = null;
+      } else {
+        // Normal click: Toggle between true/false
+        newValue = event.target.checked;
+      }
+      
+      return { ...prev, [field]: newValue };
+    });
   };
 
   const handleDigestFrequencyChange = (event: any) => {
     setPreferences(prev => prev ? { ...prev, EmailDigestFrequency: event.target.value } : null);
   };
 
-  const getToggleValue = (key: keyof NotificationPreferences): boolean => {
+  const getToggleValue = (key: keyof NotificationPreferences, categoryKey?: keyof NotificationPreferences): boolean => {
     if (!preferences) return false;
     const value = preferences[key];
-    // Handle both boolean and number types (SQL BIT returns 0/1)
-    if (value === null || value === undefined) return false;
-    // Type-safe conversion to boolean
-    return Boolean(value);
+    
+    // If value is explicitly set (true or false), use it
+    if (value === true || value === false) {
+      return Boolean(value);
+    }
+    
+    // If value is NULL and categoryKey provided, inherit from category
+    if (value === null && categoryKey && preferences[categoryKey] !== undefined) {
+      return Boolean(preferences[categoryKey]);
+    }
+    
+    // Default to false
+    return false;
+  };
+  
+  const getToggleState = (key: keyof NotificationPreferences): boolean | null => {
+    if (!preferences) return false;
+    const value = preferences[key];
+    return value === null ? null : Boolean(value);
   };
 
   const getDigestFrequency = (): string => {
@@ -443,8 +496,10 @@ const NotificationSettingsPage: React.FC = () => {
                     <MenuItem value="realtime">Realtime (immediate)</MenuItem>
                     <MenuItem value="daily">Daily Digest (8 AM)</MenuItem>
                     <MenuItem value="weekly">Weekly Digest (Monday 8 AM)</MenuItem>
-                    <MenuItem value="none">None (in-app only)</MenuItem>
                   </Select>
+                  <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
+                    Toggle Email Notifications OFF above for in-app only
+                  </Typography>
                 </FormControl>
               </Box>
             )}
@@ -492,24 +547,69 @@ const NotificationSettingsPage: React.FC = () => {
             </AccordionSummary>
             <AccordionDetails>
               <Stack spacing={2}>
-                {PROGRESS_SUBCATEGORIES.map(sub => (
-                  <Box key={sub.name} sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
-                    <Box sx={{ flex: 1 }}>
-                      <Typography variant="body2" sx={{ fontWeight: 'medium' }}>{sub.label}</Typography>
-                      <Typography variant="caption" color="text.secondary">{sub.description}</Typography>
+                <Alert severity="info" sx={{ mb: 1 }}>
+                  <Typography variant="caption">
+                    <strong>Tip:</strong> Shift+Click a switch to set it to "Inherit" (follows category setting)
+                  </Typography>
+                </Alert>
+                {PROGRESS_SUBCATEGORIES.map(sub => {
+                  const inAppState = getToggleState(sub.inAppKey);
+                  const emailState = getToggleState(sub.emailKey);
+                  const categoryEnabled = preferences.EnableProgressUpdates;
+                  
+                  return (
+                    <Box key={sub.name} sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
+                      <Box sx={{ flex: 1 }}>
+                        <Typography variant="body2" sx={{ fontWeight: 'medium' }}>{sub.label}</Typography>
+                        <Typography variant="caption" color="text.secondary">{sub.description}</Typography>
+                      </Box>
+                      <Box sx={{ minWidth: 100 }}>
+                        <FormControlLabel
+                          control={
+                            <Switch 
+                              checked={getToggleValue(sub.inAppKey, 'EnableProgressUpdates')} 
+                              onChange={handleSubcategoryToggle(sub.inAppKey)} 
+                              size="small"
+                              sx={inAppState === null ? { opacity: 0.6 } : {}}
+                            />
+                          }
+                          label={
+                            <Box>
+                              <Typography variant="caption">In-App</Typography>
+                              {inAppState === null && (
+                                <Typography variant="caption" sx={{ display: 'block', fontSize: '0.65rem', color: 'text.secondary', fontStyle: 'italic' }}>
+                                  (Inherit: {categoryEnabled ? 'ON' : 'OFF'})
+                                </Typography>
+                              )}
+                            </Box>
+                          }
+                        />
+                      </Box>
+                      <Box sx={{ minWidth: 100 }}>
+                        <FormControlLabel
+                          control={
+                            <Switch 
+                              checked={getToggleValue(sub.emailKey, 'EnableProgressUpdates')} 
+                              onChange={handleSubcategoryToggle(sub.emailKey)} 
+                              size="small"
+                              sx={emailState === null ? { opacity: 0.6 } : {}}
+                            />
+                          }
+                          label={
+                            <Box>
+                              <Typography variant="caption">Email</Typography>
+                              {emailState === null && (
+                                <Typography variant="caption" sx={{ display: 'block', fontSize: '0.65rem', color: 'text.secondary', fontStyle: 'italic' }}>
+                                  (Inherit: {categoryEnabled ? 'ON' : 'OFF'})
+                                </Typography>
+                              )}
+                            </Box>
+                          }
+                        />
+                      </Box>
                     </Box>
-                    <FormControlLabel
-                      control={<Switch checked={getToggleValue(sub.inAppKey)} onChange={handleSubcategoryToggle(sub.inAppKey)} size="small" />}
-                      label="In-App"
-                      sx={{ minWidth: 100 }}
-                    />
-                    <FormControlLabel
-                      control={<Switch checked={getToggleValue(sub.emailKey)} onChange={handleSubcategoryToggle(sub.emailKey)} size="small" />}
-                      label="Email"
-                      sx={{ minWidth: 100 }}
-                    />
-                  </Box>
-                ))}
+                  );
+                })}
               </Stack>
             </AccordionDetails>
           </Accordion>
@@ -538,24 +638,65 @@ const NotificationSettingsPage: React.FC = () => {
             </AccordionSummary>
             <AccordionDetails>
               <Stack spacing={2}>
-                {COURSE_SUBCATEGORIES.map(sub => (
-                  <Box key={sub.name} sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
-                    <Box sx={{ flex: 1 }}>
-                      <Typography variant="body2" sx={{ fontWeight: 'medium' }}>{sub.label}</Typography>
-                      <Typography variant="caption" color="text.secondary">{sub.description}</Typography>
+                <Alert severity="info" sx={{ mb: 1 }}>
+                  <Typography variant="caption">
+                    <strong>Tip:</strong> Shift+Click any switch to set it to "Inherit" from the category setting.
+                  </Typography>
+                </Alert>
+                {COURSE_SUBCATEGORIES.map(sub => {
+                  const inAppState = getToggleState(sub.inAppKey);
+                  const emailState = getToggleState(sub.emailKey);
+                  const categoryEnabled = preferences.EnableCourseUpdates;
+                  
+                  return (
+                    <Box key={sub.name} sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
+                      <Box sx={{ flex: 1 }}>
+                        <Typography variant="body2" sx={{ fontWeight: 'medium' }}>{sub.label}</Typography>
+                        <Typography variant="caption" color="text.secondary">{sub.description}</Typography>
+                      </Box>
+                      <FormControlLabel
+                        control={
+                          <Switch 
+                            checked={getToggleValue(sub.inAppKey, 'EnableCourseUpdates')} 
+                            onChange={handleSubcategoryToggle(sub.inAppKey)} 
+                            size="small"
+                            sx={inAppState === null ? { opacity: 0.6 } : {}}
+                          />}
+                        label={
+                          <Box>
+                            <Typography variant="caption">In-App</Typography>
+                            {inAppState === null && (
+                              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontSize: '0.65rem' }}>
+                                (Inherit: {categoryEnabled ? 'ON' : 'OFF'})
+                              </Typography>
+                            )}
+                          </Box>
+                        }
+                        sx={{ minWidth: 100 }}
+                      />
+                      <FormControlLabel
+                        control={
+                          <Switch 
+                            checked={getToggleValue(sub.emailKey, 'EnableCourseUpdates')} 
+                            onChange={handleSubcategoryToggle(sub.emailKey)} 
+                            size="small"
+                            sx={emailState === null ? { opacity: 0.6 } : {}}
+                          />}
+                        label={
+                          <Box>
+                            <Typography variant="caption">Email</Typography>
+                            {emailState === null && (
+                              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontSize: '0.65rem' }}>
+                                (Inherit: {categoryEnabled ? 'ON' : 'OFF'})
+                              </Typography>
+                            )}
+                          </Box>
+                        }
+                        sx={{ minWidth: 100 }}
+                      />
                     </Box>
-                    <FormControlLabel
-                      control={<Switch checked={getToggleValue(sub.inAppKey)} onChange={handleSubcategoryToggle(sub.inAppKey)} size="small" />}
-                      label="In-App"
-                      sx={{ minWidth: 100 }}
-                    />
-                    <FormControlLabel
-                      control={<Switch checked={getToggleValue(sub.emailKey)} onChange={handleSubcategoryToggle(sub.emailKey)} size="small" />}
-                      label="Email"
-                      sx={{ minWidth: 100 }}
-                    />
-                  </Box>
-                ))}
+                  );
+                })}
               </Stack>
             </AccordionDetails>
           </Accordion>
@@ -584,24 +725,65 @@ const NotificationSettingsPage: React.FC = () => {
             </AccordionSummary>
             <AccordionDetails>
               <Stack spacing={2}>
-                {ASSESSMENT_SUBCATEGORIES.map(sub => (
-                  <Box key={sub.name} sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
-                    <Box sx={{ flex: 1 }}>
-                      <Typography variant="body2" sx={{ fontWeight: 'medium' }}>{sub.label}</Typography>
-                      <Typography variant="caption" color="text.secondary">{sub.description}</Typography>
+                <Alert severity="info" sx={{ mb: 1 }}>
+                  <Typography variant="caption">
+                    <strong>Tip:</strong> Shift+Click any switch to set it to "Inherit" from the category setting.
+                  </Typography>
+                </Alert>
+                {ASSESSMENT_SUBCATEGORIES.map(sub => {
+                  const inAppState = getToggleState(sub.inAppKey);
+                  const emailState = getToggleState(sub.emailKey);
+                  const categoryEnabled = preferences.EnableAssessmentUpdates;
+                  
+                  return (
+                    <Box key={sub.name} sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
+                      <Box sx={{ flex: 1 }}>
+                        <Typography variant="body2" sx={{ fontWeight: 'medium' }}>{sub.label}</Typography>
+                        <Typography variant="caption" color="text.secondary">{sub.description}</Typography>
+                      </Box>
+                      <FormControlLabel
+                        control={
+                          <Switch 
+                            checked={getToggleValue(sub.inAppKey, 'EnableAssessmentUpdates')} 
+                            onChange={handleSubcategoryToggle(sub.inAppKey)} 
+                            size="small"
+                            sx={inAppState === null ? { opacity: 0.6 } : {}}
+                          />}
+                        label={
+                          <Box>
+                            <Typography variant="caption">In-App</Typography>
+                            {inAppState === null && (
+                              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontSize: '0.65rem' }}>
+                                (Inherit: {categoryEnabled ? 'ON' : 'OFF'})
+                              </Typography>
+                            )}
+                          </Box>
+                        }
+                        sx={{ minWidth: 100 }}
+                      />
+                      <FormControlLabel
+                        control={
+                          <Switch 
+                            checked={getToggleValue(sub.emailKey, 'EnableAssessmentUpdates')} 
+                            onChange={handleSubcategoryToggle(sub.emailKey)} 
+                            size="small"
+                            sx={emailState === null ? { opacity: 0.6 } : {}}
+                          />}
+                        label={
+                          <Box>
+                            <Typography variant="caption">Email</Typography>
+                            {emailState === null && (
+                              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontSize: '0.65rem' }}>
+                                (Inherit: {categoryEnabled ? 'ON' : 'OFF'})
+                              </Typography>
+                            )}
+                          </Box>
+                        }
+                        sx={{ minWidth: 100 }}
+                      />
                     </Box>
-                    <FormControlLabel
-                      control={<Switch checked={getToggleValue(sub.inAppKey)} onChange={handleSubcategoryToggle(sub.inAppKey)} size="small" />}
-                      label="In-App"
-                      sx={{ minWidth: 100 }}
-                    />
-                    <FormControlLabel
-                      control={<Switch checked={getToggleValue(sub.emailKey)} onChange={handleSubcategoryToggle(sub.emailKey)} size="small" />}
-                      label="Email"
-                      sx={{ minWidth: 100 }}
-                    />
-                  </Box>
-                ))}
+                  );
+                })}
               </Stack>
             </AccordionDetails>
           </Accordion>
@@ -630,24 +812,65 @@ const NotificationSettingsPage: React.FC = () => {
             </AccordionSummary>
             <AccordionDetails>
               <Stack spacing={2}>
-                {COMMUNITY_SUBCATEGORIES.map(sub => (
-                  <Box key={sub.name} sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
-                    <Box sx={{ flex: 1 }}>
-                      <Typography variant="body2" sx={{ fontWeight: 'medium' }}>{sub.label}</Typography>
-                      <Typography variant="caption" color="text.secondary">{sub.description}</Typography>
+                <Alert severity="info" sx={{ mb: 1 }}>
+                  <Typography variant="caption">
+                    <strong>Tip:</strong> Shift+Click any switch to set it to "Inherit" from the category setting.
+                  </Typography>
+                </Alert>
+                {COMMUNITY_SUBCATEGORIES.map(sub => {
+                  const inAppState = getToggleState(sub.inAppKey);
+                  const emailState = getToggleState(sub.emailKey);
+                  const categoryEnabled = preferences.EnableCommunityUpdates;
+                  
+                  return (
+                    <Box key={sub.name} sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
+                      <Box sx={{ flex: 1 }}>
+                        <Typography variant="body2" sx={{ fontWeight: 'medium' }}>{sub.label}</Typography>
+                        <Typography variant="caption" color="text.secondary">{sub.description}</Typography>
+                      </Box>
+                      <FormControlLabel
+                        control={
+                          <Switch 
+                            checked={getToggleValue(sub.inAppKey, 'EnableCommunityUpdates')} 
+                            onChange={handleSubcategoryToggle(sub.inAppKey)} 
+                            size="small"
+                            sx={inAppState === null ? { opacity: 0.6 } : {}}
+                          />}
+                        label={
+                          <Box>
+                            <Typography variant="caption">In-App</Typography>
+                            {inAppState === null && (
+                              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontSize: '0.65rem' }}>
+                                (Inherit: {categoryEnabled ? 'ON' : 'OFF'})
+                              </Typography>
+                            )}
+                          </Box>
+                        }
+                        sx={{ minWidth: 100 }}
+                      />
+                      <FormControlLabel
+                        control={
+                          <Switch 
+                            checked={getToggleValue(sub.emailKey, 'EnableCommunityUpdates')} 
+                            onChange={handleSubcategoryToggle(sub.emailKey)} 
+                            size="small"
+                            sx={emailState === null ? { opacity: 0.6 } : {}}
+                          />}
+                        label={
+                          <Box>
+                            <Typography variant="caption">Email</Typography>
+                            {emailState === null && (
+                              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontSize: '0.65rem' }}>
+                                (Inherit: {categoryEnabled ? 'ON' : 'OFF'})
+                              </Typography>
+                            )}
+                          </Box>
+                        }
+                        sx={{ minWidth: 100 }}
+                      />
                     </Box>
-                    <FormControlLabel
-                      control={<Switch checked={getToggleValue(sub.inAppKey)} onChange={handleSubcategoryToggle(sub.inAppKey)} size="small" />}
-                      label="In-App"
-                      sx={{ minWidth: 100 }}
-                    />
-                    <FormControlLabel
-                      control={<Switch checked={getToggleValue(sub.emailKey)} onChange={handleSubcategoryToggle(sub.emailKey)} size="small" />}
-                      label="Email"
-                      sx={{ minWidth: 100 }}
-                    />
-                  </Box>
-                ))}
+                  );
+                })}
               </Stack>
             </AccordionDetails>
           </Accordion>
@@ -676,38 +899,69 @@ const NotificationSettingsPage: React.FC = () => {
             </AccordionSummary>
             <AccordionDetails>
               <Stack spacing={2}>
-                {SYSTEM_SUBCATEGORIES.map(sub => (
-                  <Box key={sub.name} sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
-                    <Box sx={{ flex: 1 }}>
-                      <Typography variant="body2" sx={{ fontWeight: 'medium' }}>{sub.label}</Typography>
-                      <Typography variant="caption" color="text.secondary">{sub.description}</Typography>
+                <Alert severity="info" sx={{ mb: 1 }}>
+                  <Typography variant="caption">
+                    <strong>Tip:</strong> Shift+Click any switch to set it to "Inherit" from the category setting.
+                  </Typography>
+                </Alert>
+                {SYSTEM_SUBCATEGORIES.map(sub => {
+                  const inAppState = getToggleState(sub.inAppKey);
+                  const emailState = getToggleState(sub.emailKey);
+                  const categoryEnabled = preferences.EnableSystemAlerts;
+                  
+                  return (
+                    <Box key={sub.name} sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
+                      <Box sx={{ flex: 1 }}>
+                        <Typography variant="body2" sx={{ fontWeight: 'medium' }}>{sub.label}</Typography>
+                        <Typography variant="caption" color="text.secondary">{sub.description}</Typography>
+                      </Box>
+                      <FormControlLabel
+                        control={
+                          <Switch 
+                            checked={getToggleValue(sub.inAppKey, 'EnableSystemAlerts')} 
+                            onChange={handleSubcategoryToggle(sub.inAppKey)} 
+                            disabled={!sub.canDisable}
+                            size="small"
+                            sx={inAppState === null ? { opacity: 0.6 } : {}}
+                          />
+                        }
+                        label={
+                          <Box>
+                            <Typography variant="caption">In-App</Typography>
+                            {inAppState === null && (
+                              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontSize: '0.65rem' }}>
+                                (Inherit: {categoryEnabled ? 'ON' : 'OFF'})
+                              </Typography>
+                            )}
+                          </Box>
+                        }
+                        sx={{ minWidth: 100 }}
+                      />
+                      <FormControlLabel
+                        control={
+                          <Switch 
+                            checked={getToggleValue(sub.emailKey, 'EnableSystemAlerts')} 
+                            onChange={handleSubcategoryToggle(sub.emailKey)} 
+                            disabled={!sub.canDisable}
+                            size="small"
+                            sx={emailState === null ? { opacity: 0.6 } : {}}
+                          />
+                        }
+                        label={
+                          <Box>
+                            <Typography variant="caption">Email</Typography>
+                            {emailState === null && (
+                              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontSize: '0.65rem' }}>
+                                (Inherit: {categoryEnabled ? 'ON' : 'OFF'})
+                              </Typography>
+                            )}
+                          </Box>
+                        }
+                        sx={{ minWidth: 100 }}
+                      />
                     </Box>
-                    <FormControlLabel
-                      control={
-                        <Switch 
-                          checked={getToggleValue(sub.inAppKey)} 
-                          onChange={handleSubcategoryToggle(sub.inAppKey)} 
-                          disabled={!sub.canDisable}
-                          size="small" 
-                        />
-                      }
-                      label="In-App"
-                      sx={{ minWidth: 100 }}
-                    />
-                    <FormControlLabel
-                      control={
-                        <Switch 
-                          checked={getToggleValue(sub.emailKey)} 
-                          onChange={handleSubcategoryToggle(sub.emailKey)} 
-                          disabled={!sub.canDisable}
-                          size="small" 
-                        />
-                      }
-                      label="Email"
-                      sx={{ minWidth: 100 }}
-                    />
-                  </Box>
-                ))}
+                  );
+                })}
               </Stack>
             </AccordionDetails>
           </Accordion>

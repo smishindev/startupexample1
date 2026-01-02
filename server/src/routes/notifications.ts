@@ -279,21 +279,21 @@ router.post('/test', authenticateToken, async (req: AuthRequest, res: Response) 
     }
 
     const notificationService = getNotificationService(req);
-    const { type, priority, title, message } = req.body;
+    const { type, priority, title, message, subcategory } = req.body;
     
-    const params: CreateNotificationParams = {
+    // Use createNotificationWithControls to respect granular preferences
+    const notificationId = await notificationService.createNotificationWithControls(
       userId,
-      type: type || 'progress',
-      priority: priority || 'normal',
-      title: title || 'Test Notification',
-      message: message || 'This is a test notification'
-    };
-    
-    const notificationId = await notificationService.createNotification(params);
+      type || 'progress',
+      title || 'Test Notification',
+      message || 'This is a test notification',
+      priority || 'normal',
+      subcategory || 'LessonCompletion' // Default subcategory
+    );
     
     res.json({
       success: true,
-      message: notificationId ? 'Test notification created' : 'Notification queued or blocked by preferences',
+      message: notificationId ? 'Test notification created' : 'Notification blocked by preferences',
       notificationId
     });
   } catch (error) {

@@ -165,7 +165,7 @@ export const HeaderV4 = () => {
   // Profile menu items with notifications
   const profileMenuItems = [
     { text: 'Profile', icon: <AccountCircle />, action: () => navigate('/profile') },
-    { text: 'Notifications', icon: <NotificationsIcon />, action: () => navigate('/settings/notifications') },
+    { text: 'Notifications', icon: <NotificationsIcon />, action: () => navigate('/notifications') },
     { text: 'Settings', icon: <SettingsIcon />, action: () => navigate('/settings') },
     { text: 'Logout', icon: <ExitToAppIcon />, action: handleLogout },
   ];

@@ -65,25 +65,31 @@ export class InterventionService {
         const interventions = record.RecommendedInterventions ? JSON.parse(record.RecommendedInterventions) : [];
 
         // Send notification to student
-        const studentNotificationId = await this.notificationService.createNotification({
-          userId: record.UserId,
-          type: 'risk',
-          priority: record.RiskLevel === 'critical' ? 'urgent' : 'high',
-          title: '⚠️ Learning Progress Alert',
-          message: `You're showing signs of difficulty in ${record.CourseName}. We've identified some areas where you might need support.`,
-          data: {
-            courseId: record.CourseId,
-            courseName: record.CourseName,
-            riskLevel: record.RiskLevel,
-            riskScore: record.RiskScore,
-            riskFactors,
-            interventions
+        const studentNotificationId = await this.notificationService.createNotificationWithControls(
+          {
+            userId: record.UserId,
+            type: 'risk',
+            priority: record.RiskLevel === 'critical' ? 'urgent' : 'high',
+            title: '⚠️ Learning Progress Alert',
+            message: `You're showing signs of difficulty in ${record.CourseName}. We've identified some areas where you might need support.`,
+            data: {
+              courseId: record.CourseId,
+              courseName: record.CourseName,
+              riskLevel: record.RiskLevel,
+              riskScore: record.RiskScore,
+              riskFactors,
+              interventions
+            },
+            actionUrl: `/courses/${record.CourseId}/preview`,
+            actionText: 'View Course',
+            relatedEntityId: record.CourseId,
+            relatedEntityType: 'course'
           },
-          actionUrl: `/courses/${record.CourseId}/preview`,
-          actionText: 'View Course',
-          relatedEntityId: record.CourseId,
-          relatedEntityType: 'course'
-        });
+          {
+            category: 'progress',
+            subcategory: 'ProgressSummary'
+          }
+        );
 
         if (studentNotificationId) {
           notificationCount++;
@@ -92,28 +98,34 @@ export class InterventionService {
         // Send notification to course instructor
         const instructorId = await this.getCourseInstructor(record.CourseId);
         if (instructorId) {
-          const instructorNotificationId = await this.notificationService.createNotification({
-            userId: instructorId,
-            type: 'intervention',
-            priority: record.RiskLevel === 'critical' ? 'urgent' : 'high',
-            title: '🚨 Student Needs Intervention',
-            message: `${record.FirstName} ${record.LastName} is at ${record.RiskLevel} risk in ${record.CourseName}`,
-            data: {
-              studentId: record.UserId,
-              studentName: `${record.FirstName} ${record.LastName}`,
-              studentEmail: record.Email,
-              courseId: record.CourseId,
-              courseName: record.CourseName,
-              riskLevel: record.RiskLevel,
-              riskScore: record.RiskScore,
-              riskFactors,
-              interventions
+          const instructorNotificationId = await this.notificationService.createNotificationWithControls(
+            {
+              userId: instructorId,
+              type: 'intervention',
+              priority: record.RiskLevel === 'critical' ? 'urgent' : 'high',
+              title: '🚨 Student Needs Intervention',
+              message: `${record.FirstName} ${record.LastName} is at ${record.RiskLevel} risk in ${record.CourseName}`,
+              data: {
+                studentId: record.UserId,
+                studentName: `${record.FirstName} ${record.LastName}`,
+                studentEmail: record.Email,
+                courseId: record.CourseId,
+                courseName: record.CourseName,
+                riskLevel: record.RiskLevel,
+                riskScore: record.RiskScore,
+                riskFactors,
+                interventions
+              },
+              actionUrl: `/instructor/student-analytics?studentId=${record.UserId}&courseId=${record.CourseId}`,
+              actionText: 'View Student Analytics',
+              relatedEntityId: record.UserId,
+              relatedEntityType: 'student'
             },
-            actionUrl: `/instructor/student-analytics?studentId=${record.UserId}&courseId=${record.CourseId}`,
-            actionText: 'View Student Analytics',
-            relatedEntityId: record.UserId,
-            relatedEntityType: 'student'
-          });
+            {
+              category: 'progress',
+              subcategory: 'ProgressSummary'
+            }
+          );
 
           if (instructorNotificationId) {
             notificationCount++;
@@ -156,24 +168,30 @@ export class InterventionService {
       let notificationCount = 0;
 
       for (const record of result.recordset) {
-        const notificationId = await this.notificationService.createNotification({
-          userId: record.UserId,
-          type: 'progress',
-          priority: 'normal',
-          title: '📚 Continue Your Learning Journey',
-          message: `You haven't accessed ${record.CourseName} in ${record.DaysSinceAccess} days. You're ${record.OverallProgress}% complete - keep going!`,
-          data: {
-            courseId: record.CourseId,
-            courseName: record.CourseName,
-            progress: record.OverallProgress,
-            daysSinceAccess: record.DaysSinceAccess
+        const notificationId = await this.notificationService.createNotificationWithControls(
+          {
+            userId: record.UserId,
+            type: 'progress',
+            priority: 'normal',
+            title: '📚 Continue Your Learning Journey',
+            message: `You haven't accessed ${record.CourseName} in ${record.DaysSinceAccess} days. You're ${record.OverallProgress}% complete - keep going!`,
+            data: {
+              courseId: record.CourseId,
+              courseName: record.CourseName,
+              progress: record.OverallProgress,
+              daysSinceAccess: record.DaysSinceAccess
+            },
+            actionUrl: `/courses/${record.CourseId}/preview`,
+            actionText: 'Resume Learning',
+            relatedEntityId: record.CourseId,
+            relatedEntityType: 'course',
+            expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // Expires in 7 days
           },
-          actionUrl: `/courses/${record.CourseId}/preview`,
-          actionText: 'Resume Learning',
-          relatedEntityId: record.CourseId,
-          relatedEntityType: 'course',
-          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // Expires in 7 days
-        });
+          {
+            category: 'progress',
+            subcategory: 'ProgressSummary'
+          }
+        );
 
         if (notificationId) {
           notificationCount++;
@@ -228,26 +246,32 @@ export class InterventionService {
         const attemptsLeft = record.MaxAttempts - record.AttemptsUsed;
         
         if (attemptsLeft > 0 && attemptsLeft <= 2) {
-          const notificationId = await this.notificationService.createNotification({
-            userId: record.UserId,
-            type: 'assignment',
-            priority: attemptsLeft === 1 ? 'high' : 'normal',
-            title: '📝 Assessment Reminder',
-            message: `You have ${attemptsLeft} attempt${attemptsLeft > 1 ? 's' : ''} left for "${record.AssessmentTitle}" in ${record.CourseName}`,
-            data: {
-              assessmentId: record.AssessmentId,
-              assessmentTitle: record.AssessmentTitle,
-              lessonTitle: record.LessonTitle,
-              courseId: record.CourseId,
-              courseName: record.CourseName,
-              attemptsLeft
+          const notificationId = await this.notificationService.createNotificationWithControls(
+            {
+              userId: record.UserId,
+              type: 'assignment',
+              priority: attemptsLeft === 1 ? 'high' : 'normal',
+              title: '📝 Assessment Reminder',
+              message: `You have ${attemptsLeft} attempt${attemptsLeft > 1 ? 's' : ''} left for "${record.AssessmentTitle}" in ${record.CourseName}`,
+              data: {
+                assessmentId: record.AssessmentId,
+                assessmentTitle: record.AssessmentTitle,
+                lessonTitle: record.LessonTitle,
+                courseId: record.CourseId,
+                courseName: record.CourseName,
+                attemptsLeft
+              },
+              actionUrl: `/assessment/${record.AssessmentId}`,
+              actionText: 'Take Assessment',
+              relatedEntityId: record.AssessmentId,
+              relatedEntityType: 'assessment',
+              expiresAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000) // Expires in 14 days
             },
-            actionUrl: `/assessment/${record.AssessmentId}`,
-            actionText: 'Take Assessment',
-            relatedEntityId: record.AssessmentId,
-            relatedEntityType: 'assessment',
-            expiresAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000) // Expires in 14 days
-          });
+            {
+              category: 'assessment',
+              subcategory: 'AssessmentDue'
+            }
+          );
 
           if (notificationId) {
             notificationCount++;
@@ -308,23 +332,29 @@ export class InterventionService {
         }
 
         if (title) {
-          const notificationId = await this.notificationService.createNotification({
-            userId: record.UserId,
-            type: 'achievement',
-            priority,
-            title,
-            message,
-            data: {
-              courseId: record.CourseId,
-              courseName: record.CourseName,
-              progress: record.OverallProgress,
-              avgScore: record.AvgScore
+          const notificationId = await this.notificationService.createNotificationWithControls(
+            {
+              userId: record.UserId,
+              type: 'achievement',
+              priority,
+              title,
+              message,
+              data: {
+                courseId: record.CourseId,
+                courseName: record.CourseName,
+                progress: record.OverallProgress,
+                avgScore: record.AvgScore
+              },
+              actionUrl: `/courses/${record.CourseId}/preview`,
+              actionText: 'View Course',
+              relatedEntityId: record.CourseId,
+              relatedEntityType: 'course'
             },
-            actionUrl: `/courses/${record.CourseId}/preview`,
-            actionText: 'View Course',
-            relatedEntityId: record.CourseId,
-            relatedEntityType: 'course'
-          });
+            {
+              category: 'progress',
+              subcategory: 'CourseMilestones'
+            }
+          );
 
           if (notificationId) {
             notificationCount++;

@@ -275,7 +275,7 @@ export const NotificationsPage: React.FC = () => {
           <Stack direction="row" spacing={1}>
             <Button
               startIcon={<SettingsIcon />}
-              onClick={() => navigate('/settings')}
+              onClick={() => navigate('/settings/notifications')}
               variant="outlined"
               size="small"
             >

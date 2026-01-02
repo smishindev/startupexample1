@@ -57,17 +57,23 @@ router.post('/', authenticateToken, checkRole(['instructor']), async (req: AuthR
 
         // Create notification for each enrolled student
         for (const student of enrolledStudents) {
-          const notificationId = await notificationService.createNotification({
-            userId: student.UserId,
-            type: 'course',
-            priority: 'normal',
-            title: 'New Live Session',
-            message: `A new live session "${session.Title}" has been scheduled`,
-            actionUrl: `/live-sessions`,
-            actionText: 'View Session',
-            relatedEntityId: session.Id,
-            relatedEntityType: 'course'
-          });
+          const notificationId = await notificationService.createNotificationWithControls(
+            {
+              userId: student.UserId,
+              type: 'course',
+              priority: 'normal',
+              title: 'New Live Session',
+              message: `A new live session "${session.Title}" has been scheduled`,
+              actionUrl: `/live-sessions`,
+              actionText: 'View Session',
+              relatedEntityId: session.Id,
+              relatedEntityType: 'course'
+            },
+            {
+              category: 'course',
+              subcategory: 'LiveSessions'
+            }
+          );
 
           // Emit notification-created event to the specific student
           io.to(`user-${student.UserId}`).emit('notification-created', {
@@ -210,17 +216,23 @@ router.post('/:sessionId/start', authenticateToken, checkRole(['instructor']), a
 
         // Create notification for each enrolled student
         for (const student of enrolledStudents) {
-          const notificationId = await notificationService.createNotification({
-            userId: student.UserId,
-            type: 'course',
-            priority: 'urgent',
-            title: 'Session Starting Now',
-            message: `The live session "${session.Title}" is starting now! Join now.`,
-            actionUrl: `/live-sessions`,
-            actionText: 'Join Session',
-            relatedEntityId: session.Id,
-            relatedEntityType: 'course'
-          });
+          const notificationId = await notificationService.createNotificationWithControls(
+            {
+              userId: student.UserId,
+              type: 'course',
+              priority: 'urgent',
+              title: 'Session Starting Now',
+              message: `The live session "${session.Title}" is starting now! Join now.`,
+              actionUrl: `/live-sessions`,
+              actionText: 'Join Session',
+              relatedEntityId: session.Id,
+              relatedEntityType: 'course'
+            },
+            {
+              category: 'course',
+              subcategory: 'LiveSessions'
+            }
+          );
 
           // Emit notification-created event to the specific student
           io.to(`user-${student.UserId}`).emit('notification-created', {
@@ -297,17 +309,23 @@ router.post('/:sessionId/end', authenticateToken, checkRole(['instructor']), asy
 
         // Create notification for each enrolled student
         for (const student of enrolledStudents) {
-          const notificationId = await notificationService.createNotification({
-            userId: student.UserId,
-            type: 'course',
-            priority: 'normal',
-            title: 'Session Ended',
-            message: `The live session "${session.Title}" has ended`,
-            actionUrl: `/live-sessions`,
-            actionText: 'View Sessions',
-            relatedEntityId: session.Id,
-            relatedEntityType: 'course'
-          });
+          const notificationId = await notificationService.createNotificationWithControls(
+            {
+              userId: student.UserId,
+              type: 'course',
+              priority: 'normal',
+              title: 'Session Ended',
+              message: `The live session "${session.Title}" has ended`,
+              actionUrl: `/live-sessions`,
+              actionText: 'View Sessions',
+              relatedEntityId: session.Id,
+              relatedEntityType: 'course'
+            },
+            {
+              category: 'course',
+              subcategory: 'LiveSessions'
+            }
+          );
 
           // Emit notification-created event to the specific student
           io.to(`user-${student.UserId}`).emit('notification-created', {
@@ -382,17 +400,23 @@ router.post('/:sessionId/cancel', authenticateToken, checkRole(['instructor']), 
 
         // Create notification for each enrolled student
         for (const student of enrolledStudents) {
-          const notificationId = await notificationService.createNotification({
-            userId: student.UserId,
-            type: 'course',
-            priority: 'high',
-            title: 'Session Cancelled',
-            message: `The live session "${session.Title}" has been cancelled`,
-            actionUrl: `/live-sessions`,
-            actionText: 'View Sessions',
-            relatedEntityId: session.Id,
-            relatedEntityType: 'course'
-          });
+          const notificationId = await notificationService.createNotificationWithControls(
+            {
+              userId: student.UserId,
+              type: 'course',
+              priority: 'high',
+              title: 'Session Cancelled',
+              message: `The live session "${session.Title}" has been cancelled`,
+              actionUrl: `/live-sessions`,
+              actionText: 'View Sessions',
+              relatedEntityId: session.Id,
+              relatedEntityType: 'course'
+            },
+            {
+              category: 'course',
+              subcategory: 'LiveSessions'
+            }
+          );
 
           // Emit notification-created event to the specific student
           io.to(`user-${student.UserId}`).emit('notification-created', {

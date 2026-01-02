@@ -276,15 +276,21 @@ router.post('/lessons/:lessonId/complete', authenticateToken, async (req: AuthRe
 
     // Notify student of lesson completion
     try {
-      await notificationService.createNotification({
-        userId: userId!,
-        type: 'progress',
-        priority: 'normal',
-        title: 'Lesson Completed!',
-        message: `Great work! You completed "${lesson[0].Title}" in ${courseTitle}. Course progress: ${Math.floor(courseProgress)}%`,
-        actionUrl: `/courses/${courseId}`,
-        actionText: 'Continue Learning'
-      });
+      await notificationService.createNotificationWithControls(
+        {
+          userId: userId!,
+          type: 'progress',
+          priority: 'normal',
+          title: 'Lesson Completed!',
+          message: `Great work! You completed "${lesson[0].Title}" in ${courseTitle}. Course progress: ${Math.floor(courseProgress)}%`,
+          actionUrl: `/courses/${courseId}`,
+          actionText: 'Continue Learning'
+        },
+        {
+          category: 'progress',
+          subcategory: 'LessonCompletion'
+        }
+      );
       console.log(`✅ Lesson completion notification sent to user ${userId}`);
     } catch (notifError) {
       console.error('⚠️ Failed to send lesson completion notification:', notifError);
@@ -302,15 +308,21 @@ router.post('/lessons/:lessonId/complete', authenticateToken, async (req: AuthRe
           ? `${studentInfo[0].FirstName} ${studentInfo[0].LastName}`.trim()
           : 'A student';
 
-        await notificationService.createNotification({
-          userId: instructorId,
-          type: 'progress',
-          priority: 'normal',
-          title: 'Student Progress Milestone',
-          message: `${studentName} reached ${milestone}% completion in "${courseTitle}"`,
-          actionUrl: `/instructor/students`,
-          actionText: 'View Students'
-        });
+        await notificationService.createNotificationWithControls(
+          {
+            userId: instructorId,
+            type: 'progress',
+            priority: 'normal',
+            title: 'Student Progress Milestone',
+            message: `${studentName} reached ${milestone}% completion in "${courseTitle}"`,
+            actionUrl: `/instructor/students`,
+            actionText: 'View Students'
+          },
+          {
+            category: 'progress',
+            subcategory: 'CourseMilestones'
+          }
+        );
         console.log(`✅ Milestone notification sent to instructor ${instructorId} (${milestone}%)`);
       } catch (notifError) {
         console.error('⚠️ Failed to send milestone notification:', notifError);

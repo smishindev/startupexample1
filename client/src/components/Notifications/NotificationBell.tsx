@@ -21,7 +21,8 @@ import {
   EmojiEvents as AchievementIcon,
   Assignment as AssignmentIcon,
   School as CourseIcon,
-  Close as CloseIcon
+  Close as CloseIcon,
+  Settings as SettingsIcon
 } from '@mui/icons-material';
 import { notificationApi, Notification } from '../../services/notificationApi';
 import { socketService } from '../../services/socketService';
@@ -275,11 +276,24 @@ export const NotificationBell: React.FC = () => {
         <Box sx={{ px: 2, py: 1.5, borderBottom: 1, borderColor: 'divider' }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <Typography variant="h6">Notifications</Typography>
-            {unreadCount > 0 && (
-              <Button size="small" onClick={handleMarkAllRead}>
-                Mark all read
-              </Button>
-            )}
+            <Stack direction="row" spacing={1} alignItems="center">
+              <Tooltip title="Notification Settings">
+                <IconButton 
+                  size="small" 
+                  onClick={() => {
+                    navigate('/settings/notifications');
+                    handleClose();
+                  }}
+                >
+                  <SettingsIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+              {unreadCount > 0 && (
+                <Button size="small" onClick={handleMarkAllRead}>
+                  Mark all read
+                </Button>
+              )}
+            </Stack>
           </Box>
           {unreadCount > 0 && (
             <Typography variant="caption" color="text.secondary">
@@ -294,11 +308,24 @@ export const NotificationBell: React.FC = () => {
             <CircularProgress />
           </Box>
         ) : notifications.length === 0 ? (
-          <Box sx={{ py: 4, textAlign: 'center' }}>
+          <Box sx={{ py: 4, px: 2, textAlign: 'center' }}>
             <NotificationsNoneIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 1 }} />
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" color="text.secondary" gutterBottom>
               No new notifications
             </Typography>
+            <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 2 }}>
+              You're all caught up!
+            </Typography>
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={() => {
+                navigate('/settings/notifications');
+                handleClose();
+              }}
+            >
+              Manage Preferences
+            </Button>
           </Box>
         ) : (
           <Box sx={{ maxHeight: 400, overflow: 'auto' }}>
@@ -356,22 +383,18 @@ export const NotificationBell: React.FC = () => {
         )}
 
         {/* Footer */}
-        {notifications.length > 0 && (
-          <>
-            <Divider />
-            <Box sx={{ p: 1, textAlign: 'center' }}>
-              <Button
-                fullWidth
-                onClick={() => {
-                  navigate('/notifications');
-                  handleClose();
-                }}
-              >
-                View All Notifications
-              </Button>
-            </Box>
-          </>
-        )}
+        <Divider />
+        <Box sx={{ p: 1, textAlign: 'center' }}>
+          <Button
+            fullWidth
+            onClick={() => {
+              navigate('/notifications');
+              handleClose();
+            }}
+          >
+            View All Notifications
+          </Button>
+        </Box>
       </Menu>
     </>
   );

@@ -252,15 +252,20 @@ export class NotificationService {
       // Check user preferences with hybrid control system
       const preferences = await this.getUserPreferences(params.userId);
       
-      // Check if in-app notification should be sent
-      if (!this.shouldSendNotification(checkParams, preferences)) {
-        console.log(`📵 In-app notification skipped for user ${params.userId} - disabled in preferences`);
+      // Check if EITHER in-app OR email notification should be sent
+      const shouldSendInApp = this.shouldSendNotification(checkParams, preferences);
+      const shouldSendEmail = this.shouldSendNotification({ ...checkParams, checkEmail: true }, preferences);
+      
+      if (!shouldSendInApp && !shouldSendEmail) {
+        console.log(`📵 Notification completely blocked for user ${params.userId} - both in-app and email disabled`);
         return '';
       }
 
-      // Check quiet hours
-      if (this.isInQuietHours(preferences)) {
-        console.log(`🔕 Notification delayed for user ${params.userId} - quiet hours active`);
+      console.log(`✅ Notification allowed for user ${params.userId} - InApp: ${shouldSendInApp}, Email: ${shouldSendEmail}`);
+
+      // Check quiet hours (only affects in-app notifications)
+      if (shouldSendInApp && this.isInQuietHours(preferences)) {
+        console.log(`🔕 In-app notification delayed for user ${params.userId} - quiet hours active`);
         // Queue notification for later delivery
         return await this.queueNotification(params);
       }
@@ -293,8 +298,8 @@ export class NotificationService {
       const notificationId = result.recordset[0].Id;
       console.log(`✅ Notification created: ${notificationId} for user ${params.userId}`);
       
-      // Emit real-time notification via Socket.io
-      if (this.io) {
+      // Emit real-time notification via Socket.io (only if in-app is enabled)
+      if (shouldSendInApp && this.io) {
         this.io.to(`user-${params.userId}`).emit('notification-created', {
           id: notificationId,
           userId: params.userId,
@@ -309,21 +314,8 @@ export class NotificationService {
         console.log(`🔔 Socket.io event emitted to user-${params.userId}`);
       }
 
-      // Check if email should be sent
-      const emailCheckParams: NotificationCheckParams = {
-        ...checkParams,
-        checkEmail: true
-      };
-      
-      const shouldSendEmail = this.shouldSendNotification(emailCheckParams, preferences);
-      
-      if (!shouldSendEmail) {
-        console.log(`📧 Email skipped for user ${params.userId} - disabled in preferences`);
-        return notificationId;
-      }
-
-      // Send email based on digest preference
-      if (preferences.EmailDigestFrequency === 'realtime') {
+      // Send email if enabled (we already checked shouldSendEmail at the start)
+      if (shouldSendEmail && preferences.EmailDigestFrequency === 'realtime') {
         console.log(`📧 Sending realtime email to user ${params.userId}`);
         // Get user info for email
         const userResult = await (await this.dbService.getRequest())
@@ -347,7 +339,7 @@ export class NotificationService {
             }
           });
         }
-      } else if (preferences.EmailDigestFrequency === 'daily' || preferences.EmailDigestFrequency === 'weekly') {
+      } else if (shouldSendEmail && (preferences.EmailDigestFrequency === 'daily' || preferences.EmailDigestFrequency === 'weekly')) {
         console.log(`📧 Notification will be included in ${preferences.EmailDigestFrequency} digest`);
         // Will be picked up by digest cron job
       }

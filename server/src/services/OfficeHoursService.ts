@@ -292,15 +292,21 @@ export class OfficeHoursService {
     const studentName = `${student.FirstName} ${student.LastName}`;
 
     // Create persistent notification for instructor
-    await this.notificationService.createNotification({
-      userId: params.instructorId,
-      type: 'course',
-      priority: 'normal',
-      title: 'Office Hours - Student Joined Queue',
-      message: `${studentName} has joined your office hours queue${params.question ? ': ' + params.question : '.'}`,
-      actionUrl: '/office-hours',
-      actionText: 'View Queue'
-    });
+    await this.notificationService.createNotificationWithControls(
+      {
+        userId: params.instructorId,
+        type: 'course',
+        priority: 'normal',
+        title: 'Office Hours - Student Joined Queue',
+        message: `${studentName} has joined your office hours queue${params.question ? ': ' + params.question : '.'}`,
+        actionUrl: '/office-hours',
+        actionText: 'View Queue'
+      },
+      {
+        category: 'community',
+        subcategory: 'OfficeHours'
+      }
+    );
 
     // Broadcast to instructor
     if (this.io) {
@@ -430,15 +436,21 @@ export class OfficeHoursService {
     const instructorName = `${instructor.FirstName} ${instructor.LastName}`;
 
     // Create persistent notification for student
-    await this.notificationService.createNotification({
-      userId: queueEntry.StudentId,
-      type: 'course',
-      priority: 'high',
-      title: 'Office Hours - Admitted',
-      message: `${instructorName} has admitted you to their office hours. Please join the session.`,
-      actionUrl: '/office-hours',
-      actionText: 'View Office Hours'
-    });
+    await this.notificationService.createNotificationWithControls(
+      {
+        userId: queueEntry.StudentId,
+        type: 'course',
+        priority: 'high',
+        title: 'Office Hours - Admitted',
+        message: `${instructorName} has admitted you to their office hours. Please join the session.`,
+        actionUrl: '/office-hours',
+        actionText: 'View Office Hours'
+      },
+      {
+        category: 'community',
+        subcategory: 'OfficeHours'
+      }
+    );
 
     // Notify student they've been admitted
     if (this.io) {
@@ -504,15 +516,21 @@ export class OfficeHoursService {
     const instructorName = `${instructor.FirstName} ${instructor.LastName}`;
 
     // Create persistent notification for student
-    await this.notificationService.createNotification({
-      userId: queueEntry.StudentId,
-      type: 'course',
-      priority: 'normal',
-      title: 'Office Hours - Session Complete',
-      message: `Your office hours session with ${instructorName} has been completed.`,
-      actionUrl: '/office-hours',
-      actionText: 'View Office Hours'
-    });
+    await this.notificationService.createNotificationWithControls(
+      {
+        userId: queueEntry.StudentId,
+        type: 'course',
+        priority: 'normal',
+        title: 'Office Hours - Session Complete',
+        message: `Your office hours session with ${instructorName} has been completed.`,
+        actionUrl: '/office-hours',
+        actionText: 'View Office Hours'
+      },
+      {
+        category: 'community',
+        subcategory: 'OfficeHours'
+      }
+    );
 
     // Notify student session is complete
     if (this.io) {
@@ -575,15 +593,21 @@ export class OfficeHoursService {
     const instructorName = `${instructor.FirstName} ${instructor.LastName}`;
 
     // Create persistent notification for student
-    await this.notificationService.createNotification({
-      userId: queueEntry.StudentId,
-      type: 'course',
-      priority: 'normal',
-      title: 'Office Hours - Session Cancelled',
-      message: `Your office hours session with ${instructorName} has been cancelled.`,
-      actionUrl: '/office-hours',
-      actionText: 'View Office Hours'
-    });
+    await this.notificationService.createNotificationWithControls(
+      {
+        userId: queueEntry.StudentId,
+        type: 'course',
+        priority: 'normal',
+        title: 'Office Hours - Session Cancelled',
+        message: `Your office hours session with ${instructorName} has been cancelled.`,
+        actionUrl: '/office-hours',
+        actionText: 'View Office Hours'
+      },
+      {
+        category: 'community',
+        subcategory: 'OfficeHours'
+      }
+    );
 
     // Broadcast cancellation
     if (this.io) {

@@ -221,7 +221,7 @@ export const Header: React.FC<HeaderProps> = () => {
   // Profile dropdown menu items
   const profileMenuItems = [
     { text: 'Profile', icon: <AccountCircle />, action: () => navigate('/profile') },
-    { text: 'Notifications', icon: <NotificationsIcon />, action: () => navigate('/settings/notifications') },
+    { text: 'Notifications', icon: <NotificationsIcon />, action: () => navigate('/notifications') },
     { text: 'Settings', icon: <SettingsIcon />, action: () => navigate('/settings') },
     { text: 'Logout', icon: <ExitToAppIcon />, action: handleLogout },
   ];

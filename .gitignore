@@ -4,6 +4,29 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# Python
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+pip-log.txt
+pip-delete-this-directory.txt
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Test outputs
+tests/reports/
+tests/videos/
+tests/screenshots/
+.allure/
+allure-results/
+
 # Production builds
 /client/dist/
 /server/dist/
@@ -15,6 +38,7 @@ yarn-error.log*
 .env.development.local
 .env.test.local
 .env.production.local
+tests/.env.test
 
 # IDE
 .vscode/
@@ -62,11 +86,17 @@ temp/
 
 # Editor directories and files
 .vscode/*
-!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/launch.json
 .idea
 .DS_Store
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
+*.sw?
+
+# Uploads
+uploads/
+server/uploads/
 *.sw?

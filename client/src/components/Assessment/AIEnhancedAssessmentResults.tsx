@@ -369,14 +369,16 @@ export const AIEnhancedAssessmentResults: React.FC<AssessmentResultsProps> = ({
       {/* Tabbed Content */}
       <Paper sx={{ mb: 3 }}>
         <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-          <Tabs value={tabValue} onChange={(_, newValue) => setTabValue(newValue)}>
+          <Tabs data-testid="assessment-results-tabs" value={tabValue} onChange={(_, newValue) => setTabValue(newValue)}>
             <Tab 
+              data-testid="assessment-results-tab-review"
               label="Question Review" 
               icon={<LightbulbIcon />}
               iconPosition="start"
             />
             {results.submissionId && (
               <Tab 
+                data-testid="assessment-results-tab-ai"
                 label="AI Insights" 
                 icon={<AIIcon />}
                 iconPosition="start"
@@ -384,6 +386,7 @@ export const AIEnhancedAssessmentResults: React.FC<AssessmentResultsProps> = ({
             )}
             {userProgress && (
               <Tab 
+                data-testid="assessment-results-tab-progress"
                 label="Your Progress" 
                 icon={<ScoreIcon />}
                 iconPosition="start"
@@ -795,6 +798,7 @@ export const AIEnhancedAssessmentResults: React.FC<AssessmentResultsProps> = ({
         <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap' }}>
           {userProgress?.canRetake && onRetake && (
             <Button
+              data-testid="assessment-results-retake-button"
               variant={results.passed ? 'outlined' : 'contained'}
               size="large"
               startIcon={<RetryIcon />}
@@ -806,6 +810,7 @@ export const AIEnhancedAssessmentResults: React.FC<AssessmentResultsProps> = ({
           )}
           
           <Button
+            data-testid="assessment-results-continue-button"
             variant={results.passed ? 'contained' : 'outlined'}
             size="large"
             startIcon={<BackIcon />}
@@ -852,8 +857,9 @@ export const AIEnhancedAssessmentResults: React.FC<AssessmentResultsProps> = ({
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setInsightDialog(false)}>Cancel</Button>
+          <Button data-testid="assessment-results-insight-cancel" onClick={() => setInsightDialog(false)}>Cancel</Button>
           <Button 
+            data-testid="assessment-results-insight-submit"
             onClick={handleInsightRequest} 
             variant="contained"
             disabled={aiLoading}

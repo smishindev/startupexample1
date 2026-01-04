@@ -89,6 +89,7 @@ export const AssessmentTakingPage: React.FC = () => {
                 You came from a lesson. Complete this assessment to test your understanding.
               </Typography>
               <Button 
+                data-testid="assessment-taking-back-to-lesson-button"
                 size="small" 
                 onClick={() => navigate(returnUrl)}
                 sx={{ ml: 2 }}

@@ -289,6 +289,7 @@ const StudentManagement: React.FC = () => {
                 startAdornment: <SearchIcon sx={{ mr: 1, color: 'text.secondary' }} />
               }}
               onChange={handleSearch}
+              data-testid="student-management-search-input"
             />
           </Grid>
           
@@ -299,6 +300,7 @@ const StudentManagement: React.FC = () => {
                 value={filters.courseId || ''}
                 onChange={(e) => handleFilterChange('courseId', e.target.value || undefined)}
                 label="Course"
+                data-testid="student-management-course-select"
               >
                 <MenuItem value="">All Courses</MenuItem>
                 {courses.map((course) => (
@@ -317,6 +319,7 @@ const StudentManagement: React.FC = () => {
                 value={filters.status || ''}
                 onChange={(e) => handleFilterChange('status', e.target.value || undefined)}
                 label="Status"
+                data-testid="student-management-status-select"
               >
                 <MenuItem value="">All Status</MenuItem>
                 <MenuItem value="active">Active</MenuItem>
@@ -334,6 +337,7 @@ const StudentManagement: React.FC = () => {
                 value={filters.sortBy || 'enrolledAt'}
                 onChange={(e) => handleFilterChange('sortBy', e.target.value)}
                 label="Sort By"
+                data-testid="student-management-sort-select"
               >
                 <MenuItem value="enrolledAt">Enrolled Date</MenuItem>
                 <MenuItem value="lastName">Name</MenuItem>
@@ -350,6 +354,7 @@ const StudentManagement: React.FC = () => {
               onClick={() => setMessageDialogOpen(true)}
               disabled={!filters.courseId}
               fullWidth
+              data-testid="student-management-send-message-button"
             >
               Send Message
             </Button>
@@ -464,6 +469,7 @@ const StudentManagement: React.FC = () => {
                           setAnchorEl(event.currentTarget);
                           setSelectedStudent(student);
                         }}
+                        data-testid="student-management-more-options-button"
                       >
                         <MoreVertIcon />
                       </IconButton>
@@ -485,6 +491,7 @@ const StudentManagement: React.FC = () => {
             setRowsPerPage(parseInt(event.target.value, 10));
             setPage(0);
           }}
+          data-testid="student-management-pagination"
         />
       </TableContainer>
 
@@ -497,23 +504,23 @@ const StudentManagement: React.FC = () => {
         <MenuItem onClick={() => {
           setMessageDialogOpen(true);
           setAnchorEl(null);
-        }}>
+        }} data-testid="student-management-menu-send-message">
           <EmailIcon sx={{ mr: 1 }} />
           Send Message
         </MenuItem>
-        <MenuItem onClick={() => handleStatusUpdate(selectedStudent!, 'active')}>
+        <MenuItem onClick={() => handleStatusUpdate(selectedStudent!, 'active')} data-testid="student-management-menu-activate">
           Activate
         </MenuItem>
-        <MenuItem onClick={() => handleStatusUpdate(selectedStudent!, 'suspended')}>
+        <MenuItem onClick={() => handleStatusUpdate(selectedStudent!, 'suspended')} data-testid="student-management-menu-suspend">
           Suspend
         </MenuItem>
-        <MenuItem onClick={() => handleStatusUpdate(selectedStudent!, 'cancelled')}>
+        <MenuItem onClick={() => handleStatusUpdate(selectedStudent!, 'cancelled')} data-testid="student-management-menu-cancel">
           Cancel Enrollment
         </MenuItem>
       </Menu>
 
       {/* Message Dialog */}
-      <Dialog open={messageDialogOpen} onClose={() => setMessageDialogOpen(false)} maxWidth="md" fullWidth disableEnforceFocus>
+      <Dialog open={messageDialogOpen} onClose={() => setMessageDialogOpen(false)} maxWidth="md" fullWidth disableEnforceFocus data-testid="student-management-message-dialog">
         <DialogTitle>
           Send {messageForm.type === 'announcement' ? 'Announcement' : 'Message'}
           {selectedStudent && ` to ${selectedStudent.firstName} ${selectedStudent.lastName}`}
@@ -529,6 +536,7 @@ const StudentManagement: React.FC = () => {
                   type: e.target.value as 'message' | 'announcement' 
                 }))}
                 label="Type"
+                data-testid="student-management-message-type-select"
               >
                 <MenuItem value="message">Message</MenuItem>
                 <MenuItem value="announcement">Announcement</MenuItem>
@@ -541,6 +549,7 @@ const StudentManagement: React.FC = () => {
               value={messageForm.subject}
               onChange={(e) => setMessageForm(prev => ({ ...prev, subject: e.target.value }))}
               sx={{ mb: 2 }}
+              data-testid="student-management-message-subject-input"
             />
             
             <TextField
@@ -550,15 +559,17 @@ const StudentManagement: React.FC = () => {
               rows={6}
               value={messageForm.message}
               onChange={(e) => setMessageForm(prev => ({ ...prev, message: e.target.value }))}
+              data-testid="student-management-message-text-input"
             />
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setMessageDialogOpen(false)}>Cancel</Button>
+          <Button onClick={() => setMessageDialogOpen(false)} data-testid="student-management-message-cancel-button">Cancel</Button>
           <Button
             onClick={handleSendMessage}
             variant="contained"
             disabled={!messageForm.message.trim()}
+            data-testid="student-management-message-send-button"
           >
             Send
           </Button>

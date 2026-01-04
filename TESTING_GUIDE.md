@@ -92,28 +92,31 @@ Role: Admin
 # Login page
 page.goto(f"{base_url}/login")
 
-# Form fields
-page.fill('#email', 'student1@gmail.com')
-page.fill('#password', 'Aa123456')
+# Form fields (using test IDs)
+page.fill('[data-testid="login-email-input"]', 'student1@gmail.com')
+page.fill('[data-testid="login-password-input"]', 'Aa123456')
 
-# Submit button
-page.click('button[type="submit"]:has-text("Sign In")')
+# Optional: Check remember me
+page.check('[data-testid="login-remember-me-checkbox"]')
+
+# Submit button (using test ID)
+page.click('[data-testid="login-submit-button"]')
 
 # Success: redirects to /dashboard
 ```
 
 ### Navigation (HeaderV4.tsx)
 ```python
-# User avatar button (to open profile menu)
-page.click('button:has(.MuiAvatar-root)')
+# User avatar button (to open profile menu) - using test ID
+page.click('[data-testid="header-profile-menu-button"]')
 
-# Profile menu items
-page.click('text="Profile"')
-page.click('text="Notifications"')
-page.click('text="Settings"')
-page.click('text="Logout"')
+# Profile menu items - using test IDs
+page.click('[data-testid="header-profile-menu-item-profile"]')
+page.click('[data-testid="header-profile-menu-item-notifications"]')
+page.click('[data-testid="header-profile-menu-item-settings"]')
+page.click('[data-testid="header-profile-menu-item-logout"]')
 
-# Navigation links (desktop)
+# Navigation links (desktop) - still use text for now
 page.click('text="Dashboard"')
 page.click('text="Courses"')
 page.click('text="My Learning"')

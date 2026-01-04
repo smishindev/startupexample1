@@ -112,13 +112,14 @@ const OnlineUsersList: React.FC<OnlineUsersListProps> = ({
   }
 
   return (
-    <Card>
+    <Card data-testid="presence-online-users-list">
       <CardContent>
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
           <Typography variant="h6">
             {title}
           </Typography>
           <Chip 
+            data-testid="presence-online-users-count"
             label={`${users.length} online`}
             color="success"
             size="small"
@@ -127,7 +128,11 @@ const OnlineUsersList: React.FC<OnlineUsersListProps> = ({
 
         <List dense={compact}>
           {users.map((user) => (
-            <ListItem key={user.UserId} sx={{ px: compact ? 0 : 2 }}>
+            <ListItem 
+              key={user.UserId} 
+              sx={{ px: compact ? 0 : 2 }}
+              data-testid={`presence-online-user-${user.UserId}`}
+            >
               <ListItemAvatar>
                 <UserPresenceBadge
                   avatarUrl={user.Avatar}

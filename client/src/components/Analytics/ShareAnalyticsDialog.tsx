@@ -218,13 +218,13 @@ export const ShareAnalyticsDialog: React.FC<ShareAnalyticsDialogProps> = ({ open
       </DialogContent>
 
       <DialogActions sx={{ px: 3, pb: 3 }}>
-        <Button onClick={handleExportData} variant="outlined">
+        <Button data-testid="share-analytics-export" onClick={handleExportData} variant="outlined">
           Export Data
         </Button>
-        <Button onClick={handleClearData} color="error" variant="outlined">
+        <Button data-testid="share-analytics-clear" onClick={handleClearData} color="error" variant="outlined">
           Clear Data
         </Button>
-        <Button onClick={onClose} variant="contained">
+        <Button data-testid="share-analytics-close" onClick={onClose} variant="contained">
           Close
         </Button>
       </DialogActions>

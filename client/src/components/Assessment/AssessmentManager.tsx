@@ -191,6 +191,7 @@ const AssessmentManager: React.FC<AssessmentManagerProps> = ({ lessonId }) => {
           variant="contained"
           startIcon={<AddIcon />}
           onClick={handleCreateAssessment}
+          data-testid="assessment-manager-create-button"
         >
           Create Assessment
         </Button>
@@ -210,6 +211,7 @@ const AssessmentManager: React.FC<AssessmentManagerProps> = ({ lessonId }) => {
               variant="contained"
               startIcon={<AddIcon />}
               onClick={handleCreateAssessment}
+              data-testid="assessment-manager-create-first-button"
             >
               Create First Assessment
             </Button>
@@ -296,6 +298,7 @@ const AssessmentManager: React.FC<AssessmentManagerProps> = ({ lessonId }) => {
                           size="small"
                           startIcon={<ViewIcon />}
                           onClick={() => handlePreviewAssessment(assessment)}
+                          data-testid="assessment-manager-preview-button"
                         >
                           Preview
                         </Button>
@@ -303,6 +306,7 @@ const AssessmentManager: React.FC<AssessmentManagerProps> = ({ lessonId }) => {
                           size="small"
                           startIcon={<EditIcon />}
                           onClick={() => handleEditAssessment(assessment)}
+                          data-testid="assessment-manager-edit-button"
                         >
                           Edit
                         </Button>
@@ -388,6 +392,7 @@ const AssessmentManager: React.FC<AssessmentManagerProps> = ({ lessonId }) => {
           color="primary"
           sx={{ position: 'fixed', bottom: 24, right: 24 }}
           onClick={handleCreateAssessment}
+          data-testid="assessment-manager-fab"
         >
           <AddIcon />
         </Fab>
@@ -400,22 +405,22 @@ const AssessmentManager: React.FC<AssessmentManagerProps> = ({ lessonId }) => {
         open={Boolean(menuAnchor)}
         onClose={() => setMenuAnchor(null)}
       >
-        <MenuItem onClick={() => selectedAssessment && handleViewAssessmentAnalytics(selectedAssessment)}>
+        <MenuItem onClick={() => selectedAssessment && handleViewAssessmentAnalytics(selectedAssessment)} data-testid="assessment-manager-menu-view">
           <ViewIcon sx={{ mr: 1 }} />
           View Details
         </MenuItem>
-        <MenuItem onClick={() => selectedAssessment && handleEditAssessment(selectedAssessment)}>
+        <MenuItem onClick={() => selectedAssessment && handleEditAssessment(selectedAssessment)} data-testid="assessment-manager-menu-edit">
           <EditIcon sx={{ mr: 1 }} />
           Edit
         </MenuItem>
-        <MenuItem onClick={() => selectedAssessment && handleDeleteClick(selectedAssessment)}>
+        <MenuItem onClick={() => selectedAssessment && handleDeleteClick(selectedAssessment)} data-testid="assessment-manager-menu-delete">
           <DeleteIcon sx={{ mr: 1 }} />
           Delete
         </MenuItem>
       </Menu>
 
       {/* Delete Confirmation Dialog */}
-      <Dialog key="delete-dialog" open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
+      <Dialog key="delete-dialog" open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)} data-testid="assessment-manager-delete-dialog">
         <DialogTitle>Delete Assessment</DialogTitle>
         <DialogContent>
           <Typography>
@@ -424,7 +429,7 @@ const AssessmentManager: React.FC<AssessmentManagerProps> = ({ lessonId }) => {
           </Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDeleteDialogOpen(false)}>
+          <Button onClick={() => setDeleteDialogOpen(false)} data-testid="assessment-manager-delete-cancel-button">
             Cancel
           </Button>
           <Button 
@@ -432,6 +437,7 @@ const AssessmentManager: React.FC<AssessmentManagerProps> = ({ lessonId }) => {
             color="error"
             variant="contained"
             disabled={deleting}
+            data-testid="assessment-manager-delete-confirm-button"
           >
             {deleting ? 'Deleting...' : 'Delete'}
           </Button>

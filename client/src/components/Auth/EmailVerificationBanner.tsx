@@ -27,6 +27,7 @@ export const EmailVerificationBanner = () => {
             width: '100%',
           },
         }}
+        data-testid="email-verification-banner-alert"
         action={
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <Button
@@ -41,6 +42,7 @@ export const EmailVerificationBanner = () => {
                   borderWidth: 2,
                 },
               }}
+              data-testid="email-verification-verify-now-button"
             >
               Verify Now
             </Button>
@@ -49,6 +51,7 @@ export const EmailVerificationBanner = () => {
               color="inherit"
               size="small"
               onClick={() => setDismissed(true)}
+              data-testid="email-verification-close-button"
             >
               <Close fontSize="small" />
             </IconButton>

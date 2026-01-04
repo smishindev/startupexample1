@@ -234,6 +234,7 @@ export const InterventionDashboard: React.FC = () => {
           indicatorColor="primary"
           textColor="primary"
           variant="fullWidth"
+          data-testid="intervention-dashboard-tabs"
         >
           <Tab
             label={
@@ -241,6 +242,7 @@ export const InterventionDashboard: React.FC = () => {
                 <Box sx={{ px: 2 }}>At-Risk Students</Box>
               </Badge>
             }
+            data-testid="intervention-dashboard-tab-at-risk"
           />
           <Tab
             label={
@@ -248,6 +250,7 @@ export const InterventionDashboard: React.FC = () => {
                 <Box sx={{ px: 2 }}>Low Progress</Box>
               </Badge>
             }
+            data-testid="intervention-dashboard-tab-low-progress"
           />
           <Tab
             label={
@@ -255,6 +258,7 @@ export const InterventionDashboard: React.FC = () => {
                 <Box sx={{ px: 2 }}>Pending Assessments</Box>
               </Badge>
             }
+            data-testid="intervention-dashboard-tab-pending"
           />
         </Tabs>
       </Paper>
@@ -338,6 +342,7 @@ export const InterventionDashboard: React.FC = () => {
                         size="small"
                         startIcon={<ViewIcon />}
                         onClick={() => handleViewStudent(student.UserId, student.CourseId)}
+                        data-testid="intervention-dashboard-view-analytics-button"
                       >
                         View Analytics
                       </Button>
@@ -348,6 +353,7 @@ export const InterventionDashboard: React.FC = () => {
                             color="primary"
                             onClick={() => student.Email && handleSendMessage(student.Email)}
                             disabled={!student.Email}
+                            data-testid="intervention-dashboard-send-email-button"
                           >
                             <EmailIcon />
                           </IconButton>
@@ -416,6 +422,7 @@ export const InterventionDashboard: React.FC = () => {
                             <IconButton
                               edge="end"
                               onClick={() => handleViewStudent(student.UserId, student.CourseId)}
+                              data-testid={`intervention-dashboard-view-student-${student.UserId}-button`}
                             >
                               <ViewIcon />
                             </IconButton>
@@ -426,6 +433,7 @@ export const InterventionDashboard: React.FC = () => {
                                 edge="end"
                                 onClick={() => student.Email && handleSendMessage(student.Email)}
                                 disabled={!student.Email}
+                                data-testid={`intervention-dashboard-send-message-${student.UserId}-button`}
                               >
                                 <MessageIcon />
                               </IconButton>
@@ -498,6 +506,7 @@ export const InterventionDashboard: React.FC = () => {
                           <IconButton
                             edge="end"
                             onClick={() => handleSendMessage(assessment.Email)}
+                            data-testid={`intervention-dashboard-send-reminder-${assessment.UserId}-button`}
                           >
                             <EmailIcon />
                           </IconButton>

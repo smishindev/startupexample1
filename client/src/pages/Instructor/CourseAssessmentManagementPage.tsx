@@ -182,7 +182,7 @@ export const CourseAssessmentManagementPage: React.FC = () => {
           <Alert severity="error" sx={{ mb: 3 }}>
             {error}
           </Alert>
-          <Button onClick={loadCourseData} variant="contained">
+          <Button onClick={loadCourseData} variant="contained" data-testid="course-assessment-retry-button">
             Retry
           </Button>
         </Container>
@@ -201,6 +201,7 @@ export const CourseAssessmentManagementPage: React.FC = () => {
             variant="body1"
             onClick={() => navigate('/instructor/dashboard')}
             sx={{ textDecoration: 'none', cursor: 'pointer' }}
+            data-testid="course-assessment-breadcrumb-dashboard"
           >
             Instructor Dashboard
           </Link>
@@ -209,6 +210,7 @@ export const CourseAssessmentManagementPage: React.FC = () => {
             variant="body1"
             onClick={() => navigate(`/instructor/courses/${courseId}/edit`)}
             sx={{ textDecoration: 'none', cursor: 'pointer' }}
+            data-testid="course-assessment-breadcrumb-course"
           >
             {courseName}
           </Link>
@@ -288,6 +290,7 @@ export const CourseAssessmentManagementPage: React.FC = () => {
                 variant="contained"
                 startIcon={<AddIcon />}
                 onClick={() => navigate(`/instructor/courses/${courseId}/lessons`)}
+                data-testid="course-assessment-manage-lessons-button"
               >
                 Manage Lessons
               </Button>
@@ -325,6 +328,7 @@ export const CourseAssessmentManagementPage: React.FC = () => {
                         variant="contained"
                         startIcon={<AddIcon />}
                         onClick={() => handleCreateAssessment(lesson.id)}
+                        data-testid="course-assessment-create-button"
                       >
                         Create Assessment
                       </Button>
@@ -332,6 +336,7 @@ export const CourseAssessmentManagementPage: React.FC = () => {
                         variant="outlined"
                         startIcon={<AssignmentIcon />}
                         onClick={() => handleManageLessonAssessments(lesson.id)}
+                        data-testid="course-assessment-manage-lesson-button"
                       >
                         Manage Assessments
                       </Button>
@@ -380,6 +385,7 @@ export const CourseAssessmentManagementPage: React.FC = () => {
                                   <IconButton
                                     size="small"
                                     onClick={() => handleEditAssessment(assessment.id)}
+                                    data-testid={`course-assessment-edit-${assessment.id}`}
                                   >
                                     <EditIcon />
                                   </IconButton>
@@ -388,6 +394,7 @@ export const CourseAssessmentManagementPage: React.FC = () => {
                                   <IconButton
                                     size="small"
                                     onClick={() => handleViewAssessment(assessment.id)}
+                                    data-testid={`course-assessment-analytics-${assessment.id}`}
                                   >
                                     <AnalyticsIcon />
                                   </IconButton>
@@ -396,6 +403,7 @@ export const CourseAssessmentManagementPage: React.FC = () => {
                                   <IconButton
                                     size="small"
                                     onClick={() => navigate(`/assessments/${assessment.id}?preview=true`)}
+                                    data-testid={`course-assessment-preview-${assessment.id}`}
                                   >
                                     <ViewIcon />
                                   </IconButton>
@@ -413,6 +421,7 @@ export const CourseAssessmentManagementPage: React.FC = () => {
                         variant="contained"
                         startIcon={<AddIcon />}
                         onClick={() => handleCreateAssessment(lesson.id)}
+                        data-testid="course-assessment-add-button"
                       >
                         Add Assessment
                       </Button>
@@ -420,6 +429,7 @@ export const CourseAssessmentManagementPage: React.FC = () => {
                         variant="outlined"
                         startIcon={<AssignmentIcon />}
                         onClick={() => handleManageLessonAssessments(lesson.id)}
+                        data-testid="course-assessment-manage-all-button"
                       >
                         Manage All
                       </Button>

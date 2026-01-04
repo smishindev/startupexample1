@@ -130,7 +130,7 @@ export const GroupMembersList: React.FC<GroupMembersListProps> = ({
   }
 
   return (
-    <Box>
+    <Box data-testid="group-members-list">
       <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
         <PersonIcon />
         Members ({members.length})
@@ -144,6 +144,7 @@ export const GroupMembersList: React.FC<GroupMembersListProps> = ({
           return (
             <ListItem
               key={member.Id}
+              data-testid={`group-member-item-${member.UserId}`}
               secondaryAction={
                 isAdmin && !isCurrentUser && (
                   <Box sx={{ display: 'flex', gap: 1 }}>
@@ -155,6 +156,7 @@ export const GroupMembersList: React.FC<GroupMembersListProps> = ({
                           onClick={() => handlePromote(member.UserId, member.UserName || 'Member')}
                           disabled={!!actionInProgress}
                           size="small"
+                          data-testid={`group-member-promote-${member.UserId}`}
                         >
                           <PromoteIcon />
                         </IconButton>
@@ -169,6 +171,7 @@ export const GroupMembersList: React.FC<GroupMembersListProps> = ({
                         disabled={!!actionInProgress}
                         color="error"
                         size="small"
+                        data-testid={`group-member-remove-${member.UserId}`}
                       >
                         <RemoveIcon />
                       </IconButton>

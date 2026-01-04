@@ -726,6 +726,7 @@ export const CourseDetailPage: React.FC = () => {
                           key={lesson.id}
                           onClick={() => handleLessonSelect(lesson)}
                           disabled={lesson.isLocked && !course.isEnrolled}
+                          data-testid={`course-detail-section-lesson-${lesson.id}-button`}
                           sx={{
                             px: 3,
                             py: 2,
@@ -972,7 +973,8 @@ export const CourseDetailPage: React.FC = () => {
                         navigate(`/my-learning`);
                       }
                     }}
-                    sx={{ 
+                    data-testid="course-continue-learning-button"
+                    sx={{{ 
                       mb: 2,
                       py: 2,
                       fontSize: '1.1rem',
@@ -994,7 +996,8 @@ export const CourseDetailPage: React.FC = () => {
                     size="large"
                     onClick={handlePurchase}
                     startIcon={<ShoppingCart />}
-                    sx={{ 
+                    data-testid="course-purchase-button"
+                    sx={{{ 
                       mb: 2,
                       py: 2,
                       fontSize: '1.1rem',
@@ -1016,6 +1019,7 @@ export const CourseDetailPage: React.FC = () => {
                     size="large"
                     onClick={handleEnroll}
                     disabled={isEnrolling}
+                    data-testid="course-enroll-button"
                     sx={{ 
                       mb: 2,
                       py: 2,
@@ -1041,7 +1045,8 @@ export const CourseDetailPage: React.FC = () => {
                   <Tooltip title="Bookmark" arrow>
                     <IconButton 
                       onClick={handleBookmark} 
-                      sx={{ 
+                      data-testid="course-detail-bookmark-button"
+                      sx={{{ 
                         flex: 1, 
                         border: '1px solid', 
                         borderColor: 'divider',
@@ -1056,9 +1061,10 @@ export const CourseDetailPage: React.FC = () => {
                     </IconButton>
                   </Tooltip>
                   <Tooltip title="Share" arrow>
-                    <IconButton 
-                      onClick={handleShare} 
-                      sx={{ 
+                    <IconButton
+                      onClick={handleShare}
+                      data-testid="course-detail-share-button"
+                      sx={{{ 
                         flex: 1, 
                         border: '1px solid', 
                         borderColor: 'divider',

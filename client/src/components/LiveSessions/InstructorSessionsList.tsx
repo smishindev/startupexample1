@@ -198,6 +198,7 @@ export const InstructorSessionsList: React.FC<InstructorSessionsListProps> = ({
           variant="contained"
           startIcon={<AddIcon />}
           onClick={() => setCreateModalOpen(true)}
+          data-testid="live-sessions-create-button"
           sx={{
             borderRadius: '12px',
             textTransform: 'none',
@@ -212,16 +213,17 @@ export const InstructorSessionsList: React.FC<InstructorSessionsListProps> = ({
       <Tabs
         value={activeTab}
         onChange={(_, newValue) => setActiveTab(newValue)}
+        data-testid="live-sessions-instructor-tabs"
         sx={{
           mb: 3,
           borderBottom: 1,
           borderColor: 'divider',
         }}
       >
-        <Tab label="All" />
-        <Tab label="Upcoming" />
-        <Tab label="Live" />
-        <Tab label="Past" />
+        <Tab label="All" data-testid="live-sessions-instructor-tab-all" />
+        <Tab label="Upcoming" data-testid="live-sessions-instructor-tab-upcoming" />
+        <Tab label="Live" data-testid="live-sessions-instructor-tab-live" />
+        <Tab label="Past" data-testid="live-sessions-instructor-tab-past" />
       </Tabs>
 
       {/* Content */}
@@ -232,7 +234,7 @@ export const InstructorSessionsList: React.FC<InstructorSessionsListProps> = ({
       ) : error ? (
         <Alert severity="error" sx={{ mb: 3 }}>
           {error}
-          <Button size="small" onClick={fetchSessions} sx={{ ml: 2 }}>
+          <Button size="small" onClick={fetchSessions} data-testid="live-sessions-retry-button" sx={{ ml: 2 }}>
             Retry
           </Button>
         </Alert>
@@ -266,6 +268,7 @@ export const InstructorSessionsList: React.FC<InstructorSessionsListProps> = ({
               variant="contained"
               startIcon={<AddIcon />}
               onClick={() => setCreateModalOpen(true)}
+              data-testid="live-sessions-create-first-button"
             >
               Create Your First Session
             </Button>

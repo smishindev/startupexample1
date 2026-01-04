@@ -290,6 +290,7 @@ const CourseDetail: React.FC = () => {
             variant="contained"
             startIcon={<ArrowBack />}
             onClick={() => navigate('/courses')}
+            data-testid="course-detail-back-button"
           >
             Back to Courses
           </Button>
@@ -305,10 +306,10 @@ const CourseDetail: React.FC = () => {
       <Container maxWidth="xl" sx={{ mt: 4, mb: 4, flex: 1 }}>
         {/* Breadcrumbs */}
         <Breadcrumbs sx={{ mb: 3 }}>
-          <Link component={RouterLink} to="/courses" underline="hover">
+          <Link component={RouterLink} to="/courses" underline="hover" data-testid="course-detail-breadcrumb-courses">
             Courses
           </Link>
-          <Link component={RouterLink} to={`/courses?category=${course.Category}`} underline="hover">
+          <Link component={RouterLink} to={`/courses?category=${course.Category}`} underline="hover" data-testid="course-detail-breadcrumb-category">
             {formatCategory(course.Category)}
           </Link>
           <Typography color="text.primary">{course.Title}</Typography>
@@ -394,7 +395,7 @@ const CourseDetail: React.FC = () => {
             <Box sx={{ mb: 4 }}>
               {/* Learning Outcomes */}
               {course.LearningOutcomes.length > 0 && (
-                <Accordion defaultExpanded>
+                <Accordion defaultExpanded data-testid="course-detail-learning-outcomes">
                   <AccordionSummary expandIcon={<ExpandMore />}>
                     <Typography variant="h6">What You'll Learn</Typography>
                   </AccordionSummary>
@@ -415,7 +416,7 @@ const CourseDetail: React.FC = () => {
 
               {/* Prerequisites */}
               {course.Prerequisites.length > 0 && (
-                <Accordion>
+                <Accordion data-testid="course-detail-prerequisites">
                   <AccordionSummary expandIcon={<ExpandMore />}>
                     <Typography variant="h6">Prerequisites</Typography>
                   </AccordionSummary>
@@ -435,7 +436,7 @@ const CourseDetail: React.FC = () => {
               )}
 
               {/* Course Content */}
-              <Accordion defaultExpanded>
+              <Accordion defaultExpanded data-testid="course-detail-content">
                 <AccordionSummary expandIcon={<ExpandMore />}>
                   <Typography variant="h6">
                     Course Content ({course.Lessons.length} lessons)
@@ -513,6 +514,7 @@ const CourseDetail: React.FC = () => {
                     startIcon={<SchoolIcon />}
                     onClick={() => navigate(`/instructor/courses/${course.Id}/edit`)}
                     sx={{ mb: 2 }}
+                    data-testid="course-detail-manage-button"
                   >
                     Manage Course
                   </Button>
@@ -524,6 +526,7 @@ const CourseDetail: React.FC = () => {
                     startIcon={<PlayCircleOutline />}
                     onClick={handleStartLearning}
                     sx={{ mb: 2 }}
+                    data-testid="course-detail-continue-button"
                   >
                     Continue Learning
                   </Button>
@@ -536,6 +539,7 @@ const CourseDetail: React.FC = () => {
                     onClick={handleEnroll}
                     disabled={enrolling}
                     sx={{ mb: 2 }}
+                    data-testid="course-detail-enroll-button"
                   >
                     {enrolling ? <CircularProgress size={24} /> : 'Enroll Now'}
                   </Button>
@@ -544,12 +548,12 @@ const CourseDetail: React.FC = () => {
                 {/* Action Buttons */}
                 <Box sx={{ display: 'flex', gap: 1 }}>
                   <Tooltip title="Bookmark">
-                    <IconButton onClick={handleBookmark}>
+                    <IconButton onClick={handleBookmark} data-testid="course-detail-bookmark-button">
                       {isBookmarked ? <Bookmark color="primary" /> : <BookmarkBorder />}
                     </IconButton>
                   </Tooltip>
                   <Tooltip title="Share">
-                    <IconButton onClick={handleShare}>
+                    <IconButton onClick={handleShare} data-testid="course-detail-share-button">
                       <Share />
                     </IconButton>
                   </Tooltip>
@@ -640,6 +644,7 @@ const CourseDetail: React.FC = () => {
           <Button 
             onClick={() => setEnrollmentDialog(false)}
             sx={{ mr: 'auto' }}
+            data-testid="enrollment-dialog-close-button"
           >
             Continue Browsing
           </Button>
@@ -649,6 +654,7 @@ const CourseDetail: React.FC = () => {
               setEnrollmentDialog(false);
               navigate('/my-learning');
             }}
+            data-testid="enrollment-dialog-my-learning-button"
           >
             View My Learning
           </Button>
@@ -665,6 +671,7 @@ const CourseDetail: React.FC = () => {
                 background: 'linear-gradient(90deg, #5568d3 0%, #65408b 100%)',
               }
             }}
+            data-testid="enrollment-dialog-start-button"
           >
             Start Learning
           </Button>

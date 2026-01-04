@@ -128,6 +128,7 @@ export const VideoTranscript: React.FC<VideoTranscriptProps> = ({
           Transcript
         </Typography>
         <TextField
+          data-testid="video-transcript-search"
           fullWidth
           size="small"
           placeholder="Search transcript..."
@@ -141,7 +142,7 @@ export const VideoTranscript: React.FC<VideoTranscriptProps> = ({
             ),
             endAdornment: searchTerm && (
               <InputAdornment position="end">
-                <IconButton size="small" onClick={handleClearSearch}>
+                <IconButton data-testid="video-transcript-clear-search" size="small" onClick={handleClearSearch}>
                   <Clear fontSize="small" />
                 </IconButton>
               </InputAdornment>
@@ -178,6 +179,7 @@ export const VideoTranscript: React.FC<VideoTranscriptProps> = ({
                   }}
                 >
                   <ListItemButton
+                    data-testid={`video-transcript-segment-${originalIndex}`}
                     onClick={() => handleSegmentClick(segment, originalIndex)}
                     sx={{ py: 2 }}
                   >

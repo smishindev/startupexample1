@@ -107,7 +107,7 @@ export const EnhancedAssessmentResults: React.FC<AssessmentResultsProps> = ({
   const incorrectAnswers = questions.length - correctAnswers;
 
   return (
-    <Box sx={{ p: 3, maxWidth: 1000, mx: 'auto' }}>
+    <Box sx={{ p: 3, maxWidth: 1000, mx: 'auto' }} data-testid="enhanced-assessment-results">
       {/* Main Results Card */}
       <Paper sx={{ p: 4, mb: 3 }}>
         <Box sx={{ textAlign: 'center', mb: 4 }}>
@@ -285,7 +285,7 @@ export const EnhancedAssessmentResults: React.FC<AssessmentResultsProps> = ({
 
           <List>
             {questions.map((question, index) => (
-              <Accordion key={question.id} sx={{ mb: 1 }}>
+              <Accordion key={question.id} sx={{ mb: 1 }} data-testid={`enhanced-results-question-${index + 1}`}>
                 <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                   <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
                     <Box sx={{ mr: 2 }}>
@@ -366,6 +366,7 @@ export const EnhancedAssessmentResults: React.FC<AssessmentResultsProps> = ({
               startIcon={<RetryIcon />}
               onClick={onRetake}
               sx={{ minWidth: 150 }}
+              data-testid="enhanced-results-retry-button"
             >
               {results.passed ? 'Retake' : 'Try Again'}
             </Button>
@@ -377,6 +378,7 @@ export const EnhancedAssessmentResults: React.FC<AssessmentResultsProps> = ({
             startIcon={<BackIcon />}
             onClick={onBackToCourse || (() => navigate(-1))}
             sx={{ minWidth: 150 }}
+            data-testid="enhanced-results-back-button"
           >
             Back to Course
           </Button>

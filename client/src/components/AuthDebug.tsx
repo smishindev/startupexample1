@@ -34,7 +34,7 @@ export const AuthDebug: React.FC = () => {
         <Typography><strong>User Role:</strong> {user?.role || 'None'}</Typography>
       </Box>
 
-      <Button variant="contained" onClick={testInstructorAPI}>
+      <Button variant="contained" onClick={testInstructorAPI} data-testid="auth-debug-test-api-button">
         Test Instructor API
       </Button>
     </Paper>

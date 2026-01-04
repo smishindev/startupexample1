@@ -191,6 +191,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({
 
   return (
     <Card
+      data-testid={`course-card-${course.id}`}
       sx={{
         height: variant === 'enrolled' ? 'auto' : 420,
         display: 'flex',
@@ -265,6 +266,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({
         <IconButton
           size="small"
           onClick={handleBookmarkClick}
+          data-testid={`course-card-bookmark-button-${course.id}`}
           sx={{
             backgroundColor: 'rgba(255, 255, 255, 0.9)',
             backdropFilter: 'blur(10px)',
@@ -281,6 +283,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({
         <IconButton
           size="small"
           onClick={handleShareClick}
+          data-testid={`course-card-share-button-${course.id}`}
           sx={{
             backgroundColor: 'rgba(255, 255, 255, 0.9)',
             backdropFilter: 'blur(10px)',
@@ -619,6 +622,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({
                 e.stopPropagation();
                 window.location.href = `/instructor/courses/${course.id}/edit`;
               }}
+              data-testid={`course-card-manage-button-${course.id}`}
               sx={{
                 textTransform: 'none',
                 fontWeight: 'bold',
@@ -647,6 +651,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({
               onClick={handleEnrollClick}
               disabled={isEnrolling}
               startIcon={isEnrolling ? <CircularProgress size={16} color="inherit" /> : null}
+              data-testid={`course-card-enroll-button-${course.id}`}
               sx={{
                 textTransform: 'none',
                 fontWeight: 'bold',
@@ -669,6 +674,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({
               variant="outlined"
               size="small"
               onClick={handleCardClick}
+              data-testid={`course-card-continue-button-${course.id}`}
               sx={{
                 textTransform: 'none',
                 fontWeight: 'bold',

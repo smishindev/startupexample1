@@ -187,6 +187,7 @@ const SettingsPage: React.FC = () => {
                       value={profileVisibility}
                       label="Who can see your profile"
                       onChange={(e) => setProfileVisibility(e.target.value)}
+                      data-testid="settings-profile-visibility-select"
                     >
                       <MenuItem value="public">Everyone</MenuItem>
                       <MenuItem value="students">Enrolled Students Only</MenuItem>
@@ -206,6 +207,7 @@ const SettingsPage: React.FC = () => {
                     <Switch
                       checked={showEmail}
                       onChange={(e) => setShowEmail(e.target.checked)}
+                      data-testid="settings-show-email-switch"
                     />
                   }
                   label={
@@ -224,6 +226,7 @@ const SettingsPage: React.FC = () => {
                     <Switch
                       checked={showProgress}
                       onChange={(e) => setShowProgress(e.target.checked)}
+                      data-testid="settings-show-progress-switch"
                     />
                   }
                   label={
@@ -242,6 +245,7 @@ const SettingsPage: React.FC = () => {
                     <Switch
                       checked={allowMessages}
                       onChange={(e) => setAllowMessages(e.target.checked)}
+                      data-testid="settings-allow-messages-switch"
                     />
                   }
                   label={
@@ -260,6 +264,7 @@ const SettingsPage: React.FC = () => {
                     onClick={handleSavePrivacy}
                     disabled={saving}
                     fullWidth
+                    data-testid="settings-save-privacy-button"
                   >
                     {saving ? 'Saving...' : 'Save Privacy Settings'}
                   </Button>
@@ -290,6 +295,7 @@ const SettingsPage: React.FC = () => {
                       value={theme}
                       label="Color theme"
                       onChange={(e) => setTheme(e.target.value)}
+                      data-testid="settings-theme-select"
                     >
                       <MenuItem value="light">Light</MenuItem>
                       <MenuItem value="dark">Dark</MenuItem>
@@ -357,6 +363,7 @@ const SettingsPage: React.FC = () => {
                     onClick={handleSaveAppearance}
                     disabled={saving}
                     fullWidth
+                    data-testid="settings-save-appearance-button"
                   >
                     {saving ? 'Saving...' : 'Save Appearance Settings'}
                   </Button>
@@ -390,6 +397,7 @@ const SettingsPage: React.FC = () => {
                     startIcon={<DownloadIcon />}
                     onClick={handleExportData}
                     fullWidth
+                    data-testid="settings-export-data-button"
                   >
                     Request Data Export
                   </Button>
@@ -421,6 +429,7 @@ const SettingsPage: React.FC = () => {
                     startIcon={<DeleteIcon />}
                     onClick={() => setDeleteDialog(true)}
                     fullWidth
+                    data-testid="settings-delete-account-button"
                   >
                     Delete My Account
                   </Button>
@@ -436,6 +445,7 @@ const SettingsPage: React.FC = () => {
           onClose={() => setDeleteDialog(false)}
           maxWidth="sm"
           fullWidth
+          data-testid="settings-delete-dialog"
         >
           <DialogTitle sx={{ color: 'error.main' }}>
             Delete Account?
@@ -456,13 +466,14 @@ const SettingsPage: React.FC = () => {
             </Alert>
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setDeleteDialog(false)}>
+            <Button onClick={() => setDeleteDialog(false)} data-testid="settings-delete-dialog-cancel">
               Cancel
             </Button>
             <Button
               onClick={handleDeleteAccount}
               color="error"
               variant="contained"
+              data-testid="settings-delete-dialog-confirm"
             >
               Yes, Delete My Account
             </Button>

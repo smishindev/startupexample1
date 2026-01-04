@@ -8,13 +8,13 @@ const Dashboard: React.FC = () => {
     <>
       <Header />
       <Container maxWidth="xl" sx={{ py: 4 }}>
-        <Typography variant="h4" fontWeight="bold" sx={{ mb: 3 }}>
+        <Typography variant="h4" fontWeight="bold" sx={{ mb: 3 }} data-testid="dashboard-header">
           Dashboard
         </Typography>
       
       <Grid container spacing={3}>
         <Grid item xs={12} md={6} lg={3}>
-          <Card>
+          <Card data-testid="dashboard-my-courses-card">
             <CardContent>
               <Typography variant="h6" color="primary">
                 My Courses
@@ -27,7 +27,7 @@ const Dashboard: React.FC = () => {
         </Grid>
         
         <Grid item xs={12} md={6} lg={3}>
-          <Card>
+          <Card data-testid="dashboard-study-hours-card">
             <CardContent>
               <Typography variant="h6" color="secondary">
                 Study Hours
@@ -40,7 +40,7 @@ const Dashboard: React.FC = () => {
         </Grid>
         
         <Grid item xs={12} md={6} lg={3}>
-          <Card>
+          <Card data-testid="dashboard-completed-card">
             <CardContent>
               <Typography variant="h6" color="success.main">
                 Completed
@@ -53,7 +53,7 @@ const Dashboard: React.FC = () => {
         </Grid>
         
         <Grid item xs={12} md={6} lg={3}>
-          <Card>
+          <Card data-testid="dashboard-in-progress-card">
             <CardContent>
               <Typography variant="h6" color="warning.main">
                 In Progress
@@ -70,7 +70,7 @@ const Dashboard: React.FC = () => {
         </Grid>
         
         <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 3 }}>
+          <Paper sx={{ p: 3 }} data-testid="dashboard-recent-activity">
             <Typography variant="h6" sx={{ mb: 2 }}>
               Recent Activity
             </Typography>

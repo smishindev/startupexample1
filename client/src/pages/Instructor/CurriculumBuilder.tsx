@@ -243,6 +243,7 @@ export const CurriculumBuilder: React.FC<CurriculumBuilderProps> = ({
           startIcon={<AddIcon />}
           onClick={handleAddLesson}
           size="large"
+          data-testid="curriculum-builder-add-lesson-button"
         >
           Add Lesson
         </Button>
@@ -337,6 +338,7 @@ export const CurriculumBuilder: React.FC<CurriculumBuilderProps> = ({
                                 onClick={() => handleMoveUp(index)}
                                 disabled={index === 0}
                                 sx={{ p: 0.5 }}
+                                data-testid="curriculum-builder-move-up-button"
                               >
                                 <ArrowUpIcon fontSize="small" />
                               </IconButton>
@@ -349,6 +351,7 @@ export const CurriculumBuilder: React.FC<CurriculumBuilderProps> = ({
                                 onClick={() => handleMoveDown(index)}
                                 disabled={index === lessons.length - 1}
                                 sx={{ p: 0.5 }}
+                                data-testid="curriculum-builder-move-down-button"
                               >
                                 <ArrowDownIcon fontSize="small" />
                               </IconButton>
@@ -359,6 +362,7 @@ export const CurriculumBuilder: React.FC<CurriculumBuilderProps> = ({
                         <IconButton
                           size="small"
                           onClick={(e) => handleMenuClick(e, lesson.id)}
+                          data-testid={`curriculum-builder-edit-menu-${lesson.id}-button`}
                         >
                           <MoreVertIcon />
                         </IconButton>
@@ -421,7 +425,7 @@ export const CurriculumBuilder: React.FC<CurriculumBuilderProps> = ({
         <MenuItem onClick={() => {
           const lesson = lessons.find(l => l.id === menuLessonId);
           if (lesson) handleEditLesson(lesson);
-        }}>
+        }} data-testid="curriculum-builder-menu-edit">
           <ListItemIcon>
             <EditIcon fontSize="small" />
           </ListItemIcon>
@@ -430,7 +434,7 @@ export const CurriculumBuilder: React.FC<CurriculumBuilderProps> = ({
         <MenuItem onClick={() => {
           const lesson = lessons.find(l => l.id === menuLessonId);
           if (lesson) handleDeleteLesson(lesson);
-        }}>
+        }} data-testid="curriculum-builder-menu-delete">
           <ListItemIcon>
             <DeleteIcon fontSize="small" />
           </ListItemIcon>
@@ -441,6 +445,7 @@ export const CurriculumBuilder: React.FC<CurriculumBuilderProps> = ({
       <Dialog
         open={deleteConfirmOpen}
         onClose={() => setDeleteConfirmOpen(false)}
+        data-testid="curriculum-builder-delete-dialog"
       >
         <DialogTitle>Delete Lesson</DialogTitle>
         <DialogContent>
@@ -449,8 +454,8 @@ export const CurriculumBuilder: React.FC<CurriculumBuilderProps> = ({
           </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDeleteConfirmOpen(false)}>Cancel</Button>
-          <Button onClick={confirmDeleteLesson} color="error" variant="contained">
+          <Button onClick={() => setDeleteConfirmOpen(false)} data-testid="curriculum-builder-delete-cancel-button">Cancel</Button>
+          <Button onClick={confirmDeleteLesson} color="error" variant="contained" data-testid="curriculum-builder-delete-confirm-button">
             Delete
           </Button>
         </DialogActions>

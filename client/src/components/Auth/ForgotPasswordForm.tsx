@@ -186,6 +186,7 @@ export const ForgotPasswordForm: React.FC = () => {
               autoComplete="email"
               autoFocus
               disabled={isLoading}
+              inputProps={{ 'data-testid': 'forgot-password-email-input' }}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -202,6 +203,7 @@ export const ForgotPasswordForm: React.FC = () => {
               size="large"
               disabled={isLoading}
               sx={{ mt: 3, mb: 2, py: 1.5 }}
+              data-testid="forgot-password-submit-button"
             >
               {isLoading ? (
                 <>
@@ -220,6 +222,7 @@ export const ForgotPasswordForm: React.FC = () => {
                 variant="body2"
                 underline="hover"
                 sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}
+                data-testid="forgot-password-back-to-login-link"
               >
                 <ArrowBack fontSize="small" />
                 Back to Login

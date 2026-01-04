@@ -232,6 +232,7 @@ export const StudentSessionsList: React.FC<StudentSessionsListProps> = ({
           value={selectedCourse}
           onChange={(e) => setSelectedCourse(e.target.value)}
           size="small"
+          data-testid="live-sessions-student-course-select"
           sx={{ mb: 3, minWidth: 250 }}
         >
           <MenuItem key="all" value="all">All Courses</MenuItem>
@@ -247,16 +248,18 @@ export const StudentSessionsList: React.FC<StudentSessionsListProps> = ({
       <Tabs
         value={activeTab}
         onChange={(_, newValue) => setActiveTab(newValue)}
+        data-testid="live-sessions-student-tabs"
         sx={{
           mb: 3,
           borderBottom: 1,
           borderColor: 'divider',
         }}
       >
-        <Tab label="All" />
-        <Tab label="Upcoming" />
+        <Tab label="All" data-testid="live-sessions-student-tab-all" />
+        <Tab label="Upcoming" data-testid="live-sessions-student-tab-upcoming" />
         <Tab 
           label="Live Now" 
+          data-testid="live-sessions-student-tab-live"
           sx={{
             color: activeTab === 2 ? theme.palette.error.main : undefined,
             '&.Mui-selected': {
@@ -264,7 +267,7 @@ export const StudentSessionsList: React.FC<StudentSessionsListProps> = ({
             },
           }}
         />
-        <Tab label="Past" />
+        <Tab label="Past" data-testid="live-sessions-student-tab-past" />
       </Tabs>
 
       {/* Content */}

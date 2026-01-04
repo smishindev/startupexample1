@@ -453,6 +453,7 @@ const NotificationSettingsPage: React.FC = () => {
                 <Switch
                   checked={getToggleValue('EnableInAppNotifications')}
                   onChange={handleGlobalToggle('EnableInAppNotifications')}
+                  data-testid="notifications-settings-enable-in-app-switch"
                 />
               }
               label={
@@ -472,6 +473,7 @@ const NotificationSettingsPage: React.FC = () => {
                 <Switch
                   checked={getToggleValue('EnableEmailNotifications')}
                   onChange={handleGlobalToggle('EnableEmailNotifications')}
+                  data-testid="notifications-settings-enable-email-switch"
                 />
               }
               label={
@@ -492,6 +494,7 @@ const NotificationSettingsPage: React.FC = () => {
                     value={getDigestFrequency()}
                     label="Email Frequency"
                     onChange={handleDigestFrequencyChange}
+                    data-testid="notifications-settings-email-frequency-select"
                   >
                     <MenuItem value="realtime">Realtime (immediate)</MenuItem>
                     <MenuItem value="daily">Daily Digest (8 AM)</MenuItem>
@@ -531,6 +534,7 @@ const NotificationSettingsPage: React.FC = () => {
                   checked={getToggleValue('EnableProgressUpdates')}
                   onChange={handleCategoryToggle('EnableProgressUpdates')}
                   onClick={(e) => e.stopPropagation()}
+                  data-testid="notifications-settings-category-progress-switch"
                 />
                 <Box sx={{ flex: 1 }}>
                   <Typography variant="h6">📊 Progress Updates</Typography>
@@ -975,6 +979,7 @@ const NotificationSettingsPage: React.FC = () => {
             onClick={savePreferences}
             disabled={saving}
             startIcon={saving ? <CircularProgress size={20} /> : <CheckCircleIcon />}
+            data-testid="notifications-settings-save-button"
           >
             {saving ? 'Saving...' : 'Save Settings'}
           </Button>

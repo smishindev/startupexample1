@@ -88,13 +88,14 @@ export const TokenExpirationWarning: React.FC = () => {
       open={showWarning}
       anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
       onClose={handleClose}
+      data-testid="token-expiration-warning"
     >
       <Alert
         severity="warning"
         variant="filled"
         onClose={handleClose}
         action={
-          <Button color="inherit" size="small" onClick={handleRefresh}>
+          <Button color="inherit" size="small" onClick={handleRefresh} data-testid="token-extend-session-button">
             EXTEND SESSION
           </Button>
         }

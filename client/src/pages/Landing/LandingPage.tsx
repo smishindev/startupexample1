@@ -99,6 +99,7 @@ const LandingPage: React.FC = () => {
                 variant="outlined"
                 onClick={() => navigate('/login')}
                 sx={{ borderRadius: 3 }}
+                data-testid="landing-signin-button"
               >
                 Sign In
               </Button>
@@ -106,6 +107,7 @@ const LandingPage: React.FC = () => {
                 variant="contained"
                 onClick={() => navigate('/register')}
                 sx={{ borderRadius: 3 }}
+                data-testid="landing-getstarted-button"
               >
                 Get Started
               </Button>
@@ -163,6 +165,7 @@ const LandingPage: React.FC = () => {
               variant="contained"
               size="large"
               onClick={() => navigate('/register')}
+              data-testid="landing-start-learning-button"
               sx={{
                 bgcolor: 'white',
                 color: 'primary.main',
@@ -194,6 +197,7 @@ const LandingPage: React.FC = () => {
                   bgcolor: 'rgba(255, 255, 255, 0.1)',
                 },
               }}
+              data-testid="landing-watch-demo-button"
             >
               Watch Demo
             </Button>
@@ -315,6 +319,7 @@ const LandingPage: React.FC = () => {
               fontWeight: 600,
               borderRadius: 3,
             }}
+            data-testid="landing-cta-button"
           >
             Start Your Journey Today
           </Button>

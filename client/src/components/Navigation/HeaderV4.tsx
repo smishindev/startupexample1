@@ -164,10 +164,10 @@ export const HeaderV4 = () => {
 
   // Profile menu items with notifications
   const profileMenuItems = [
-    { text: 'Profile', icon: <AccountCircle />, action: () => navigate('/profile') },
-    { text: 'Notifications', icon: <NotificationsIcon />, action: () => navigate('/notifications') },
-    { text: 'Settings', icon: <SettingsIcon />, action: () => navigate('/settings') },
-    { text: 'Logout', icon: <ExitToAppIcon />, action: handleLogout },
+    { text: 'Profile', icon: <AccountCircle />, action: () => navigate('/profile'), testId: 'header-profile-menu-item-profile' },
+    { text: 'Notifications', icon: <NotificationsIcon />, action: () => navigate('/notifications'), testId: 'header-profile-menu-item-notifications' },
+    { text: 'Settings', icon: <SettingsIcon />, action: () => navigate('/settings'), testId: 'header-profile-menu-item-settings' },
+    { text: 'Logout', icon: <ExitToAppIcon />, action: handleLogout, testId: 'header-profile-menu-item-logout' },
   ];
 
   // Mobile menu
@@ -182,7 +182,7 @@ export const HeaderV4 = () => {
         <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <SchoolIcon /> Mishin Learn
         </Typography>
-        <IconButton onClick={() => setMobileMenuOpen(false)}>
+        <IconButton onClick={() => setMobileMenuOpen(false)} data-testid="header-mobile-close-button">
           <CloseIcon />
         </IconButton>
       </Box>
@@ -190,7 +190,7 @@ export const HeaderV4 = () => {
 
       <List sx={{ px: 1 }}>
         {/* Learning Section */}
-        <ListItem button onClick={() => setLearningExpanded(!learningExpanded)}>
+        <ListItem button onClick={() => setLearningExpanded(!learningExpanded)} data-testid="header-mobile-learning-toggle">
           <ListItemText primary="Learning" />
           {learningExpanded ? <ExpandLess /> : <ExpandMore />}
         </ListItem>
@@ -203,6 +203,7 @@ export const HeaderV4 = () => {
                 component={Link}
                 to={item.path}
                 onClick={() => setMobileMenuOpen(false)}
+                data-testid={`header-mobile-${item.text.toLowerCase().replace(/\s+/g, '-')}`}
                 sx={{ pl: 4, borderRadius: 2, mb: 0.5 }}
               >
                 <ListItemIcon>{item.icon}</ListItemIcon>
@@ -213,7 +214,7 @@ export const HeaderV4 = () => {
         </Collapse>
 
         {/* Collaboration Section */}
-        <ListItem button onClick={() => setCollaborationExpanded(!collaborationExpanded)}>
+        <ListItem button onClick={() => setCollaborationExpanded(!collaborationExpanded)} data-testid="header-mobile-collaboration-toggle">
           <ListItemText primary="Collaboration" />
           {collaborationExpanded ? <ExpandLess /> : <ExpandMore />}
         </ListItem>
@@ -226,6 +227,7 @@ export const HeaderV4 = () => {
                 component={Link}
                 to={item.path}
                 onClick={() => setMobileMenuOpen(false)}
+                data-testid={`header-mobile-${item.text.toLowerCase().replace(/\s+/g, '-')}`}
                 sx={{ pl: 4, borderRadius: 2, mb: 0.5 }}
               >
                 <ListItemIcon>{item.icon}</ListItemIcon>
@@ -236,7 +238,7 @@ export const HeaderV4 = () => {
         </Collapse>
 
         {/* Tools Section */}
-        <ListItem button onClick={() => setToolsExpanded(!toolsExpanded)}>
+        <ListItem button onClick={() => setToolsExpanded(!toolsExpanded)} data-testid="header-mobile-tools-toggle">
           <ListItemText primary="Tools" />
           {toolsExpanded ? <ExpandLess /> : <ExpandMore />}
         </ListItem>
@@ -249,6 +251,7 @@ export const HeaderV4 = () => {
                 component={Link}
                 to={item.path}
                 onClick={() => setMobileMenuOpen(false)}
+                data-testid={`header-mobile-${item.text.toLowerCase().replace(/\s+/g, '-')}`}
                 sx={{ pl: 4, borderRadius: 2, mb: 0.5 }}
               >
                 <ListItemIcon>{item.icon}</ListItemIcon>
@@ -261,7 +264,7 @@ export const HeaderV4 = () => {
         {/* Instructor Section */}
         {user?.role === 'instructor' && (
           <>
-            <ListItem button onClick={() => setInstructorExpanded(!instructorExpanded)}>
+            <ListItem button onClick={() => setInstructorExpanded(!instructorExpanded)} data-testid="header-mobile-instructor-toggle">
               <ListItemText primary="Instructor" />
               {instructorExpanded ? <ExpandLess /> : <ExpandMore />}
             </ListItem>
@@ -274,6 +277,7 @@ export const HeaderV4 = () => {
                     component={Link}
                     to={item.path}
                     onClick={() => setMobileMenuOpen(false)}
+                    data-testid={`header-mobile-${item.text.toLowerCase().replace(/\s+/g, '-')}`}
                     sx={{ pl: 4, borderRadius: 2, mb: 0.5 }}
                   >
                     <ListItemIcon>{item.icon}</ListItemIcon>
@@ -298,6 +302,7 @@ export const HeaderV4 = () => {
               item.action();
               setMobileMenuOpen(false);
             }}
+            data-testid={`header-mobile-profile-${item.text.toLowerCase()}`}
             sx={{ borderRadius: 2, mb: 0.5 }}
           >
             <ListItemIcon>{item.icon}</ListItemIcon>
@@ -326,6 +331,7 @@ export const HeaderV4 = () => {
               aria-label="open drawer"
               onClick={() => setMobileMenuOpen(true)}
               sx={{ mr: 2 }}
+              data-testid="header-mobile-menu-button"
             >
               <MenuIcon />
             </IconButton>
@@ -371,7 +377,7 @@ export const HeaderV4 = () => {
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
                 </form>
-                <IconButton color="inherit" onClick={() => setSearchExpanded(false)}>
+                <IconButton color="inherit" onClick={() => setSearchExpanded(false)} data-testid="header-search-close-button">
                   <CloseIcon />
                 </IconButton>
               </Box>
@@ -379,6 +385,7 @@ export const HeaderV4 = () => {
               <IconButton
                 color="inherit"
                 onClick={() => setSearchExpanded(true)}
+                data-testid="header-search-expand-button"
                 sx={{
                   backgroundColor: alpha(theme.palette.common.white, 0.15),
                   '&:hover': {
@@ -399,6 +406,7 @@ export const HeaderV4 = () => {
                   placeholder="Search courses, topics..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
+                  data-testid="header-search-input"
                 />
               </form>
             </Search>
@@ -413,6 +421,7 @@ export const HeaderV4 = () => {
               edge="end"
               onClick={handleProfileMenuOpen}
               color="inherit"
+              data-testid="header-profile-menu-button"
             >
               <Avatar
                 src={user?.avatar || undefined}
@@ -456,6 +465,7 @@ export const HeaderV4 = () => {
                 component={Link}
                 to="/dashboard"
                 startIcon={<DashboardIcon fontSize="small" />}
+                data-testid="header-nav-dashboard"
                 sx={{
                   color: 'white',
                   textTransform: 'none',
@@ -494,6 +504,7 @@ export const HeaderV4 = () => {
                   component={Link}
                   to={item.path}
                   startIcon={item.icon}
+                  data-testid={`header-nav-${item.text.toLowerCase().replace(/\s+/g, '-')}`}
                   sx={{
                     color: 'white',
                     textTransform: 'none',
@@ -545,6 +556,7 @@ export const HeaderV4 = () => {
                       component={Link}
                       to={item.path}
                       startIcon={item.icon}
+                      data-testid={`header-nav-${item.text.toLowerCase().replace(/\s+/g, '-')}`}
                       sx={{
                         color: 'white',
                         textTransform: 'none',
@@ -608,6 +620,7 @@ export const HeaderV4 = () => {
               item.action();
               handleMenuClose();
             }}
+            data-testid={item.testId}
           >
             <ListItemIcon>{item.icon}</ListItemIcon>
             <ListItemText>{item.text}</ListItemText>

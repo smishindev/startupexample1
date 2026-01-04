@@ -738,6 +738,7 @@ export const CourseCreationForm: React.FC = () => {
                   onChange={(e) => handleInputChange('title', e.target.value)}
                   margin="normal"
                   required
+                  data-testid="course-creation-title-input"
                 />
                 
                 <TextField
@@ -747,6 +748,7 @@ export const CourseCreationForm: React.FC = () => {
                   onChange={(e) => handleInputChange('subtitle', e.target.value)}
                   margin="normal"
                   helperText="A brief, catchy subtitle for your course"
+                  data-testid="course-creation-subtitle-input"
                 />
                 
                 <TextField
@@ -758,6 +760,7 @@ export const CourseCreationForm: React.FC = () => {
                   onChange={(e) => handleInputChange('description', e.target.value)}
                   margin="normal"
                   required
+                  data-testid="course-creation-description-input"
                 />
                 
                 <Grid container spacing={2} sx={{ mt: 2 }}>
@@ -768,6 +771,7 @@ export const CourseCreationForm: React.FC = () => {
                         value={courseData.category}
                         onChange={(e) => handleInputChange('category', e.target.value)}
                         label="Category"
+                        data-testid="course-creation-category-select"
                       >
                         {categories.map((cat) => (
                           <MenuItem key={cat.value} value={cat.value}>{cat.label}</MenuItem>
@@ -782,6 +786,7 @@ export const CourseCreationForm: React.FC = () => {
                         value={courseData.level}
                         onChange={(e) => handleInputChange('level', e.target.value)}
                         label="Level"
+                        data-testid="course-creation-level-select"
                       >
                         {levels.map((level) => (
                           <MenuItem key={level} value={level}>{level}</MenuItem>
@@ -810,6 +815,7 @@ export const CourseCreationForm: React.FC = () => {
                       label="Price"
                       value={courseData.price || ''}
                       onChange={(e) => handleInputChange('price', parseFloat(e.target.value) || 0)}
+                      data-testid="course-creation-price-input"
                       InputProps={{
                         startAdornment: <InputAdornment position="start">$</InputAdornment>,
                       }}
@@ -867,6 +873,7 @@ export const CourseCreationForm: React.FC = () => {
                     variant="outlined"
                     onClick={() => fileInputRef.current?.click()}
                     fullWidth
+                    data-testid="course-creation-thumbnail-upload-button"
                   >
                     {thumbnailPreview ? 'Change Thumbnail' : 'Upload Thumbnail'}
                   </Button>
@@ -898,7 +905,7 @@ export const CourseCreationForm: React.FC = () => {
                     onChange={(e) => setNewTag(e.target.value)}
                     onKeyPress={(e) => e.key === 'Enter' && addTag()}
                   />
-                  <Button onClick={addTag} disabled={!newTag.trim()}>
+                  <Button onClick={addTag} disabled={!newTag.trim()} data-testid="course-creation-add-tag-button">
                     Add
                   </Button>
                 </Box>
@@ -920,6 +927,7 @@ export const CourseCreationForm: React.FC = () => {
                     variant="contained"
                     startIcon={<AddIcon />}
                     onClick={addLesson}
+                    data-testid="course-creation-add-lesson-button"
                   >
                     Add Lesson
                   </Button>
@@ -973,7 +981,7 @@ export const CourseCreationForm: React.FC = () => {
                             {lesson.duration} min
                           </Typography>
                         )}
-                        <IconButton onClick={() => removeLesson(lesson.id)} color="error">
+                        <IconButton onClick={() => removeLesson(lesson.id)} color="error" data-testid={`course-creation-remove-lesson-${lesson.id}-button`}>
                           <DeleteIcon />
                         </IconButton>
                       </ListItem>
@@ -1001,7 +1009,7 @@ export const CourseCreationForm: React.FC = () => {
                   {(courseData.requirements || []).map((req) => (
                     <ListItem key={req} dense>
                       <ListItemText primary={req} />
-                      <IconButton onClick={() => removeRequirement(req)} size="small">
+                      <IconButton onClick={() => removeRequirement(req)} size="small" data-testid={`course-creation-remove-requirement-button`}>
                         <DeleteIcon fontSize="small" />
                       </IconButton>
                     </ListItem>
@@ -1016,7 +1024,7 @@ export const CourseCreationForm: React.FC = () => {
                     onKeyPress={(e) => e.key === 'Enter' && addRequirement()}
                     fullWidth
                   />
-                  <Button onClick={addRequirement} disabled={!newRequirement.trim()}>
+                  <Button onClick={addRequirement} disabled={!newRequirement.trim()} data-testid="course-creation-add-requirement-button">
                     Add
                   </Button>
                 </Box>
@@ -1030,7 +1038,7 @@ export const CourseCreationForm: React.FC = () => {
                   {(courseData.whatYouWillLearn || []).map((point) => (
                     <ListItem key={point} dense>
                       <ListItemText primary={point} />
-                      <IconButton onClick={() => removeLearningPoint(point)} size="small">
+                      <IconButton onClick={() => removeLearningPoint(point)} size="small" data-testid={`course-creation-remove-learning-point-button`}>
                         <DeleteIcon fontSize="small" />
                       </IconButton>
                     </ListItem>
@@ -1045,7 +1053,7 @@ export const CourseCreationForm: React.FC = () => {
                     onKeyPress={(e) => e.key === 'Enter' && addLearningPoint()}
                     fullWidth
                   />
-                  <Button onClick={addLearningPoint} disabled={!newLearningPoint.trim()}>
+                  <Button onClick={addLearningPoint} disabled={!newLearningPoint.trim()} data-testid="course-creation-add-learning-point-button">
                     Add
                   </Button>
                 </Box>
@@ -1185,6 +1193,7 @@ export const CourseCreationForm: React.FC = () => {
           onClick={() => navigate('/instructor/dashboard')}
           color="inherit"
           sx={{ borderRadius: 2 }}
+          data-testid="course-creation-cancel-button"
         >
           Cancel
         </Button>
@@ -1195,12 +1204,13 @@ export const CourseCreationForm: React.FC = () => {
             startIcon={<SaveIcon />}
             onClick={saveDraft}
             disabled={saving}
+            data-testid="course-creation-save-draft-button"
           >
             Save Draft
           </Button>
           
           {activeStep > 0 && (
-            <Button onClick={handleBack}>
+            <Button onClick={handleBack} data-testid="course-creation-back-button">
               Back
             </Button>
           )}
@@ -1210,6 +1220,7 @@ export const CourseCreationForm: React.FC = () => {
               variant="contained"
               onClick={handleNext}
               disabled={!courseData.title || !courseData.description}
+              data-testid="course-creation-next-button"
             >
               Next
             </Button>
@@ -1219,6 +1230,7 @@ export const CourseCreationForm: React.FC = () => {
               startIcon={<PublishIcon />}
               onClick={publishCourse}
               disabled={saving || !courseData.title || !courseData.description}
+              data-testid="course-creation-publish-button"
             >
               Publish Course
             </Button>
@@ -1401,8 +1413,8 @@ export const CourseCreationForm: React.FC = () => {
           </Grid>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setLessonDialogOpen(false)}>Cancel</Button>
-          <Button onClick={saveLesson} variant="contained">
+          <Button onClick={() => setLessonDialogOpen(false)} data-testid="course-creation-lesson-dialog-cancel-button">Cancel</Button>
+          <Button onClick={saveLesson} variant="contained" data-testid="course-creation-lesson-dialog-add-button">
             Add Lesson
           </Button>
         </DialogActions>
@@ -1519,7 +1531,7 @@ export const CourseCreationForm: React.FC = () => {
           )}
           {uploadProgress.status === 'error' && (
             <>
-              <Button onClick={() => setUploadProgress(prev => ({ ...prev, isOpen: false }))}>
+              <Button onClick={() => setUploadProgress(prev => ({ ...prev, isOpen: false }))} data-testid="course-creation-upload-close-button">
                 Close
               </Button>
               <Button 

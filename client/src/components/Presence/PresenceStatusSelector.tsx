@@ -83,6 +83,7 @@ const PresenceStatusSelector: React.FC = () => {
           onClick={handleClick}
           size="small"
           disabled={updating}
+          data-testid="presence-status-button"
           sx={{
             background: 'rgba(255, 255, 255, 0.9)',
             backdropFilter: 'blur(10px)',
@@ -132,6 +133,7 @@ const PresenceStatusSelector: React.FC = () => {
             key={status}
             onClick={() => handleStatusSelect(status)}
             selected={status === currentStatus}
+            data-testid={`presence-status-${status}`}
           >
             <ListItemIcon>
               {getStatusIcon(status)}

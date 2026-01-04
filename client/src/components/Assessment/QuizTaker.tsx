@@ -273,7 +273,7 @@ const TraditionalQuizTaker: React.FC<TraditionalQuizTakerProps> = ({ assessmentI
     const questionDifficulty = question.Difficulty || question.difficulty;
 
     return (
-      <Card sx={{ mb: 3 }}>
+      <Card sx={{ mb: 3 }} data-testid={`assessment-question-card-${index + 1}`}>
         <CardContent>
           <Box sx={{ mb: 2 }}>
             <Typography variant="h6" gutterBottom>
@@ -300,6 +300,7 @@ const TraditionalQuizTaker: React.FC<TraditionalQuizTakerProps> = ({ assessmentI
               <RadioGroup
                 value={userAnswer || ''}
                 onChange={(e) => updateAnswer(questionId, e.target.value)}
+                data-testid={`assessment-multiple-choice-${index + 1}`}
               >
                 {questionOptions?.map((option: string, optionIndex: number) => (
                   <FormControlLabel
@@ -319,6 +320,7 @@ const TraditionalQuizTaker: React.FC<TraditionalQuizTakerProps> = ({ assessmentI
               <RadioGroup
                 value={userAnswer !== undefined ? userAnswer.toString() : ''}
                 onChange={(e) => updateAnswer(questionId, e.target.value === 'true')}
+                data-testid={`assessment-true-false-${index + 1}`}
               >
                 <FormControlLabel value="true" control={<Radio />} label="True" />
                 <FormControlLabel value="false" control={<Radio />} label="False" />
@@ -336,6 +338,7 @@ const TraditionalQuizTaker: React.FC<TraditionalQuizTakerProps> = ({ assessmentI
               onChange={(e) => updateAnswer(questionId, e.target.value)}
               placeholder="Enter your answer here..."
               variant="outlined"
+              data-testid={`assessment-short-answer-${index + 1}`}
             />
           )}
 
@@ -349,6 +352,7 @@ const TraditionalQuizTaker: React.FC<TraditionalQuizTakerProps> = ({ assessmentI
               onChange={(e) => updateAnswer(questionId, e.target.value)}
               placeholder="Write your essay response here..."
               variant="outlined"
+              data-testid={`assessment-essay-${index + 1}`}
             />
           )}
 
@@ -462,6 +466,7 @@ const TraditionalQuizTaker: React.FC<TraditionalQuizTakerProps> = ({ assessmentI
             <Button
               variant="outlined"
               onClick={() => navigate(-1)}
+              data-testid="assessment-cancel-button"
             >
               Cancel
             </Button>
@@ -470,6 +475,7 @@ const TraditionalQuizTaker: React.FC<TraditionalQuizTakerProps> = ({ assessmentI
               onClick={startAssessment}
               disabled={!canTakeAssessment || loading}
               size="large"
+              data-testid="assessment-start-button"
             >
               Start Assessment
             </Button>
@@ -592,6 +598,7 @@ const TraditionalQuizTaker: React.FC<TraditionalQuizTakerProps> = ({ assessmentI
               variant="contained"
               onClick={handleSubmit}
               disabled={submitting}
+              data-testid="assessment-submit-button"
             >
               {submitting ? 'Submitting...' : 'Submit Assessment'}
             </Button>
@@ -624,7 +631,7 @@ const TraditionalQuizTaker: React.FC<TraditionalQuizTakerProps> = ({ assessmentI
       </Box>
 
       {/* Submit confirmation dialog */}
-      <Dialog open={confirmSubmitOpen} onClose={() => setConfirmSubmitOpen(false)}>
+      <Dialog open={confirmSubmitOpen} onClose={() => setConfirmSubmitOpen(false)} data-testid="assessment-submit-dialog">
         <DialogTitle>Submit Assessment?</DialogTitle>
         <DialogContent>
           <Typography>
@@ -640,13 +647,14 @@ const TraditionalQuizTaker: React.FC<TraditionalQuizTakerProps> = ({ assessmentI
           })()}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setConfirmSubmitOpen(false)}>
+          <Button onClick={() => setConfirmSubmitOpen(false)} data-testid="assessment-submit-dialog-cancel">
             Cancel
           </Button>
           <Button 
             onClick={() => submitAssessment()} 
             variant="contained"
             disabled={submitting}
+            data-testid="assessment-submit-dialog-confirm"
           >
             {submitting ? 'Submitting...' : 'Submit'}
           </Button>

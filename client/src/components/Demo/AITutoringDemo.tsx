@@ -90,6 +90,7 @@ const AITutoringDemo: React.FC = () => {
           size="large"
           onClick={() => navigate('/tutoring')}
           sx={{ mr: 2 }}
+          data-testid="ai-demo-try-button"
         >
           Try AI Tutoring
         </Button>
@@ -97,6 +98,7 @@ const AITutoringDemo: React.FC = () => {
           variant="outlined"
           size="large"
           onClick={() => navigate('/dashboard')}
+          data-testid="ai-demo-back-button"
         >
           Back to Dashboard
         </Button>
@@ -174,6 +176,7 @@ const AITutoringDemo: React.FC = () => {
                 // Could add a toast notification here
               }}
               sx={{ cursor: 'pointer', mb: 1 }}
+              data-testid={`ai-demo-question-${index}`}
             />
           ))}
         </Box>

@@ -190,6 +190,7 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = ({ instructorId, o
           variant="contained"
           startIcon={<AddIcon />}
           onClick={() => handleOpenDialog()}
+          data-testid="schedule-add-button"
         >
           Add Schedule
         </Button>
@@ -241,6 +242,7 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = ({ instructorId, o
                       size="small"
                       startIcon={<EditIcon />}
                       onClick={() => handleOpenDialog(schedule)}
+                      data-testid="schedule-edit-button"
                     >
                       Edit
                     </Button>
@@ -248,6 +250,7 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = ({ instructorId, o
                       size="small"
                       color={schedule.IsActive ? 'warning' : 'success'}
                       onClick={() => handleToggleActive(schedule)}
+                      data-testid="schedule-toggle-button"
                     >
                       {schedule.IsActive ? 'Deactivate' : 'Activate'}
                     </Button>
@@ -256,6 +259,7 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = ({ instructorId, o
                       color="error"
                       startIcon={<DeleteIcon />}
                       onClick={() => handleDelete(schedule.Id)}
+                      data-testid="schedule-delete-button"
                     >
                       Delete
                     </Button>
@@ -268,7 +272,7 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = ({ instructorId, o
       )}
 
       {/* Create/Edit Dialog */}
-      <Dialog open={dialogOpen} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
+      <Dialog open={dialogOpen} onClose={handleCloseDialog} maxWidth="sm" fullWidth data-testid="schedule-dialog">
         <DialogTitle>
           {editingSchedule ? 'Edit Office Hours' : 'Add Office Hours'}
         </DialogTitle>
@@ -280,6 +284,7 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = ({ instructorId, o
                 value={formData.dayOfWeek}
                 onChange={(e) => setFormData({ ...formData, dayOfWeek: Number(e.target.value) })}
                 label="Day of Week"
+                data-testid="schedule-day-select"
               >
                 <MenuItem value={0}>Sunday</MenuItem>
                 <MenuItem value={1}>Monday</MenuItem>
@@ -299,6 +304,7 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = ({ instructorId, o
               value={formData.startTime}
               onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
               InputLabelProps={{ shrink: true }}
+              data-testid="schedule-start-time-input"
             />
 
             <TextField
@@ -309,6 +315,7 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = ({ instructorId, o
               value={formData.endTime}
               onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
               InputLabelProps={{ shrink: true }}
+              data-testid="schedule-end-time-input"
             />
 
             <Alert severity="info" sx={{ mt: 2 }}>
@@ -317,13 +324,14 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = ({ instructorId, o
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseDialog} disabled={submitting}>
+          <Button onClick={handleCloseDialog} disabled={submitting} data-testid="schedule-dialog-cancel">
             Cancel
           </Button>
           <Button
             onClick={handleSubmit}
             variant="contained"
             disabled={submitting}
+            data-testid="schedule-dialog-submit"
           >
             {submitting ? <CircularProgress size={24} /> : editingSchedule ? 'Update' : 'Create'}
           </Button>

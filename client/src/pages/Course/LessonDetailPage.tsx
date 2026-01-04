@@ -460,6 +460,7 @@ export const LessonDetailPage: React.FC = () => {
             variant="contained" 
             sx={{ mt: 2, display: 'block', mx: 'auto' }}
             onClick={() => navigate(`/courses/${courseId}`)}
+            data-testid="lesson-detail-back-to-course-button"
           >
             Back to Course
           </Button>
@@ -488,6 +489,7 @@ export const LessonDetailPage: React.FC = () => {
                 mr: 1,
                 '&:hover': { bgcolor: 'action.hover' }
               }}
+              data-testid="lesson-detail-back-button"
             >
               <ArrowBack />
             </IconButton>
@@ -515,6 +517,7 @@ export const LessonDetailPage: React.FC = () => {
                 borderColor: 'divider',
                 '&:hover': { bgcolor: 'action.hover' }
               }}
+              data-testid="lesson-detail-toc-toggle-button"
             >
               <MenuIcon />
             </IconButton>
@@ -710,6 +713,7 @@ export const LessonDetailPage: React.FC = () => {
                   onClick={() => navigate(`/courses/${courseId}/lessons/${lesson.nextLessonId}`)}
                   startIcon={<PlayCircleOutline />}
                   sx={{ mt: 1 }}
+                  data-testid="lesson-detail-continue-next-button"
                 >
                   Continue to Next Lesson
                 </Button>
@@ -785,7 +789,8 @@ export const LessonDetailPage: React.FC = () => {
                 <Box sx={{ display: 'flex', gap: 1, ml: 2 }}>
                   <IconButton 
                     onClick={handleBookmark}
-                    sx={{ 
+                    data-testid="lesson-bookmark-button"
+                    sx={{{ 
                       border: '1px solid',
                       borderColor: 'divider',
                       '&:hover': { borderColor: 'primary.main' }
@@ -795,7 +800,8 @@ export const LessonDetailPage: React.FC = () => {
                   </IconButton>
                   <IconButton 
                     onClick={handleShare}
-                    sx={{ 
+                    data-testid="lesson-share-button"
+                    sx={{{ 
                       border: '1px solid',
                       borderColor: 'divider',
                       '&:hover': { borderColor: 'primary.main' }
@@ -839,7 +845,8 @@ export const LessonDetailPage: React.FC = () => {
                     onClick={handleMarkComplete}
                     size="large"
                     startIcon={<CheckCircle />}
-                    sx={{ 
+                    data-testid="lesson-mark-complete-button"
+                    sx={{{ 
                       px: 4,
                       py: 1.5,
                       borderRadius: 2,
@@ -1202,7 +1209,7 @@ export const LessonDetailPage: React.FC = () => {
                   onChange={(e) => setNewComment(e.target.value)}
                   sx={{ mb: 1 }}
                 />
-                <Button variant="contained" onClick={handleAddComment} disabled={!newComment.trim()}>
+                <Button variant="contained" onClick={handleAddComment} disabled={!newComment.trim()} data-testid="lesson-add-comment-button">
                   Post Comment
                 </Button>
               </Box>
@@ -1226,11 +1233,11 @@ export const LessonDetailPage: React.FC = () => {
                           {comment.content}
                         </Typography>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <IconButton size="small">
+                          <IconButton size="small" data-testid="lesson-detail-comment-like-button">
                             <ThumbUp fontSize="small" />
                           </IconButton>
                           <Typography variant="body2">{comment.likes}</Typography>
-                          <Button size="small">Reply</Button>
+                          <Button size="small" data-testid="lesson-detail-comment-reply-button">Reply</Button>
                         </Box>
 
                         {/* Replies */}
@@ -1339,6 +1346,7 @@ export const LessonDetailPage: React.FC = () => {
                       key={courseLesson.id}
                       selected={isCurrent}
                       onClick={() => navigate(`/courses/${courseId}/lessons/${courseLesson.id}`)}
+                      data-testid={`lesson-detail-progress-lesson-${courseLesson.id}-button`}
                     >
                       <ListItemIcon>
                         {isCompleted ? (
@@ -1383,7 +1391,7 @@ export const LessonDetailPage: React.FC = () => {
       >
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
           <Typography variant="h6">Table of Contents</Typography>
-          <IconButton onClick={() => setShowTableOfContents(false)}>
+          <IconButton onClick={() => setShowTableOfContents(false)} data-testid="lesson-detail-toc-close-button">
             <ArrowBack />
           </IconButton>
         </Box>
@@ -1417,6 +1425,7 @@ export const LessonDetailPage: React.FC = () => {
                     navigate(`/courses/${courseId}/lessons/${courseLesson.id}`);
                     setShowTableOfContents(false);
                   }}
+                  data-testid={`lesson-detail-toc-lesson-${courseLesson.id}-button`}
                   sx={{ 
                     borderRadius: 1, 
                     mb: 1,

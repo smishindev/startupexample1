@@ -351,7 +351,7 @@ export const LessonEditor: React.FC<LessonEditorProps> = ({
 
       <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mt: 3 }}>
         {onCancel && (
-          <Button variant="outlined" onClick={onCancel}>
+          <Button variant="outlined" onClick={onCancel} data-testid="lesson-editor-cancel-button">
             Cancel
           </Button>
         )}
@@ -359,6 +359,7 @@ export const LessonEditor: React.FC<LessonEditorProps> = ({
           variant="contained"
           onClick={handleSave}
           disabled={loading || !lesson.title.trim()}
+          data-testid="lesson-editor-save-button"
         >
           {loading ? 'Saving...' : lessonId ? 'Update Lesson' : 'Create Lesson'}
         </Button>

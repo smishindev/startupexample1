@@ -70,7 +70,7 @@ const OnlineUsersWidget: React.FC<OnlineUsersWidgetProps> = ({ maxAvatars = 8 })
   }
 
   return (
-    <Card>
+    <Card data-testid="online-users-widget">
       <CardHeader
         avatar={<PeopleIcon color="primary" />}
         title="Online Now"
@@ -79,6 +79,7 @@ const OnlineUsersWidget: React.FC<OnlineUsersWidgetProps> = ({ maxAvatars = 8 })
             label={users.length}
             color="success"
             size="small"
+            data-testid="online-users-count-chip"
           />
         }
       />
@@ -119,6 +120,7 @@ const OnlineUsersWidget: React.FC<OnlineUsersWidgetProps> = ({ maxAvatars = 8 })
               fullWidth
               onClick={() => navigate('/presence')}
               sx={{ mt: 1 }}
+              data-testid="online-users-view-all-button"
             >
               View All Online Users
             </Button>

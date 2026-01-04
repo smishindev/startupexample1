@@ -157,6 +157,7 @@ export const EmailVerificationPage = () => {
 
           <Stack spacing={3}>
             <TextField
+              data-testid="email-verification-code-input"
               fullWidth
               label="Verification Code"
               placeholder="000000"
@@ -181,6 +182,7 @@ export const EmailVerificationPage = () => {
             />
 
             <Button
+              data-testid="email-verification-verify-button"
               fullWidth
               variant="contained"
               size="large"
@@ -203,6 +205,7 @@ export const EmailVerificationPage = () => {
                 Didn't receive the code?
               </Typography>
               <Button
+                data-testid="email-verification-resend-button"
                 variant="text"
                 startIcon={<RefreshOutlined />}
                 onClick={handleResendCode}
@@ -219,6 +222,7 @@ export const EmailVerificationPage = () => {
             </Box>
 
             <Button
+              data-testid="email-verification-back-button"
               fullWidth
               variant="outlined"
               onClick={() => navigate('/dashboard')}

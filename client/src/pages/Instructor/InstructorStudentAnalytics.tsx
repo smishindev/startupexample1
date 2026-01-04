@@ -140,7 +140,7 @@ export const InstructorStudentAnalytics: React.FC = () => {
               AI-powered insights and intervention recommendations for your students
             </Typography>
           </Box>
-          <IconButton onClick={loadStudentData} color="primary" size="large">
+          <IconButton data-testid="student-analytics-refresh" onClick={loadStudentData} color="primary" size="large">
             <RefreshIcon />
           </IconButton>
         </Box>
@@ -348,6 +348,7 @@ export const InstructorStudentAnalytics: React.FC = () => {
                         onClick={() => handleViewStudentDetails(student.studentId)}
                         color="primary"
                         size="small"
+                        data-testid={`student-analytics-view-details-${student.studentId}-button`}
                       >
                         <ViewIcon />
                       </IconButton>
@@ -444,10 +445,10 @@ export const InstructorStudentAnalytics: React.FC = () => {
             )}
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setInterventionDialog(false)}>
+            <Button onClick={() => setInterventionDialog(false)} data-testid="student-analytics-intervention-close-button">
               Close
             </Button>
-            <Button variant="contained" color="primary">
+            <Button variant="contained" color="primary" data-testid="student-analytics-send-message-button">
               Send Message to Student
             </Button>
           </DialogActions>

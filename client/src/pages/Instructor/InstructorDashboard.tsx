@@ -168,6 +168,7 @@ export const InstructorDashboard: React.FC = () => {
             startIcon={<AddIcon />}
             onClick={() => handleCreateCourse('blank')}
             sx={{ borderRadius: 2 }}
+            data-testid="instructor-create-course-header-button"
           >
             Create Course
           </Button>
@@ -178,7 +179,7 @@ export const InstructorDashboard: React.FC = () => {
       {/* Stats Overview */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} sm={6} md={2}>
-          <Card sx={{ height: '100%' }}>
+          <Card sx={{ height: '100%' }} data-testid="instructor-total-courses-card">
             <CardContent sx={{ 
               textAlign: 'center', 
               py: 2,
@@ -201,7 +202,7 @@ export const InstructorDashboard: React.FC = () => {
           </Card>
         </Grid>
         <Grid item xs={12} sm={6} md={2}>
-          <Card sx={{ height: '100%' }}>
+          <Card sx={{ height: '100%' }} data-testid="instructor-total-students-card">
             <CardContent sx={{ 
               textAlign: 'center', 
               py: 2,
@@ -224,7 +225,7 @@ export const InstructorDashboard: React.FC = () => {
           </Card>
         </Grid>
         <Grid item xs={12} sm={6} md={2}>
-          <Card sx={{ height: '100%' }}>
+          <Card sx={{ height: '100%' }} data-testid="instructor-total-revenue-card">
             <CardContent sx={{ 
               textAlign: 'center', 
               py: 2,
@@ -327,6 +328,7 @@ export const InstructorDashboard: React.FC = () => {
             variant="contained" 
             startIcon={<AddIcon />}
             onClick={() => setCreateDialogOpen(true)}
+            data-testid="instructor-create-new-course-button"
           >
             Create New Course
           </Button>
@@ -335,6 +337,7 @@ export const InstructorDashboard: React.FC = () => {
             startIcon={<AnalyticsIcon />}
             onClick={() => navigate('/instructor/analytics-hub')}
             color="primary"
+            data-testid="instructor-analytics-hub-button"
           >
             Analytics Hub
           </Button>
@@ -343,6 +346,7 @@ export const InstructorDashboard: React.FC = () => {
             startIcon={<VideoLibraryIcon />}
             onClick={() => navigate('/instructor/video-analytics')}
             color="secondary"
+            data-testid="instructor-video-analytics-button"
           >
             Video Analytics
           </Button>
@@ -351,6 +355,7 @@ export const InstructorDashboard: React.FC = () => {
             startIcon={<InterventionIcon />}
             onClick={() => navigate('/instructor/interventions')}
             color="error"
+            data-testid="instructor-intervention-dashboard-button"
           >
             Intervention Dashboard
           </Button>
@@ -358,6 +363,7 @@ export const InstructorDashboard: React.FC = () => {
             variant="outlined" 
             startIcon={<SettingsIcon />}
             onClick={() => navigate('/instructor/settings')}
+            data-testid="instructor-settings-button"
           >
             Settings
           </Button>
@@ -639,6 +645,7 @@ export const InstructorDashboard: React.FC = () => {
                       startIcon={<EditIcon />}
                       onClick={() => navigate(`/instructor/courses/${course.id}/edit`)}
                       fullWidth
+                      data-testid={`instructor-course-edit-button-${course.id}`}
                     >
                       Edit
                     </Button>
@@ -648,6 +655,7 @@ export const InstructorDashboard: React.FC = () => {
                       onClick={() => navigate(`/courses/${course.id}`)}
                       variant="outlined"
                       fullWidth
+                      data-testid={`instructor-course-preview-button-${course.id}`}
                     >
                       Preview
                     </Button>
@@ -659,6 +667,7 @@ export const InstructorDashboard: React.FC = () => {
                       onClick={() => navigate(`/instructor/courses/${course.id}/lessons`)}
                       variant="outlined"
                       fullWidth
+                      data-testid={`instructor-course-lessons-button-${course.id}`}
                     >
                       Lessons
                     </Button>
@@ -671,6 +680,7 @@ export const InstructorDashboard: React.FC = () => {
                       }}
                       variant="outlined"
                       fullWidth
+                      data-testid={`instructor-course-assessments-button-${course.id}`}
                     >
                       Assessments
                     </Button>
@@ -689,6 +699,7 @@ export const InstructorDashboard: React.FC = () => {
         color="primary"
         sx={{ position: 'fixed', bottom: 24, right: 24 }}
         onClick={() => setCreateDialogOpen(true)}
+        data-testid="instructor-fab-create-course"
       >
         <AddIcon />
       </Fab>
@@ -702,28 +713,28 @@ export const InstructorDashboard: React.FC = () => {
         <MenuItem onClick={() => {
           navigate(`/instructor/courses/${selectedCourse}/edit`);
           handleCourseMenuClose();
-        }}>
+        }} data-testid="instructor-dashboard-course-menu-edit">
           <ListItemIcon><EditIcon fontSize="small" /></ListItemIcon>
           <ListItemText>Edit Course</ListItemText>
         </MenuItem>
         <MenuItem onClick={() => {
           navigate(`/courses/${selectedCourse}`);
           handleCourseMenuClose();
-        }}>
+        }} data-testid="instructor-dashboard-course-menu-preview">
           <ListItemIcon><VisibilityIcon fontSize="small" /></ListItemIcon>
           <ListItemText>Preview Course</ListItemText>
         </MenuItem>
         <MenuItem onClick={() => {
           navigate(`/instructor/courses/${selectedCourse}/analytics`);
           handleCourseMenuClose();
-        }}>
+        }} data-testid="instructor-dashboard-course-menu-analytics">
           <ListItemIcon><AnalyticsIcon fontSize="small" /></ListItemIcon>
           <ListItemText>View Analytics</ListItemText>
         </MenuItem>
         <MenuItem onClick={() => {
           navigate(`/instructor/courses/${selectedCourse}/students`);
           handleCourseMenuClose();
-        }}>
+        }} data-testid="instructor-dashboard-course-menu-students">
           <ListItemIcon><PeopleIcon fontSize="small" /></ListItemIcon>
           <ListItemText>Manage Students</ListItemText>
         </MenuItem>
@@ -735,6 +746,7 @@ export const InstructorDashboard: React.FC = () => {
         onClose={() => setCreateDialogOpen(false)}
         maxWidth="sm"
         fullWidth
+        data-testid="instructor-create-course-dialog"
       >
         <DialogTitle>Create New Course</DialogTitle>
         <List sx={{ px: 3, pb: 3 }}>
@@ -742,6 +754,7 @@ export const InstructorDashboard: React.FC = () => {
             button
             onClick={() => handleCreateCourse('blank')}
             sx={{ mb: 1, border: 1, borderColor: 'divider', borderRadius: 1 }}
+            data-testid="instructor-create-course-blank-option"
           >
             <ListItemIcon>
               <AssignmentIcon color="primary" />
@@ -755,6 +768,7 @@ export const InstructorDashboard: React.FC = () => {
             button
             onClick={() => handleCreateCourse('template')}
             sx={{ border: 1, borderColor: 'divider', borderRadius: 1 }}
+            data-testid="instructor-create-course-template-option"
           >
             <ListItemIcon>
               <SchoolIcon color="primary" />

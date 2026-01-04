@@ -22,14 +22,14 @@ class TestAuthentication:
         
         # Wait for login form to load
         page.wait_for_load_state("networkidle")
-        page.wait_for_selector('#email', state='visible')
+        page.wait_for_selector('[data-testid="login-email-input"]', state='visible')
         
-        # Fill in student credentials from QUICK_REFERENCE.md
-        page.fill('#email', "student1@gmail.com")
-        page.fill('#password', "Aa123456")
+        # Fill in student credentials from QUICK_REFERENCE.md (using test IDs)
+        page.fill('[data-testid="login-email-input"]', "student1@gmail.com")
+        page.fill('[data-testid="login-password-input"]', "Aa123456")
         
-        # Submit login form (button contains "Sign In" text)
-        page.click('button[type="submit"]:has-text("Sign In")')
+        # Submit login form (using test ID)
+        page.click('[data-testid="login-submit-button"]')
         
         # Wait for navigation to dashboard
         page.wait_for_url(re.compile(r".*/dashboard.*"), timeout=15000)
@@ -41,16 +41,14 @@ class TestAuthentication:
         page.wait_for_load_state("networkidle")
         page.wait_for_timeout(2000)  # Wait for HeaderV4 to render
         
-        # Click on user avatar to open profile menu
-        # HeaderV4: IconButton with Avatar inside, no unique ID
-        # Look for Avatar in the header (MuiAvatar-root class)
-        page.click('button:has(.MuiAvatar-root)')
+        # Click on user avatar to open profile menu (using test ID)
+        page.click('[data-testid="header-profile-menu-button"]')
         
         # Wait for profile menu to appear
         page.wait_for_timeout(500)  # Wait for menu animation
         
-        # Click Logout menu item from the Menu
-        page.locator('text="Logout"').last.click()
+        # Click Logout menu item (using test ID)
+        page.click('[data-testid="header-profile-menu-item-logout"]')
         
         # Wait for logout to complete and redirect
         page.wait_for_load_state("networkidle")

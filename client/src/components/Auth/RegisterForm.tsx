@@ -259,6 +259,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
               autoComplete="given-name"
               autoFocus
               disabled={isLoading}
+              inputProps={{ 'data-testid': 'register-first-name-input' }}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -281,6 +282,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
               required
               autoComplete="family-name"
               disabled={isLoading}
+              inputProps={{ 'data-testid': 'register-last-name-input' }}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -302,9 +304,10 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
               margin="normal"
               required
               disabled={isLoading}
+              SelectProps={{ 'data-testid': 'register-role-select' }}
             >
               {userRoles.map((option) => (
-                <MenuItem key={option.value} value={option.value}>
+                <MenuItem key={option.value} value={option.value} data-testid={`register-role-${option.value}-option`}>
                   {option.label}
                 </MenuItem>
               ))}
@@ -324,6 +327,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
               required
               autoComplete="email"
               disabled={isLoading}
+              inputProps={{ 'data-testid': 'register-email-input' }}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -351,6 +355,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
               required
               autoComplete="username"
               disabled={isLoading}
+              inputProps={{ 'data-testid': 'register-username-input' }}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -374,6 +379,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
               required
               autoComplete="new-password"
               disabled={isLoading}
+              inputProps={{ 'data-testid': 'register-password-input' }}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -387,6 +393,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
                       onClick={() => setShowPassword(!showPassword)}
                       edge="end"
                       disabled={isLoading}
+                      data-testid="register-toggle-password-visibility"
                     >
                       {showPassword ? <VisibilityOff /> : <Visibility />}
                     </IconButton>
@@ -409,6 +416,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
               required
               autoComplete="new-password"
               disabled={isLoading}
+              inputProps={{ 'data-testid': 'register-confirm-password-input' }}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -422,6 +430,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                       edge="end"
                       disabled={isLoading}
+                      data-testid="register-toggle-confirm-password-visibility"
                     >
                       {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
                     </IconButton>
@@ -448,6 +457,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
               onChange={handleChange('learningStyle')}              onKeyDown={handleKeyDown}              margin="normal"
               disabled={isLoading}
               helperText="We'll use this to recommend the best content for you"
+              SelectProps={{ 'data-testid': 'register-learning-style-select' }}
             >
               <MenuItem value="">
                 <em>I'm not sure / Skip this step</em>
@@ -527,6 +537,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
                 disabled={activeStep === 0 || isLoading || isSubmitting}
                 onClick={handleBack}
                 sx={{ mr: 1 }}
+                data-testid="register-back-button"
               >
                 Back
               </Button>
@@ -537,6 +548,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
                   variant="contained"
                   disabled={isLoading || isSubmitting}
                   sx={{ minWidth: 120 }}
+                  data-testid="register-submit-button"
                 >
                   {isLoading || isSubmitting ? (
                     <>
@@ -558,6 +570,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
                   variant="contained" 
                   type="button"
                   disabled={isLoading || isSubmitting}
+                  data-testid="register-next-button"
                 >
                   Next
                 </Button>
@@ -580,6 +593,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
                 variant="body2"
                 underline="hover"
                 fontWeight="medium"
+                data-testid="register-login-link"
               >
                 Sign in
               </Link>
@@ -597,6 +611,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
         }}
         maxWidth="sm"
         fullWidth
+        data-testid="register-verification-dialog"
       >
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <MarkEmailRead color="primary" />
@@ -617,7 +632,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
           <Button onClick={() => {
             setShowVerificationDialog(false);
             navigate('/dashboard');
-          }}>
+          }} data-testid="register-verify-later-button">
             Verify Later
           </Button>
           <Button
@@ -627,6 +642,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
               navigate('/verify-email');
             }}
             autoFocus
+            data-testid="register-verify-now-button"
           >
             Verify Now
           </Button>

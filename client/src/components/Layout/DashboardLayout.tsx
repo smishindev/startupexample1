@@ -230,6 +230,7 @@ export const DashboardLayout: React.FC = () => {
           opacity: 1,
         },
       }}
+      data-testid={`dashboard-layout-course-card-${course.id}`}
     >
       <Box
         sx={{
@@ -286,6 +287,7 @@ export const DashboardLayout: React.FC = () => {
               transform: 'scale(1.1)',
             },
           }}
+          data-testid="dashboard-layout-bookmark-button"
         >
           <BookmarkBorder />
         </IconButton>
@@ -389,6 +391,7 @@ export const DashboardLayout: React.FC = () => {
                 bgcolor: 'action.hover',
               },
             }}
+            data-testid="dashboard-layout-more-options-button"
           >
             <MoreVert />
           </IconButton>

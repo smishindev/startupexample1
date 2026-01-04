@@ -333,7 +333,7 @@ const Chat: React.FC = () => {
           <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
               <Typography variant="h6">Chat Rooms</Typography>
-              <IconButton size="small" onClick={() => setCreateRoomOpen(true)}>
+              <IconButton size="small" onClick={() => setCreateRoomOpen(true)} data-testid="chat-create-room-button">
                 <AddIcon />
               </IconButton>
             </Box>
@@ -341,6 +341,7 @@ const Chat: React.FC = () => {
               size="small"
               placeholder="Search rooms..."
               fullWidth
+              data-testid="chat-search-rooms-input"
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -367,6 +368,7 @@ const Chat: React.FC = () => {
                   <ListItemButton
                     selected={selectedRoom?.roomId === room.roomId}
                     onClick={() => setSelectedRoom(room)}
+                    data-testid={`chat-room-item-${room.roomId}`}
                   >
                     <ListItemAvatar>
                       <Avatar>
@@ -411,7 +413,7 @@ const Chat: React.FC = () => {
                       </Typography>
                     )}
                   </Box>
-                  <IconButton>
+                  <IconButton data-testid="chat-more-options-button">
                     <MoreVertIcon />
                   </IconButton>
                 </Box>
@@ -504,16 +506,18 @@ const Chat: React.FC = () => {
                     }
                   }}
                   disabled={sending}
+                  data-testid="chat-message-input"
                   InputProps={{
                     endAdornment: (
                       <InputAdornment position="end">
-                        <IconButton edge="end">
+                        <IconButton edge="end" data-testid="chat-emoji-button">
                           <EmojiIcon />
                         </IconButton>
                         <IconButton
                           edge="end"
                           onClick={handleSendMessage}
                           disabled={!newMessage.trim() || sending}
+                          data-testid="chat-send-button"
                         >
                           {sending ? <CircularProgress size={20} /> : <SendIcon />}
                         </IconButton>
@@ -544,6 +548,7 @@ const Chat: React.FC = () => {
                 fullWidth
                 value={newRoomData.name}
                 onChange={(e) => setNewRoomData({ ...newRoomData, name: e.target.value })}
+                data-testid="chat-room-name-input"
               />
             </Grid>
             <Grid item xs={12}>
@@ -554,13 +559,14 @@ const Chat: React.FC = () => {
                 rows={3}
                 value={newRoomData.description || ''}
                 onChange={(e) => setNewRoomData({ ...newRoomData, description: e.target.value })}
+                data-testid="chat-room-description-input"
               />
             </Grid>
           </Grid>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setCreateRoomOpen(false)}>Cancel</Button>
-          <Button onClick={handleCreateRoom} variant="contained" disabled={!newRoomData.name.trim()}>
+          <Button onClick={() => setCreateRoomOpen(false)} data-testid="chat-cancel-button">Cancel</Button>
+          <Button onClick={handleCreateRoom} variant="contained" disabled={!newRoomData.name.trim()} data-testid="chat-create-room-submit">
             Create Room
           </Button>
         </DialogActions>

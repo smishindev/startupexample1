@@ -116,6 +116,7 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
       onClose={handleClose}
       maxWidth="sm"
       fullWidth
+      data-testid="create-group-modal"
     >
       <DialogTitle>Create Study Group</DialogTitle>
       
@@ -131,6 +132,7 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
             error={!!errors.name}
             helperText={errors.name || 'Choose a descriptive name for your group'}
             disabled={isSubmitting}
+            data-testid="create-group-name-input"
           />
 
           {/* Description */}
@@ -143,6 +145,7 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
             onChange={(e) => handleChange('description', e.target.value)}
             helperText="Optional: Describe the purpose of this study group"
             disabled={isSubmitting}
+            data-testid="create-group-description-input"
           />
 
           {/* Course Selection */}
@@ -153,6 +156,7 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
               onChange={(e) => handleChange('courseId', e.target.value)}
               label="Course (Optional)"
               disabled={isSubmitting}
+              data-testid="create-group-course-select"
             >
               <MenuItem value="">
                 <em>No specific course</em>
@@ -181,6 +185,7 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
             error={!!errors.maxMembers}
             helperText={errors.maxMembers || 'Maximum number of members (2-100, leave empty for unlimited)'}
             disabled={isSubmitting}
+            data-testid="create-group-max-members-input"
             InputProps={{
               inputProps: { min: 2, max: 100 }
             }}
@@ -192,6 +197,7 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
         <Button 
           onClick={handleClose}
           disabled={isSubmitting}
+          data-testid="create-group-cancel-button"
         >
           Cancel
         </Button>
@@ -199,6 +205,7 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
           onClick={handleSubmit}
           variant="contained"
           disabled={isSubmitting}
+          data-testid="create-group-submit-button"
         >
           {isSubmitting ? 'Creating...' : 'Create Group'}
         </Button>

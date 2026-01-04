@@ -138,6 +138,7 @@ const CheckoutForm: React.FC<{ course: Course; onSuccess: () => void }> = ({ cou
         fullWidth
         disabled={!stripe || processing}
         startIcon={processing ? <CircularProgress size={20} /> : <LockIcon />}
+        data-testid="payment-submit-button"
       >
         {processing ? 'Processing...' : `Pay $${course.Price.toFixed(2)}`}
       </Button>
@@ -282,7 +283,7 @@ const CourseCheckoutPage: React.FC = () => {
         <Alert severity="error" sx={{ mb: 3 }}>
           {error || 'Failed to load checkout'}
         </Alert>
-        <Button variant="contained" onClick={() => navigate('/courses')}>
+        <Button variant="contained" onClick={() => navigate('/courses')} data-testid="checkout-error-back-button">
           Back to Courses
         </Button>
       </Container>

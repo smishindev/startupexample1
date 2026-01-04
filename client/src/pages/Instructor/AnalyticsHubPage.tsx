@@ -144,7 +144,7 @@ export const AnalyticsHubPage: React.FC = () => {
               Comprehensive insights and analytics for your teaching platform
             </Typography>
           </Box>
-          <IconButton onClick={loadInstructorStats} color="primary" size="large">
+          <IconButton onClick={loadInstructorStats} color="primary" size="large" data-testid="analytics-hub-refresh-button">
             <RefreshIcon />
           </IconButton>
         </Box>
@@ -284,6 +284,7 @@ export const AnalyticsHubPage: React.FC = () => {
                     variant="contained"
                     onClick={() => navigate(card.path)}
                     endIcon={<ArrowForwardIcon />}
+                    data-testid={`analytics-hub-view-${card.title.toLowerCase().replace(/\s+/g, '-')}-button`}
                     sx={{
                       bgcolor: card.color,
                       '&:hover': {

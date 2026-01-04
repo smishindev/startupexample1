@@ -324,6 +324,7 @@ export const FileUpload = forwardRef<FileUploadHandle, FileUploadProps>(({
   const renderUploadArea = () => (
     <Paper
       elevation={dragOver ? 8 : 2}
+      data-testid="file-upload-area"
       sx={{
         p: 4,
         border: dragOver ? '2px dashed #2196f3' : '2px dashed #ccc',
@@ -358,6 +359,7 @@ export const FileUpload = forwardRef<FileUploadHandle, FileUploadProps>(({
             e.stopPropagation();
             openUploadDialog();
           }}
+          data-testid="file-upload-choose-button"
         >
           Choose Files
         </Button>
@@ -457,6 +459,7 @@ export const FileUpload = forwardRef<FileUploadHandle, FileUploadProps>(({
                   size="small"
                   color="error"
                   onClick={() => handleDeleteFile(file)}
+                  data-testid={`file-upload-delete-${file.id}`}
                 >
                   🗑️
                 </IconButton>
@@ -546,6 +549,7 @@ export const FileUpload = forwardRef<FileUploadHandle, FileUploadProps>(({
                 }
               }}
               size="small"
+              data-testid="file-upload-cancel-pending"
             >
               ❌
             </IconButton>
@@ -570,7 +574,7 @@ export const FileUpload = forwardRef<FileUploadHandle, FileUploadProps>(({
             <Typography variant="subtitle1">
               Uploaded {fileType}s ({uploadedFiles.length})
             </Typography>
-            <Button size="small" onClick={loadFiles} disabled={loading}>
+            <Button size="small" onClick={loadFiles} disabled={loading} data-testid="file-upload-refresh-button">
               Refresh
             </Button>
           </Box>
@@ -617,7 +621,7 @@ export const FileUpload = forwardRef<FileUploadHandle, FileUploadProps>(({
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setUploadDialogOpen(false)}>Cancel</Button>
+          <Button onClick={() => setUploadDialogOpen(false)} data-testid="file-upload-dialog-cancel">Cancel</Button>
         </DialogActions>
       </Dialog>
     </Box>

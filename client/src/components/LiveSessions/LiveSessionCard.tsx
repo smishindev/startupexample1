@@ -112,6 +112,7 @@ export const LiveSessionCard: React.FC<LiveSessionCardProps> = ({
 
   return (
     <Card
+      data-testid="live-session-card"
       sx={{
         height: '100%',
         display: 'flex',
@@ -295,6 +296,7 @@ export const LiveSessionCard: React.FC<LiveSessionCardProps> = ({
                   onClick={() => onStart(session.Id)}
                   fullWidth
                   size="small"
+                  data-testid="live-session-start-button"
                 >
                   Start Session
                 </Button>
@@ -308,6 +310,7 @@ export const LiveSessionCard: React.FC<LiveSessionCardProps> = ({
                   onClick={() => onEnd(session.Id)}
                   fullWidth
                   size="small"
+                  data-testid="live-session-end-button"
                 >
                   End Session
                 </Button>
@@ -321,6 +324,7 @@ export const LiveSessionCard: React.FC<LiveSessionCardProps> = ({
                         size="small"
                         onClick={() => onEdit(session.Id)}
                         sx={{ flex: 1 }}
+                        data-testid="live-session-edit-button"
                       >
                         <EditOutlined />
                       </IconButton>
@@ -333,6 +337,7 @@ export const LiveSessionCard: React.FC<LiveSessionCardProps> = ({
                         color="error"
                         onClick={() => onCancel(session.Id)}
                         sx={{ flex: 1 }}
+                        data-testid="live-session-cancel-button"
                       >
                         <CancelOutlined />
                       </IconButton>
@@ -345,6 +350,7 @@ export const LiveSessionCard: React.FC<LiveSessionCardProps> = ({
                         color="error"
                         onClick={() => onDelete(session.Id)}
                         sx={{ flex: 1 }}
+                        data-testid="live-session-delete-button"
                       >
                         <DeleteOutlined />
                       </IconButton>
@@ -367,6 +373,7 @@ export const LiveSessionCard: React.FC<LiveSessionCardProps> = ({
                       onClick={() => onLeave(session.Id)}
                       fullWidth
                       size="small"
+                      data-testid="live-session-leave-button"
                     >
                       Leave Session
                     </Button>
@@ -380,6 +387,7 @@ export const LiveSessionCard: React.FC<LiveSessionCardProps> = ({
                       onClick={() => onJoin(session.Id)}
                       fullWidth
                       size="small"
+                      data-testid="live-session-join-button"
                     >
                       Join Session
                     </Button>

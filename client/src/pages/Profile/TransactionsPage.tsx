@@ -234,6 +234,7 @@ const TransactionsPage: React.FC = () => {
             variant="outlined"
             startIcon={<RefreshIcon />}
             onClick={loadTransactions}
+            data-testid="transactions-refresh-button"
           >
             Refresh
           </Button>
@@ -254,7 +255,7 @@ const TransactionsPage: React.FC = () => {
           <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
             Your purchase history will appear here
           </Typography>
-          <Button variant="contained" onClick={() => navigate('/courses')}>
+          <Button variant="contained" onClick={() => navigate('/courses')} data-testid="transactions-browse-courses-button">
             Browse Courses
           </Button>
         </Paper>
@@ -300,6 +301,7 @@ const TransactionsPage: React.FC = () => {
                           size="small" 
                           onClick={() => handleDownloadInvoice(transaction.InvoiceId!)}
                           title="Download Invoice PDF"
+                          data-testid="transactions-download-invoice-button"
                         >
                           <DownloadIcon fontSize="small" />
                         </IconButton>
@@ -315,6 +317,7 @@ const TransactionsPage: React.FC = () => {
                         startIcon={<CheckCircleIcon />}
                         onClick={() => handleTestComplete(transaction)}
                         sx={{ mr: 1 }}
+                        data-testid="transactions-test-complete-button"
                       >
                         Test Complete
                       </Button>
@@ -326,6 +329,7 @@ const TransactionsPage: React.FC = () => {
                           variant="outlined"
                           color="error"
                           onClick={() => handleRefundClick(transaction)}
+                          data-testid="transactions-request-refund-button"
                         >
                           Request Refund
                         </Button>
@@ -337,6 +341,7 @@ const TransactionsPage: React.FC = () => {
                               variant="outlined"
                               color="error"
                               disabled
+                              data-testid="transactions-request-refund-button-disabled"
                             >
                               Request Refund
                             </Button>
@@ -366,6 +371,7 @@ const TransactionsPage: React.FC = () => {
         onClose={() => setRefundDialog({ open: false, transaction: null })}
         maxWidth="md"
         fullWidth
+        data-testid="transactions-refund-dialog"
       >
         <DialogTitle>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -479,12 +485,13 @@ const TransactionsPage: React.FC = () => {
                     : `${refundReason.length}/500 characters`
                 }
                 inputProps={{ maxLength: 500 }}
+                data-testid="transactions-refund-reason-input"
               />
             </>
           )}
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 3 }}>
-          <Button onClick={() => setRefundDialog({ open: false, transaction: null })}>
+          <Button onClick={() => setRefundDialog({ open: false, transaction: null })} data-testid="transactions-refund-cancel-button">
             Cancel
           </Button>
           <Button
@@ -492,6 +499,7 @@ const TransactionsPage: React.FC = () => {
             color="error"
             onClick={handleRefundSubmit}
             disabled={!refundReason.trim() || refundReason.length < 10 || refundProcessing}
+            data-testid="transactions-refund-submit-button"
           >
             {refundProcessing ? 'Processing...' : 'Submit Refund Request'}
           </Button>

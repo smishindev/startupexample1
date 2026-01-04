@@ -101,6 +101,7 @@ export const LessonManagement: React.FC<LessonManagementProps> = ({ courseId }) 
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h5" fontWeight={600}>Lessons</Typography>
         <Button
+          data-testid="lesson-management-create-button"
           variant="contained"
           size="large"
           onClick={handleCreateLesson}
@@ -133,7 +134,7 @@ export const LessonManagement: React.FC<LessonManagementProps> = ({ courseId }) 
             <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
               Create your first lesson to get started with course content
             </Typography>
-            <Button variant="contained" size="large" onClick={handleCreateLesson}>
+            <Button data-testid="lesson-management-create-first-button" variant="contained" size="large" onClick={handleCreateLesson}>
               Create First Lesson
             </Button>
           </CardContent>
@@ -179,6 +180,7 @@ export const LessonManagement: React.FC<LessonManagementProps> = ({ courseId }) 
                   </Box>
                   <Box sx={{ display: 'flex', gap: 1 }}>
                     <Button
+                      data-testid={`lesson-management-edit-${lesson.id}`}
                       size="small"
                       variant="outlined"
                       onClick={() => handleEditLesson(lesson.id)}
@@ -186,6 +188,7 @@ export const LessonManagement: React.FC<LessonManagementProps> = ({ courseId }) 
                       Edit
                     </Button>
                     <Button
+                      data-testid={`lesson-management-delete-${lesson.id}`}
                       size="small"
                       variant="outlined"
                       color="error"
@@ -226,6 +229,7 @@ export const LessonManagement: React.FC<LessonManagementProps> = ({ courseId }) 
 
       {/* Floating Action Button for quick access */}
       <Fab
+        data-testid="lesson-management-fab"
         color="primary"
         sx={{ position: 'fixed', bottom: 16, right: 16 }}
         onClick={handleCreateLesson}

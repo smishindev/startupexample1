@@ -82,8 +82,8 @@ const OfficeHoursPage: React.FC = () => {
         {isInstructor && (
           <>
             <Tabs value={tabValue} onChange={handleTabChange} sx={{ mb: 3 }}>
-              <Tab icon={<ScheduleIcon />} label="My Schedule" iconPosition="start" />
-              <Tab icon={<QueueIcon />} label="Current Queue" iconPosition="start" />
+              <Tab icon={<ScheduleIcon />} label="My Schedule" iconPosition="start" data-testid="office-hours-schedule-tab" />
+              <Tab icon={<QueueIcon />} label="Current Queue" iconPosition="start" data-testid="office-hours-queue-tab" />
             </Tabs>
 
             {/* Schedule Management Tab */}
@@ -110,8 +110,8 @@ const OfficeHoursPage: React.FC = () => {
         {!isInstructor && (
           <>
             <Tabs value={tabValue} onChange={handleTabChange} sx={{ mb: 3 }}>
-              <Tab icon={<StudentIcon />} label="Join Queue" iconPosition="start" />
-              <Tab icon={<QueueIcon />} label="View Queues" iconPosition="start" />
+              <Tab icon={<StudentIcon />} label="Join Queue" iconPosition="start" data-testid="office-hours-join-tab" />
+              <Tab icon={<QueueIcon />} label="View Queues" iconPosition="start" data-testid="office-hours-view-queues-tab" />
             </Tabs>
 
             {/* Join Queue Tab */}

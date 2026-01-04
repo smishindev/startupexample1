@@ -144,6 +144,7 @@ export const CourseEditPage: React.FC = () => {
             variant="body1" 
             onClick={handleBackToDashboard}
             sx={{ textDecoration: 'none', cursor: 'pointer' }}
+            data-testid="course-edit-breadcrumb-dashboard-link"
           >
             Instructor Dashboard
           </Link>
@@ -172,6 +173,7 @@ export const CourseEditPage: React.FC = () => {
             variant="outlined"
             startIcon={<ArrowBackIcon />}
             onClick={handleBackToDashboard}
+            data-testid="course-edit-back-button"
           >
             Back to Dashboard
           </Button>
@@ -181,18 +183,20 @@ export const CourseEditPage: React.FC = () => {
       {/* Tabs */}
       <Paper sx={{ width: '100%' }}>
         <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-          <Tabs value={tabValue} onChange={handleTabChange}>
+          <Tabs value={tabValue} onChange={handleTabChange} data-testid="course-edit-tabs">
             <Tab
               icon={<PlaylistAddIcon />}
               iconPosition="start"
               label="Curriculum"
               id="course-tab-0"
+              data-testid="course-edit-tab-curriculum"
             />
             <Tab
               icon={<SettingsIcon />}
               iconPosition="start"
               label="Course Settings"
               id="course-tab-1"
+              data-testid="course-edit-tab-settings"
             />
           </Tabs>
         </Box>

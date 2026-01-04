@@ -429,6 +429,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
               color: 'white',
               '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.8)' },
             }}
+            data-testid="video-play-overlay-button"
           >
             <PlayArrow sx={{ fontSize: 60 }} />
           </IconButton>
@@ -455,6 +456,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
             size="small"
             value={progressPercentage}
             onChange={handleSeek}
+            data-testid="video-progress-slider"
             sx={{
               color: 'primary.main',
               height: 4,
@@ -475,26 +477,26 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         {/* Control Buttons */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <Tooltip title="Previous 10s">
-            <IconButton size="small" onClick={() => skip(-10)} sx={{ color: 'white' }}>
+            <IconButton size="small" onClick={() => skip(-10)} sx={{ color: 'white' }} data-testid="video-skip-backward">
               <Replay10 />
             </IconButton>
           </Tooltip>
 
           <Tooltip title={isPlaying ? 'Pause' : 'Play'}>
-            <IconButton size="small" onClick={togglePlay} sx={{ color: 'white' }}>
+            <IconButton size="small" onClick={togglePlay} sx={{ color: 'white' }} data-testid="video-play-pause">
               {isPlaying ? <Pause /> : <PlayArrow />}
             </IconButton>
           </Tooltip>
 
           <Tooltip title="Next 10s">
-            <IconButton size="small" onClick={() => skip(10)} sx={{ color: 'white' }}>
+            <IconButton size="small" onClick={() => skip(10)} sx={{ color: 'white' }} data-testid="video-skip-forward">
               <Forward10 />
             </IconButton>
           </Tooltip>
 
           <Box sx={{ display: 'flex', alignItems: 'center', ml: 1 }}>
             <Tooltip title={isMuted ? 'Unmute' : 'Mute'}>
-              <IconButton size="small" onClick={toggleMute} sx={{ color: 'white' }}>
+              <IconButton size="small" onClick={toggleMute} sx={{ color: 'white' }} data-testid="video-mute-toggle">
                 {isMuted ? <VolumeOff /> : <VolumeUp />}
               </IconButton>
             </Tooltip>
@@ -503,6 +505,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
                 size="small"
                 value={isMuted ? 0 : volume * 100}
                 onChange={handleVolumeChange}
+                data-testid="video-volume-slider"
                 sx={{
                   color: 'white',
                   '& .MuiSlider-thumb': {
@@ -521,25 +524,25 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           </Typography>
 
           <Tooltip title="Settings">
-            <IconButton size="small" onClick={handleSettingsClick} sx={{ color: 'white' }}>
+            <IconButton size="small" onClick={handleSettingsClick} sx={{ color: 'white' }} data-testid="video-settings-button">
               <Settings />
             </IconButton>
           </Tooltip>
 
           <Tooltip title="Keyboard Shortcuts (?)">
-            <IconButton size="small" onClick={() => setShowKeyboardShortcuts(true)} sx={{ color: 'white' }}>
+            <IconButton size="small" onClick={() => setShowKeyboardShortcuts(true)} sx={{ color: 'white' }} data-testid="video-shortcuts-button">
               <Help />
             </IconButton>
           </Tooltip>
 
           <Tooltip title="Picture in Picture">
-            <IconButton size="small" onClick={togglePictureInPicture} sx={{ color: 'white' }}>
+            <IconButton size="small" onClick={togglePictureInPicture} sx={{ color: 'white' }} data-testid="video-pip-button">
               <PictureInPicture />
             </IconButton>
           </Tooltip>
 
           <Tooltip title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}>
-            <IconButton size="small" onClick={toggleFullscreen} sx={{ color: 'white' }}>
+            <IconButton size="small" onClick={toggleFullscreen} sx={{ color: 'white' }} data-testid="video-fullscreen-button">
               {isFullscreen ? <FullscreenExit /> : <Fullscreen />}
             </IconButton>
           </Tooltip>

@@ -51,6 +51,7 @@ const UserPresenceBadge: React.FC<UserPresenceBadgeProps> = ({
           lastSeenAt={lastSeenAt}
         />
       }
+      data-testid="user-presence-badge"
     >
       <Avatar
         src={avatarUrl || undefined}

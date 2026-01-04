@@ -233,6 +233,7 @@ export const LessonEditor: React.FC<LessonEditorProps> = ({
         onChange={(e) => setTitle(e.target.value)}
         sx={{ mb: 2 }}
         required
+        data-testid="lesson-editor-title-input"
       />
       <TextField
         fullWidth
@@ -243,6 +244,7 @@ export const LessonEditor: React.FC<LessonEditorProps> = ({
         onChange={(e) => setDescription(e.target.value)}
         sx={{ mb: 2 }}
         required
+        data-testid="lesson-editor-description-input"
       />
       <TextField
         fullWidth
@@ -263,6 +265,7 @@ export const LessonEditor: React.FC<LessonEditorProps> = ({
           variant="outlined"
           size="small"
           onClick={() => addContent('video')}
+          data-testid="lesson-editor-add-video-button"
         >
           Add Video
         </Button>
@@ -271,6 +274,7 @@ export const LessonEditor: React.FC<LessonEditorProps> = ({
           variant="outlined"
           size="small"
           onClick={() => addContent('text')}
+          data-testid="lesson-editor-add-text-button"
         >
           Add Text
         </Button>
@@ -279,6 +283,7 @@ export const LessonEditor: React.FC<LessonEditorProps> = ({
           variant="outlined"
           size="small"
           onClick={() => addContent('quiz')}
+          data-testid="lesson-editor-add-quiz-button"
         >
           Add Quiz
         </Button>
@@ -458,15 +463,16 @@ export const LessonEditor: React.FC<LessonEditorProps> = ({
                         onClick={handleSave}
                         disabled={loading}
                         startIcon={loading && <CircularProgress size={16} />}
+                        data-testid="lesson-editor-save-button"
                       >
                         {lesson ? 'Update Lesson' : 'Create Lesson'}
                       </Button>
                     ) : (
-                      <Button variant="contained" onClick={handleNext}>
+                      <Button variant="contained" onClick={handleNext} data-testid="lesson-editor-step-continue-button">
                         Continue
                       </Button>
-                    )}
-                    <Button disabled={index === 0} onClick={handleBack} sx={{ ml: 1 }}>
+                    )
+                    <Button disabled={index === 0} onClick={handleBack} sx={{ ml: 1 }} data-testid="lesson-editor-step-back-button">
                       Back
                     </Button>
                   </div>
@@ -477,7 +483,7 @@ export const LessonEditor: React.FC<LessonEditorProps> = ({
         </Stepper>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose} disabled={loading}>
+        <Button onClick={onClose} disabled={loading} data-testid="lesson-editor-dialog-cancel-button">
           Cancel
         </Button>
       </DialogActions>

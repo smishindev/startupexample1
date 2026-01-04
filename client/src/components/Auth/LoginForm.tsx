@@ -154,6 +154,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
               autoComplete="email"
               autoFocus
               disabled={isLoading}
+              inputProps={{ 'data-testid': 'login-email-input' }}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -176,6 +177,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
               required
               autoComplete="current-password"
               disabled={isLoading}
+              inputProps={{ 'data-testid': 'login-password-input' }}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -189,6 +191,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
                       onClick={togglePasswordVisibility}
                       edge="end"
                       disabled={isLoading}
+                      data-testid="login-toggle-password-visibility"
                     >
                       {showPassword ? <VisibilityOff /> : <Visibility />}
                     </IconButton>
@@ -204,6 +207,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
                   onChange={(e) => setFormData(prev => ({ ...prev, rememberMe: e.target.checked }))}
                   disabled={isLoading}
                   color="primary"
+                  data-testid="login-remember-me-checkbox"
                 />
               }
               label={
@@ -221,6 +225,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
               size="large"
               disabled={isLoading}
               sx={{ mt: 3, mb: 2, py: 1.5 }}
+              data-testid="login-submit-button"
             >
               {isLoading ? (
                 <>
@@ -238,6 +243,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
                 to="/forgot-password"
                 variant="body2"
                 underline="hover"
+                data-testid="login-forgot-password-link"
               >
                 Forgot your password?
               </Link>
@@ -258,6 +264,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
                   variant="body2"
                   underline="hover"
                   fontWeight="medium"
+                  data-testid="login-register-link"
                 >
                   Sign Up
                 </Link>

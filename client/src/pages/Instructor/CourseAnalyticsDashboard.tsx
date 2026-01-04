@@ -142,6 +142,7 @@ export const CourseAnalyticsDashboard: React.FC = () => {
               View:
             </Typography>
             <Select
+              data-testid="course-analytics-course-select"
               size="small"
               value={selectedCourse}
               onChange={(e) => setSelectedCourse(e.target.value)}

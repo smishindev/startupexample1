@@ -151,6 +151,7 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({ open, onClose, course 
         onClose={onClose}
         maxWidth="sm"
         fullWidth
+        data-testid="share-dialog"
         PaperProps={{
           sx: {
             borderRadius: 2,
@@ -163,7 +164,7 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({ open, onClose, course 
             <Typography variant="h6" component="div" sx={{ fontWeight: 'bold' }}>
               Share Course
             </Typography>
-            <IconButton onClick={onClose} size="small">
+            <IconButton onClick={onClose} size="small" data-testid="share-dialog-close-button">
               <CloseIcon />
             </IconButton>
           </Box>
@@ -216,6 +217,7 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({ open, onClose, course 
                     fullWidth
                     variant="outlined"
                     onClick={platform.action}
+                    data-testid={`share-dialog-${platform.id}-button`}
                     sx={{
                       height: 64,
                       flexDirection: 'column',
@@ -244,6 +246,7 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({ open, onClose, course 
               Course URL:
             </Typography>
             <Box
+              data-testid="share-dialog-url-box"
               sx={{
                 p: 2,
                 bgcolor: 'grey.100',
@@ -266,7 +269,7 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({ open, onClose, course 
         </DialogContent>
 
         <DialogActions sx={{ px: 3, pb: 3 }}>
-          <Button onClick={onClose} variant="outlined">
+          <Button onClick={onClose} variant="outlined" data-testid="share-dialog-close-action">
             Close
           </Button>
         </DialogActions>

@@ -312,6 +312,7 @@ const QueueDisplay: React.FC<QueueDisplayProps> = ({ instructorId, isInstructor,
                             startIcon={<CheckIcon />}
                             onClick={() => handleAdmitStudent(entry.Id)}
                             disabled={actioningId === entry.Id}
+                            data-testid="queue-admit-button"
                           >
                             Admit
                           </Button>
@@ -324,6 +325,7 @@ const QueueDisplay: React.FC<QueueDisplayProps> = ({ instructorId, isInstructor,
                             startIcon={<CheckIcon />}
                             onClick={() => handleCompleteSession(entry.Id)}
                             disabled={actioningId === entry.Id}
+                            data-testid="queue-complete-button"
                           >
                             Complete
                           </Button>
@@ -334,6 +336,7 @@ const QueueDisplay: React.FC<QueueDisplayProps> = ({ instructorId, isInstructor,
                           startIcon={<CancelIcon />}
                           onClick={() => handleCancelEntry(entry.Id)}
                           disabled={actioningId === entry.Id}
+                          data-testid="queue-cancel-button"
                         >
                           Cancel
                         </Button>

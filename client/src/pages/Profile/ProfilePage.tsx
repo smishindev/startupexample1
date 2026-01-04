@@ -295,6 +295,7 @@ const ProfilePage: React.FC = () => {
                       boxShadow: 2
                     }}
                     size="small"
+                    data-testid="profile-avatar-upload-button"
                   >
                     {uploading ? (
                       <CircularProgress size={20} />
@@ -341,6 +342,7 @@ const ProfilePage: React.FC = () => {
                       onClick={() => navigate('/verify-email')}
                       onDelete={() => navigate('/verify-email')}
                       deleteIcon={<MarkEmailRead />}
+                      data-testid="profile-verify-email-chip"
                     />
                   )}
                 </Stack>
@@ -350,11 +352,11 @@ const ProfilePage: React.FC = () => {
 
           {/* Tabs */}
           <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-            <Tabs value={tabValue} onChange={handleTabChange} aria-label="profile tabs">
-              <Tab icon={<PersonIcon />} label="Personal Info" iconPosition="start" />
-              <Tab icon={<LockIcon />} label="Password" iconPosition="start" />
-              <Tab icon={<CreditCardIcon />} label="Billing Address" iconPosition="start" />
-              <Tab icon={<InfoIcon />} label="Account Info" iconPosition="start" />
+            <Tabs value={tabValue} onChange={handleTabChange} aria-label="profile tabs" data-testid="profile-tabs">
+              <Tab icon={<PersonIcon />} label="Personal Info" iconPosition="start" data-testid="profile-tab-personal" />
+              <Tab icon={<LockIcon />} label="Password" iconPosition="start" data-testid="profile-tab-password" />
+              <Tab icon={<CreditCardIcon />} label="Billing Address" iconPosition="start" data-testid="profile-tab-billing" />
+              <Tab icon={<InfoIcon />} label="Account Info" iconPosition="start" data-testid="profile-tab-account" />
             </Tabs>
           </Box>
 
@@ -372,6 +374,7 @@ const ProfilePage: React.FC = () => {
                     value={personalInfo.firstName}
                     onChange={(e) => setPersonalInfo({ ...personalInfo, firstName: e.target.value })}
                     required
+                    data-testid="profile-first-name-input"
                   />
                 </Grid>
                 <Grid item xs={12} md={6}>
@@ -381,6 +384,7 @@ const ProfilePage: React.FC = () => {
                     value={personalInfo.lastName}
                     onChange={(e) => setPersonalInfo({ ...personalInfo, lastName: e.target.value })}
                     required
+                    data-testid="profile-last-name-input"
                   />
                 </Grid>
                 <Grid item xs={12} md={6}>
@@ -391,6 +395,7 @@ const ProfilePage: React.FC = () => {
                     onChange={(e) => setPersonalInfo({ ...personalInfo, username: e.target.value })}
                     required
                     helperText="Must be unique and at least 3 characters"
+                    data-testid="profile-username-input"
                   />
                 </Grid>
                 <Grid item xs={12} md={6}>
@@ -409,6 +414,7 @@ const ProfilePage: React.FC = () => {
                       value={personalInfo.learningStyle || ''}
                       onChange={(e) => setPersonalInfo({ ...personalInfo, learningStyle: e.target.value || null })}
                       label="Learning Style"
+                      data-testid="profile-learning-style-select"
                     >
                       <MenuItem value="">None</MenuItem>
                       <MenuItem value="visual">Visual</MenuItem>
@@ -424,6 +430,7 @@ const ProfilePage: React.FC = () => {
                     startIcon={<SaveIcon />}
                     onClick={handleSavePersonalInfo}
                     disabled={saving}
+                    data-testid="profile-save-personal-info-button"
                   >
                     {saving ? 'Saving...' : 'Save Changes'}
                   </Button>
@@ -447,12 +454,14 @@ const ProfilePage: React.FC = () => {
                     label="Current Password"
                     value={passwordData.currentPassword}
                     onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
+                    data-testid="profile-current-password-input"
                     InputProps={{
                       endAdornment: (
                         <InputAdornment position="end">
                           <IconButton
                             onClick={() => setShowCurrentPassword(!showCurrentPassword)}
                             edge="end"
+                            data-testid="profile-current-password-toggle"
                           >
                             {showCurrentPassword ? <VisibilityOff /> : <Visibility />}
                           </IconButton>
@@ -468,12 +477,14 @@ const ProfilePage: React.FC = () => {
                     label="New Password"
                     value={passwordData.newPassword}
                     onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                    data-testid="profile-new-password-input"
                     InputProps={{
                       endAdornment: (
                         <InputAdornment position="end">
                           <IconButton
                             onClick={() => setShowNewPassword(!showNewPassword)}
                             edge="end"
+                            data-testid="profile-new-password-toggle"
                           >
                             {showNewPassword ? <VisibilityOff /> : <Visibility />}
                           </IconButton>
@@ -489,6 +500,7 @@ const ProfilePage: React.FC = () => {
                     label="Confirm New Password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
+                    data-testid="profile-confirm-password-input"
                     error={confirmPassword !== '' && passwordData.newPassword !== confirmPassword}
                     helperText={
                       confirmPassword !== '' && passwordData.newPassword !== confirmPassword
@@ -503,6 +515,7 @@ const ProfilePage: React.FC = () => {
                     startIcon={<LockIcon />}
                     onClick={handleChangePassword}
                     disabled={saving || !passwordData.currentPassword || !passwordData.newPassword || !confirmPassword}
+                    data-testid="profile-change-password-button"
                   >
                     {saving ? 'Changing...' : 'Change Password'}
                   </Button>
@@ -525,6 +538,7 @@ const ProfilePage: React.FC = () => {
                     label="Street Address"
                     value={billingAddress.streetAddress}
                     onChange={(e) => setBillingAddress({ ...billingAddress, streetAddress: e.target.value })}
+                    data-testid="profile-billing-street-input"
                   />
                 </Grid>
                 <Grid item xs={12} md={6}>
@@ -533,6 +547,7 @@ const ProfilePage: React.FC = () => {
                     label="City"
                     value={billingAddress.city}
                     onChange={(e) => setBillingAddress({ ...billingAddress, city: e.target.value })}
+                    data-testid="profile-billing-city-input"
                   />
                 </Grid>
                 <Grid item xs={12} md={6}>
@@ -541,6 +556,7 @@ const ProfilePage: React.FC = () => {
                     label="State/Province"
                     value={billingAddress.state}
                     onChange={(e) => setBillingAddress({ ...billingAddress, state: e.target.value })}
+                    data-testid="profile-billing-state-input"
                   />
                 </Grid>
                 <Grid item xs={12} md={6}>
@@ -549,6 +565,7 @@ const ProfilePage: React.FC = () => {
                     label="Postal Code"
                     value={billingAddress.postalCode}
                     onChange={(e) => setBillingAddress({ ...billingAddress, postalCode: e.target.value })}
+                    data-testid="profile-billing-postal-input"
                   />
                 </Grid>
                 <Grid item xs={12} md={6}>
@@ -557,6 +574,7 @@ const ProfilePage: React.FC = () => {
                     label="Country"
                     value={billingAddress.country}
                     onChange={(e) => setBillingAddress({ ...billingAddress, country: e.target.value })}
+                    data-testid="profile-billing-country-input"
                   />
                 </Grid>
                 <Grid item xs={12}>
@@ -565,6 +583,7 @@ const ProfilePage: React.FC = () => {
                     startIcon={<SaveIcon />}
                     onClick={handleSaveBillingAddress}
                     disabled={saving}
+                    data-testid="profile-save-billing-button"
                   >
                     {saving ? 'Saving...' : 'Save Billing Address'}
                   </Button>
@@ -620,6 +639,7 @@ const ProfilePage: React.FC = () => {
                     variant="outlined"
                     startIcon={<HistoryIcon />}
                     onClick={() => navigate('/transactions')}
+                    data-testid="profile-transaction-history-button"
                   >
                     View Transaction History
                   </Button>

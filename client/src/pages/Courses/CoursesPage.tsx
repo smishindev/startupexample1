@@ -631,10 +631,10 @@ export const CoursesPage: React.FC = () => {
           
           {/* Tabs */}
           <Paper sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
-            <Tabs value={tabValue} onChange={handleTabChange}>
-              <Tab label="All Courses" />
-              <Tab label="My Courses" />
-              <Tab label="Bookmarked" />
+            <Tabs value={tabValue} onChange={handleTabChange} data-testid="courses-tabs">
+              <Tab label="All Courses" data-testid="courses-tab-all" />
+              <Tab label="My Courses" data-testid="courses-tab-my" />
+              <Tab label="Bookmarked" data-testid="courses-tab-bookmarked" />
             </Tabs>
           </Paper>
         </Box>
@@ -799,6 +799,7 @@ export const CoursesPage: React.FC = () => {
                   placeholder="Search courses..."
                   value={searchQuery}
                   onChange={(e) => handleSearchChange(e.target.value)}
+                  data-testid="courses-search-input"
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
@@ -816,6 +817,7 @@ export const CoursesPage: React.FC = () => {
                     value={selectedCategory}
                     label="Category"
                     onChange={(e) => handleCategoryChange(e.target.value)}
+                    data-testid="courses-category-select"
                   >
                     <MenuItem value="">All Categories</MenuItem>
                     {categories.map((category) => (
@@ -834,6 +836,7 @@ export const CoursesPage: React.FC = () => {
                     value={selectedLevel}
                     label="Level"
                     onChange={(e) => handleLevelChange(e.target.value)}
+                    data-testid="courses-level-select"
                   >
                     <MenuItem value="">All Levels</MenuItem>
                     {levels.map((level) => (
@@ -852,6 +855,7 @@ export const CoursesPage: React.FC = () => {
                     value={sortBy}
                     label="Sort By"
                     onChange={(e) => handleSortChange(e.target.value)}
+                    data-testid="courses-sort-select"
                   >
                     <MenuItem value="popular">Most Popular</MenuItem>
                     <MenuItem value="rating">Highest Rated</MenuItem>
@@ -868,6 +872,7 @@ export const CoursesPage: React.FC = () => {
                   variant="outlined"
                   startIcon={<FilterList />}
                   sx={{ height: 56 }}
+                  data-testid="courses-filters-button"
                 >
                   Filters
                 </Button>
@@ -982,6 +987,7 @@ export const CoursesPage: React.FC = () => {
                     size="large"
                     showFirstButton
                     showLastButton
+                    data-testid="courses-pagination"
                   />
                 </Box>
               )}
@@ -1007,6 +1013,7 @@ export const CoursesPage: React.FC = () => {
                 variant="contained" 
                 onClick={() => setTabValue(0)}
                 sx={{ minWidth: 120 }}
+                data-testid="courses-browse-button"
               >
                 Browse Courses
               </Button>
@@ -1047,6 +1054,7 @@ export const CoursesPage: React.FC = () => {
                 variant="contained" 
                 onClick={() => navigate('/login')}
                 sx={{ minWidth: 120 }}
+                data-testid="courses-bookmarks-signin-button"
               >
                 Sign In
               </Button>

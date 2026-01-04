@@ -189,6 +189,7 @@ export const VideoAnalyticsPage: React.FC = () => {
           <FormControl fullWidth>
             <InputLabel>Select Course</InputLabel>
             <Select
+              data-testid="video-analytics-course-select"
               value={selectedCourseId}
               onChange={(e) => setSelectedCourseId(e.target.value)}
               label="Select Course"
@@ -218,6 +219,7 @@ export const VideoAnalyticsPage: React.FC = () => {
               Create a course and add video lessons to start tracking video analytics and viewer engagement!
             </Typography>
             <Button 
+              data-testid="video-analytics-go-to-dashboard"
               variant="contained" 
               onClick={() => window.location.href = '/instructor/dashboard'}
             >

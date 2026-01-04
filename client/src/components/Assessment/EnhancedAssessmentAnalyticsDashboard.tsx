@@ -162,7 +162,7 @@ export const EnhancedAssessmentAnalyticsDashboard: React.FC = () => {
         <Header />
         <Box sx={{ p: 3 }}>
           <Alert severity="error" action={
-            <IconButton color="inherit" size="small" onClick={loadData}>
+            <IconButton data-testid="assessment-analytics-error-retry" color="inherit" size="small" onClick={loadData}>
               <RefreshIcon />
             </IconButton>
           }>
@@ -181,15 +181,15 @@ export const EnhancedAssessmentAnalyticsDashboard: React.FC = () => {
           <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold' }}>
             Assessment Analytics Dashboard
           </Typography>
-          <IconButton onClick={loadData} color="primary">
+          <IconButton data-testid="assessment-analytics-refresh" onClick={loadData} color="primary">
             <RefreshIcon />
           </IconButton>
         </Box>
 
-        <Tabs value={tabValue} onChange={handleTabChange} sx={{ mb: 3 }}>
-          <Tab label="Overview" />
-          <Tab label="Performance Analysis" />
-          <Tab label="Student Insights" />
+        <Tabs data-testid="assessment-analytics-tabs" value={tabValue} onChange={handleTabChange} sx={{ mb: 3 }}>
+          <Tab data-testid="assessment-analytics-tab-overview" label="Overview" />
+          <Tab data-testid="assessment-analytics-tab-performance" label="Performance Analysis" />
+          <Tab data-testid="assessment-analytics-tab-insights" label="Student Insights" />
         </Tabs>
 
         <TabPanel value={tabValue} index={0}>

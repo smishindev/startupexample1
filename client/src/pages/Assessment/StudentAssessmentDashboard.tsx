@@ -163,7 +163,7 @@ export const StudentAssessmentDashboard: React.FC = () => {
           <Alert severity="error" sx={{ mb: 2 }}>
             {error || 'Failed to load assessment data'}
           </Alert>
-          <Button variant="contained" onClick={fetchAssessmentProgress}>
+          <Button data-testid="student-assessment-retry-button" variant="contained" onClick={fetchAssessmentProgress}>
             Try Again
           </Button>
         </Container>
@@ -275,7 +275,7 @@ export const StudentAssessmentDashboard: React.FC = () => {
           <Alert severity="info">
             <Typography>
               You haven't enrolled in any courses with assessments yet. 
-              <Button sx={{ ml: 1 }} onClick={() => navigate('/courses')}>
+              <Button data-testid="student-assessment-browse-courses" sx={{ ml: 1 }} onClick={() => navigate('/courses')}>
                 Browse Courses
               </Button>
             </Typography>
@@ -352,6 +352,7 @@ export const StudentAssessmentDashboard: React.FC = () => {
                         <Box sx={{ display: 'flex', gap: 1, ml: 2 }}>
                           {assessment.progress.canTakeAssessment ? (
                             <Button
+                              data-testid={`student-assessment-take-${assessment.assessmentId}`}
                               variant="contained"
                               size="small"
                               onClick={() => handleTakeAssessment(assessment)}
@@ -362,11 +363,12 @@ export const StudentAssessmentDashboard: React.FC = () => {
                                'Start'}
                             </Button>
                           ) : (
-                            <Button variant="outlined" size="small" disabled>
+                            <Button variant="outlined" size="small" disabled data-testid={`student-assessment-max-attempts-${assessment.assessmentId}`}>
                               Max Attempts
                             </Button>
                           )}
                           <Button
+                            data-testid={`student-assessment-view-lesson-${assessment.assessmentId}`}
                             variant="outlined"
                             size="small"
                             onClick={() => handleViewLesson(assessment)}

@@ -143,7 +143,7 @@ export const StudentProgressDashboard: React.FC = () => {
     return (
       <Box sx={{ p: 3 }}>
         <Alert severity="error" action={
-          <Button color="inherit" size="small" onClick={loadProgressData}>
+          <Button color="inherit" size="small" onClick={loadProgressData} data-testid="student-progress-retry-button">
             Retry
           </Button>
         }>
@@ -166,6 +166,7 @@ export const StudentProgressDashboard: React.FC = () => {
           variant="contained" 
           onClick={() => window.location.href = '/courses'}
           sx={{ minWidth: 120 }}
+          data-testid="student-progress-browse-courses-button"
         >
           Browse Courses
         </Button>
@@ -187,7 +188,7 @@ export const StudentProgressDashboard: React.FC = () => {
             Personalized insights and intelligent recommendations
           </Typography>
         </Box>
-        <IconButton onClick={loadProgressData} color="primary" size="large">
+        <IconButton onClick={loadProgressData} color="primary" size="large" data-testid="student-progress-refresh-button">
           <RefreshIcon />
         </IconButton>
       </Box>
@@ -314,7 +315,7 @@ export const StudentProgressDashboard: React.FC = () => {
           severity="warning" 
           sx={{ mb: 3 }}
           action={
-            <Button color="inherit" size="small" onClick={() => setTabValue(1)}>
+            <Button color="inherit" size="small" onClick={() => setTabValue(1)} data-testid="student-progress-view-recommendations-button">
               View Recommendations
             </Button>
           }
@@ -334,6 +335,7 @@ export const StudentProgressDashboard: React.FC = () => {
           indicatorColor="primary"
           textColor="primary"
           variant="fullWidth"
+          data-testid="student-progress-tabs"
         >
           <Tab 
             label={
@@ -341,7 +343,8 @@ export const StudentProgressDashboard: React.FC = () => {
                 <TimelineIcon />
                 Progress Details
               </Box>
-            } 
+            }
+            data-testid="student-progress-tab-details"
           />
           <Tab 
             label={
@@ -351,7 +354,8 @@ export const StudentProgressDashboard: React.FC = () => {
                 </Badge>
                 Smart Recommendations
               </Box>
-            } 
+            }
+            data-testid="student-progress-tab-recommendations"
           />
           <Tab 
             label={
@@ -359,7 +363,8 @@ export const StudentProgressDashboard: React.FC = () => {
                 <SkillIcon />
                 Skills & Strengths
               </Box>
-            } 
+            }
+            data-testid="student-progress-tab-skills"
           />
           <Tab 
             label={
@@ -367,7 +372,8 @@ export const StudentProgressDashboard: React.FC = () => {
                 <AchievementIcon />
                 Achievements
               </Box>
-            } 
+            }
+            data-testid="student-progress-tab-achievements"
           />
         </Tabs>
 
@@ -521,6 +527,7 @@ export const StudentProgressDashboard: React.FC = () => {
                         size="small"
                         startIcon={<PlayArrowIcon />}
                         onClick={() => handleCompleteRecommendation(recommendation.id)}
+                        data-testid={`student-progress-recommendation-${recommendation.id}-button`}
                         sx={{ mb: 1 }}
                       >
                         {recommendation.actionText}

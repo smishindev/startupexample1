@@ -161,6 +161,7 @@ export const Dashboard: React.FC = () => {
               startIcon={<Psychology />}
               onClick={handleSmartProgress}
               sx={{ mr: 1 }}
+              data-testid="dashboard-smart-progress-button"
             >
               Smart Progress
             </Button>
@@ -168,6 +169,7 @@ export const Dashboard: React.FC = () => {
               variant="outlined"
               color="inherit"
               onClick={handleLogout}
+              data-testid="dashboard-logout-button"
             >
               Logout
             </Button>
@@ -229,6 +231,7 @@ export const Dashboard: React.FC = () => {
                 variant="text"
                 size="small"
                 endIcon={<School />}
+                data-testid="dashboard-view-all-courses-button"
               >
                 View All Courses
               </Button>
@@ -309,6 +312,7 @@ export const Dashboard: React.FC = () => {
                               boxShadow: '0 6px 16px rgba(102, 126, 234, 0.5)',
                             },
                           }}
+                          data-testid={`dashboard-continue-course-${index}`}
                         >
                           Continue
                         </Button>
@@ -352,6 +356,7 @@ export const Dashboard: React.FC = () => {
                   startIcon={<School />}
                   onClick={() => navigate('/courses')}
                   sx={{ mt: 1 }}
+                  data-testid="dashboard-browse-courses-empty-button"
                 >
                   Browse Courses
                 </Button>
@@ -374,6 +379,7 @@ export const Dashboard: React.FC = () => {
                   startIcon={<BookmarkBorder />}
                   fullWidth
                   sx={{ justifyContent: 'flex-start' }}
+                  data-testid="dashboard-quick-browse-button"
                 >
                   Browse Courses
                 </Button>
@@ -382,6 +388,7 @@ export const Dashboard: React.FC = () => {
                   startIcon={<Assignment />}
                   fullWidth
                   sx={{ justifyContent: 'flex-start' }}
+                  data-testid="dashboard-assignments-button"
                 >
                   Assignments Due
                 </Button>
@@ -390,6 +397,7 @@ export const Dashboard: React.FC = () => {
                   startIcon={<People />}
                   fullWidth
                   sx={{ justifyContent: 'flex-start' }}
+                  data-testid="dashboard-study-group-button"
                 >
                   Join Study Group
                 </Button>

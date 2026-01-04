@@ -85,6 +85,7 @@ const NotificationItem: React.FC<{
 
   return (
     <Box 
+      data-testid={`notification-item-${item.Id}`}
       sx={{ 
         p: 2, 
         display: 'flex', 
@@ -103,11 +104,11 @@ const NotificationItem: React.FC<{
           </Typography>
           <Stack direction="row" spacing={1} alignItems="center" onClick={(e) => e.stopPropagation()}>
             {!item.IsRead && (
-              <Button size="small" onClick={() => onMarkRead(item.Id)}>
+              <Button size="small" onClick={() => onMarkRead(item.Id)} data-testid={`notification-item-mark-read-${item.Id}`}>
                 Mark read
               </Button>
             )}
-            <IconButton size="small" onClick={() => onDelete(item.Id)}>
+            <IconButton size="small" onClick={() => onDelete(item.Id)} data-testid={`notification-item-delete-${item.Id}`}>
               <DeleteIcon fontSize="small" />
             </IconButton>
           </Stack>
@@ -278,13 +279,14 @@ export const NotificationsPage: React.FC = () => {
               onClick={() => navigate('/settings/notifications')}
               variant="outlined"
               size="small"
+              data-testid="notifications-preferences-button"
             >
               Preferences
             </Button>
-            <Button startIcon={<DoneAllIcon />} onClick={markAll} disabled={items.every(i => i.IsRead)}>
+            <Button startIcon={<DoneAllIcon />} onClick={markAll} disabled={items.every(i => i.IsRead)} data-testid="notifications-mark-all-read-button">
               Mark all read
             </Button>
-            <Button onClick={fetchAll}>Refresh</Button>
+            <Button onClick={fetchAll} data-testid="notifications-refresh-button">Refresh</Button>
           </Stack>
         </Stack>
 
@@ -295,14 +297,15 @@ export const NotificationsPage: React.FC = () => {
               size="small"
               value={show}
               onChange={(_, val) => setShow(val || 'all')}
+              data-testid="notifications-show-toggle"
             >
-              <ToggleButton value="all">All</ToggleButton>
-              <ToggleButton value="unread">Unread</ToggleButton>
+              <ToggleButton value="all" data-testid="notifications-show-all">All</ToggleButton>
+              <ToggleButton value="unread" data-testid="notifications-show-unread">Unread</ToggleButton>
             </ToggleButtonGroup>
 
             <FormControl size="small" sx={{ minWidth: 160 }}>
               <InputLabel id="type-label">Type</InputLabel>
-              <Select labelId="type-label" label="Type" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
+              <Select labelId="type-label" label="Type" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} data-testid="notifications-type-filter">
                 <MenuItem value="all">All</MenuItem>
                 <MenuItem value="progress">Progress</MenuItem>
                 <MenuItem value="risk">Risk</MenuItem>
@@ -315,7 +318,7 @@ export const NotificationsPage: React.FC = () => {
 
             <FormControl size="small" sx={{ minWidth: 160 }}>
               <InputLabel id="priority-label">Priority</InputLabel>
-              <Select labelId="priority-label" label="Priority" value={priorityFilter} onChange={(e) => setPriorityFilter(e.target.value)}>
+              <Select labelId="priority-label" label="Priority" value={priorityFilter} onChange={(e) => setPriorityFilter(e.target.value)} data-testid="notifications-priority-filter">
                 <MenuItem value="all">All</MenuItem>
                 <MenuItem value="urgent">Urgent</MenuItem>
                 <MenuItem value="high">High</MenuItem>
@@ -355,6 +358,7 @@ export const NotificationsPage: React.FC = () => {
                       color="primary"
                       showFirstButton
                       showLastButton
+                      data-testid="notifications-pagination"
                     />
                   </Box>
                 </>

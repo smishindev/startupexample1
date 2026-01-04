@@ -157,6 +157,7 @@ export const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
       onClose={handleClose} 
       maxWidth="sm" 
       fullWidth
+      data-testid="create-session-modal"
       PaperProps={{
         sx: { borderRadius: 2 }
       }}
@@ -181,6 +182,7 @@ export const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
             required
             fullWidth
             autoFocus
+            data-testid="create-session-title-input"
           />
 
           {/* Description */}
@@ -192,6 +194,7 @@ export const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
             rows={3}
             fullWidth
             placeholder="Describe what you'll cover in this session..."
+            data-testid="create-session-description-input"
           />
 
           {/* Course Selection */}
@@ -202,6 +205,7 @@ export const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
               value={formData.courseId}
               onChange={(e) => handleChange('courseId', e.target.value)}
               fullWidth
+              data-testid="create-session-course-select"
             >
               <MenuItem value="">
                 <em>No specific course</em>
@@ -248,6 +252,7 @@ export const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
               helperText={errors.duration || "15-480 minutes (15 min increments)"}
               required
               fullWidth
+              data-testid="create-session-duration-input"
               InputProps={{
                 inputProps: { min: 15, max: 480, step: 15 }
               }}
@@ -265,6 +270,7 @@ export const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
               helperText={errors.capacity || "1-1000 attendees"}
               required
               fullWidth
+              data-testid="create-session-capacity-input"
               InputProps={{
                 inputProps: { min: 1, max: 1000 }
               }}
@@ -278,6 +284,7 @@ export const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
             onChange={(e) => handleChange('streamUrl', e.target.value)}
             fullWidth
             placeholder="https://zoom.us/j/... or meeting link"
+            data-testid="create-session-stream-url-input"
           />
 
           {/* Materials */}
@@ -289,6 +296,7 @@ export const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
             rows={2}
             fullWidth
             placeholder="Links to slides, documents, or other resources..."
+            data-testid="create-session-materials-input"
           />
 
           <Typography variant="caption" color="text.secondary">
@@ -298,7 +306,7 @@ export const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
       </DialogContent>
 
       <DialogActions sx={{ px: 3, py: 2 }}>
-        <Button onClick={handleClose} disabled={loading}>
+        <Button onClick={handleClose} disabled={loading} data-testid="create-session-cancel-button">
           Cancel
         </Button>
         <Button
@@ -306,6 +314,7 @@ export const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
           onClick={handleSubmit}
           disabled={loading}
           startIcon={loading && <CircularProgress size={16} />}
+          data-testid="create-session-submit-button"
         >
           {loading ? 'Creating...' : 'Create Session'}
         </Button>

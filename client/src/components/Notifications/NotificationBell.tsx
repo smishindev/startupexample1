@@ -284,12 +284,13 @@ export const NotificationBell: React.FC = () => {
                     navigate('/settings/notifications');
                     handleClose();
                   }}
+                  data-testid="notification-bell-settings-button"
                 >
                   <SettingsIcon fontSize="small" />
                 </IconButton>
               </Tooltip>
               {unreadCount > 0 && (
-                <Button size="small" onClick={handleMarkAllRead}>
+                <Button size="small" onClick={handleMarkAllRead} data-testid="notification-bell-mark-all-read-button">
                   Mark all read
                 </Button>
               )}

@@ -302,6 +302,7 @@ export const StudyGroupsPage: React.FC = () => {
           variant="contained"
           startIcon={<AddIcon />}
           onClick={() => setCreateModalOpen(true)}
+          data-testid="study-groups-create-button"
         >
           Create Group
         </Button>
@@ -309,10 +310,10 @@ export const StudyGroupsPage: React.FC = () => {
 
       {/* Tabs */}
       <Paper sx={{ mb: 3 }}>
-        <Tabs value={activeTab} onChange={handleTabChange} variant="fullWidth">
-          <Tab label="My Groups" value="my-groups" />
-          <Tab label="All Groups" value="all" />
-          <Tab label="By Course" value="course" />
+        <Tabs value={activeTab} onChange={handleTabChange} variant="fullWidth" data-testid="study-groups-tabs">
+          <Tab label="My Groups" value="my-groups" data-testid="study-groups-tab-my" />
+          <Tab label="All Groups" value="all" data-testid="study-groups-tab-all" />
+          <Tab label="By Course" value="course" data-testid="study-groups-tab-course" />
         </Tabs>
       </Paper>
 
@@ -325,6 +326,7 @@ export const StudyGroupsPage: React.FC = () => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+            data-testid="study-groups-search-input"
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
@@ -343,6 +345,7 @@ export const StudyGroupsPage: React.FC = () => {
                 value={selectedCourse}
                 onChange={(e) => setSelectedCourse(e.target.value)}
                 label="Select Course"
+                data-testid="study-groups-course-select"
               >
                 <MenuItem value="">
                   <em>All Courses</em>
@@ -356,7 +359,7 @@ export const StudyGroupsPage: React.FC = () => {
             </FormControl>
           )}
 
-          <Button variant="contained" onClick={handleSearch}>
+          <Button variant="contained" onClick={handleSearch} data-testid="study-groups-search-button">
             Search
           </Button>
         </Box>

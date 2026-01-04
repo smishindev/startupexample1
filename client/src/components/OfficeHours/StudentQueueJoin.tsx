@@ -221,6 +221,7 @@ const StudentQueueJoin: React.FC<StudentQueueJoinProps> = ({
               value={selectedInstructor}
               onChange={(e) => handleInstructorChange(e.target.value)}
               label="Select Instructor"
+              data-testid="queue-instructor-select"
             >
               <MenuItem value="">
                 <em>Choose an instructor</em>
@@ -327,6 +328,7 @@ const StudentQueueJoin: React.FC<StudentQueueJoinProps> = ({
               onClick={handleLeaveQueue}
               disabled={submitting}
               fullWidth
+              data-testid="queue-leave-button"
             >
               Leave Queue
             </Button>
@@ -348,6 +350,7 @@ const StudentQueueJoin: React.FC<StudentQueueJoinProps> = ({
                 value={selectedSchedule}
                 onChange={(e) => setSelectedSchedule(e.target.value)}
                 label="Select Time Slot"
+                data-testid="queue-timeslot-select"
               >
                 {schedules.map((schedule) => (
                   <MenuItem key={schedule.Id} value={schedule.Id}>
@@ -367,6 +370,7 @@ const StudentQueueJoin: React.FC<StudentQueueJoinProps> = ({
               placeholder="What do you need help with?"
               helperText="Let the instructor know what you'd like to discuss"
               sx={{ mb: 2 }}
+              data-testid="queue-question-input"
             />
 
             <Button
@@ -375,6 +379,7 @@ const StudentQueueJoin: React.FC<StudentQueueJoinProps> = ({
               onClick={handleJoinQueue}
               disabled={submitting}
               fullWidth
+              data-testid="queue-join-button"
             >
               {submitting ? <CircularProgress size={24} /> : 'Join Queue'}
             </Button>

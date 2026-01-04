@@ -100,6 +100,7 @@ const Layout: React.FC = () => {
                 setMobileOpen(false)
               }
             }}
+            data-testid={`layout-menu-${item.text.toLowerCase().replace(/\s+/g, '-')}`}
             sx={{
               mb: 1,
               borderRadius: 2,
@@ -131,6 +132,7 @@ const Layout: React.FC = () => {
             aria-label="open drawer"
             edge="start"
             onClick={handleDrawerToggle}
+            data-testid="layout-mobile-menu-toggle-button"
             sx={{ mr: 2, display: { md: 'none' } }}
           >
             <MenuIcon />
@@ -143,6 +145,7 @@ const Layout: React.FC = () => {
             size="small"
             aria-controls="profile-menu"
             aria-haspopup="true"
+            data-testid="layout-profile-menu-button"
           >
             <Avatar
               src={user?.avatar || undefined}
@@ -165,13 +168,13 @@ const Layout: React.FC = () => {
             transformOrigin={{ horizontal: 'right', vertical: 'top' }}
             anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
           >
-            <MenuItem onClick={() => { navigate('/profile'); handleProfileMenuClose() }}>
+            <MenuItem onClick={() => { navigate('/profile'); handleProfileMenuClose() }} data-testid="layout-settings-menu-item">
               <ListItemIcon>
                 <SettingsIcon fontSize="small" />
               </ListItemIcon>
               Settings
             </MenuItem>
-            <MenuItem onClick={handleLogout}>
+            <MenuItem onClick={handleLogout} data-testid="layout-logout-menu-item">
               <ListItemIcon>
                 <LogoutIcon fontSize="small" />
               </ListItemIcon>

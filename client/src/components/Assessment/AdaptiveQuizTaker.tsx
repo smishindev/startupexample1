@@ -572,6 +572,7 @@ const AdaptiveQuizTaker: React.FC<AdaptiveQuizTakerProps> = ({ assessmentId: pro
 
           <Box mt={4}>
             <Button
+              data-testid="adaptive-quiz-start-button"
               variant="contained"
               size="large"
               onClick={startAssessment}
@@ -672,6 +673,7 @@ const AdaptiveQuizTaker: React.FC<AdaptiveQuizTakerProps> = ({ assessmentId: pro
               />
             </Box>
             <Button
+              data-testid="adaptive-quiz-submit-answer"
               variant="contained"
               onClick={submitAnswer}
               disabled={submitting || !currentAnswer}
@@ -692,8 +694,8 @@ const AdaptiveQuizTaker: React.FC<AdaptiveQuizTakerProps> = ({ assessmentId: pro
           </Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setConfirmSubmitOpen(false)}>Cancel</Button>
-          <Button onClick={finishAssessment} color="primary" variant="contained">
+          <Button data-testid="adaptive-quiz-cancel-submit" onClick={() => setConfirmSubmitOpen(false)}>Cancel</Button>
+          <Button data-testid="adaptive-quiz-confirm-submit" onClick={finishAssessment} color="primary" variant="contained">
             Submit
           </Button>
         </DialogActions>

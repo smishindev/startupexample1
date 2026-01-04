@@ -256,6 +256,7 @@ const Tutoring: React.FC = () => {
                   startIcon={<AddIcon />}
                   onClick={() => setCreateSessionOpen(true)}
                   size="small"
+                  data-testid="tutoring-create-session-button"
                 >
                   New
                 </Button>
@@ -278,6 +279,7 @@ const Tutoring: React.FC = () => {
                     <ListItemButton
                       selected={selectedSession?.Id === session.Id}
                       onClick={() => setSelectedSession(session)}
+                      data-testid={`tutoring-session-item-${session.Id}`}
                     >
                       <ListItemIcon>
                         <ChatIcon />
@@ -442,11 +444,13 @@ const Tutoring: React.FC = () => {
                     onChange={(e) => setNewMessage(e.target.value)}
                     onKeyPress={handleKeyPress}
                     disabled={sending}
+                    data-testid="tutoring-message-input"
                   />
                   <IconButton
                     onClick={handleSendMessage}
                     disabled={!newMessage.trim() || sending}
                     color="primary"
+                    data-testid="tutoring-send-button"
                   >
                     {sending ? <CircularProgress size={24} /> : <SendIcon />}
                   </IconButton>
@@ -503,8 +507,8 @@ const Tutoring: React.FC = () => {
           </FormControl>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setCreateSessionOpen(false)}>Cancel</Button>
-          <Button onClick={handleCreateSession} variant="contained">Create Session</Button>
+          <Button onClick={() => setCreateSessionOpen(false)} data-testid="tutoring-dialog-cancel-button">Cancel</Button>
+          <Button onClick={handleCreateSession} variant="contained" data-testid="tutoring-dialog-create-button">Create Session</Button>
         </DialogActions>
       </Dialog>
     </Container>

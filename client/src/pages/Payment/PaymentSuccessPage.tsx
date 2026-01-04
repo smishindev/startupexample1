@@ -151,7 +151,7 @@ const PaymentSuccessPage: React.FC = () => {
           <Alert severity="error" sx={{ mb: 3 }}>
             {error || 'Failed to load course details'}
           </Alert>
-          <Button variant="contained" onClick={() => navigate('/dashboard')}>
+          <Button variant="contained" onClick={() => navigate('/dashboard')} data-testid="payment-success-error-dashboard-button">
             Go to Dashboard
           </Button>
         </Container>
@@ -217,6 +217,7 @@ const PaymentSuccessPage: React.FC = () => {
               <IconButton
                 onClick={() => handleShare('twitter')}
                 sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'white', '&:hover': { bgcolor: 'rgba(255,255,255,0.3)' } }}
+                data-testid="payment-success-share-twitter-button"
               >
                 <TwitterIcon />
               </IconButton>
@@ -225,6 +226,7 @@ const PaymentSuccessPage: React.FC = () => {
               <IconButton
                 onClick={() => handleShare('facebook')}
                 sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'white', '&:hover': { bgcolor: 'rgba(255,255,255,0.3)' } }}
+                data-testid="payment-success-share-facebook-button"
               >
                 <FacebookIcon />
               </IconButton>
@@ -233,6 +235,7 @@ const PaymentSuccessPage: React.FC = () => {
               <IconButton
                 onClick={() => handleShare('linkedin')}
                 sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'white', '&:hover': { bgcolor: 'rgba(255,255,255,0.3)' } }}
+                data-testid="payment-success-share-linkedin-button"
               >
                 <LinkedInIcon />
               </IconButton>
@@ -269,6 +272,7 @@ const PaymentSuccessPage: React.FC = () => {
               fullWidth
               startIcon={<PlayArrowIcon />}
               onClick={() => navigate(`/courses/${courseId}`)}
+              data-testid="payment-success-start-learning-button"
               sx={{
                 py: 2,
                 fontSize: '1.1rem',
@@ -289,6 +293,7 @@ const PaymentSuccessPage: React.FC = () => {
               startIcon={<ReceiptIcon />}
               onClick={() => navigate('/profile/transactions')}
               sx={{ py: 1.5 }}
+              data-testid="payment-success-view-receipt-button"
             >
               View Receipt & Invoice
             </Button>
@@ -298,6 +303,7 @@ const PaymentSuccessPage: React.FC = () => {
               size="medium"
               fullWidth
               onClick={() => navigate('/dashboard')}
+              data-testid="payment-success-go-dashboard-button"
             >
               Go to Dashboard
             </Button>

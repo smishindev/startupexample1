@@ -204,8 +204,7 @@ const MyLearningPage: React.FC = () => {
             <Button
               variant="contained"
               size="large"
-              onClick={() => navigate(isInstructor ? '/instructor/courses/create' : '/courses')}
-            >
+              onClick={() => navigate(isInstructor ? '/instructor/courses/create' : '/courses')}              data-testid="my-learning-browse-button"            >
               {isInstructor ? 'Create Course' : 'Browse Courses'}
             </Button>
             {isInstructor && (
@@ -214,6 +213,7 @@ const MyLearningPage: React.FC = () => {
                 size="large"
                 onClick={createTestData}
                 sx={{ ml: 2 }}
+                data-testid="my-learning-create-test-data-button"
               >
                 Create Test Data
               </Button>
@@ -495,6 +495,7 @@ const MyLearningPage: React.FC = () => {
                                 boxShadow: '0 6px 16px rgba(102, 126, 234, 0.5)',
                               },
                             }}
+                            data-testid={`my-learning-edit-course-${enrollment.courseId}-button`}
                           >
                             Edit Course
                           </Button>
@@ -514,6 +515,7 @@ const MyLearningPage: React.FC = () => {
                                   transform: 'translateY(-2px)',
                                 },
                               }}
+                              data-testid={`my-learning-lessons-${enrollment.courseId}-button`}
                             >
                               Lessons
                             </Button>
@@ -532,6 +534,7 @@ const MyLearningPage: React.FC = () => {
                                   transform: 'translateY(-2px)',
                                 },
                               }}
+                              data-testid={`my-learning-assessments-${enrollment.courseId}-button`}
                             >
                               Assessments
                             </Button>
@@ -545,6 +548,7 @@ const MyLearningPage: React.FC = () => {
                               borderRadius: 2,
                               fontWeight: 600,
                             }}
+                            data-testid={`my-learning-preview-${enrollment.courseId}-button`}
                           >
                             Preview Course
                           </Button>
@@ -561,6 +565,7 @@ const MyLearningPage: React.FC = () => {
                               // For now, go to course page which will show "Continue Learning" button
                               navigate(`/courses/${enrollment.courseId}`);
                             } else {
+                          data-testid={`my-learning-continue-${enrollment.courseId}-button`}
                               // For courses in progress, go to course page (could be enhanced to go to last accessed lesson)
                               navigate(`/courses/${enrollment.courseId}`);
                             }

@@ -342,6 +342,7 @@ const QuizCreator: React.FC<QuizCreatorProps> = ({
         
         <Box sx={{ display: 'flex', gap: 1 }}>
           <Button
+            data-testid="quiz-creator-settings-button"
             variant="outlined"
             startIcon={<SettingsIcon />}
             onClick={() => setSettingsOpen(true)}
@@ -349,6 +350,7 @@ const QuizCreator: React.FC<QuizCreatorProps> = ({
             Settings
           </Button>
           <Button
+            data-testid="quiz-creator-preview-button"
             variant="outlined"
             startIcon={<PreviewIcon />}
             onClick={() => setPreviewOpen(true)}
@@ -357,6 +359,7 @@ const QuizCreator: React.FC<QuizCreatorProps> = ({
             Preview
           </Button>
           <Button
+            data-testid="quiz-creator-save-button"
             variant="contained"
             startIcon={<SaveIcon />}
             onClick={saveAssessment}
@@ -386,6 +389,7 @@ const QuizCreator: React.FC<QuizCreatorProps> = ({
               <Grid container spacing={2}>
                 <Grid item xs={12}>
                   <TextField
+                    data-testid="quiz-creator-title-input"
                     fullWidth
                     label="Assessment Title"
                     value={assessment.title || ''}
@@ -399,6 +403,7 @@ const QuizCreator: React.FC<QuizCreatorProps> = ({
                   <FormControl fullWidth>
                     <InputLabel>Assessment Type</InputLabel>
                     <Select
+                      data-testid="quiz-creator-type-select"
                       value={assessment.type || 'quiz'}
                       label="Assessment Type"
                       onChange={(e) => setAssessment({ ...assessment, type: e.target.value as Assessment['type'] })}
@@ -414,6 +419,7 @@ const QuizCreator: React.FC<QuizCreatorProps> = ({
 
                 <Grid item xs={12} md={6}>
                   <TextField
+                    data-testid="quiz-creator-passing-score-input"
                     fullWidth
                     label="Passing Score (%)"
                     type="number"
@@ -448,6 +454,7 @@ const QuizCreator: React.FC<QuizCreatorProps> = ({
                     </Tooltip>
                   ))}
                   <Button
+                    data-testid="quiz-creator-add-question-button"
                     variant="contained"
                     startIcon={<AddIcon />}
                     onClick={() => addQuestion()}
@@ -498,6 +505,7 @@ const QuizCreator: React.FC<QuizCreatorProps> = ({
                           <Grid container spacing={2}>
                             <Grid item xs={12}>
                               <TextField
+                                data-testid={`quiz-creator-question-text-${index}`}
                                 fullWidth
                                 label="Question"
                                 multiline
@@ -512,6 +520,7 @@ const QuizCreator: React.FC<QuizCreatorProps> = ({
                               <FormControl fullWidth>
                                 <InputLabel>Question Type</InputLabel>
                                 <Select
+                                  data-testid={`quiz-creator-question-type-${index}`}
                                   value={question.type || 'multiple_choice'}
                                   label="Question Type"
                                   onChange={(e) => updateQuestion(index, { 
@@ -530,6 +539,7 @@ const QuizCreator: React.FC<QuizCreatorProps> = ({
                             
                             <Grid item xs={6}>
                               <TextField
+                                data-testid={`quiz-creator-question-difficulty-${index}`}
                                 fullWidth
                                 label="Difficulty (1-10)"
                                 type="number"
@@ -625,6 +635,7 @@ const QuizCreator: React.FC<QuizCreatorProps> = ({
 
                             <Grid item xs={12}>
                               <TextField
+                                data-testid={`quiz-creator-question-explanation-${index}`}
                                 fullWidth
                                 label="Explanation (Optional)"
                                 multiline
@@ -639,17 +650,26 @@ const QuizCreator: React.FC<QuizCreatorProps> = ({
                               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <Box sx={{ display: 'flex', gap: 1 }}>
                                   {index > 0 && (
-                                    <Button size="small" onClick={() => moveQuestion(index, 'up')}>
+                                    <Button 
+                                      data-testid={`quiz-creator-question-move-up-${index}`}
+                                      size="small" 
+                                      onClick={() => moveQuestion(index, 'up')}
+                                    >
                                       Move Up
                                     </Button>
                                   )}
                                   {index < questions.length - 1 && (
-                                    <Button size="small" onClick={() => moveQuestion(index, 'down')}>
+                                    <Button 
+                                      data-testid={`quiz-creator-question-move-down-${index}`}
+                                      size="small" 
+                                      onClick={() => moveQuestion(index, 'down')}
+                                    >
                                       Move Down
                                     </Button>
                                   )}
                                 </Box>
                                 <Button
+                                  data-testid={`quiz-creator-question-delete-${index}`}
                                   color="error"
                                   size="small"
                                   onClick={() => deleteQuestion(index)}
@@ -735,6 +755,7 @@ const QuizCreator: React.FC<QuizCreatorProps> = ({
             <Grid container spacing={3}>
               <Grid item xs={12}>
                 <TextField
+                  data-testid="quiz-creator-settings-max-attempts"
                   fullWidth
                   label="Maximum Attempts"
                   type="number"
@@ -747,6 +768,7 @@ const QuizCreator: React.FC<QuizCreatorProps> = ({
               
               <Grid item xs={12}>
                 <TextField
+                  data-testid="quiz-creator-settings-time-limit"
                   fullWidth
                   label="Time Limit (minutes)"
                   type="number"
@@ -761,6 +783,7 @@ const QuizCreator: React.FC<QuizCreatorProps> = ({
                 <FormControlLabel
                   control={
                     <Switch
+                      data-testid="quiz-creator-settings-adaptive-toggle"
                       checked={assessment.isAdaptive || false}
                       onChange={(e) => setAssessment({ ...assessment, isAdaptive: e.target.checked })}
                     />
@@ -775,7 +798,7 @@ const QuizCreator: React.FC<QuizCreatorProps> = ({
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setSettingsOpen(false)}>Close</Button>
+          <Button data-testid="quiz-creator-settings-close" onClick={() => setSettingsOpen(false)}>Close</Button>
         </DialogActions>
       </Dialog>
 
@@ -838,7 +861,7 @@ const QuizCreator: React.FC<QuizCreatorProps> = ({
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setPreviewOpen(false)}>Close</Button>
+          <Button data-testid="quiz-creator-preview-close" onClick={() => setPreviewOpen(false)}>Close</Button>
         </DialogActions>
       </Dialog>
     </Box>

@@ -149,6 +149,7 @@ export const ResetPasswordForm: React.FC = () => {
                 variant="contained"
                 fullWidth
                 sx={{ mt: 3 }}
+                data-testid="reset-password-success-go-to-login-button"
               >
                 Go to Login
               </Button>
@@ -200,6 +201,7 @@ export const ResetPasswordForm: React.FC = () => {
               required
               autoComplete="email"
               disabled={isLoading}
+              inputProps={{ 'data-testid': 'reset-password-email-input' }}
             />
 
             <TextField
@@ -214,7 +216,7 @@ export const ResetPasswordForm: React.FC = () => {
               required
               autoFocus
               disabled={isLoading}
-              inputProps={{ maxLength: 6, pattern: '[0-9]*' }}
+              inputProps={{ maxLength: 6, pattern: '[0-9]*', 'data-testid': 'reset-password-token-input' }}
             />
 
             <TextField
@@ -230,6 +232,7 @@ export const ResetPasswordForm: React.FC = () => {
               required
               autoComplete="new-password"
               disabled={isLoading}
+              inputProps={{ 'data-testid': 'reset-password-new-password-input' }}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -242,6 +245,7 @@ export const ResetPasswordForm: React.FC = () => {
                       onClick={() => setShowPassword(!showPassword)}
                       edge="end"
                       disabled={isLoading}
+                      data-testid="reset-password-toggle-password-visibility"
                     >
                       {showPassword ? <VisibilityOff /> : <Visibility />}
                     </IconButton>
@@ -263,6 +267,7 @@ export const ResetPasswordForm: React.FC = () => {
               required
               autoComplete="new-password"
               disabled={isLoading}
+              inputProps={{ 'data-testid': 'reset-password-confirm-password-input' }}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -275,6 +280,7 @@ export const ResetPasswordForm: React.FC = () => {
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                       edge="end"
                       disabled={isLoading}
+                      data-testid="reset-password-toggle-confirm-password-visibility"
                     >
                       {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
                     </IconButton>
@@ -290,6 +296,7 @@ export const ResetPasswordForm: React.FC = () => {
               size="large"
               disabled={isLoading}
               sx={{ mt: 3, mb: 2, py: 1.5 }}
+              data-testid="reset-password-submit-button"
             >
               {isLoading ? (
                 <>
@@ -308,6 +315,7 @@ export const ResetPasswordForm: React.FC = () => {
                 variant="body2"
                 underline="hover"
                 sx={{ display: 'block', mb: 1 }}
+                data-testid="reset-password-resend-code-link"
               >
                 Didn't receive a code? Send again
               </Link>
@@ -317,6 +325,7 @@ export const ResetPasswordForm: React.FC = () => {
                 variant="body2"
                 underline="hover"
                 sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}
+                data-testid="reset-password-back-to-login-link"
               >
                 <ArrowBack fontSize="small" />
                 Back to Login

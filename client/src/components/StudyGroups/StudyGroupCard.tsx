@@ -51,6 +51,7 @@ export const StudyGroupCard: React.FC<StudyGroupCardProps> = ({
 
   return (
     <Card 
+      data-testid="study-group-card"
       sx={{ 
         height: '100%', 
         display: 'flex', 
@@ -160,6 +161,7 @@ export const StudyGroupCard: React.FC<StudyGroupCardProps> = ({
               size="small"
               variant="outlined"
               onClick={() => onViewDetails(group.Id)}
+              data-testid="study-group-view-details-button"
             >
               View Details
             </Button>
@@ -174,6 +176,7 @@ export const StudyGroupCard: React.FC<StudyGroupCardProps> = ({
                     size="small"
                     variant="outlined"
                     onClick={() => onEdit(group.Id)}
+                    data-testid="study-group-edit-button"
                   >
                     Edit
                   </Button>
@@ -186,6 +189,7 @@ export const StudyGroupCard: React.FC<StudyGroupCardProps> = ({
                     variant="outlined"
                     color="error"
                     onClick={() => onDelete(group.Id)}
+                    data-testid="study-group-delete-button"
                   >
                     Delete
                   </Button>
@@ -205,6 +209,7 @@ export const StudyGroupCard: React.FC<StudyGroupCardProps> = ({
                 color="error"
                 startIcon={<LeaveIcon />}
                 onClick={() => onLeave(group.Id)}
+                data-testid="study-group-leave-button"
               >
                 Leave
               </Button>
@@ -217,6 +222,7 @@ export const StudyGroupCard: React.FC<StudyGroupCardProps> = ({
                 color="primary"
                 startIcon={<JoinIcon />}
                 onClick={() => onJoin(group.Id)}
+                data-testid="study-group-join-button"
               >
                 Join Group
               </Button>

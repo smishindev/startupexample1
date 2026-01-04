@@ -283,12 +283,17 @@ router.post('/test', authenticateToken, async (req: AuthRequest, res: Response) 
     
     // Use createNotificationWithControls to respect granular preferences
     const notificationId = await notificationService.createNotificationWithControls(
-      userId,
-      type || 'progress',
-      title || 'Test Notification',
-      message || 'This is a test notification',
-      priority || 'normal',
-      subcategory || 'LessonCompletion' // Default subcategory
+      {
+        userId,
+        type: type || 'progress',
+        title: title || 'Test Notification',
+        message: message || 'This is a test notification',
+        priority: priority || 'normal'
+      },
+      {
+        category: 'progress',
+        subcategory: subcategory || 'LessonCompletion'
+      }
     );
     
     res.json({

@@ -41,13 +41,13 @@ def page(context: BrowserContext) -> Generator[Page, None, None]:
     page.close()
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def base_url() -> str:
     """Base URL for the application (frontend)"""
     return BASE_URL
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def api_base_url() -> str:
     """Base URL for the API (backend)"""
     return API_BASE_URL

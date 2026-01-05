@@ -2,7 +2,7 @@
 
 **Purpose**: Quick reference for writing Playwright tests - organized by feature area  
 **Last Updated**: January 5, 2026  
-**Coverage**: 597 test IDs across 31 components (108.5% of original 550 target)
+**Coverage**: 659 test IDs across 32 components (119.8% of original 550 target)
 
 ---
 
@@ -51,6 +51,7 @@ Many selectors use dynamic IDs/indexes:
 - **LoginForm** → Authentication & Access Control
 - **MyLearningPage** → Course Management
 - **NotificationBell** → Communication & Collaboration
+- **NotificationSettingsPage** → User Profile & Settings
 - **NotificationsPage** → Communication & Collaboration
 - **PaymentSuccessPage** → Payment & Checkout
 - **PresenceStatusSelector** → User Profile & Settings
@@ -782,6 +783,99 @@ page.click('[data-testid="course-creation-publish-button"]')
 |---------|----------|------|-------|
 | Save appearance button | `settings-save-appearance-button` | Button | Save theme settings |
 | Delete dialog cancel | `settings-delete-dialog-cancel` | Button | Cancel account deletion |
+
+---
+
+### NotificationSettingsPage.tsx
+**Path**: `client/src/pages/Settings/NotificationSettingsPage.tsx`
+
+**Global Controls:**
+
+| Element | Selector | Type | Notes |
+|---------|----------|------|-------|
+| Enable in-app switch | `notifications-settings-enable-in-app-switch` | Switch | Global in-app toggle |
+| Enable email switch | `notifications-settings-enable-email-switch` | Switch | Global email toggle |
+| Email frequency select | `notifications-settings-email-frequency-select` | Select | Realtime/daily/weekly |
+| Save button | `notifications-settings-save-button` | Button | Save all settings |
+
+**Category Accordions & Switches:**
+
+| Element | Selector | Type | Notes |
+|---------|----------|------|-------|
+| Progress category accordion | `notifications-settings-category-progress-accordion` | Accordion | Progress updates section |
+| Progress accordion summary | `notifications-settings-category-progress-accordion-summary` | AccordionSummary | Clickable header |
+| Progress category switch | `notifications-settings-category-progress-switch` | Switch | Enable/disable category |
+| Course category accordion | `notifications-settings-category-course-accordion` | Accordion | Course updates section |
+| Course accordion summary | `notifications-settings-category-course-accordion-summary` | AccordionSummary | Clickable header |
+| Course category switch | `notifications-settings-category-course-switch` | Switch | Enable/disable category |
+| Assessment category accordion | `notifications-settings-category-assessment-accordion` | Accordion | Assessment updates section |
+| Assessment accordion summary | `notifications-settings-category-assessment-accordion-summary` | AccordionSummary | Clickable header |
+| Assessment category switch | `notifications-settings-category-assessment-switch` | Switch | Enable/disable category |
+| Community category accordion | `notifications-settings-category-community-accordion` | Accordion | Community updates section |
+| Community accordion summary | `notifications-settings-category-community-accordion-summary` | AccordionSummary | Clickable header |
+| Community category switch | `notifications-settings-category-community-switch` | Switch | Enable/disable category |
+| System category accordion | `notifications-settings-category-system-accordion` | Accordion | System alerts section |
+| System accordion summary | `notifications-settings-category-system-accordion-summary` | AccordionSummary | Clickable header |
+| System category switch | `notifications-settings-category-system-switch` | Switch | Enable/disable category |
+
+**Progress Subcategories (In-App & Email):**
+
+| Element | Selector | Type | Notes |
+|---------|----------|------|-------|
+| Lesson completion in-app | `notifications-settings-progress-lesson-completion-inapp-switch` | Switch | In-app toggle |
+| Lesson completion email | `notifications-settings-progress-lesson-completion-email-switch` | Switch | Email toggle |
+| Video completion in-app | `notifications-settings-progress-video-completion-inapp-switch` | Switch | In-app toggle |
+| Video completion email | `notifications-settings-progress-video-completion-email-switch` | Switch | Email toggle |
+| Course milestones in-app | `notifications-settings-progress-course-milestones-inapp-switch` | Switch | In-app toggle |
+| Course milestones email | `notifications-settings-progress-course-milestones-email-switch` | Switch | Email toggle |
+| Progress summary in-app | `notifications-settings-progress-progress-summary-inapp-switch` | Switch | In-app toggle |
+| Progress summary email | `notifications-settings-progress-progress-summary-email-switch` | Switch | Email toggle |
+
+**Course Subcategories (In-App & Email):**
+
+| Element | Selector | Type | Notes |
+|---------|----------|------|-------|
+| Course enrollment in-app | `notifications-settings-course-course-enrollment-inapp-switch` | Switch | In-app toggle |
+| Course enrollment email | `notifications-settings-course-course-enrollment-email-switch` | Switch | Email toggle |
+| New lessons in-app | `notifications-settings-course-new-lessons-inapp-switch` | Switch | In-app toggle |
+| New lessons email | `notifications-settings-course-new-lessons-email-switch` | Switch | Email toggle |
+| Live sessions in-app | `notifications-settings-course-live-sessions-inapp-switch` | Switch | In-app toggle |
+| Live sessions email | `notifications-settings-course-live-sessions-email-switch` | Switch | Email toggle |
+| Instructor announcements in-app | `notifications-settings-course-instructor-announcements-inapp-switch` | Switch | In-app toggle |
+| Instructor announcements email | `notifications-settings-course-instructor-announcements-email-switch` | Switch | Email toggle |
+
+**Assessment Subcategories (In-App & Email):**
+
+| Element | Selector | Type | Notes |
+|---------|----------|------|-------|
+| Assessment graded in-app | `notifications-settings-assessment-assessment-graded-inapp-switch` | Switch | In-app toggle |
+| Assessment graded email | `notifications-settings-assessment-assessment-graded-email-switch` | Switch | Email toggle |
+| Assessment due in-app | `notifications-settings-assessment-assessment-due-inapp-switch` | Switch | In-app toggle |
+| Assessment due email | `notifications-settings-assessment-assessment-due-email-switch` | Switch | Email toggle |
+| New assessment in-app | `notifications-settings-assessment-new-assessment-inapp-switch` | Switch | In-app toggle |
+| New assessment email | `notifications-settings-assessment-new-assessment-email-switch` | Switch | Email toggle |
+
+**Community Subcategories (In-App & Email):**
+
+| Element | Selector | Type | Notes |
+|---------|----------|------|-------|
+| Mentions in-app | `notifications-settings-community-mentions-inapp-switch` | Switch | In-app toggle |
+| Mentions email | `notifications-settings-community-mentions-email-switch` | Switch | Email toggle |
+| Replies in-app | `notifications-settings-community-replies-inapp-switch` | Switch | In-app toggle |
+| Replies email | `notifications-settings-community-replies-email-switch` | Switch | Email toggle |
+| Group invites in-app | `notifications-settings-community-group-invites-inapp-switch` | Switch | In-app toggle |
+| Group invites email | `notifications-settings-community-group-invites-email-switch` | Switch | Email toggle |
+
+**System Subcategories (In-App & Email):**
+
+| Element | Selector | Type | Notes |
+|---------|----------|------|-------|
+| Payment confirmation in-app | `notifications-settings-system-payment-confirmation-inapp-switch` | Switch | In-app toggle |
+| Payment confirmation email | `notifications-settings-system-payment-confirmation-email-switch` | Switch | Email toggle |
+| Certificates in-app | `notifications-settings-system-certificates-inapp-switch` | Switch | In-app toggle |
+| Certificates email | `notifications-settings-system-certificates-email-switch` | Switch | Email toggle |
+| Security alerts in-app | `notifications-settings-system-security-alerts-inapp-switch` | Switch | Disabled (cannot disable) |
+| Security alerts email | `notifications-settings-system-security-alerts-email-switch` | Switch | Disabled (cannot disable) |
 
 ---
 

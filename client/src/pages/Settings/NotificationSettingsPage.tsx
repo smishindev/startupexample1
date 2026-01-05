@@ -527,8 +527,8 @@ const NotificationSettingsPage: React.FC = () => {
         {/* Category Sections */}
         <Stack spacing={2}>
           {/* Progress Updates */}
-          <Accordion defaultExpanded>
-            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+          <Accordion defaultExpanded data-testid="notifications-settings-category-progress-accordion">
+            <AccordionSummary expandIcon={<ExpandMoreIcon />} data-testid="notifications-settings-category-progress-accordion-summary">
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, width: '100%' }}>
                 <Switch
                   checked={getToggleValue('EnableProgressUpdates')}
@@ -575,6 +575,7 @@ const NotificationSettingsPage: React.FC = () => {
                               onChange={handleSubcategoryToggle(sub.inAppKey)} 
                               size="small"
                               sx={inAppState === null ? { opacity: 0.6 } : {}}
+                              data-testid={`notifications-settings-progress-${sub.name}-inapp-switch`}
                             />
                           }
                           label={
@@ -597,6 +598,7 @@ const NotificationSettingsPage: React.FC = () => {
                               onChange={handleSubcategoryToggle(sub.emailKey)} 
                               size="small"
                               sx={emailState === null ? { opacity: 0.6 } : {}}
+                              data-testid={`notifications-settings-progress-${sub.name}-email-switch`}
                             />
                           }
                           label={
@@ -619,13 +621,14 @@ const NotificationSettingsPage: React.FC = () => {
           </Accordion>
 
           {/* Course Updates */}
-          <Accordion>
-            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+          <Accordion data-testid="notifications-settings-category-course-accordion">
+            <AccordionSummary expandIcon={<ExpandMoreIcon />} data-testid="notifications-settings-category-course-accordion-summary">
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, width: '100%' }}>
                 <Switch
                   checked={getToggleValue('EnableCourseUpdates')}
                   onChange={handleCategoryToggle('EnableCourseUpdates')}
                   onClick={(e) => e.stopPropagation()}
+                  data-testid="notifications-settings-category-course-switch"
                 />
                 <Box sx={{ flex: 1 }}>
                   <Typography variant="h6">📚 Course Updates</Typography>
@@ -665,6 +668,7 @@ const NotificationSettingsPage: React.FC = () => {
                             onChange={handleSubcategoryToggle(sub.inAppKey)} 
                             size="small"
                             sx={inAppState === null ? { opacity: 0.6 } : {}}
+                            data-testid={`notifications-settings-course-${sub.name}-inapp-switch`}
                           />}
                         label={
                           <Box>
@@ -685,6 +689,7 @@ const NotificationSettingsPage: React.FC = () => {
                             onChange={handleSubcategoryToggle(sub.emailKey)} 
                             size="small"
                             sx={emailState === null ? { opacity: 0.6 } : {}}
+                            data-testid={`notifications-settings-course-${sub.name}-email-switch`}
                           />}
                         label={
                           <Box>
@@ -706,13 +711,14 @@ const NotificationSettingsPage: React.FC = () => {
           </Accordion>
 
           {/* Assessment Updates */}
-          <Accordion>
-            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+          <Accordion data-testid="notifications-settings-category-assessment-accordion">
+            <AccordionSummary expandIcon={<ExpandMoreIcon />} data-testid="notifications-settings-category-assessment-accordion-summary">
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, width: '100%' }}>
                 <Switch
                   checked={getToggleValue('EnableAssessmentUpdates')}
                   onChange={handleCategoryToggle('EnableAssessmentUpdates')}
                   onClick={(e) => e.stopPropagation()}
+                  data-testid="notifications-settings-category-assessment-switch"
                 />
                 <Box sx={{ flex: 1 }}>
                   <Typography variant="h6">📝 Assessment Updates</Typography>
@@ -752,6 +758,7 @@ const NotificationSettingsPage: React.FC = () => {
                             onChange={handleSubcategoryToggle(sub.inAppKey)} 
                             size="small"
                             sx={inAppState === null ? { opacity: 0.6 } : {}}
+                            data-testid={`notifications-settings-assessment-${sub.name}-inapp-switch`}
                           />}
                         label={
                           <Box>
@@ -772,6 +779,7 @@ const NotificationSettingsPage: React.FC = () => {
                             onChange={handleSubcategoryToggle(sub.emailKey)} 
                             size="small"
                             sx={emailState === null ? { opacity: 0.6 } : {}}
+                            data-testid={`notifications-settings-assessment-${sub.name}-email-switch`}
                           />}
                         label={
                           <Box>
@@ -793,13 +801,14 @@ const NotificationSettingsPage: React.FC = () => {
           </Accordion>
 
           {/* Community Updates */}
-          <Accordion>
-            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+          <Accordion data-testid="notifications-settings-category-community-accordion">
+            <AccordionSummary expandIcon={<ExpandMoreIcon />} data-testid="notifications-settings-category-community-accordion-summary">
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, width: '100%' }}>
                 <Switch
                   checked={getToggleValue('EnableCommunityUpdates')}
                   onChange={handleCategoryToggle('EnableCommunityUpdates')}
                   onClick={(e) => e.stopPropagation()}
+                  data-testid="notifications-settings-category-community-switch"
                 />
                 <Box sx={{ flex: 1 }}>
                   <Typography variant="h6">👥 Community Updates</Typography>
@@ -839,6 +848,7 @@ const NotificationSettingsPage: React.FC = () => {
                             onChange={handleSubcategoryToggle(sub.inAppKey)} 
                             size="small"
                             sx={inAppState === null ? { opacity: 0.6 } : {}}
+                            data-testid={`notifications-settings-community-${sub.name}-inapp-switch`}
                           />}
                         label={
                           <Box>
@@ -859,6 +869,7 @@ const NotificationSettingsPage: React.FC = () => {
                             onChange={handleSubcategoryToggle(sub.emailKey)} 
                             size="small"
                             sx={emailState === null ? { opacity: 0.6 } : {}}
+                            data-testid={`notifications-settings-community-${sub.name}-email-switch`}
                           />}
                         label={
                           <Box>
@@ -880,13 +891,14 @@ const NotificationSettingsPage: React.FC = () => {
           </Accordion>
 
           {/* System Alerts */}
-          <Accordion>
-            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+          <Accordion data-testid="notifications-settings-category-system-accordion">
+            <AccordionSummary expandIcon={<ExpandMoreIcon />} data-testid="notifications-settings-category-system-accordion-summary">
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, width: '100%' }}>
                 <Switch
                   checked={getToggleValue('EnableSystemAlerts')}
                   onChange={handleCategoryToggle('EnableSystemAlerts')}
                   onClick={(e) => e.stopPropagation()}
+                  data-testid="notifications-settings-category-system-switch"
                 />
                 <Box sx={{ flex: 1 }}>
                   <Typography variant="h6">⚙️ System Alerts</Typography>
@@ -927,6 +939,7 @@ const NotificationSettingsPage: React.FC = () => {
                             disabled={!sub.canDisable}
                             size="small"
                             sx={inAppState === null ? { opacity: 0.6 } : {}}
+                            data-testid={`notifications-settings-system-${sub.name}-inapp-switch`}
                           />
                         }
                         label={
@@ -949,6 +962,7 @@ const NotificationSettingsPage: React.FC = () => {
                             disabled={!sub.canDisable}
                             size="small"
                             sx={emailState === null ? { opacity: 0.6 } : {}}
+                            data-testid={`notifications-settings-system-${sub.name}-email-switch`}
                           />
                         }
                         label={

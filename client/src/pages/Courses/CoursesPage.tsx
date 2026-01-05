@@ -219,14 +219,14 @@ export const CoursesPage: React.FC = () => {
           const courseIds = uiCourses.map(course => course.id);
           
           // Get both bookmark and enrollment statuses in parallel
-          const [bookmarkStatuses, enrolledCoursesList] = await Promise.all([
+          const [bookmarkStatuses, enrollmentsResponse] = await Promise.all([
             BookmarkApi.getBookmarkStatuses(courseIds),
             enrollmentApi.getMyEnrollments()
           ]);
           
           // Create a set of enrolled course IDs for quick lookup (exclude courses where user is teaching)
           const enrolledCourseIds = new Set(
-            enrolledCoursesList
+            (enrollmentsResponse.enrollments || [])
               .filter(enrolled => enrolled.Status !== 'teaching') // Exclude courses instructor is teaching
               .map(enrolled => enrolled.courseId)
           );
@@ -371,7 +371,8 @@ export const CoursesPage: React.FC = () => {
 
   const loadEnrolledCourses = async () => {
     try {
-      const enrollments = await enrollmentApi.getMyEnrollments();
+      const response = await enrollmentApi.getMyEnrollments();
+      const enrollments = response.enrollments || [];
       
       console.log('Raw enrollments from API:', enrollments);
       console.log('Number of enrollments:', enrollments.length);

@@ -76,6 +76,16 @@ export interface InstructorCourse {
   price: number;
 }
 
+export interface CoursesResponse {
+  courses: InstructorCourse[];
+  pagination: {
+    currentPage: number;
+    totalPages: number;
+    totalCourses: number;
+    hasMore: boolean;
+  };
+}
+
 export interface CourseLesson {
   id: string;
   title: string;
@@ -125,9 +135,12 @@ export const instructorApi = {
   },
 
   // Get instructor's courses
-  getCourses: async (status?: string): Promise<InstructorCourse[]> => {
+  getCourses: async (status?: string, page: number = 1, limit: number = 12): Promise<CoursesResponse> => {
     try {
-      const params = status ? { status } : {};
+      const params: any = { page, limit };
+      if (status) {
+        params.status = status;
+      }
       const response = await api.get('/instructor/courses', { params });
       return response.data;
     } catch (error) {

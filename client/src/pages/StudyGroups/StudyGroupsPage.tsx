@@ -72,15 +72,15 @@ export const StudyGroupsPage: React.FC = () => {
     const fetchCourses = async () => {
       try {
         if (user?.role === 'instructor') {
-          const data = await instructorApi.getCourses();
-          const coursesData = data.map(c => ({
+          const response = await instructorApi.getCourses();
+          const coursesData = response.courses.map(c => ({
             Id: c.id,
             Title: c.title
           }));
           setCourses(coursesData);
         } else {
-          const enrollments = await enrollmentApi.getMyEnrollments();
-          const coursesData = enrollments.map(e => ({
+          const response = await enrollmentApi.getMyEnrollments();
+          const coursesData = response.enrollments.map(e => ({
             Id: e.courseId,
             Title: e.Title
           }));

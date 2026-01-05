@@ -29,19 +29,19 @@ export const LiveSessionsPage: React.FC = () => {
       try {
         if (isInstructor) {
           // Fetch instructor's courses
-          const instructorCourses = await instructorApi.getCourses();
-          console.log('Instructor courses:', instructorCourses);
+          const response = await instructorApi.getCourses();
+          console.log('Instructor courses:', response);
           setCourses(
-            instructorCourses.map((c: any) => ({
+            response.courses.map((c: any) => ({
               Id: c.Id || c.id,
               Title: c.Title || c.title,
             }))
           );
         } else {
           // Fetch student's enrolled courses
-          const enrollments = await enrollmentApi.getMyEnrollments();
-          console.log('Student enrollments:', enrollments);
-          const mappedCourses = enrollments
+          const response = await enrollmentApi.getMyEnrollments();
+          console.log('Student enrollments:', response);
+          const mappedCourses = response.enrollments
             .filter((e: any) => e.courseId || e.CourseId)
             .map((e: any) => ({
               Id: e.courseId || e.CourseId,

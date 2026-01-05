@@ -96,17 +96,17 @@ export const EnhancedAssessmentAnalyticsDashboard: React.FC = () => {
       setLoading(true);
       setError(null);
       
-      const [analyticsData, coursesData] = await Promise.all([
+      const [analyticsData, coursesResponse] = await Promise.all([
         assessmentAnalyticsApi.getCrossAssessmentOverview(),
         instructorApi.getCourses()
       ]);
       
       setCrossAnalytics(analyticsData);
-      setCourses(coursesData);
+      setCourses(coursesResponse.courses);
       
       // Auto-select first course for detailed analysis
-      if (coursesData.length > 0 && !selectedCourseId) {
-        setSelectedCourseId(coursesData[0].id);
+      if (coursesResponse.courses.length > 0 && !selectedCourseId) {
+        setSelectedCourseId(coursesResponse.courses[0].id);
       }
     } catch (err: any) {
       console.error('Error loading analytics:', err);

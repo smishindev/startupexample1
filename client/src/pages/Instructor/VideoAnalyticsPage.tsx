@@ -95,12 +95,12 @@ export const VideoAnalyticsPage: React.FC = () => {
   useEffect(() => {
     const fetchCourses = async () => {
       try {
-        const coursesData = await instructorApi.getCourses();
-        setCourses(coursesData);
+        const coursesResponse = await instructorApi.getCourses();
+        setCourses(coursesResponse.courses);
         
         // Set first course as selected if none selected
-        if (!selectedCourseId && coursesData.length > 0) {
-          setSelectedCourseId(coursesData[0].id);
+        if (!selectedCourseId && coursesResponse.courses.length > 0) {
+          setSelectedCourseId(coursesResponse.courses[0].id);
         }
       } catch (error) {
         console.error('Failed to fetch courses:', error);

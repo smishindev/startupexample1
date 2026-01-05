@@ -974,7 +974,7 @@ export const CourseDetailPage: React.FC = () => {
                       }
                     }}
                     data-testid="course-continue-learning-button"
-                    sx={{{ 
+                    sx={{ 
                       mb: 2,
                       py: 2,
                       fontSize: '1.1rem',
@@ -997,7 +997,7 @@ export const CourseDetailPage: React.FC = () => {
                     onClick={handlePurchase}
                     startIcon={<ShoppingCart />}
                     data-testid="course-purchase-button"
-                    sx={{{ 
+                    sx={{ 
                       mb: 2,
                       py: 2,
                       fontSize: '1.1rem',
@@ -1046,7 +1046,7 @@ export const CourseDetailPage: React.FC = () => {
                     <IconButton 
                       onClick={handleBookmark} 
                       data-testid="course-detail-bookmark-button"
-                      sx={{{ 
+                      sx={{ 
                         flex: 1, 
                         border: '1px solid', 
                         borderColor: 'divider',
@@ -1064,7 +1064,7 @@ export const CourseDetailPage: React.FC = () => {
                     <IconButton
                       onClick={handleShare}
                       data-testid="course-detail-share-button"
-                      sx={{{ 
+                      sx={{ 
                         flex: 1, 
                         border: '1px solid', 
                         borderColor: 'divider',

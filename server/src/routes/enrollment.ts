@@ -12,6 +12,12 @@ router.get('/my-enrollments', authenticateToken, async (req: AuthRequest, res: R
   try {
     const userId = req.user?.userId;
     const userRole = req.user?.role;
+    const { page = '1', limit = '20' } = req.query;
+    
+    // Parse pagination parameters
+    const pageNum = parseInt(page as string, 10);
+    const limitNum = parseInt(limit as string, 10);
+    const offset = (pageNum - 1) * limitNum;
 
     if (userRole === 'instructor') {
       // For instructors, return the courses they teach with student enrollment stats
@@ -40,9 +46,28 @@ router.get('/my-enrollments', authenticateToken, async (req: AuthRequest, res: R
         WHERE c.InstructorId = @userId AND c.IsPublished = 1
         GROUP BY c.Id, c.Title, c.Description, c.Thumbnail, c.Duration, c.Level, c.Price, c.Category
         ORDER BY c.Id DESC
+        OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY
+      `, { userId, offset, limit: limitNum });
+      
+      // Get total count
+      const countResult = await db.query(`
+        SELECT COUNT(DISTINCT c.Id) as total
+        FROM dbo.Courses c
+        WHERE c.InstructorId = @userId AND c.IsPublished = 1
       `, { userId });
 
-      res.json(instructorCourses);
+      const totalEnrollments = countResult[0]?.total || 0;
+      const totalPages = Math.ceil(totalEnrollments / limitNum);
+
+      res.json({
+        enrollments: instructorCourses,
+        pagination: {
+          currentPage: pageNum,
+          totalPages,
+          totalEnrollments,
+          hasMore: pageNum < totalPages
+        }
+      });
     } else {
       // For students, return their enrollments
       const enrollments = await db.query(`
@@ -74,11 +99,31 @@ router.get('/my-enrollments', authenticateToken, async (req: AuthRequest, res: R
         ) up ON e.UserId = up.UserId AND e.CourseId = up.CourseId AND up.rn = 1
         WHERE e.UserId = @userId
         ORDER BY e.EnrolledAt DESC
+        OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY
+      `, { userId, offset, limit: limitNum });
+      
+      // Get total count for students
+      const countResult = await db.query(`
+        SELECT COUNT(DISTINCT e.Id) as total
+        FROM dbo.Enrollments e
+        WHERE e.UserId = @userId
       `, { userId });
 
-      console.log('[ENROLLMENT API] First enrollment from DB:', enrollments[0]);
+      const totalEnrollments = countResult[0]?.total || 0;
+      const totalPages = Math.ceil(totalEnrollments / limitNum);
 
-      res.json(enrollments);
+      console.log('[ENROLLMENT API] First enrollment from DB:', enrollments[0]);
+      console.log('[ENROLLMENT API] Pagination:', { page: pageNum, limit: limitNum, total: totalEnrollments, totalPages });
+
+      res.json({
+        enrollments,
+        pagination: {
+          currentPage: pageNum,
+          totalPages,
+          totalEnrollments,
+          hasMore: pageNum < totalPages
+        }
+      });
     }
   } catch (error) {
     console.error('Error fetching enrollments:', error);

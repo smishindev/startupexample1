@@ -31,7 +31,8 @@
       "@/services/*": ["src/services/*"],
       "@/store/*": ["src/store/*"],
       "@/types/*": ["src/types/*"],
-      "@/assets/*": ["src/assets/*"]
+      "@/assets/*": ["src/assets/*"],
+      "@shared/*": ["../shared/src/*"]
     }
   },
   "include": ["src"],

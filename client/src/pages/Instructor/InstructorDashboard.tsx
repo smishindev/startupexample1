@@ -20,7 +20,9 @@ import {
   ListItemText,
   ListItemIcon,
   Menu,
-  MenuItem
+  MenuItem,
+  Pagination,
+  CircularProgress
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -51,6 +53,10 @@ export const InstructorDashboard: React.FC = () => {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuthStore();
   const [courses, setCourses] = useState<InstructorCourse[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCourses, setTotalCourses] = useState(0);
+  const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState<InstructorStats>({
     totalCourses: 0,
     publishedCourses: 0,
@@ -76,20 +82,24 @@ export const InstructorDashboard: React.FC = () => {
     loadInstructorData();
   }, [isAuthenticated, navigate]);
 
-  const loadInstructorData = async () => {
+  const loadInstructorData = async (page: number = 1) => {
     try {
+      setLoading(true);
       // Load actual data from API
-      const [statsData, coursesData] = await Promise.all([
+      const [statsData, coursesResponse] = await Promise.all([
         instructorApi.getStats(),
-        instructorApi.getCourses()
+        instructorApi.getCourses(undefined, page, 12)
       ]);
       
       console.log('Instructor stats from API:', statsData);
-      console.log('Instructor courses from API:', coursesData);
-      console.log('First course structure:', coursesData[0]);
+      console.log('Instructor courses response:', coursesResponse);
+      console.log('First course structure:', coursesResponse.courses[0]);
       
       setStats(statsData);
-      setCourses(coursesData);
+      setCourses(coursesResponse.courses);
+      setCurrentPage(coursesResponse.pagination.currentPage);
+      setTotalPages(coursesResponse.pagination.totalPages);
+      setTotalCourses(coursesResponse.pagination.totalCourses);
     } catch (error: any) {
       console.error('Failed to load instructor data:', error);
       
@@ -113,7 +123,16 @@ export const InstructorDashboard: React.FC = () => {
         monthlyGrowth: 0
       });
       setCourses([]);
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const handlePageChange = (_event: React.ChangeEvent<unknown>, value: number) => {
+    setCurrentPage(value);
+    loadInstructorData(value);
+    // Scroll to top of courses section
+    window.scrollTo({ top: 400, behavior: 'smooth' });
   };
 
   const handleCourseMenuOpen = (event: React.MouseEvent<HTMLElement>, courseId: string) => {
@@ -262,7 +281,7 @@ export const InstructorDashboard: React.FC = () => {
                 ★
               </Box>
               <Typography variant="h4" component="div" sx={{ mb: 0.5 }}>
-                {stats.avgRating}
+                {stats.avgRating.toFixed(1)}
               </Typography>
               <Typography color="text.secondary" variant="body2">
                 Avg Rating
@@ -393,8 +412,15 @@ export const InstructorDashboard: React.FC = () => {
         </Grid>
       </Grid>
 
+      {/* Loading Indicator */}
+      {loading && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
+          <CircularProgress />
+        </Box>
+      )}
+
       <Grid container spacing={3}>
-        {courses.length === 0 ? (
+        {!loading && courses.length === 0 ? (
           <Grid item xs={12}>
             <Paper sx={{ p: 6, textAlign: 'center' }}>
               <Typography variant="h6" color="text.secondary" gutterBottom>
@@ -693,6 +719,28 @@ export const InstructorDashboard: React.FC = () => {
           ))
         )}
       </Grid>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4, mb: 2 }}>
+          <Pagination
+            count={totalPages}
+            page={currentPage}
+            onChange={handlePageChange}
+            color="primary"
+            size="large"
+            showFirstButton
+            showLastButton
+            disabled={loading}
+          />
+        </Box>
+      )}
+
+      {/* Course Count Info */}
+      <Typography variant="body2" color="text.secondary" align="center" sx={{ mt: 2, mb: 4 }}>
+        Showing {courses.length > 0 ? ((currentPage - 1) * 12 + 1) : 0} - {Math.min(currentPage * 12, totalCourses)} of {totalCourses} courses
+      </Typography>
+
       </Container>
 
       {/* Floating Action Button */}

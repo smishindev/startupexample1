@@ -66,7 +66,8 @@ export const CourseEditPage: React.FC = () => {
       
       console.log('🔍 [CourseEditPage] Loading course with ID:', courseId);
       
-      const courses = await instructorApi.getCourses();
+      const coursesResponse = await instructorApi.getCourses(undefined, 1, 10000); // Load all courses
+      const courses = coursesResponse.courses;
       console.log('📚 [CourseEditPage] All courses:', courses.map(c => ({ id: c.id, title: c.title })));
       
       // Debug logging

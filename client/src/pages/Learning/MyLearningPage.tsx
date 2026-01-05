@@ -14,7 +14,8 @@ import {
   Avatar,
   Alert,
   CircularProgress,
-  alpha
+  alpha,
+  Pagination
 } from '@mui/material';
 import {
   PlayArrow,
@@ -32,6 +33,7 @@ import { enrollmentApi, Enrollment } from '../../services/enrollmentApi';
 import { useAuthStore } from '../../stores/authStore';
 import { useTheme } from '@mui/material';
 import { formatCategory, getCategoryGradient, getLevelColor } from '../../utils/courseHelpers';
+import { formatDuration } from '@shared/utils';
 
 const MyLearningPage: React.FC = () => {
   const navigate = useNavigate();
@@ -40,16 +42,25 @@ const MyLearningPage: React.FC = () => {
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const limit = 20;
 
   const isInstructor = user?.role === 'instructor';
 
   useEffect(() => {
     loadEnrollments();
-  }, []);
+  }, [page]);
 
   const loadEnrollments = async () => {
     try {
-      const data = await enrollmentApi.getMyEnrollments();
+      const response = await enrollmentApi.getMyEnrollments(page, limit);
+      const data = response.enrollments || [];
+      
+      // Set pagination data
+      setTotalPages(response.pagination.totalPages);
+      setTotalCount(response.pagination.totalEnrollments);
       
       // Deduplicate courses by keeping the most recent enrollment for each course
       const courseMap = new Map<string, Enrollment>();
@@ -231,7 +242,7 @@ const MyLearningPage: React.FC = () => {
                         <School />
                       </Avatar>
                       <Box>
-                        <Typography variant="h6">{enrollments.length}</Typography>
+                        <Typography variant="h6">{totalCount}</Typography>
                         <Typography variant="body2" color="text.secondary">
                           {isInstructor ? 'Courses Created' : 'Total Courses'}
                         </Typography>
@@ -251,7 +262,7 @@ const MyLearningPage: React.FC = () => {
                       <Box>
                         <Typography variant="h6">
                           {isInstructor 
-                            ? enrollments.length // All instructor courses are published (filtered by backend)
+                            ? totalCount // All instructor courses are published (filtered by backend)
                             : enrollments.filter(e => e.Status === 'completed').length
                           }
                         </Typography>
@@ -462,7 +473,7 @@ const MyLearningPage: React.FC = () => {
                         />
                         <Chip
                           icon={<Schedule />}
-                          label={enrollment.Duration}
+                          label={enrollment.Duration ? formatDuration(Number(enrollment.Duration)) : 'N/A'}
                           size="small"
                           variant="outlined"
                           sx={{ fontWeight: 500, fontSize: '0.7rem' }}
@@ -558,6 +569,7 @@ const MyLearningPage: React.FC = () => {
                           variant="contained"
                           startIcon={<PlayArrow />}
                           fullWidth
+                          data-testid={`my-learning-continue-${enrollment.courseId}-button`}
                           onClick={async () => {
                             if (enrollment.OverallProgress === 0) {
                               // For new courses, try to go to first lesson directly
@@ -565,7 +577,6 @@ const MyLearningPage: React.FC = () => {
                               // For now, go to course page which will show "Continue Learning" button
                               navigate(`/courses/${enrollment.courseId}`);
                             } else {
-                          data-testid={`my-learning-continue-${enrollment.courseId}-button`}
                               // For courses in progress, go to course page (could be enhanced to go to last accessed lesson)
                               navigate(`/courses/${enrollment.courseId}`);
                             }
@@ -591,6 +602,19 @@ const MyLearningPage: React.FC = () => {
                 </Grid>
               ))}
             </Grid>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+                <Pagination 
+                  count={totalPages} 
+                  page={page} 
+                  onChange={(_e, value) => setPage(value)}
+                  color="primary"
+                  size="large"
+                />
+              </Box>
+            )}
           </>
         )}
       </Container>

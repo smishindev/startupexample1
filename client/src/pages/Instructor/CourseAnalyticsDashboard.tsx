@@ -69,8 +69,8 @@ export const CourseAnalyticsDashboard: React.FC = () => {
 
   const loadCourses = async () => {
     try {
-      const coursesData = await instructorApi.getCourses();
-      setCourses(coursesData);
+      const coursesResponse = await instructorApi.getCourses();
+      setCourses(coursesResponse.courses);
     } catch (err) {
       console.error('Error loading courses:', err);
     }

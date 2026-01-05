@@ -47,7 +47,8 @@ export const Dashboard: React.FC = () => {
     const fetchEnrolledCourses = async () => {
       try {
         setLoading(true);
-        const enrollments = await enrollmentApi.getMyEnrollments();
+        const response = await enrollmentApi.getMyEnrollments();
+        const enrollments = response.enrollments || [];
         
         // Map enrollments to the format needed for display
         const courses: EnrolledCourse[] = enrollments.map((enrollment) => ({

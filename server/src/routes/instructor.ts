@@ -67,7 +67,12 @@ router.get('/stats', authenticateToken, authorize(['instructor', 'admin']), asyn
 router.get('/courses', authenticateToken, authorize(['instructor', 'admin']), async (req: AuthRequest, res) => {
   try {
     const userId = req.user!.userId;
-    const { status } = req.query;
+    const { status, page = '1', limit = '12' } = req.query;
+    
+    // Parse pagination parameters
+    const pageNum = parseInt(page as string, 10);
+    const limitNum = parseInt(limit as string, 10);
+    const offset = (pageNum - 1) * limitNum;
     
     let query = `
       SELECT 
@@ -90,7 +95,7 @@ router.get('/courses', authenticateToken, authorize(['instructor', 'admin']), as
       WHERE c.InstructorId = @instructorId
     `;
 
-    const params: any = { instructorId: userId };
+    const params: any = { instructorId: userId, limit: limitNum, offset };
 
     if (status) {
       // Convert string status to boolean for IsPublished  
@@ -103,9 +108,25 @@ router.get('/courses', authenticateToken, authorize(['instructor', 'admin']), as
       GROUP BY c.Id, c.Title, c.Description, c.Thumbnail, c.Category, c.Level, c.IsPublished, c.Price, 
                c.Rating, c.EnrollmentCount, c.CreatedAt, c.UpdatedAt
       ORDER BY c.UpdatedAt DESC
+      OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY
     `;
 
-    const result = await db.query(query, params);
+    // Get total count for pagination
+    let countQuery = `
+      SELECT COUNT(DISTINCT c.Id) as total
+      FROM Courses c
+      WHERE c.InstructorId = @instructorId
+    `;
+    
+    if (status) {
+      const isPublished = status === 'published' ? 1 : 0;
+      countQuery += ` AND c.IsPublished = @isPublished`;
+    }
+
+    const [result, countResult] = await Promise.all([
+      db.query(query, params),
+      db.query(countQuery, { instructorId: userId, isPublished: params.isPublished })
+    ]);
 
     console.log('[INSTRUCTOR API] First course from DB:', result[0]);
 
@@ -117,9 +138,21 @@ router.get('/courses', authenticateToken, authorize(['instructor', 'admin']), as
       lastUpdated: course.updatedAt
     }));
 
-    console.log('[INSTRUCTOR API] First mapped course:', courses[0]);
+    const totalCourses = countResult[0]?.total || 0;
+    const totalPages = Math.ceil(totalCourses / limitNum);
 
-    res.json(courses);
+    console.log('[INSTRUCTOR API] First mapped course:', courses[0]);
+    console.log('[INSTRUCTOR API] Pagination:', { page: pageNum, limit: limitNum, total: totalCourses, totalPages });
+
+    res.json({
+      courses,
+      pagination: {
+        currentPage: pageNum,
+        totalPages,
+        totalCourses,
+        hasMore: pageNum < totalPages
+      }
+    });
   } catch (error) {
     console.error('Failed to fetch instructor courses:', error);
     res.status(500).json({ error: 'Internal server error' });

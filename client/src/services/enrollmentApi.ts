@@ -105,6 +105,16 @@ export interface EnrollmentStats {
   avgProgress: number;
 }
 
+export interface EnrollmentsResponse {
+  enrollments: Enrollment[];
+  pagination: {
+    currentPage: number;
+    totalPages: number;
+    totalEnrollments: number;
+    hasMore: boolean;
+  };
+}
+
 export interface EnrollmentResponse {
   enrollmentId: string;
   courseId: string;
@@ -127,8 +137,10 @@ export interface EnrollmentError {
 }
 
 class EnrollmentApi {
-  async getMyEnrollments(): Promise<Enrollment[]> {
-    const response = await api.get('/api/enrollment/my-enrollments');
+  async getMyEnrollments(page: number = 1, limit: number = 20): Promise<EnrollmentsResponse> {
+    const response = await api.get('/api/enrollment/my-enrollments', {
+      params: { page, limit }
+    });
     return response.data;
   }
 

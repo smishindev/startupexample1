@@ -80,7 +80,7 @@ const StudentManagement: React.FC = () => {
       setLoading(true);
       setError(null);
       
-      const [studentsData, analyticsData, coursesData] = await Promise.all([
+      const [studentsData, analyticsData, coursesResponse] = await Promise.all([
         studentsApi.getStudents(filters),
         studentsApi.getAnalytics(filters.courseId),
         instructorApi.getCourses()
@@ -89,12 +89,12 @@ const StudentManagement: React.FC = () => {
       console.log('[Student Management] Loaded data:', { 
         students: studentsData.length, 
         analytics: analyticsData,
-        courses: coursesData.length 
+        courses: coursesResponse.courses.length 
       });
       
       setStudents(studentsData);
       setAnalytics(analyticsData);
-      setCourses(coursesData);
+      setCourses(coursesResponse.courses);
     } catch (err: any) {
       console.error('Error loading student data:', err);
       

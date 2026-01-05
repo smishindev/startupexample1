@@ -106,13 +106,13 @@ export const DashboardLayout: React.FC = () => {
         setStats(statsData);
         setAchievements(statsData.achievements || []);
         
-        // Fetch enrolled courses
-        const enrollments = await enrollmentApi.getMyEnrollments();
+        // Fetch enrolled courses - limit to first 6 for dashboard view
+        const enrollmentsResponse = await enrollmentApi.getMyEnrollments(1, 6);
         
         // Create a Map to deduplicate courses by courseId and keep the most recent enrollment
         const courseMap = new Map<string, RecentCourse>();
         
-        enrollments.forEach((enrollment) => {
+        enrollmentsResponse.enrollments.forEach((enrollment) => {
           const courseId = enrollment.courseId;
           const courseData: RecentCourse = {
             id: courseId,
@@ -134,8 +134,8 @@ export const DashboardLayout: React.FC = () => {
           }
         });
 
-        // Convert Map to array - show all courses, not just 3
-        const courses = Array.from(courseMap.values());
+        // Convert Map to array - show only 6 courses on dashboard
+        const courses = Array.from(courseMap.values()).slice(0, 6);
         setRecentCourses(courses);
       } catch (error) {
         console.error('Failed to fetch dashboard data:', error);

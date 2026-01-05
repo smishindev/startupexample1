@@ -30,34 +30,20 @@ END
 
 PRINT '✅ Found student: student1@gmail.com (ID: ' + CAST(@StudentId AS NVARCHAR(50)) + ')';
 
--- Get the first instructor in the system (or you can specify a particular instructor)
-SELECT TOP 1 @InstructorId = Id 
+-- Find the instructor user ID
+SELECT @InstructorId = Id 
 FROM dbo.Users 
-WHERE Role = 'instructor';
+WHERE Email = 'ins1@gmail.com';
 
--- If no instructor exists, get an admin
+-- Check if instructor exists
 IF @InstructorId IS NULL
 BEGIN
-    SELECT TOP 1 @InstructorId = Id 
-    FROM dbo.Users 
-    WHERE Role = 'admin';
-END
-
--- If still no instructor, use any user
-IF @InstructorId IS NULL
-BEGIN
-    SELECT TOP 1 @InstructorId = Id 
-    FROM dbo.Users 
-    WHERE Id != @StudentId;
-END
-
-IF @InstructorId IS NULL
-BEGIN
-    PRINT '❌ ERROR: No instructor found in the system!';
+    PRINT '❌ ERROR: Instructor with email ins1@gmail.com not found!';
+    PRINT 'Please create this user first before running this script.';
     RETURN;
 END
 
-PRINT '✅ Using instructor ID: ' + CAST(@InstructorId AS NVARCHAR(50));
+PRINT '✅ Found instructor: ins1@gmail.com (ID: ' + CAST(@InstructorId AS NVARCHAR(50)) + ')';
 PRINT '';
 PRINT '🚀 Starting to create 1000 test courses with enrollments and payments...';
 PRINT '';
@@ -225,10 +211,66 @@ BEGIN TRY
             GETUTCDATE()
         );
         
+        -- Insert Lesson 1
+        INSERT INTO dbo.Lessons (
+            Id,
+            CourseId,
+            Title,
+            Description,
+            ContentJson,
+            OrderIndex,
+            Duration,
+            IsRequired,
+            Prerequisites,
+            CreatedAt,
+            UpdatedAt
+        )
+        VALUES (
+            NEWID(),
+            @CourseId,
+            'Introduction to Test Course ' + CAST(@Counter AS NVARCHAR(10)),
+            'Welcome to this comprehensive test course. In this first lesson, you will learn the foundational concepts and get familiar with the course structure.',
+            '[{"type": "text", "data": "<h2>Welcome to the Course!</h2><p>This is a text-based lesson that introduces you to the key concepts covered in this course. Throughout this lesson, you will:</p><ul><li>Understand the course objectives</li><li>Learn about the prerequisites</li><li>Explore the learning path</li></ul><p><strong>Key Takeaway:</strong> This course is designed to provide hands-on experience and practical knowledge in your area of study.</p>", "orderIndex": 0}]',
+            1, -- First lesson
+            15, -- 15 minutes
+            1, -- Required
+            NULL, -- No prerequisites for first lesson
+            DATEADD(DAY, -(@Counter % 365), GETUTCDATE()),
+            GETUTCDATE()
+        );
+        
+        -- Insert Lesson 2
+        INSERT INTO dbo.Lessons (
+            Id,
+            CourseId,
+            Title,
+            Description,
+            ContentJson,
+            OrderIndex,
+            Duration,
+            IsRequired,
+            Prerequisites,
+            CreatedAt,
+            UpdatedAt
+        )
+        VALUES (
+            NEWID(),
+            @CourseId,
+            'Core Concepts and Fundamentals',
+            'Deep dive into the core concepts that form the foundation of this subject. This lesson covers essential theory and practical applications.',
+            '[{"type": "text", "data": "<h2>Core Concepts</h2><p>In this lesson, we will explore the fundamental concepts that are crucial for mastering this subject:</p><h3>1. Theoretical Framework</h3><p>Understanding the theoretical underpinnings is essential for practical application. We cover the main theories and principles.</p><h3>2. Practical Applications</h3><p>Learn how to apply these concepts in real-world scenarios with examples and case studies.</p><h3>3. Best Practices</h3><ul><li>Follow industry standards</li><li>Implement efficient workflows</li><li>Maintain code quality</li><li>Test thoroughly</li></ul><p><em>Remember:</em> Practice makes perfect. Apply these concepts in your own projects to solidify your understanding.</p>", "orderIndex": 0}]',
+            2, -- Second lesson
+            20, -- 20 minutes
+            1, -- Required
+            NULL,
+            DATEADD(DAY, -(@Counter % 365), GETUTCDATE()),
+            GETUTCDATE()
+        );
+        
         -- Progress indicator every 100 courses
         IF @Counter % 100 = 0
         BEGIN
-            PRINT '✅ Created ' + CAST(@Counter AS NVARCHAR(10)) + ' courses with enrollments and payments...';
+            PRINT '✅ Created ' + CAST(@Counter AS NVARCHAR(10)) + ' courses with lessons, enrollments and payments...';
         END
         
         SET @Counter = @Counter + 1;
@@ -240,11 +282,13 @@ BEGIN TRY
     PRINT '';
     PRINT '🎉 SUCCESS! Created 1000 test courses with:';
     PRINT '   - 1000 Courses (all published)';
+    PRINT '   - 2000 Lessons (2 text lessons per course)';
     PRINT '   - 1000 Enrollments (for student1@gmail.com)';
     PRINT '   - 1000 Transactions (all completed)';
     PRINT '   - 1000 Invoices (all generated)';
     PRINT '';
     PRINT '📊 Summary:';
+    PRINT '   Instructor: ins1@gmail.com (ID: ' + CAST(@InstructorId AS NVARCHAR(50)) + ')';
     PRINT '   Student: student1@gmail.com (ID: ' + CAST(@StudentId AS NVARCHAR(50)) + ')';
     PRINT '   All courses are published and paid for';
     PRINT '   Invoice numbers: INV-TEST-00001 to INV-TEST-01000';

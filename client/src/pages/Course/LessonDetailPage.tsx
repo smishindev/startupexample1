@@ -790,7 +790,7 @@ export const LessonDetailPage: React.FC = () => {
                   <IconButton 
                     onClick={handleBookmark}
                     data-testid="lesson-bookmark-button"
-                    sx={{{ 
+                    sx={{ 
                       border: '1px solid',
                       borderColor: 'divider',
                       '&:hover': { borderColor: 'primary.main' }
@@ -801,7 +801,7 @@ export const LessonDetailPage: React.FC = () => {
                   <IconButton 
                     onClick={handleShare}
                     data-testid="lesson-share-button"
-                    sx={{{ 
+                    sx={{ 
                       border: '1px solid',
                       borderColor: 'divider',
                       '&:hover': { borderColor: 'primary.main' }
@@ -846,7 +846,7 @@ export const LessonDetailPage: React.FC = () => {
                     size="large"
                     startIcon={<CheckCircle />}
                     data-testid="lesson-mark-complete-button"
-                    sx={{{ 
+                    sx={{ 
                       px: 4,
                       py: 1.5,
                       borderRadius: 2,

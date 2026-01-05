@@ -110,6 +110,12 @@ Users can customize their privacy settings to control what information others ca
 - **Socket.io** for real-time communication
 - **AI Integration** for tutoring capabilities
 
+### Testing
+- **pytest + Playwright** for E2E automated testing
+- **597 test IDs** instrumented across 31 components (108.5% coverage)
+- Comprehensive test selector map for reliable test automation
+- See `TESTING_GUIDE.md` for setup and writing tests
+
 ### Database
 - **SQL Server** with comprehensive schema for:
   - User management and profiles

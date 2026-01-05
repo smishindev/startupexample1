@@ -525,6 +525,7 @@ export const InstructorDashboard: React.FC = () => {
                         },
                       }}
                       onClick={(e) => handleCourseMenuOpen(e, course.id)}
+                      data-testid={`instructor-dashboard-course-menu-${course.id}-button`}
                     >
                       <MoreVertIcon fontSize="small" />
                     </IconButton>

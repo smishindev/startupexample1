@@ -1,7 +1,12 @@
 # Testing Guide - Automated E2E Tests with Pytest + Playwright
 
-**Last Updated**: January 4, 2026  
+**Last Updated**: January 5, 2026  
 **Purpose**: Guide for writing and running automated tests for the Mishin Learn Platform
+
+**Test Infrastructure Status**: ✅ **COMPLETE** - 597 test IDs instrumented (108.5% coverage)
+- All interactive elements have data-testid attributes for reliable test automation
+- 31 components fully instrumented across authentication, courses, assessments, instructor tools, and collaboration features
+- Comprehensive selector map available in `TEST_SELECTOR_MAP_ORGANIZED.md`
 
 ---
 
@@ -87,7 +92,28 @@ Role: Admin
 
 ## 🎯 COMPONENT SELECTORS
 
-### Authentication (LoginForm.tsx)
+**📚 Complete Test Selector Reference**: See `TEST_SELECTOR_MAP_ORGANIZED.md`
+
+The platform has **597 test IDs** instrumented across 31 components, organized by feature area:
+- Authentication & User Management
+- Course Management & Discovery
+- Lesson Management
+- Assessment & Quiz System
+- Instructor Tools & Analytics
+- Student Learning Experience
+- Communication & Collaboration
+- Notifications & Real-time Features
+- Payment & Billing
+- Media & Content
+- Navigation & Layout
+
+The selector map includes:
+- Component Quick Index (alphabetical)
+- Feature-based organization for easy lookup
+- 6 Common Test Scenarios with working code examples
+- Dynamic selector patterns for lists and data-driven elements
+
+### Authentication (LoginForm.tsx) - Quick Example
 ```python
 # Login page
 page.goto(f"{base_url}/login")

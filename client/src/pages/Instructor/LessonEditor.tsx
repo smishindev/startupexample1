@@ -316,6 +316,7 @@ export const LessonEditor: React.FC<LessonEditorProps> = ({
                       }}
                       disabled={index === 0}
                       title="Move up"
+                      data-testid={`lesson-editor-content-move-up-${index}`}
                     >
                       <ArrowUpIcon fontSize="small" />
                     </IconButton>
@@ -327,6 +328,7 @@ export const LessonEditor: React.FC<LessonEditorProps> = ({
                       }}
                       disabled={index === content.length - 1}
                       title="Move down"
+                      data-testid={`lesson-editor-content-move-down-${index}`}
                     >
                       <ArrowDownIcon fontSize="small" />
                     </IconButton>
@@ -337,6 +339,7 @@ export const LessonEditor: React.FC<LessonEditorProps> = ({
                         removeContent(index);
                       }}
                       title="Delete"
+                      data-testid={`lesson-editor-content-delete-${index}`}
                     >
                       <DeleteIcon fontSize="small" />
                     </IconButton>
@@ -471,7 +474,7 @@ export const LessonEditor: React.FC<LessonEditorProps> = ({
                       <Button variant="contained" onClick={handleNext} data-testid="lesson-editor-step-continue-button">
                         Continue
                       </Button>
-                    )
+                    )}
                     <Button disabled={index === 0} onClick={handleBack} sx={{ ml: 1 }} data-testid="lesson-editor-step-back-button">
                       Back
                     </Button>

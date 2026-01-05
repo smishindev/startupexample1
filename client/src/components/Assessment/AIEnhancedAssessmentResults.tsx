@@ -495,6 +495,7 @@ export const AIEnhancedAssessmentResults: React.FC<AssessmentResultsProps> = ({
                   onClick={loadAIFeedback} 
                   sx={{ mt: 1 }}
                   size="small"
+                  data-testid="assessment-results-ai-retry-button"
                 >
                   Try Again
                 </Button>
@@ -723,6 +724,7 @@ export const AIEnhancedAssessmentResults: React.FC<AssessmentResultsProps> = ({
                     startIcon={<HelpIcon />}
                     onClick={() => setInsightDialog(true)}
                     disabled={aiLoading}
+                    data-testid="assessment-results-ai-more-insights-button"
                   >
                     Ask AI for More Insights
                   </Button>
@@ -741,6 +743,7 @@ export const AIEnhancedAssessmentResults: React.FC<AssessmentResultsProps> = ({
                   variant="contained"
                   startIcon={<SparkleIcon />}
                   onClick={loadAIFeedback}
+                  data-testid="assessment-results-generate-ai-insights-button"
                 >
                   Generate AI Insights
                 </Button>

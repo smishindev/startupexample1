@@ -58,7 +58,10 @@ tests/
 ├── test_courses.py         # Course management tests (TODO)
 ├── test_payments.py        # Payment flow tests (TODO)
 ├── test_notifications.py   # Notification tests (TODO)
-└── test_api.py            # API endpoint tests (TODO)
+├── test_notification_settings.py  # Notification settings tests (27 tests - COMPLETE)
+├── test_api.py            # API endpoint tests (TODO)
+├── NOTIFICATION_SETTINGS_TESTS.md  # Detailed guide for notification settings tests
+└── RUN_NOTIFICATION_TESTS.md       # Quick start guide for running tests
 ```
 
 ---

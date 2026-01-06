@@ -270,55 +270,51 @@ export class NotificationService {
         return await this.queueNotification(params);
       }
 
-      let notificationId = '';
+      // Always create notification in database (needed for email tracking, digests, history)
+      const request = await this.dbService.getRequest();
+      const result = await request
+        .input('UserId', sql.UniqueIdentifier, params.userId)
+        .input('Type', sql.NVarChar(50), params.type)
+        .input('Priority', sql.NVarChar(20), params.priority)
+        .input('Title', sql.NVarChar(200), params.title)
+        .input('Message', sql.NVarChar(sql.MAX), params.message)
+        .input('Data', sql.NVarChar(sql.MAX), params.data ? JSON.stringify(params.data) : null)
+        .input('ActionUrl', sql.NVarChar(500), params.actionUrl || null)
+        .input('ActionText', sql.NVarChar(100), params.actionText || null)
+        .input('RelatedEntityId', sql.UniqueIdentifier, params.relatedEntityId || null)
+        .input('RelatedEntityType', sql.NVarChar(50), params.relatedEntityType || null)
+        .input('ExpiresAt', sql.DateTime2, params.expiresAt || null)
+        .query(`
+          INSERT INTO Notifications (
+            UserId, Type, Priority, Title, Message, Data,
+            ActionUrl, ActionText, RelatedEntityId, RelatedEntityType, ExpiresAt
+          )
+          OUTPUT INSERTED.Id
+          VALUES (
+            @UserId, @Type, @Priority, @Title, @Message, @Data,
+            @ActionUrl, @ActionText, @RelatedEntityId, @RelatedEntityType, @ExpiresAt
+          )
+        `);
 
-      // Only create in-app notification in database if shouldSendInApp is true
-      if (shouldSendInApp) {
-        const request = await this.dbService.getRequest();
-        const result = await request
-          .input('UserId', sql.UniqueIdentifier, params.userId)
-          .input('Type', sql.NVarChar(50), params.type)
-          .input('Priority', sql.NVarChar(20), params.priority)
-          .input('Title', sql.NVarChar(200), params.title)
-          .input('Message', sql.NVarChar(sql.MAX), params.message)
-          .input('Data', sql.NVarChar(sql.MAX), params.data ? JSON.stringify(params.data) : null)
-          .input('ActionUrl', sql.NVarChar(500), params.actionUrl || null)
-          .input('ActionText', sql.NVarChar(100), params.actionText || null)
-          .input('RelatedEntityId', sql.UniqueIdentifier, params.relatedEntityId || null)
-          .input('RelatedEntityType', sql.NVarChar(50), params.relatedEntityType || null)
-          .input('ExpiresAt', sql.DateTime2, params.expiresAt || null)
-          .query(`
-            INSERT INTO Notifications (
-              UserId, Type, Priority, Title, Message, Data,
-              ActionUrl, ActionText, RelatedEntityId, RelatedEntityType, ExpiresAt
-            )
-            OUTPUT INSERTED.Id
-            VALUES (
-              @UserId, @Type, @Priority, @Title, @Message, @Data,
-              @ActionUrl, @ActionText, @RelatedEntityId, @RelatedEntityType, @ExpiresAt
-            )
-          `);
+      const notificationId = result.recordset[0].Id;
+      console.log(`✅ Notification created: ${notificationId} for user ${params.userId}`);
 
-        notificationId = result.recordset[0].Id;
-        console.log(`✅ In-app notification created: ${notificationId} for user ${params.userId}`);
-        
-        // Emit real-time notification via Socket.io
-        if (this.io) {
-          this.io.to(`user-${params.userId}`).emit('notification-created', {
-            id: notificationId,
-            userId: params.userId,
-            type: params.type,
-            priority: params.priority,
-            title: params.title,
-            message: params.message,
-            actionUrl: params.actionUrl,
-            actionText: params.actionText,
-            createdAt: new Date().toISOString()
-          });
-          console.log(`🔔 Socket.io event emitted to user-${params.userId}`);
-        }
-      } else {
-        console.log(`📵 In-app notification skipped for user ${params.userId} - EnableInAppNotifications is OFF`);
+      // Emit real-time notification via Socket.io ONLY if in-app is enabled
+      if (shouldSendInApp && this.io) {
+        this.io.to(`user-${params.userId}`).emit('notification-created', {
+          id: notificationId,
+          userId: params.userId,
+          type: params.type,
+          priority: params.priority,
+          title: params.title,
+          message: params.message,
+          actionUrl: params.actionUrl,
+          actionText: params.actionText,
+          createdAt: new Date().toISOString()
+        });
+        console.log(`🔔 Socket.io event emitted to user-${params.userId}`);
+      } else if (!shouldSendInApp) {
+        console.log(`📵 In-app notification suppressed for user ${params.userId} - EnableInAppNotifications is OFF`);
       }
 
       // Send email if enabled (we already checked shouldSendEmail at the start)
@@ -326,7 +322,7 @@ export class NotificationService {
         if (preferences.EmailDigestFrequency === 'realtime') {
           console.log(`📧 Sending realtime email to user ${params.userId}`);
           this.sendEmailNotification(params.userId, {
-            id: notificationId || '',
+            id: notificationId,
             type: params.type,
             priority: params.priority,
             title: params.title,
@@ -338,19 +334,14 @@ export class NotificationService {
           });
         } else if (preferences.EmailDigestFrequency === 'daily' || preferences.EmailDigestFrequency === 'weekly') {
           console.log(`📧 Notification will be included in ${preferences.EmailDigestFrequency} digest`);
-          // Note: Digest service requires notificationId from database
-          // If in-app is disabled, email digest won't work unless we create a separate email queue
-          if (shouldSendInApp && notificationId) {
-            EmailDigestService.addToDigest(
-              params.userId,
-              notificationId,
-              preferences.EmailDigestFrequency as 'daily' | 'weekly'
-            ).catch(error => {
-              console.error(`❌ Failed to add to digest: ${error.message}`);
-            });
-          } else {
-            console.warn(`⚠️ Email digest requires in-app notification to be created. Skipping digest for user ${params.userId}`);
-          }
+          // Notification already created in DB with notificationId
+          EmailDigestService.addToDigest(
+            params.userId,
+            notificationId,
+            preferences.EmailDigestFrequency as 'daily' | 'weekly'
+          ).catch(error => {
+            console.error(`❌ Failed to add to digest: ${error.message}`);
+          });
         }
       }
 
@@ -363,6 +354,7 @@ export class NotificationService {
 
   /**
    * Get all notifications for a user
+   * Respects EnableInAppNotifications preference - if OFF, returns empty array
    */
   async getUserNotifications(
     userId: string, 
@@ -375,6 +367,13 @@ export class NotificationService {
     }
   ): Promise<Notification[]> {
     try {
+      // Check if in-app notifications are enabled for this user
+      const preferences = await this.getUserPreferences(userId);
+      if (!preferences.EnableInAppNotifications) {
+        console.log(`📵 getUserNotifications: In-app notifications disabled for user ${userId}, returning empty array`);
+        return [];
+      }
+
       const request = await this.dbService.getRequest();
       request.input('UserId', sql.UniqueIdentifier, userId);
       request.input('IncludeRead', sql.Bit, includeRead);
@@ -432,8 +431,19 @@ export class NotificationService {
   /**
    * Get unread notification count for a user
    */
+  /**
+   * Get unread notification count for a user
+   * Respects EnableInAppNotifications preference - if OFF, returns 0
+   */
   async getUnreadCount(userId: string): Promise<number> {
     try {
+      // Check if in-app notifications are enabled for this user
+      const preferences = await this.getUserPreferences(userId);
+      if (!preferences.EnableInAppNotifications) {
+        console.log(`📵 getUnreadCount: In-app notifications disabled for user ${userId}, returning 0`);
+        return 0;
+      }
+
       const request = await this.dbService.getRequest();
       const result = await request
         .input('UserId', sql.UniqueIdentifier, userId)

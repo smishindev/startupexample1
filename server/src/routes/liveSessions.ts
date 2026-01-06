@@ -622,6 +622,71 @@ router.post('/:sessionId/join', authenticateToken, async (req: AuthRequest, res)
 
     const attendee = await LiveSessionService.addAttendee(sessionId, req.user!.userId);
 
+    // Get session details to notify instructor
+    const io: Server = req.app.get('io');
+    if (io) {
+      try {
+        const dbService = DatabaseService.getInstance();
+        const session = await dbService.query<{ 
+          InstructorId: string; 
+          Title: string;
+          CourseId: string | null;
+        }>(
+          `SELECT InstructorId, Title, CourseId 
+           FROM LiveSessions 
+           WHERE Id = @sessionId`,
+          { sessionId }
+        );
+
+        if (session.length > 0) {
+          const { InstructorId, Title, CourseId } = session[0];
+
+          // Get student name
+          const student = await dbService.query<{ FirstName: string; LastName: string }>(
+            `SELECT FirstName, LastName FROM Users WHERE Id = @userId`,
+            { userId: req.user!.userId }
+          );
+
+          const studentName = student.length > 0 
+            ? `${student[0].FirstName} ${student[0].LastName}`
+            : 'A student';
+
+          // Create notification for instructor
+          await notificationService.createNotificationWithControls(
+            {
+              userId: InstructorId,
+              type: 'course',
+              priority: 'low',
+              title: 'Student Joined Session',
+              message: `${studentName} joined "${Title}"`,
+              actionUrl: `/live-sessions`,
+              actionText: 'View Session',
+              relatedEntityId: sessionId,
+              relatedEntityType: 'course'
+            },
+            {
+              category: 'course',
+              subcategory: 'LiveSessions'
+            }
+          );
+
+          // Emit real-time notification to instructor
+          io.to(`user-${InstructorId}`).emit('notification-created', {
+            userId: InstructorId,
+            type: 'course',
+            priority: 'low',
+            title: 'Student Joined Session',
+            message: `${studentName} joined "${Title}"`,
+            actionUrl: '/live-sessions',
+            actionText: 'View Session'
+          });
+        }
+      } catch (notifError) {
+        console.error('Error creating join notification:', notifError);
+        // Don't fail the request if notification fails
+      }
+    }
+
     res.json({ 
       message: 'Joined live session successfully', 
       attendee 

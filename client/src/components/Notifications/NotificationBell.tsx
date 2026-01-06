@@ -335,7 +335,7 @@ export const NotificationBell: React.FC = () => {
         ) : (
           <Box sx={{ maxHeight: 400, overflow: 'auto' }}>
             {notifications.map((notification, index) => (
-              <React.Fragment key={notification.Id}>
+              <React.Fragment key={notification.Id || `notification-${index}`}>
                 {index > 0 && <Divider />}
                 <MenuItem
                   data-testid={`notification-item-${notification.Id}`}

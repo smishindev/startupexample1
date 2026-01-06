@@ -12,11 +12,11 @@ import {
   DialogActions,
   Button,
   TextField,
-  MenuItem,
   Box,
   Typography,
   Alert,
   CircularProgress,
+  Autocomplete,
 } from '@mui/material';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -53,6 +53,18 @@ export const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState<string>('');
+
+  // Lazy loading state for courses
+  const [displayedCourses, setDisplayedCourses] = useState<Array<{ Id: string; Title: string }>>([]);
+  const [courseLoadCount, setCourseLoadCount] = useState(50); // Initial load
+
+  // Initialize displayed courses when modal opens or courses change
+  React.useEffect(() => {
+    if (open) {
+      setDisplayedCourses(courses.slice(0, 50));
+      setCourseLoadCount(50);
+    }
+  }, [open, courses]);
 
   const handleChange = (field: keyof CreateSessionData, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -197,25 +209,93 @@ export const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
             data-testid="create-session-description-input"
           />
 
-          {/* Course Selection */}
+          {/* Course Selection - Autocomplete with lazy loading (infinite scroll) */}
           {courses.length > 0 && (
-            <TextField
-              select
-              label="Course (Optional)"
-              value={formData.courseId}
-              onChange={(e) => handleChange('courseId', e.target.value)}
+            <Autocomplete
+              options={(() => {
+                // Always include selected course in options to avoid validation error
+                const selectedCourse = courses.find(c => c.Id === formData.courseId);
+                if (selectedCourse && !displayedCourses.find(c => c.Id === selectedCourse.Id)) {
+                  return [selectedCourse, ...displayedCourses];
+                }
+                return displayedCourses;
+              })()}
+              getOptionLabel={(option) => option.Title}
+              value={courses.find(c => c.Id === formData.courseId) || null}
+              onChange={(_, newValue) => handleChange('courseId', newValue?.Id || '')}
+              isOptionEqualToValue={(option, value) => option.Id === value.Id}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Course (Optional)"
+                  placeholder="Search courses..."
+                  helperText={`${displayedCourses.length} of ${courses.length} courses loaded - type to search or scroll for more`}
+                  data-testid="create-session-course-autocomplete-input"
+                />
+              )}
+              renderOption={(props, option, state) => {
+                // Detect if this is near the last item to trigger load more
+                const isLastItem = state.index === displayedCourses.length - 1;
+                
+                return (
+                  <li 
+                    {...props} 
+                    key={option.Id}
+                    ref={isLastItem ? (el) => {
+                      // Trigger load more when last item becomes visible
+                      if (el && courseLoadCount < courses.length) {
+                        const observer = new IntersectionObserver((entries) => {
+                          if (entries[0].isIntersecting) {
+                            const newCount = Math.min(courseLoadCount + 12, courses.length);
+                            setDisplayedCourses(courses.slice(0, newCount));
+                            setCourseLoadCount(newCount);
+                            observer.disconnect();
+                          }
+                        }, { threshold: 0.1 });
+                        observer.observe(el);
+                      }
+                    } : undefined}
+                  >
+                    <Box sx={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+                      <Typography variant="body2">{option.Title}</Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        ID: {option.Id}
+                      </Typography>
+                    </Box>
+                  </li>
+                );
+              }}
+              filterOptions={(options, { inputValue }) => {
+                // When user searches, show all matching results from full course list
+                if (inputValue.trim()) {
+                  return courses.filter(option =>
+                    option.Title.toLowerCase().includes(inputValue.toLowerCase())
+                  ).slice(0, 100); // Limit search results to 100 for performance
+                }
+                // When no search, show currently loaded courses
+                return options;
+              }}
+              ListboxProps={{
+                onScroll: (event: React.SyntheticEvent) => {
+                  const listboxNode = event.currentTarget;
+                  const position = listboxNode.scrollTop + listboxNode.clientHeight;
+                  const isNearBottom = position >= listboxNode.scrollHeight - 50;
+                  
+                  // Load more when scrolling near bottom
+                  if (isNearBottom && courseLoadCount < courses.length) {
+                    const newCount = Math.min(courseLoadCount + 12, courses.length);
+                    setDisplayedCourses(courses.slice(0, newCount));
+                    setCourseLoadCount(newCount);
+                  }
+                },
+                style: { maxHeight: '300px' },
+              }}
               fullWidth
-              data-testid="create-session-course-select"
-            >
-              <MenuItem value="">
-                <em>No specific course</em>
-              </MenuItem>
-              {courses.map((course) => (
-                <MenuItem key={course.Id} value={course.Id}>
-                  {course.Title}
-                </MenuItem>
-              ))}
-            </TextField>
+              clearOnBlur
+              selectOnFocus
+              handleHomeEndKeys
+              data-testid="create-session-course-autocomplete"
+            />
           )}
 
           {/* Scheduled Time */}

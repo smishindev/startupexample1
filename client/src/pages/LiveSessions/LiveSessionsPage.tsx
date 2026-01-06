@@ -28,8 +28,8 @@ export const LiveSessionsPage: React.FC = () => {
     const fetchCourses = async () => {
       try {
         if (isInstructor) {
-          // Fetch instructor's courses
-          const response = await instructorApi.getCourses();
+          // Fetch instructor's own courses (all of them)
+          const response = await instructorApi.getCourses(undefined, 1, 9999);
           console.log('Instructor courses:', response);
           setCourses(
             response.courses.map((c: any) => ({

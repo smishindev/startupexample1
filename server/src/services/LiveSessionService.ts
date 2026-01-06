@@ -358,22 +358,22 @@ export class LiveSessionService {
   static async addAttendee(sessionId: string, userId: string): Promise<SessionAttendee> {
     const db = DatabaseService.getInstance();
 
-    // Check session capacity
+    // Check session capacity (allow scheduled or live sessions)
     const capacityCheck = await (await db.getRequest())
       .input('sessionId', sql.UniqueIdentifier, sessionId)
       .query(`
-        SELECT ls.Capacity, COUNT(lsa.Id) as CurrentAttendees
+        SELECT ls.Capacity, COUNT(lsa.Id) as CurrentAttendees, ls.Status, ls.CourseId, ls.InstructorId
         FROM dbo.LiveSessions ls
         LEFT JOIN dbo.LiveSessionAttendees lsa ON ls.Id = lsa.SessionId AND lsa.LeftAt IS NULL
-        WHERE ls.Id = @sessionId AND ls.Status = 'live'
-        GROUP BY ls.Capacity
+        WHERE ls.Id = @sessionId AND ls.Status IN ('scheduled', 'live')
+        GROUP BY ls.Capacity, ls.Status, ls.CourseId, ls.InstructorId
       `);
 
     if (capacityCheck.recordset.length === 0) {
-      throw new Error('Session not found or not live');
+      throw new Error('Session not found or not available for joining');
     }
 
-    const { Capacity, CurrentAttendees } = capacityCheck.recordset[0];
+    const { Capacity, CurrentAttendees, Status, CourseId, InstructorId } = capacityCheck.recordset[0];
     if (CurrentAttendees >= Capacity) {
       throw new Error('Session is at full capacity');
     }
@@ -400,13 +400,40 @@ export class LiveSessionService {
 
     const attendee = result.recordset[0] as SessionAttendee;
 
-    // Broadcast new attendee to session
+    // Get user name for notifications
+    const userResult = await (await db.getRequest())
+      .input('userId', sql.UniqueIdentifier, userId)
+      .query(`SELECT FirstName, LastName FROM dbo.Users WHERE Id = @userId`);
+    
+    const userName = userResult.recordset.length > 0
+      ? `${userResult.recordset[0].FirstName} ${userResult.recordset[0].LastName}`
+      : 'Unknown User';
+
+    // Broadcast to session room and instructor for real-time updates
     if (this.io) {
+      // Emit to session room (for anyone in the session)
       this.io.to(`session-${sessionId}`).emit('attendee-joined', {
         sessionId,
         userId,
+        userName,
         joinedAt: attendee.JoinedAt
       });
+
+      // Emit directly to instructor (they may not be in the session room)
+      this.io.to(`user-${InstructorId}`).emit('attendee-joined', {
+        sessionId,
+        userId,
+        userName,
+        joinedAt: attendee.JoinedAt
+      });
+
+      // Also emit to course room to update session lists
+      if (CourseId) {
+        this.io.to(`course-${CourseId}`).emit('session-attendee-updated', {
+          sessionId,
+          attendeeCount: CurrentAttendees + 1
+        });
+      }
     }
 
     return attendee;
@@ -509,12 +536,17 @@ export class LiveSessionService {
       .input('courseId', sql.UniqueIdentifier, courseId)
       .input('limit', sql.Int, limit)
       .query(`
-        SELECT TOP(@limit) *
-        FROM dbo.LiveSessions
-        WHERE CourseId = @courseId 
-          AND Status IN ('scheduled', 'live')
-          AND ScheduledAt >= GETUTCDATE()
-        ORDER BY ScheduledAt ASC
+        SELECT TOP(@limit) ls.*, 
+               COUNT(lsa.Id) as AttendeeCount
+        FROM dbo.LiveSessions ls
+        LEFT JOIN dbo.LiveSessionAttendees lsa ON ls.Id = lsa.SessionId AND lsa.LeftAt IS NULL
+        WHERE ls.CourseId = @courseId 
+          AND ls.Status IN ('scheduled', 'live')
+          AND ls.ScheduledAt >= GETUTCDATE()
+        GROUP BY ls.Id, ls.InstructorId, ls.CourseId, ls.Title, ls.Description, 
+                 ls.ScheduledAt, ls.Duration, ls.Status, ls.MeetingUrl, 
+                 ls.Capacity, ls.Materials, ls.CreatedAt, ls.UpdatedAt
+        ORDER BY ls.ScheduledAt ASC
       `);
 
     return result.recordset.map((session: any) => {
@@ -534,16 +566,23 @@ export class LiveSessionService {
   ): Promise<LiveSession[]> {
     const db = DatabaseService.getInstance();
     let query = `
-      SELECT *
-      FROM dbo.LiveSessions
-      WHERE InstructorId = @instructorId
+      SELECT ls.*, 
+             ISNULL(attendeeCount.Count, 0) as AttendeeCount
+      FROM dbo.LiveSessions ls
+      LEFT JOIN (
+        SELECT SessionId, COUNT(*) as Count
+        FROM dbo.LiveSessionAttendees
+        WHERE LeftAt IS NULL
+        GROUP BY SessionId
+      ) attendeeCount ON ls.Id = attendeeCount.SessionId
+      WHERE ls.InstructorId = @instructorId
     `;
 
     if (status) {
-      query += ` AND Status = @status`;
+      query += ` AND ls.Status = @status`;
     }
 
-    query += ` ORDER BY ScheduledAt DESC`;
+    query += ` ORDER BY ls.ScheduledAt DESC`;
 
     const request = await db.getRequest();
     request.input('instructorId', sql.UniqueIdentifier, instructorId);

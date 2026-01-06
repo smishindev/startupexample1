@@ -132,6 +132,168 @@ router.get('/:sessionId', authenticateToken, async (req: AuthRequest, res) => {
 });
 
 /**
+ * @route   PUT /api/live-sessions/:sessionId
+ * @desc    Update a live session (instructor only, scheduled sessions only)
+ * @access  Private (instructor)
+ */
+router.put('/:sessionId', authenticateToken, checkRole(['instructor']), async (req: AuthRequest, res) => {
+  try {
+    const { sessionId } = req.params;
+    const { title, description, scheduledAt, duration, capacity, streamUrl, materials } = req.body;
+
+    // Verify the instructor owns this session
+    const existingSession = await LiveSessionService.getSessionById(sessionId);
+    if (!existingSession) {
+      return res.status(404).json({ message: 'Session not found' });
+    }
+
+    if (existingSession.InstructorId !== req.user!.userId) {
+      return res.status(403).json({ message: 'You are not authorized to update this session' });
+    }
+
+    if (existingSession.Status !== 'scheduled') {
+      return res.status(400).json({ message: 'Only scheduled sessions can be updated' });
+    }
+
+    // Build updates object
+    const updates: any = {};
+    if (title !== undefined) updates.title = title;
+    if (description !== undefined) updates.description = description;
+    if (scheduledAt !== undefined) updates.scheduledAt = new Date(scheduledAt);
+    if (duration !== undefined) updates.duration = duration;
+    if (capacity !== undefined) updates.capacity = capacity;
+    if (streamUrl !== undefined) updates.streamUrl = streamUrl;
+    if (materials !== undefined) updates.materials = materials;
+
+    const session = await LiveSessionService.updateSession(sessionId, updates);
+
+    // Send notifications to enrolled students if course is linked
+    const io: Server = req.app.get('io');
+    if (io && session.CourseId) {
+      try {
+        const dbService = DatabaseService.getInstance();
+        const enrolledStudents = await dbService.query<{ UserId: string }>(
+          `SELECT DISTINCT UserId 
+           FROM Enrollments 
+           WHERE CourseId = @courseId AND Status IN ('active', 'completed')`,
+          { courseId: session.CourseId }
+        );
+
+        // Create notification for each enrolled student
+        for (const student of enrolledStudents) {
+          await notificationService.createNotificationWithControls(
+            {
+              userId: student.UserId,
+              type: 'course',
+              priority: 'normal',
+              title: 'Live Session Updated',
+              message: `The live session "${session.Title}" has been updated. Please check the new schedule.`,
+              actionUrl: `/live-sessions`,
+              actionText: 'View Session',
+              relatedEntityId: session.Id,
+              relatedEntityType: 'course'
+            },
+            {
+              category: 'course',
+              subcategory: 'LiveSessions'
+            }
+          );
+        }
+      } catch (notifError) {
+        console.error('Error creating update notifications:', notifError);
+        // Don't fail the request if notifications fail
+      }
+    }
+
+    res.json({ 
+      message: 'Live session updated successfully', 
+      session 
+    });
+  } catch (error) {
+    console.error('Error updating live session:', error);
+    res.status(500).json({ 
+      message: 'Failed to update live session', 
+      error: error instanceof Error ? error.message : 'Unknown error' 
+    });
+  }
+});
+
+/**
+ * @route   DELETE /api/live-sessions/:sessionId
+ * @desc    Delete a live session (instructor only, scheduled/cancelled only)
+ * @access  Private (instructor)
+ */
+router.delete('/:sessionId', authenticateToken, checkRole(['instructor']), async (req: AuthRequest, res) => {
+  try {
+    const { sessionId } = req.params;
+
+    // Verify the instructor owns this session
+    const existingSession = await LiveSessionService.getSessionById(sessionId);
+    if (!existingSession) {
+      return res.status(404).json({ message: 'Session not found' });
+    }
+
+    if (existingSession.InstructorId !== req.user!.userId) {
+      return res.status(403).json({ message: 'You are not authorized to delete this session' });
+    }
+
+    if (existingSession.Status !== 'scheduled' && existingSession.Status !== 'cancelled') {
+      return res.status(400).json({ 
+        message: 'Only scheduled or cancelled sessions can be deleted. Active or ended sessions cannot be deleted.' 
+      });
+    }
+
+    // Send notifications before deleting
+    const io: Server = req.app.get('io');
+    if (io && existingSession.CourseId) {
+      try {
+        const dbService = DatabaseService.getInstance();
+        const enrolledStudents = await dbService.query<{ UserId: string }>(
+          `SELECT DISTINCT UserId 
+           FROM Enrollments 
+           WHERE CourseId = @courseId AND Status IN ('active', 'completed')`,
+          { courseId: existingSession.CourseId }
+        );
+
+        // Create notification for each enrolled student
+        for (const student of enrolledStudents) {
+          await notificationService.createNotificationWithControls(
+            {
+              userId: student.UserId,
+              type: 'course',
+              priority: 'high',
+              title: 'Live Session Deleted',
+              message: `The live session "${existingSession.Title}" has been permanently deleted.`,
+              actionUrl: `/live-sessions`,
+              actionText: 'View Sessions',
+              relatedEntityId: existingSession.Id,
+              relatedEntityType: 'course'
+            },
+            {
+              category: 'course',
+              subcategory: 'LiveSessions'
+            }
+          );
+        }
+      } catch (notifError) {
+        console.error('Error creating deletion notifications:', notifError);
+        // Don't fail the request if notifications fail
+      }
+    }
+
+    await LiveSessionService.deleteSession(sessionId);
+
+    res.json({ message: 'Live session deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting live session:', error);
+    res.status(500).json({ 
+      message: 'Failed to delete live session', 
+      error: error instanceof Error ? error.message : 'Unknown error' 
+    });
+  }
+});
+
+/**
  * @route   GET /api/live-sessions/course/:courseId
  * @desc    Get upcoming live sessions for a course
  * @access  Private

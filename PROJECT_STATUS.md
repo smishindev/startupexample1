@@ -1,12 +1,67 @@
 # Mishin Learn Platform - Project Status & Memory
 
-**Last Updated**: January 5, 2026 - Test Automation Infrastructure Complete ✅  
+**Last Updated**: January 6, 2026 - Live Session Edit/Delete + Notification Bug Fix ✅  
 **Developer**: Sergey Mishin (s.mishin.dev@gmail.com)  
 **AI Assistant Context**: This file serves as project memory for continuity across chat sessions
 
 ---
 
-## 🔥 LATEST UPDATE - January 5, 2026
+## 🔥 LATEST UPDATE - January 6, 2026
+
+### 🔧 Critical Bug Fix + Live Session Management Complete
+
+**Notification Enforcement Bug Fixed + Edit/Delete Session Functionality Implemented**
+
+✅ **Notification Bug Fix**
+- **Issue**: Students with in-app toggle disabled for lesson completion and course milestones still received notifications and bell showed count
+- **Root Cause**: `createNotificationWithControls()` created database records regardless of `shouldSendInApp` result, causing notifications to appear in bell icon
+- **Fix**: Modified [NotificationService.ts](server/src/services/NotificationService.ts#L264-L365) `createNotificationWithControls()` method
+  * Skip DB record creation when `shouldSendInApp` is false
+  * Still handles email-only scenarios when `shouldSendEmail` is true
+  * DB records only created when in-app notifications are enabled
+- **Testing**: Verified notifications with disabled toggles no longer appear in bell or notification list
+- **Status**: ✅ Production-ready enforcement of notification preferences
+
+✅ **Live Session Edit/Delete Implementation**
+- **Feature**: Completed previously deferred edit/delete functionality for live sessions
+- **Backend Changes**:
+  * Added [LiveSessionService.updateSession()](server/src/services/LiveSessionService.ts#L105-L164) - Dynamic SQL UPDATE builder
+  * Added [LiveSessionService.deleteSession()](server/src/services/LiveSessionService.ts#L166-L224) - CASCADE deletion
+  * Added [PUT /api/live-sessions/:sessionId](server/src/routes/liveSessions.ts#L109-L220) endpoint
+  * Added [DELETE /api/live-sessions/:sessionId](server/src/routes/liveSessions.ts#L222-L290) endpoint
+  * Both operations send notifications to enrolled students (respects notification preferences)
+  * Socket.IO events emitted for real-time UI updates
+- **Frontend Changes**:
+  * Created [EditSessionModal.tsx](client/src/components/LiveSessions/EditSessionModal.tsx) (330 lines)
+    - Auto-fetches and pre-populates session data
+    - Form validation for all fields
+    - DateTimePicker for scheduling
+    - Success/error handling with toast notifications
+  * Added [deleteSession()](client/src/services/liveSessionsApi.ts#L175-L185) to API service
+  * Updated [InstructorSessionsList.tsx](client/src/components/LiveSessions/InstructorSessionsList.tsx) with real implementations
+    - Removed "coming soon" placeholder alerts ✅
+    - Added edit modal integration
+    - Added delete confirmation with notifications
+- **Constraints**:
+  * Only scheduled sessions can be edited
+  * Only scheduled/cancelled sessions can be deleted
+  * Instructor ownership verification enforced
+- **Notifications**: Edit/delete events trigger notifications to enrolled students under "Live Sessions" category (respects user preferences)
+- **Status**: ✅ Full CRUD operations for live sessions complete
+
+**Files Modified:**
+- `server/src/services/NotificationService.ts` (lines 264-365)
+- `server/src/services/LiveSessionService.ts` (methods added: lines 105-224)
+- `server/src/routes/liveSessions.ts` (routes added: lines 109-290)
+- `client/src/services/liveSessionsApi.ts` (deleteSession added: lines 175-185)
+- `client/src/components/LiveSessions/EditSessionModal.tsx` (NEW - 330 lines)
+- `client/src/components/LiveSessions/InstructorSessionsList.tsx` (edit/delete integrated)
+
+**Duration**: 2-3 hours (bug investigation + full edit/delete implementation)
+
+---
+
+## 📋 January 5, 2026
 
 ### 🧪 Test Automation Infrastructure - COMPLETE
 
@@ -2741,8 +2796,8 @@ const days = Math.floor((now.getTime() - purchaseDate.getTime()) / (1000*60*60*2
 **Live Sessions:**
 - ⚠️ "View All Notifications" button redirects to dashboard (no /notifications route exists)
   - **TODO**: Either remove button or create dedicated notifications page
-- ⚠️ Edit session functionality shows "coming soon" placeholder
-- ⚠️ Delete session functionality shows "coming soon" placeholder
+- ✅ Edit session functionality - COMPLETE (January 6, 2026)
+- ✅ Delete session functionality - COMPLETE (January 6, 2026)
 
 **Next Steps (Week 2 Day 2):**
 - Study Groups UI implementation

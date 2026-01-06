@@ -270,7 +270,31 @@ export class NotificationService {
         return await this.queueNotification(params);
       }
 
-      // Always create notification in database (needed for email tracking, digests, history)
+      // Only create notification in database if in-app notifications are enabled
+      // This prevents disabled notifications from appearing in the notification center/bell
+      if (!shouldSendInApp) {
+        console.log(`📵 In-app notification disabled for user ${params.userId} - skipping DB record creation`);
+        
+        // If email is enabled, send it directly without creating notification record
+        if (shouldSendEmail && preferences.EmailDigestFrequency === 'realtime') {
+          console.log(`📧 Sending email-only notification (realtime) for user ${params.userId}`);
+          this.sendEmailNotification(params.userId, {
+            id: 'email-only',
+            type: params.type,
+            priority: params.priority,
+            title: params.title,
+            message: params.message,
+            actionUrl: params.actionUrl,
+            actionText: params.actionText
+          }).catch(error => {
+            console.error(`❌ Failed to send email notification: ${error.message}`);
+          });
+        }
+        
+        return ''; // No notification ID since not created
+      }
+
+      // Create notification in database
       const request = await this.dbService.getRequest();
       const result = await request
         .input('UserId', sql.UniqueIdentifier, params.userId)
@@ -297,10 +321,10 @@ export class NotificationService {
         `);
 
       const notificationId = result.recordset[0].Id;
-      console.log(`✅ Notification created: ${notificationId} for user ${params.userId}`);
+      console.log(`✅ Notification created in DB: ${notificationId} for user ${params.userId}`);
 
-      // Emit real-time notification via Socket.io ONLY if in-app is enabled
-      if (shouldSendInApp && this.io) {
+      // Emit real-time notification via Socket.io
+      if (this.io) {
         this.io.to(`user-${params.userId}`).emit('notification-created', {
           id: notificationId,
           userId: params.userId,
@@ -313,16 +337,14 @@ export class NotificationService {
           createdAt: new Date().toISOString()
         });
         console.log(`🔔 Socket.io event emitted to user-${params.userId}`);
-      } else if (!shouldSendInApp) {
-        console.log(`📵 In-app notification suppressed for user ${params.userId} - EnableInAppNotifications is OFF`);
       }
 
-      // Send email if enabled (we already checked shouldSendEmail at the start)
+      // Send email if enabled
       if (shouldSendEmail) {
         if (preferences.EmailDigestFrequency === 'realtime') {
           console.log(`📧 Sending realtime email to user ${params.userId}`);
           this.sendEmailNotification(params.userId, {
-            id: notificationId,
+            id: notificationId || 'email-only',
             type: params.type,
             priority: params.priority,
             title: params.title,
@@ -333,15 +355,19 @@ export class NotificationService {
             console.error(`❌ Failed to send email notification: ${error.message}`);
           });
         } else if (preferences.EmailDigestFrequency === 'daily' || preferences.EmailDigestFrequency === 'weekly') {
-          console.log(`📧 Notification will be included in ${preferences.EmailDigestFrequency} digest`);
-          // Notification already created in DB with notificationId
-          EmailDigestService.addToDigest(
-            params.userId,
-            notificationId,
-            preferences.EmailDigestFrequency as 'daily' | 'weekly'
-          ).catch(error => {
-            console.error(`❌ Failed to add to digest: ${error.message}`);
-          });
+          // Only add to digest if we created a notification record
+          if (notificationId) {
+            console.log(`📧 Adding notification ${notificationId} to ${preferences.EmailDigestFrequency} digest`);
+            EmailDigestService.addToDigest(
+              params.userId,
+              notificationId,
+              preferences.EmailDigestFrequency as 'daily' | 'weekly'
+            ).catch(error => {
+              console.error(`❌ Failed to add to digest: ${error.message}`);
+            });
+          } else {
+            console.log(`⚠️ Skipping digest - notification not created (in-app disabled)`);
+          }
         }
       }
 

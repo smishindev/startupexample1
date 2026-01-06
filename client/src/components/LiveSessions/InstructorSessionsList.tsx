@@ -21,11 +21,13 @@ import { Add as AddIcon } from '@mui/icons-material';
 import { toast } from 'sonner';
 import { LiveSessionCard } from './LiveSessionCard';
 import { CreateSessionModal } from './CreateSessionModal';
+import { EditSessionModal } from './EditSessionModal';
 import {
   getInstructorSessions,
   startSession,
   endSession,
   cancelSession,
+  deleteSession,
 } from '../../services/liveSessionsApi';
 import { LiveSession, SessionStatus } from '../../types/liveSession';
 import { useLiveSessionSocket } from '../../hooks/useLiveSessionSocket';
@@ -48,6 +50,8 @@ export const InstructorSessionsList: React.FC<InstructorSessionsListProps> = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState(0);
 
   // Fetch sessions
@@ -161,15 +165,28 @@ export const InstructorSessionsList: React.FC<InstructorSessionsListProps> = ({
   };
 
   // Handle edit session
-  const handleEdit = (_sessionId: string) => {
-    // TODO: Implement edit functionality
-    alert('Edit functionality coming soon!');
+  const handleEdit = (sessionId: string) => {
+    setEditingSessionId(sessionId);
+    setEditModalOpen(true);
   };
 
   // Handle delete session
-  const handleDelete = (_sessionId: string) => {
-    // TODO: Implement delete functionality
-    alert('Delete functionality coming soon!');
+  const handleDelete = async (sessionId: string) => {
+    const session = sessions.find(s => s.Id === sessionId);
+    if (!session) return;
+
+    if (!confirm(`Are you sure you want to permanently delete "${session.Title}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      await deleteSession(sessionId);
+      toast.success('Session deleted successfully');
+      // Remove from local state
+      setSessions((prev) => prev.filter((s) => s.Id !== sessionId));
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to delete session');
+    }
   };
 
   return (
@@ -298,6 +315,17 @@ export const InstructorSessionsList: React.FC<InstructorSessionsListProps> = ({
         onClose={() => setCreateModalOpen(false)}
         onSuccess={fetchSessions}
         courses={courses}
+      />
+
+      {/* Edit Modal */}
+      <EditSessionModal
+        open={editModalOpen}
+        sessionId={editingSessionId}
+        onClose={() => {
+          setEditModalOpen(false);
+          setEditingSessionId(null);
+        }}
+        onSuccess={fetchSessions}
       />
     </Box>
   );

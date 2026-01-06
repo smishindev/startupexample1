@@ -300,20 +300,28 @@ socket.on('update-presence', async (data: { status: string, activity?: string })
 });
 ```
 
-**Task 2.2.2: Live Session API Routes**
+**Task 2.2.2: Live Session API Routes** ✅ **COMPLETE** (January 6, 2026)
 ```typescript
 // server/src/routes/liveSessions.ts
 
-POST   /api/live-sessions              - Create session
-GET    /api/live-sessions              - List sessions (instructor/student)
-GET    /api/live-sessions/:id          - Get session details
-PUT    /api/live-sessions/:id          - Update session
-DELETE /api/live-sessions/:id          - Cancel session
-POST   /api/live-sessions/:id/join     - Join session
-POST   /api/live-sessions/:id/leave    - Leave session
-GET    /api/live-sessions/:id/attendees - Get attendees
-POST   /api/live-sessions/:id/record   - Start/stop recording
+POST   /api/live-sessions              - Create session ✅
+GET    /api/live-sessions              - List sessions (instructor/student) ✅
+GET    /api/live-sessions/:id          - Get session details ✅
+PUT    /api/live-sessions/:id          - Update session ✅ (Added Jan 6, 2026)
+DELETE /api/live-sessions/:id          - Delete session ✅ (Added Jan 6, 2026)
+POST   /api/live-sessions/:id/join     - Join session ✅
+POST   /api/live-sessions/:id/leave    - Leave session ✅
+POST   /api/live-sessions/:id/start    - Start session ✅
+POST   /api/live-sessions/:id/end      - End session ✅
+POST   /api/live-sessions/:id/cancel   - Cancel session ✅
+GET    /api/live-sessions/:id/attendees - Get attendees ✅
 ```
+
+**Notes**:
+- PUT endpoint includes notification creation to enrolled students (respects notification preferences)
+- DELETE endpoint includes notification creation and CASCADE deletion of attendees
+- Both operations verify instructor ownership and session status constraints
+- See [LiveSessionService.ts](server/src/services/LiveSessionService.ts) for implementation details
 
 **Task 2.2.3: Presence API**
 ```typescript
@@ -340,12 +348,15 @@ GET    /api/presence/user/:userId      - Get user presence
 - Screen sharing view
 - Leave/end session buttons
 
-**Task 2.3.3: Session Creation Dialog**
-- `client/src/components/LiveSession/CreateSessionDialog.tsx`
-- Date/time picker
-- Course selection
-- Capacity limit
-- Public/private toggle
+**Task 2.3.3: Session Creation/Edit Dialogs** ✅ **COMPLETE** (January 6, 2026)
+- `client/src/components/LiveSessions/CreateSessionModal.tsx` ✅
+- `client/src/components/LiveSessions/EditSessionModal.tsx` ✅ (Added Jan 6, 2026)
+- Date/time picker (DateTimePicker from @mui/x-date-pickers) ✅
+- Course selection ✅
+- Capacity limit ✅
+- Public/private toggle ✅
+- Form validation ✅
+- Auto-fetch and pre-populate data (EditSessionModal) ✅
 
 **Task 2.3.4: Presence Indicators**
 - `client/src/components/Presence/PresenceIndicator.tsx`

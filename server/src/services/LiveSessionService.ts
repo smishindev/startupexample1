@@ -100,6 +100,135 @@ export class LiveSessionService {
   }
 
   /**
+   * Update a scheduled session
+   */
+  static async updateSession(
+    sessionId: string,
+    updates: {
+      title?: string;
+      description?: string;
+      scheduledAt?: Date;
+      duration?: number;
+      capacity?: number;
+      streamUrl?: string;
+      materials?: any[];
+    }
+  ): Promise<LiveSession> {
+    const db = DatabaseService.getInstance();
+
+    // Build dynamic UPDATE query
+    const updateFields: string[] = [];
+    const request = await db.getRequest();
+    request.input('sessionId', sql.UniqueIdentifier, sessionId);
+
+    if (updates.title !== undefined) {
+      updateFields.push('Title = @title');
+      request.input('title', sql.NVarChar, updates.title);
+    }
+    if (updates.description !== undefined) {
+      updateFields.push('Description = @description');
+      request.input('description', sql.NVarChar, updates.description);
+    }
+    if (updates.scheduledAt !== undefined) {
+      updateFields.push('ScheduledAt = @scheduledAt');
+      request.input('scheduledAt', sql.DateTime2, updates.scheduledAt);
+    }
+    if (updates.duration !== undefined) {
+      updateFields.push('Duration = @duration');
+      request.input('duration', sql.Int, updates.duration);
+    }
+    if (updates.capacity !== undefined) {
+      updateFields.push('Capacity = @capacity');
+      request.input('capacity', sql.Int, updates.capacity);
+    }
+    if (updates.streamUrl !== undefined) {
+      updateFields.push('StreamUrl = @streamUrl');
+      request.input('streamUrl', sql.NVarChar, updates.streamUrl);
+    }
+    if (updates.materials !== undefined) {
+      updateFields.push('Materials = @materials');
+      request.input('materials', sql.NVarChar, JSON.stringify(updates.materials));
+    }
+
+    if (updateFields.length === 0) {
+      throw new Error('No fields to update');
+    }
+
+    // Always update UpdatedAt
+    updateFields.push('UpdatedAt = GETUTCDATE()');
+
+    const result = await request.query(`
+      UPDATE dbo.LiveSessions
+      SET ${updateFields.join(', ')}
+      OUTPUT INSERTED.*
+      WHERE Id = @sessionId AND Status = 'scheduled'
+    `);
+
+    if (result.recordset.length === 0) {
+      throw new Error('Session not found or cannot be updated (must be in scheduled status)');
+    }
+
+    const session = result.recordset[0] as LiveSession;
+
+    // Parse materials JSON if exists
+    if (session.Materials) {
+      session.Materials = JSON.parse(session.Materials);
+    }
+
+    // Broadcast update to course students
+    if (this.io && session.CourseId) {
+      this.io.to(`course-${session.CourseId}`).emit('live-session-updated', {
+        sessionId: session.Id,
+        title: session.Title,
+        scheduledAt: session.ScheduledAt
+      });
+    }
+
+    return session;
+  }
+
+  /**
+   * Delete a session (only if not started)
+   */
+  static async deleteSession(sessionId: string): Promise<void> {
+    const db = DatabaseService.getInstance();
+
+    // First get session details for broadcasting
+    const sessionResult = await (await db.getRequest())
+      .input('sessionId', sql.UniqueIdentifier, sessionId)
+      .query(`
+        SELECT * FROM dbo.LiveSessions
+        WHERE Id = @sessionId AND Status IN ('scheduled', 'cancelled')
+      `);
+
+    if (sessionResult.recordset.length === 0) {
+      throw new Error('Session not found or cannot be deleted (must be scheduled or cancelled)');
+    }
+
+    const session = sessionResult.recordset[0] as LiveSession;
+
+    // Delete the session (CASCADE will handle attendees)
+    const result = await (await db.getRequest())
+      .input('sessionId', sql.UniqueIdentifier, sessionId)
+      .query(`
+        DELETE FROM dbo.LiveSessions
+        WHERE Id = @sessionId AND Status IN ('scheduled', 'cancelled')
+      `);
+
+    if (result.rowsAffected[0] === 0) {
+      throw new Error('Failed to delete session');
+    }
+
+    // Broadcast deletion to course students
+    if (this.io && session.CourseId) {
+      this.io.to(`course-${session.CourseId}`).emit('live-session-deleted', {
+        sessionId: session.Id,
+        title: session.Title
+      });
+    }
+  }
+
+  /**
    * Start a live session
    */
   static async startSession(sessionId: string): Promise<LiveSession> {

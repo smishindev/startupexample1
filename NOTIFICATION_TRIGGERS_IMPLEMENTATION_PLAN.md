@@ -1,8 +1,8 @@
 # Notification Triggers - Full Implementation Plan
 
 **Created**: December 28, 2025  
-**Last Updated**: December 29, 2025  
-**Status**: In Progress (2/31 Complete + Hybrid Controls Design)  
+**Last Updated**: January 6, 2026  
+**Status**: In Progress (4/31 Complete + Hybrid Controls Design)  
 **Goal**: Integrate automatic notification creation throughout the application with granular user controls
 
 ---
@@ -97,11 +97,13 @@ When creating notification:
 
 Users receive email notifications (based on their preferences) when these events occur:
 
-#### ✅ **Currently Active (2 triggers)**
+#### ✅ **Currently Active (4 triggers)**
 1. **Lesson Completed** - Student completes any lesson → Email to student + instructor (at milestones)
 2. **Live Session Created** - Instructor schedules session → Email to all enrolled students
+3. **Live Session Updated** - Instructor edits session → Notification to all enrolled students (January 6, 2026)
+4. **Live Session Deleted** - Instructor deletes session → Notification to all enrolled students (January 6, 2026)
 
-#### 🔄 **Coming Soon (29 triggers)**
+#### 🔄 **Coming Soon (27 triggers)**
 - Course enrollments, video completions, assessment submissions
 - Grading notifications, new content alerts
 - Payment receipts, refund confirmations
@@ -156,10 +158,12 @@ Event hooks that create notifications when users perform actions (enrollment, gr
 - Infrastructure: 5 scheduled jobs
 
 **Implementation Status:**
-- ✅ **Implemented & Working**: 2 triggers
+- ✅ **Implemented & Working**: 4 triggers
   - Lesson Completion (Student + Instructor notifications)
-  - Live Session Created
-- ⏳ **Pending**: 29 triggers
+  - Live Session Created (Student notifications)
+  - Live Session Updated (Student notifications) - January 6, 2026
+  - Live Session Deleted (Student notifications) - January 6, 2026
+- ⏳ **Pending**: 27 triggers
 
 ---
 

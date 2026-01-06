@@ -670,6 +670,77 @@ interface ShareDialogProps {
 
 ---
 
+### EditSessionModal
+**Path**: `client/src/components/LiveSessions/EditSessionModal.tsx`  
+**Purpose**: Modal dialog for editing existing live sessions (instructors only)  
+**Added**: January 6, 2026
+
+**Props**:
+```typescript
+interface EditSessionModalProps {
+  open: boolean;
+  onClose: () => void;
+  sessionId: string | null;
+  onSuccess: () => void; // Refresh parent list
+}
+```
+
+**Services Used**:
+- `liveSessionsApi.getSession(sessionId)` - Auto-fetch session data on open
+- `liveSessionsApi.updateSession(sessionId, data)` - Save changes
+- `toast` (Sonner) - Success/error notifications
+
+**State Management**:
+- Local state:
+  - `title: string` - Session title
+  - `description: string` - Session description  
+  - `scheduledAt: Date | null` - Scheduled date/time
+  - `duration: string` - Duration in minutes
+  - `capacity: string` - Max attendees
+  - `isPublic: boolean` - Public vs private session
+  - `loading: boolean` - Form submission state
+  - `fetching: boolean` - Data fetch state
+  - `errors: Record<string, string>` - Validation errors
+
+**Components Used**:
+- `<Dialog />` - MUI modal
+- `<DateTimePicker />` - Date/time selection
+- `<TextField />` - Form inputs
+- `<Switch />` - Public/private toggle
+- `<LoadingButton />` - Submit with loading state
+
+**Key Features**:
+- Auto-fetches session data when modal opens (based on sessionId)
+- Pre-populates all form fields with existing values
+- Form validation: title required, duration 15-180 mins, capacity 1-1000, scheduledAt required
+- Only scheduled sessions can be edited (enforced by backend)
+- Sends notifications to enrolled students on update (respects notification preferences)
+- Success toast + parent list refresh on save
+- Error handling with field-specific error messages
+- Prevents edit during fetch with disabled state
+
+**Validation Rules**:
+```typescript
+- Title: Required, min 1 char
+- Description: Optional
+- Duration: Required, 15-180 minutes
+- Capacity: Required, 1-1000 attendees
+- Scheduled At: Required, must be future date/time
+```
+
+**Common Issues**:
+- **Form not pre-populating**: Check sessionId is passed correctly
+- **Date parsing errors**: Uses dayjs with fallback to current date
+- **Validation not working**: Check validate() function before submit
+- **Notifications not sent**: Backend creates notifications to all enrolled students automatically
+
+**Used By**:
+- `InstructorSessionsList` - Edit button on each session card
+
+**Status**: ✅ Complete (January 6, 2026) - Full edit functionality with notifications
+
+---
+
 ### VideoPlayer
 **Path**: `client/src/components/Video/VideoPlayer.tsx`  
 **Purpose**: Video player with progress tracking, analytics, and controls

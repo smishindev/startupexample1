@@ -170,3 +170,16 @@ export const updateSession = async (
     throw new Error(error.response?.data?.message || 'Failed to update session');
   }
 };
+
+/**
+ * Delete a session (Instructor only)
+ */
+export const deleteSession = async (sessionId: string): Promise<{ message: string }> => {
+  try {
+    const response = await api.delete(`/api/live-sessions/${sessionId}`);
+    return response.data;
+  } catch (error: any) {
+    throw new Error(error.response?.data?.message || 'Failed to delete session');
+  }
+};
+

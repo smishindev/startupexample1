@@ -2,16 +2,48 @@
 
 **Created**: December 18, 2025  
 **Completed**: December 18, 2025 (Preferences), December 29, 2025 (Triggers)  
+**Last Updated**: January 6, 2026 (Bug Fix)  
 **Feature**: Enforce user notification preferences across entire system  
 **Status**: ✅ PRODUCTION READY  
-**Implementation Time**: ~4 hours (preferences) + ~2 hours (triggers)  
+**Implementation Time**: ~4 hours (preferences) + ~2 hours (triggers) + ~1 hour (bug fix)
 
-**Notification Triggers Status** (December 29, 2025):
-- ✅ 2/31 triggers active (Lesson Completion, Live Session Created)
+**Notification Triggers Status** (January 6, 2026):
+- ✅ 4/31 triggers active (Lesson Completion, Live Session Created/Updated/Deleted)
 - ✅ Email delivery working (realtime/daily/weekly based on user preference)
 - ✅ Socket.io real-time updates working (notification bell updates instantly)
-- 🔜 29 remaining triggers (video completion, enrollment, assessments, etc.)
+- ✅ **BUG FIX**: Notifications with disabled in-app toggles no longer created in database (Jan 6, 2026)
+- 🔜 27 remaining triggers (video completion, enrollment, assessments, etc.)
 - See [NOTIFICATION_TRIGGERS_IMPLEMENTATION_PLAN.md](NOTIFICATION_TRIGGERS_IMPLEMENTATION_PLAN.md) for details
+
+---
+
+## 🐛 CRITICAL BUG FIX - January 6, 2026
+
+### Issue: Disabled In-App Toggles Still Created Notifications
+
+**Problem**: Students with in-app toggle disabled for lesson completion and course milestones were still receiving notifications and bell icon showed count.
+
+**Root Cause**: 
+- `createNotificationWithControls()` in NotificationService.ts was creating database records regardless of `shouldSendInApp` result
+- The method checked preferences but still inserted into Notifications table
+- This caused notifications to appear in bell icon and notification list even when user had disabled them
+
+**Fix Applied**:
+- Modified [NotificationService.ts](server/src/services/NotificationService.ts#L264-L365) `createNotificationWithControls()` method
+- **Lines 273-297**: Added early return when `shouldSendInApp` is false
+  * Skips database record creation entirely
+  * Still handles email-only scenarios when `shouldSendEmail` is true
+  * Sends realtime email if enabled
+- **Lines 299-340**: Database record creation only when `shouldSendInApp` is true
+- **Lines 343-365**: Email handling with digest logic (unchanged)
+
+**Testing**:
+- ✅ Verified notifications with disabled in-app toggles no longer appear in bell icon
+- ✅ Verified notification count accurately reflects only enabled notifications
+- ✅ Verified email-only scenarios still work correctly
+- ✅ Verified NULL inheritance system still functions as expected
+
+**Status**: ✅ Production-ready enforcement of notification preferences
 
 ---
 

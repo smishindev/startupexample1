@@ -391,7 +391,6 @@ class TestNotificationSettings:
         base_url: str, 
         trigger_test_notification,
         get_notification_count,
-        wait_for_notification,
         clear_notifications,
         verify_notification_in_db
     ):
@@ -514,8 +513,8 @@ class TestNotificationSettings:
         base_url: str,
         trigger_test_notification,
         get_notification_count,
-        wait_for_notification,
-        clear_notifications
+        clear_notifications,
+        verify_notification_in_db
     ):
         """
         Integration Test: Live session creation sends notification when enabled
@@ -558,9 +557,12 @@ class TestNotificationSettings:
         success = trigger_test_notification('course', 'LiveSessions')
         assert success, "Failed to trigger live session notification"
         
-        # Wait for notification
-        notification_received = wait_for_notification(timeout_ms=5000, expected_increase=1)
-        assert notification_received, "Live session notification did not appear"
+        # Verify notification exists in database
+        assert verify_notification_in_db(), "Notification not found in database"
+        
+        # Reload page to fetch updated count (WebSocket doesn't work in tests)
+        page.reload()
+        page.wait_for_load_state("networkidle")
         
         # Verify count increased
         final_count = get_notification_count()

@@ -1,9 +1,20 @@
-"""Pytest configuration and shared fixtures"""
+"""
+Pytest configuration and shared fixtures for E2E testing
+
+⚠️ CRITICAL API RESPONSE STRUCTURE NOTES:
+- Auth endpoints (/api/auth/*) return NESTED structure: {success: true, data: {token: "...", user: {...}}}
+- Must access as: response.json()['data']['token'] NOT response.json()['token']
+- Other endpoints vary - see API_RESPONSE_PATTERNS.md for complete reference
+- When in doubt, check the actual endpoint in server/src/routes/ to see res.json({...}) structure
+
+See TESTING_API_INTEGRATION.md for comprehensive testing guide.
+"""
 import pytest
 from playwright.sync_api import Browser, BrowserContext, Page
 from typing import Generator
 import os
 import requests
+import re
 from dotenv import load_dotenv
 
 # Load test environment variables
@@ -110,9 +121,14 @@ def api_client(api_base_url: str, student_credentials: dict):
     if login_response.status_code != 200:
         raise Exception(f"Login failed: {login_response.text}")
     
-    data = login_response.json()
+    response_data = login_response.json()
+    # Login response structure: {success: true, data: {user: {...}, token: "...", expiresIn: "24h"}}
+    data = response_data.get('data', {})
     auth_token = data.get('token')
     user_id = data.get('user', {}).get('id')
+    
+    if not auth_token:
+        raise Exception(f"No token in login response: {response_data}")
     
     # Set authorization header for all future requests
     session.headers.update({
@@ -143,9 +159,14 @@ def api_client_instructor(api_base_url: str, instructor_credentials: dict):
     if login_response.status_code != 200:
         raise Exception(f"Instructor login failed: {login_response.text}")
     
-    data = login_response.json()
+    response_data = login_response.json()
+    # Login response structure: {success: true, data: {user: {...}, token: "...", expiresIn: "24h"}}
+    data = response_data.get('data', {})
     auth_token = data.get('token')
     user_id = data.get('user', {}).get('id')
+    
+    if not auth_token:
+        raise Exception(f"No token in instructor login response: {response_data}")
     
     session.headers.update({
         "Authorization": f"Bearer {auth_token}",
@@ -162,7 +183,8 @@ def trigger_test_notification(api_client, api_base_url: str):
     Usage: trigger_test_notification(notification_type='progress', subcategory='LessonCompletion')
     """
     def _trigger(notification_type: str = 'progress', subcategory: str = 'LessonCompletion'):
-        session, _, _ = api_client
+        session, auth_token, user_id = api_client
+        
         response = session.post(
             f"{api_base_url}/api/notifications/test",
             json={
@@ -170,7 +192,23 @@ def trigger_test_notification(api_client, api_base_url: str):
                 "subcategory": subcategory
             }
         )
-        return response.status_code == 201
+        
+        if response.status_code != 200:
+            print(f"⚠️ Test notification API failed: {response.status_code} - {response.text}")
+            return False
+        
+        # Check if notification was actually created or blocked by preferences
+        data = response.json()
+        notification_id = data.get('notificationId')
+        message = data.get('message', '')
+        
+        if not notification_id:
+            print(f"⚠️ Notification blocked by preferences: {message}")
+            print(f"   Type: {notification_type}, Subcategory: {subcategory}")
+            return False
+        
+        print(f"✅ Test notification created: {notification_id}")
+        return True
     
     return _trigger
 
@@ -180,15 +218,28 @@ def get_notification_count(page: Page):
     """
     Helper to get current notification count from bell badge
     Returns integer count or 0 if no badge visible
+    
+    Selectors used:
+    - notification-bell-button (aria-label contains count)
+    - notification-bell-badge (MUI Badge component)
+    
+    See TEST_SELECTOR_MAP_ORGANIZED.md → NotificationBell.tsx for all selectors
     """
     def _get_count() -> int:
         try:
+            # Try to get count from aria-label first (most reliable)
             bell = page.locator('[data-testid="notification-bell-button"]')
-            if not bell.is_visible():
-                return 0
+            if bell.is_visible():
+                aria_label = bell.get_attribute('aria-label')
+                if aria_label:
+                    # Extract number from "show X new notifications"
+                    import re
+                    match = re.search(r'show (\d+) new', aria_label)
+                    if match:
+                        return int(match.group(1))
             
-            # Check for badge
-            badge = bell.locator('.MuiBadge-badge')
+            # Fallback: Try to get from badge text
+            badge = page.locator('[data-testid="notification-bell-badge"] .MuiBadge-badge')
             if badge.is_visible(timeout=1000):
                 text = badge.text_content()
                 if text and text.strip():
@@ -196,8 +247,10 @@ def get_notification_count(page: Page):
                     if '+' in text:
                         return int(text.replace('+', ''))
                     return int(text)
+            
             return 0
-        except:
+        except Exception as e:
+            print(f"⚠️ Error getting notification count: {e}")
             return 0
     
     return _get_count
@@ -213,7 +266,9 @@ def clear_notifications(api_client, api_base_url: str):
         # Get all notifications
         response = session.get(f"{api_base_url}/api/notifications")
         if response.status_code == 200:
-            notifications = response.json()
+            data = response.json()
+            # Response structure: {success: true, notifications: [...]}
+            notifications = data.get('notifications', [])
             # Mark all as read and delete
             for notif in notifications:
                 try:
@@ -245,6 +300,167 @@ def wait_for_notification(page: Page, get_notification_count):
         return False
     
     return _wait
+
+
+@pytest.fixture
+def verify_notification_in_db(api_client, api_base_url: str):
+    """
+    Helper to verify notification exists in database via API
+    Returns True if notification found, False otherwise
+    """
+    def _verify(notification_id: str = None, timeout_ms: int = 5000) -> bool:
+        import time
+        session, _, _ = api_client
+        start_time = time.time()
+        
+        while (time.time() - start_time) * 1000 < timeout_ms:
+            response = session.get(f"{api_base_url}/api/notifications")
+            if response.status_code == 200:
+                data = response.json()
+                notifications = data.get('notifications', [])
+                
+                if notification_id:
+                    # Check for specific notification ID
+                    for notif in notifications:
+                        if notif.get('Id') == notification_id:
+                            print(f"✅ Notification found in DB: {notification_id}")
+                            return True
+                elif len(notifications) > 0:
+                    # Just check if any notification exists
+                    print(f"✅ Found {len(notifications)} notifications in DB")
+                    return True
+            
+            time.sleep(0.5)
+        
+        print(f"⚠️ Notification not found in DB after {timeout_ms}ms")
+        return False
+    
+    return _verify
+
+
+@pytest.fixture
+def get_course_progress(api_client, api_base_url: str):
+    """
+    Helper to get student's progress percentage in a course
+    Returns float (0.0 to 100.0)
+    """
+    def _get_progress(course_id: str) -> float:
+        session, _, _ = api_client
+        response = session.get(f"{api_base_url}/api/enrollment/{course_id}/progress")
+        if response.status_code == 200:
+            data = response.json()
+            return float(data.get('progressPercentage', 0))
+        return 0.0
+    
+    return _get_progress
+
+
+@pytest.fixture
+def get_enrolled_course(api_client, api_base_url: str):
+    """
+    Helper to get first enrolled course for current user
+    Returns dict with courseId, courseTitle, or None
+    """
+    def _get_course():
+        session, _, _ = api_client
+        response = session.get(f"{api_base_url}/api/enrollment")
+        if response.status_code == 200:
+            enrollments = response.json()
+            if len(enrollments) > 0:
+                return {
+                    'courseId': enrollments[0].get('CourseId'),
+                    'courseTitle': enrollments[0].get('CourseTitle', 'Unknown Course')
+                }
+        return None
+    
+    return _get_course
+
+
+@pytest.fixture
+def create_live_session(api_client_instructor, api_base_url: str):
+    """
+    Helper for instructor to create a live session
+    Returns session ID or None
+    """
+    def _create(course_id: str, title: str = "Test Live Session"):
+        session, _, _ = api_client_instructor
+        import datetime
+        
+        # Schedule for 1 hour from now
+        scheduled_time = datetime.datetime.utcnow() + datetime.timedelta(hours=1)
+        
+        response = session.post(
+            f"{api_base_url}/api/live-sessions",
+            json={
+                "courseId": course_id,
+                "title": title,
+                "scheduledTime": scheduled_time.isoformat(),
+                "duration": 60,
+                "meetingLink": "https://meet.example.com/test"
+            }
+        )
+        if response.status_code == 201:
+            return response.json().get('id')
+        return None
+    
+    return _create
+
+
+@pytest.fixture
+def get_db_notifications(api_client, api_base_url: str):
+    """
+    Helper to get notifications from database via API
+    Returns list of notification dicts
+    """
+    def _get_notifications(minutes: int = 5):
+        session, _, _ = api_client
+        response = session.get(f"{api_base_url}/api/notifications")
+        if response.status_code == 200:
+            import datetime
+            notifications = response.json()
+            cutoff_time = datetime.datetime.utcnow() - datetime.timedelta(minutes=minutes)
+            
+            # Filter recent notifications
+            recent = []
+            for n in notifications:
+                created = datetime.datetime.fromisoformat(n['CreatedAt'].replace('Z', '+00:00'))
+                if created > cutoff_time:
+                    recent.append(n)
+            return recent
+        return []
+    
+    return _get_notifications
+
+
+@pytest.fixture
+def switch_user(page: Page, base_url: str):
+    """
+    Helper to switch between user accounts
+    Usage: switch_user(email, password)
+    """
+    def _switch(email: str, password: str):
+        # Logout current user
+        try:
+            page.goto(f"{base_url}/dashboard")
+            page.wait_for_load_state("networkidle")
+            page.click('[data-testid="header-profile-menu-button"]', timeout=3000)
+            page.wait_for_timeout(500)
+            page.click('[data-testid="header-profile-menu-item-logout"]', timeout=3000)
+            page.wait_for_load_state("networkidle")
+        except:
+            pass  # May already be logged out
+        
+        # Login as new user
+        page.goto(f"{base_url}/login")
+        page.wait_for_load_state("networkidle")
+        page.fill('[data-testid="login-email-input"]', email)
+        page.fill('[data-testid="login-password-input"]', password)
+        page.click('[data-testid="login-submit-button"]')
+        page.wait_for_url(re.compile(r".*/dashboard.*"), timeout=15000)
+        page.wait_for_load_state("networkidle")
+        return True
+    
+    return _switch
 
 
 def pytest_configure(config):

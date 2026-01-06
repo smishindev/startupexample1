@@ -1,10 +1,12 @@
 # Notification Settings Test Suite
 
-Comprehensive automated tests for notification settings functionality with integration testing of notification triggers.
+Comprehensive automated tests for notification settings functionality with full end-to-end integration testing.
 
 ## 📋 Test Coverage
 
-### UI Functionality Tests (20 tests)
+**Total: 48 Tests** (27 baseline + 21 comprehensive API integration tests)
+
+### Baseline UI & Integration Tests (27 tests)
 ✅ **Global Controls:**
 - In-app notifications toggle with persistence
 - Email notifications toggle with persistence
@@ -26,21 +28,49 @@ Comprehensive automated tests for notification settings functionality with integ
 - Explicit override vs inherit behavior
 - Visual indicators (opacity 0.6 for inherit state)
 
+✅ **Basic Integration:**
+- Lesson completion notification when enabled/blocked when disabled
+- Live session notification when enabled/blocked when disabled
+- Email-only mode (critical bug fix test)
+
 ✅ **Edge Cases:**
 - Security alerts cannot be disabled
 - Multiple changes before save
 
-### Integration Tests (5 tests)
-✅ **Lesson Completion Trigger:**
-- ✅ Notification sent when enabled
-- ✅ Notification blocked when disabled
+### Comprehensive API Integration Tests (21 tests)
+✅ **Instructor Milestone Notifications (5 tests):**
+- 25% course completion milestone notification
+- 50%, 75%, 100% milestone notifications
+- Milestone blocked when settings disabled
+- Email-only milestone delivery
+- Verify milestones NOT sent for every lesson
 
-✅ **Live Session Trigger:**
-- ✅ Notification sent when enabled
-- ✅ Notification blocked when disabled
+✅ **Multi-Student Live Sessions (2 tests):**
+- Multiple enrolled students receive notifications
+- Unenrolled students do NOT receive notifications
 
-✅ **Email-Only Mode:**
-- ✅ Critical bug fix test: In-app OFF, email ON
+✅ **Email vs In-App Separation (6 tests):**
+- Lesson completion in-app only
+- Lesson completion email only
+- Lesson completion both channels
+- Lesson completion neither channel
+- Independent settings for different subcategories
+- Database verification (EmailSent, EmailQueued flags)
+
+✅ **Edge Cases & Cascade Logic (7 tests):**
+- Global OFF blocks ALL notifications (even with subcategory ON)
+- Category OFF blocks subcategory (even with explicit subcategory ON)
+- Subcategory explicit OFF overrides category ON
+- NULL inheritance allows notification when category ON
+- Security alerts always delivered (bypass all settings)
+- Enrollment validation (no notification if not enrolled)
+- Multi-user scenarios (different settings per user)
+
+✅ **Advanced Scenarios:**
+- Database notification record verification
+- Email queue status verification
+- Multi-user perspective testing (student vs instructor)
+- Cross-category independent settings
 
 ## 🚀 Running Tests
 

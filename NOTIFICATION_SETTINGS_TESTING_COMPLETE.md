@@ -20,24 +20,31 @@
 - Updated coverage: **659 test IDs across 32 components (119.8%)**
 
 ### 3. Comprehensive Test Suite Created
-✅ **tests/test_notification_settings.py** - 27 test cases:
+✅ **tests/test_notification_settings.py** - 48 test cases (27 baseline + 21 comprehensive):
 
-**UI Tests (18 tests):**
+**Baseline UI Tests (18 tests):**
 - Global toggles (in-app, email, frequency)
 - Category accordions and switches
 - Subcategory toggles (lesson completion, live sessions)
 - NULL inheritance behavior
 - Edge cases (security alerts, multiple changes)
 
-**Integration Tests (5 tests):**
+**Baseline Integration Tests (5 tests):**
 - Lesson completion: enabled ✓ / disabled ✓
 - Live session: enabled ✓ / disabled ✓
 - Email-only mode (critical bug fix) ✓
 
-**Advanced Tests (4 tests):**
+**Baseline Advanced Tests (4 tests):**
 - Persistence after reload
 - Category cascade to subcategories
 - Explicit override vs inherit
+
+**Comprehensive API Integration Tests (21 tests):**
+- **Instructor Milestones (5):** 25%, 50%, 75%, 100% completion, email-only mode
+- **Multi-Student Sessions (2):** Enrolled students receive, unenrolled don't
+- **Email/In-App Separation (6):** Independent channel delivery, database verification
+- **Edge Cases (7):** Global cascade, category cascade, NULL inheritance, security bypass
+- **Database Verification (1):** EmailSent/EmailQueued flags
 - Status chip updates
 
 ### 4. Test Infrastructure Enhanced

@@ -229,9 +229,10 @@ export const NotificationBell: React.FC = () => {
           size="large"
           aria-label={`show ${unreadCount} new notifications`}
           color="inherit"
+          data-testid="notification-bell-button"
         >
           <Box sx={{ position: 'relative' }}>
-            <Badge badgeContent={unreadCount} color="error">
+            <Badge badgeContent={unreadCount} color="error" data-testid="notification-bell-badge">
               {unreadCount > 0 ? <NotificationsIcon /> : <NotificationsNoneIcon />}
             </Badge>
             {queuedCount > 0 && (
@@ -252,6 +253,7 @@ export const NotificationBell: React.FC = () => {
       </Tooltip>
 
       <Menu
+        data-testid="notification-bell-menu"
         anchorEl={anchorEl}
         open={open}
         onClose={handleClose}
@@ -318,6 +320,7 @@ export const NotificationBell: React.FC = () => {
               You're all caught up!
             </Typography>
             <Button
+              data-testid="notification-bell-manage-preferences-button"
               size="small"
               variant="outlined"
               onClick={() => {
@@ -334,6 +337,7 @@ export const NotificationBell: React.FC = () => {
               <React.Fragment key={notification.Id}>
                 {index > 0 && <Divider />}
                 <MenuItem
+                  data-testid={`notification-item-${notification.Id}`}
                   onClick={() => handleNotificationClick(notification)}
                   sx={{
                     py: 1.5,
@@ -355,6 +359,7 @@ export const NotificationBell: React.FC = () => {
                         {notification.Title}
                       </Typography>
                       <IconButton
+                        data-testid={`notification-delete-${notification.Id}`}
                         size="small"
                         onClick={(e) => handleDeleteNotification(notification.Id, e)}
                         sx={{ ml: 1, flexShrink: 0 }}
@@ -387,6 +392,7 @@ export const NotificationBell: React.FC = () => {
         <Divider />
         <Box sx={{ p: 1, textAlign: 'center' }}>
           <Button
+            data-testid="notification-bell-view-all-button"
             fullWidth
             onClick={() => {
               navigate('/notifications');

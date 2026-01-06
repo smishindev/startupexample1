@@ -1,8 +1,8 @@
 # Test Selector Map - Organized for Test Automation
 
 **Purpose**: Quick reference for writing Playwright tests - organized by feature area  
-**Last Updated**: January 5, 2026  
-**Coverage**: 659 test IDs across 32 components (119.8% of original 550 target)
+**Last Updated**: January 6, 2026  
+**Coverage**: 668 test IDs across 32 components
 
 ---
 
@@ -745,9 +745,25 @@ page.click('[data-testid="course-creation-publish-button"]')
 
 | Element | Selector | Type | Notes |
 |---------|----------|------|-------|
-| Bell button | `notification-bell-button` | IconButton | Open notifications |
-| Settings button | `notification-bell-settings-button` | Button | Preferences |
-| Mark all read button | `notification-bell-mark-all-read-button` | Button | Clear all |
+| Bell button | `notification-bell-button` | IconButton | Open notifications menu |
+| Bell badge | `notification-bell-badge` | Badge | Shows unread count |
+| Notification menu | `notification-bell-menu` | Menu | Dropdown menu container |
+| Settings button | `notification-bell-settings-button` | IconButton | Navigate to notification settings |
+| Mark all read button | `notification-bell-mark-all-read-button` | Button | Mark all notifications as read |
+| Notification item (dynamic) | `notification-item-{id}` | MenuItem | Individual notification (clickable) |
+| Delete notification (dynamic) | `notification-delete-{id}` | IconButton | Delete specific notification |
+| Manage preferences button | `notification-bell-manage-preferences-button` | Button | Navigate to settings (empty state) |
+| View all button | `notification-bell-view-all-button` | Button | Navigate to full notifications page |
+
+**Dynamic Selectors**:
+- `{id}` = Notification ID (UUID format)
+
+**Testing Notes**:
+- Use aria-label for count: `aria-label="show {count} new notifications"`
+- Badge only visible when unreadCount > 0
+- Menu opens on bell button click
+- WebSocket delivers real-time notifications in production
+- For tests, reload page to fetch updated count from API
 
 ---
 

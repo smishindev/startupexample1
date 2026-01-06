@@ -37,10 +37,14 @@ async function loginAsStudent() {
       password: 'ser'
     });
     
-    authToken = response.data.token;
-    testUserId = response.data.user.id;
+    // ⚠️ IMPORTANT: Login response structure is nested!
+    // Response: {success: true, data: {user: {...}, token: "...", expiresIn: "24h"}}
+    // NOT flat like {token: "...", user: {...}}
+    const { data } = response.data; // Get nested 'data' object
+    authToken = data.token;
+    testUserId = data.user.id;
     
-    console.log(`✅ Logged in as: ${response.data.user.username || response.data.user.email}`);
+    console.log(`✅ Logged in as: ${data.user.username || data.user.email}`);
     console.log(`   User ID: ${testUserId}\n`);
     
     return true;

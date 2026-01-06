@@ -38,6 +38,20 @@ class SocketService {
 
   connect(): Promise<void> {
     return new Promise((resolve, reject) => {
+      // If already connected, resolve immediately
+      if (this.connected && this.socket?.connected) {
+        console.log('Socket already connected, reusing existing connection');
+        resolve();
+        return;
+      }
+
+      // If socket exists but disconnected, disconnect first
+      if (this.socket) {
+        console.log('Cleaning up existing disconnected socket');
+        this.socket.disconnect();
+        this.socket = null;
+      }
+
       const token = useAuthStore.getState().token;
       
       if (!token) {
@@ -165,24 +179,32 @@ class SocketService {
   // Notification event listeners
   onNotification(callback: (notification: NotificationEvent) => void): void {
     if (this.socket) {
+      // Remove any existing listeners to prevent duplicates
+      this.socket.off('notification-created');
       this.socket.on('notification-created', callback);
     }
   }
 
   onNotificationRead(callback: (data: { notificationId: string }) => void): void {
     if (this.socket) {
+      // Remove any existing listeners to prevent duplicates
+      this.socket.off('notification-read');
       this.socket.on('notification-read', callback);
     }
   }
 
   onNotificationsReadAll(callback: (data: { count: number }) => void): void {
     if (this.socket) {
+      // Remove any existing listeners to prevent duplicates
+      this.socket.off('notifications-read-all');
       this.socket.on('notifications-read-all', callback);
     }
   }
 
   onNotificationDeleted(callback: (data: { notificationId: string }) => void): void {
     if (this.socket) {
+      // Remove any existing listeners to prevent duplicates
+      this.socket.off('notification-deleted');
       this.socket.on('notification-deleted', callback);
     }
   }

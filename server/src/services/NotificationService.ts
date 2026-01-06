@@ -270,78 +270,88 @@ export class NotificationService {
         return await this.queueNotification(params);
       }
 
-      const request = await this.dbService.getRequest();
-      const result = await request
-        .input('UserId', sql.UniqueIdentifier, params.userId)
-        .input('Type', sql.NVarChar(50), params.type)
-        .input('Priority', sql.NVarChar(20), params.priority)
-        .input('Title', sql.NVarChar(200), params.title)
-        .input('Message', sql.NVarChar(sql.MAX), params.message)
-        .input('Data', sql.NVarChar(sql.MAX), params.data ? JSON.stringify(params.data) : null)
-        .input('ActionUrl', sql.NVarChar(500), params.actionUrl || null)
-        .input('ActionText', sql.NVarChar(100), params.actionText || null)
-        .input('RelatedEntityId', sql.UniqueIdentifier, params.relatedEntityId || null)
-        .input('RelatedEntityType', sql.NVarChar(50), params.relatedEntityType || null)
-        .input('ExpiresAt', sql.DateTime2, params.expiresAt || null)
-        .query(`
-          INSERT INTO Notifications (
-            UserId, Type, Priority, Title, Message, Data,
-            ActionUrl, ActionText, RelatedEntityId, RelatedEntityType, ExpiresAt
-          )
-          OUTPUT INSERTED.Id
-          VALUES (
-            @UserId, @Type, @Priority, @Title, @Message, @Data,
-            @ActionUrl, @ActionText, @RelatedEntityId, @RelatedEntityType, @ExpiresAt
-          )
-        `);
+      let notificationId = '';
 
-      const notificationId = result.recordset[0].Id;
-      console.log(`✅ Notification created: ${notificationId} for user ${params.userId}`);
-      
-      // Emit real-time notification via Socket.io (only if in-app is enabled)
-      if (shouldSendInApp && this.io) {
-        this.io.to(`user-${params.userId}`).emit('notification-created', {
-          id: notificationId,
-          userId: params.userId,
-          type: params.type,
-          priority: params.priority,
-          title: params.title,
-          message: params.message,
-          actionUrl: params.actionUrl,
-          actionText: params.actionText,
-          createdAt: new Date().toISOString()
-        });
-        console.log(`🔔 Socket.io event emitted to user-${params.userId}`);
+      // Only create in-app notification in database if shouldSendInApp is true
+      if (shouldSendInApp) {
+        const request = await this.dbService.getRequest();
+        const result = await request
+          .input('UserId', sql.UniqueIdentifier, params.userId)
+          .input('Type', sql.NVarChar(50), params.type)
+          .input('Priority', sql.NVarChar(20), params.priority)
+          .input('Title', sql.NVarChar(200), params.title)
+          .input('Message', sql.NVarChar(sql.MAX), params.message)
+          .input('Data', sql.NVarChar(sql.MAX), params.data ? JSON.stringify(params.data) : null)
+          .input('ActionUrl', sql.NVarChar(500), params.actionUrl || null)
+          .input('ActionText', sql.NVarChar(100), params.actionText || null)
+          .input('RelatedEntityId', sql.UniqueIdentifier, params.relatedEntityId || null)
+          .input('RelatedEntityType', sql.NVarChar(50), params.relatedEntityType || null)
+          .input('ExpiresAt', sql.DateTime2, params.expiresAt || null)
+          .query(`
+            INSERT INTO Notifications (
+              UserId, Type, Priority, Title, Message, Data,
+              ActionUrl, ActionText, RelatedEntityId, RelatedEntityType, ExpiresAt
+            )
+            OUTPUT INSERTED.Id
+            VALUES (
+              @UserId, @Type, @Priority, @Title, @Message, @Data,
+              @ActionUrl, @ActionText, @RelatedEntityId, @RelatedEntityType, @ExpiresAt
+            )
+          `);
+
+        notificationId = result.recordset[0].Id;
+        console.log(`✅ In-app notification created: ${notificationId} for user ${params.userId}`);
+        
+        // Emit real-time notification via Socket.io
+        if (this.io) {
+          this.io.to(`user-${params.userId}`).emit('notification-created', {
+            id: notificationId,
+            userId: params.userId,
+            type: params.type,
+            priority: params.priority,
+            title: params.title,
+            message: params.message,
+            actionUrl: params.actionUrl,
+            actionText: params.actionText,
+            createdAt: new Date().toISOString()
+          });
+          console.log(`🔔 Socket.io event emitted to user-${params.userId}`);
+        }
+      } else {
+        console.log(`📵 In-app notification skipped for user ${params.userId} - EnableInAppNotifications is OFF`);
       }
 
       // Send email if enabled (we already checked shouldSendEmail at the start)
-      if (shouldSendEmail && preferences.EmailDigestFrequency === 'realtime') {
-        console.log(`📧 Sending realtime email to user ${params.userId}`);
-        // Get user info for email
-        const userResult = await (await this.dbService.getRequest())
-          .input('userId', sql.VarChar(50), params.userId)
-          .query('SELECT Email, FirstName FROM Users WHERE UserID = @userId');
-        
-        if (userResult.recordset.length > 0) {
-          const user = userResult.recordset[0];
-          await EmailService.sendNotificationEmail({
-            email: user.Email,
-            firstName: user.FirstName,
-            userId: params.userId,
-            notificationId: notificationId,
-            notification: {
-              title: params.title,
-              message: params.message,
-              type: params.type as 'progress' | 'risk' | 'achievement' | 'intervention' | 'assignment' | 'course',
-              priority: params.priority,
-              actionUrl: params.actionUrl,
-              actionText: params.actionText
-            }
+      if (shouldSendEmail) {
+        if (preferences.EmailDigestFrequency === 'realtime') {
+          console.log(`📧 Sending realtime email to user ${params.userId}`);
+          this.sendEmailNotification(params.userId, {
+            id: notificationId || '',
+            type: params.type,
+            priority: params.priority,
+            title: params.title,
+            message: params.message,
+            actionUrl: params.actionUrl,
+            actionText: params.actionText
+          }).catch(error => {
+            console.error(`❌ Failed to send email notification: ${error.message}`);
           });
+        } else if (preferences.EmailDigestFrequency === 'daily' || preferences.EmailDigestFrequency === 'weekly') {
+          console.log(`📧 Notification will be included in ${preferences.EmailDigestFrequency} digest`);
+          // Note: Digest service requires notificationId from database
+          // If in-app is disabled, email digest won't work unless we create a separate email queue
+          if (shouldSendInApp && notificationId) {
+            EmailDigestService.addToDigest(
+              params.userId,
+              notificationId,
+              preferences.EmailDigestFrequency as 'daily' | 'weekly'
+            ).catch(error => {
+              console.error(`❌ Failed to add to digest: ${error.message}`);
+            });
+          } else {
+            console.warn(`⚠️ Email digest requires in-app notification to be created. Skipping digest for user ${params.userId}`);
+          }
         }
-      } else if (shouldSendEmail && (preferences.EmailDigestFrequency === 'daily' || preferences.EmailDigestFrequency === 'weekly')) {
-        console.log(`📧 Notification will be included in ${preferences.EmailDigestFrequency} digest`);
-        // Will be picked up by digest cron job
       }
 
       return notificationId;

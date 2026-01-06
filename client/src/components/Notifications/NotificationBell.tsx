@@ -66,11 +66,11 @@ export const NotificationBell: React.FC = () => {
     const connectSocket = async () => {
       try {
         await socketService.connect();
-        console.log('Socket connected for notifications');
+        console.log('✅ [NotificationBell] Socket connected for notifications');
         
         // Listen for new notifications
         socketService.onNotification((notification) => {
-          console.log('Received real-time notification:', notification);
+          console.log('🔔 [NotificationBell] Received real-time notification:', notification);
           
           // Add to notifications list (cast to proper type)
           const newNotification: Notification = {
@@ -102,7 +102,7 @@ export const NotificationBell: React.FC = () => {
         
         // Listen for notification-read events from other devices
         socketService.onNotificationRead((data) => {
-          console.log('Notification marked as read:', data.notificationId);
+          console.log('✅ [NotificationBell] Notification marked as read:', data.notificationId);
           
           // Remove from local list if present
           setNotifications(prev => prev.filter(n => n.Id !== data.notificationId));
@@ -111,29 +111,30 @@ export const NotificationBell: React.FC = () => {
 
         // Listen for mark-all-read events
         socketService.onNotificationsReadAll((data) => {
-          console.log('All notifications marked as read on another tab');
+          console.log('✅ [NotificationBell] All notifications marked as read on another tab');
           setNotifications([]);
           setUnreadCount(0);
         });
 
         // Listen for notification-deleted events from other tabs/page
         socketService.onNotificationDeleted((data) => {
-          console.log('Notification deleted:', data.notificationId);
+          console.log('✅ [NotificationBell] Notification deleted:', data.notificationId);
           setNotifications(prev => prev.filter(n => n.Id !== data.notificationId));
           setUnreadCount(prev => Math.max(0, prev - 1));
         });
         
       } catch (error) {
-        console.error('Socket connection failed, will use REST API only:', error);
+        console.error('❌ [NotificationBell] Socket connection failed, will use REST API only:', error);
         // Fallback: Socket connection failed, but initial fetch already loaded notifications
       }
     };
     
     connectSocket();
     
+    // Don't disconnect socket on unmount - it's shared across the app
+    // Just log that this component is unmounting
     return () => {
-      // Cleanup socket listeners on unmount
-      socketService.disconnect();
+      console.log('🔕 [NotificationBell] Component unmounting (socket stays connected)');
     };
   }, [navigate]);
 

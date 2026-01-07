@@ -83,12 +83,16 @@ Role: Student
 **Use these accounts for:**
 - Testing role-based features
 - Office Hours (instructor creates schedule, student joins queue)
-- Live Sessions (instructor creates, student joins)
+- **Live Sessions** (instructor creates/edits/deletes, student joins/leaves)
+  - Test race condition protection: Multiple students join simultaneously (capacity enforced)
+  - Test multi-device sync: Open same session in 2 tabs, changes appear instantly
+  - Test validation: Try capacity=0, duration=0, reducing capacity below attendee count
+  - Test real-time: Join/leave updates, session state changes (start/end/cancel/delete)
 - Study Groups (both can create/join)
 - Presence System (test multi-user scenarios)
 - Chat/messaging features
 - **Privacy Features** (test instructor override, student-to-student blocking)
-29, 2025):**
+- **Notification Preferences** (test category/subcategory inheritance - Dec 29, 2025):
 - Navigate to Header → Settings dropdown → Notifications (dedicated page)
 - URL: `/settings/notifications`
 - **Test Global Controls:**

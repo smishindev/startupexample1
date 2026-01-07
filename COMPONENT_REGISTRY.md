@@ -16,6 +16,163 @@
 
 ---
 
+## 🎓 Live Sessions Components
+
+### InstructorSessionsList
+**Path**: `client/src/components/LiveSessions/InstructorSessionsList.tsx`  
+**Purpose**: Instructor dashboard for managing live sessions
+
+**Services Used**:
+- `liveSessionsApi.getInstructorSessions()` - Fetch instructor's sessions
+- `liveSessionsApi.startSession(id)` - Start a scheduled session
+- `liveSessionsApi.endSession(id)` - End a live session
+- `liveSessionsApi.cancelSession(id)` - Cancel a scheduled session
+- `liveSessionsApi.deleteSession(id)` - Delete session
+- `liveSessionsApi.updateSession(id, data)` - Update session (via EditSessionModal)
+
+**Socket.IO Events**:
+- Listens: `session-created`, `session-started`, `session-ended`, `session-cancelled`, `session-updated`, `session-deleted`, `attendee-joined`, `attendee-left`
+- Real-time updates for all session state changes and attendee activity
+- Multi-device synchronization (changes from one tab appear in all tabs)
+
+**Features**:
+- Tab filters: All, Upcoming, Live, Past
+- Real-time attendee count with join/leave notifications
+- Start/End/Cancel/Edit/Delete actions
+- Toast notifications for all events with user names
+- Edit modal with auto-populated form data
+- Delete confirmation dialog
+
+**Status**: ✅ Production-ready (hardened January 7, 2026)
+
+---
+
+### StudentSessionsList
+**Path**: `client/src/components/LiveSessions/StudentSessionsList.tsx`  
+**Purpose**: Student view for browsing and joining live sessions
+
+**Services Used**:
+- `liveSessionsApi.getCourseSessions(courseId)` - Fetch sessions for enrolled courses
+- `liveSessionsApi.joinSession(id)` - Join a live session
+- `liveSessionsApi.leaveSession(id)` - Leave a session
+- `enrollmentApi.getMyEnrollments()` - Get student's enrolled courses
+
+**Socket.IO Events**:
+- Listens: `session-created`, `session-started`, `session-ended`, `session-cancelled`, `session-updated`, `session-deleted`, `attendee-joined`, `attendee-left`
+- Real-time session status updates, capacity changes, and deletions
+- Refetches on `session-created` to show new sessions
+
+**Features**:
+- Course filter dropdown (all enrolled courses)
+- Tab filters: All, Upcoming, Live, Past
+- Real-time attendee count and capacity updates
+- Join/Leave buttons with instant feedback
+- Session cards with all metadata (instructor, schedule, materials)
+- Toast notifications for all events
+
+**Status**: ✅ Production-ready (hardened January 7, 2026)
+
+---
+
+### LiveSessionCard
+**Path**: `client/src/components/LiveSessions/LiveSessionCard.tsx`  
+**Purpose**: Reusable session card component with role-based actions
+
+**Props**:
+- `session: LiveSession` - Session data
+- `role: 'instructor' | 'student'` - User role
+- Action callbacks: `onJoin`, `onLeave`, `onStart`, `onEnd`, `onEdit`, `onCancel`, `onDelete`
+
+**Features**:
+- Status badges (Scheduled, Live, Ended, Cancelled) with colors
+- Attendee count with capacity (e.g., "15 / 50")
+- Course title chip (if available)
+- Instructor name with avatar
+- Formatted date/time with timezone
+- Duration display
+- Materials link (if available)
+- Stream URL button (when live)
+- Conditional actions based on role and session status
+
+**Status**: ✅ Production-ready
+
+---
+
+### EditSessionModal
+**Path**: `client/src/components/LiveSessions/EditSessionModal.tsx`  
+**Purpose**: Modal form for editing scheduled live sessions
+
+**Services Used**:
+- `liveSessionsApi.getSession(id)` - Fetch session data (auto-loads on open)
+- `liveSessionsApi.updateSession(id, data)` - Submit updates
+- `coursesApi.getCourses()` - Lazy-load course options
+
+**Features**:
+- Auto-fetches and pre-populates all fields when opened
+- Form validation (title, description, schedule, capacity ≥1, duration ≥1)
+- DateTimePicker for scheduling
+- Autocomplete for course selection (lazy-loaded, searchable)
+- Capacity cannot be reduced below current attendee count (backend validation)
+- Materials input (JSON string)
+- Success/error toast notifications
+- Only works for scheduled sessions
+
+**Status**: ✅ Production-ready
+
+---
+
+### CreateSessionModal
+**Path**: `client/src/components/LiveSessions/CreateSessionModal.tsx`  
+**Purpose**: Modal form for creating new live sessions
+
+**Services Used**:
+- `liveSessionsApi.createSession(data)` - Create new session
+- `coursesApi.getCourses()` - Lazy-load course options (50 initial, +12 on scroll, search up to 100)
+
+**Features**:
+- Form validation (all required fields)
+- DateTimePicker for scheduling (must be future date)
+- Autocomplete for course selection (lazy-loaded with infinite scroll)
+- IIFE pattern ensures selected course always in options list
+- Default capacity: 50, default duration: 60 minutes
+- Materials input (optional JSON string)
+- Success/error toast notifications
+- Sends notifications to all enrolled students (respects preferences)
+
+**Status**: ✅ Production-ready
+
+---
+
+### useLiveSessionSocket Hook
+**Path**: `client/src/hooks/useLiveSessionSocket.ts`  
+**Purpose**: React hook for Socket.IO event handling
+
+**Socket Events Supported**:
+- `session-created` → `onSessionCreated(data)`
+- `session-started` → `onSessionStarted(data)`
+- `session-ended` → `onSessionEnded(data)`
+- `session-cancelled` → `onSessionCancelled(data)`
+- `session-updated` → `onSessionUpdated(data)`
+- `session-deleted` → `onSessionDeleted(data)`
+- `attendee-joined` → `onAttendeeJoined(data)`
+- `attendee-left` → `onAttendeeLeft(data)`
+
+**Usage**:
+```typescript
+useLiveSessionSocket({
+  onSessionStarted: (data) => {
+    // Update UI for started session
+  },
+  onAttendeeJoined: (data) => {
+    // Show toast: `${data.userName} joined`
+  }
+});
+```
+
+**Status**: ✅ Production-ready
+
+---
+
 ## 🎯 PAGES (Entry Point Components)
 
 ### Authentication Pages

@@ -127,6 +127,26 @@ export const StudentSessionsList: React.FC<StudentSessionsListProps> = ({
       );
       toast.warning(`Session cancelled: ${data.title}`);
     },
+    onSessionUpdated: (data) => {
+      // Update session details in the list
+      setSessions((prev) =>
+        prev.map((s) =>
+          s.Id === data.sessionId
+            ? { 
+                ...s, 
+                Title: data.updates.title ?? s.Title,
+                Description: data.updates.description ?? s.Description,
+                ScheduledAt: data.updates.scheduledAt ?? s.ScheduledAt,
+                Duration: data.updates.duration ?? s.Duration,
+                Capacity: data.updates.capacity ?? s.Capacity,
+                StreamUrl: data.updates.streamUrl ?? s.StreamUrl,
+                Materials: data.updates.materials ?? s.Materials
+              }
+            : s
+        )
+      );
+      toast.info('A session has been updated');
+    },
     onSessionStarted: (data) => {
       // Update session status to in-progress
       setSessions((prev) =>
@@ -139,15 +159,20 @@ export const StudentSessionsList: React.FC<StudentSessionsListProps> = ({
       toast.info('A session has started!');
     },
     onSessionEnded: (data) => {
-      // Update session status to ended
+      // Update session status to ended and reset attendee count
       setSessions((prev) =>
         prev.map((s) =>
           s.Id === data.sessionId
-            ? { ...s, Status: SessionStatus.Ended, EndedAt: data.endedAt }
+            ? { ...s, Status: SessionStatus.Ended, EndedAt: data.endedAt, AttendeeCount: 0 }
             : s
         )
       );
       toast.info(`Session ended: ${data.title || 'Live session has ended'}`);
+    },
+    onSessionDeleted: (data) => {
+      // Remove session from list
+      setSessions((prev) => prev.filter((s) => s.Id !== data.sessionId));
+      toast.info(`Session deleted: ${data.title || 'A session has been deleted'}`);
     },
     onAttendeeJoined: (data) => {
       // Update attendee count

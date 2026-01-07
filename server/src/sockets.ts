@@ -46,6 +46,38 @@ export const setupSocketHandlers = (io: Server) => {
       PresenceService.setUserOnline(socket.userId).catch(err => {
         console.error('Error setting user online:', err);
       });
+
+      // Join user to all their enrolled course rooms
+      db.query<{ CourseId: string }>(
+        `SELECT DISTINCT CourseId FROM Enrollments WHERE UserId = @userId AND Status IN ('active', 'completed')`,
+        { userId: socket.userId }
+      ).then(enrollments => {
+        enrollments.forEach(e => {
+          if (e.CourseId) {
+            socket.join(`course-${e.CourseId}`);
+          }
+        });
+        console.log(`User ${socket.userId} joined ${enrollments.length} course rooms`);
+      }).catch(err => {
+        console.error('Error joining course rooms:', err);
+      });
+
+      // Join instructor to all their course rooms
+      db.query<{ Id: string }>(
+        `SELECT DISTINCT Id FROM Courses WHERE InstructorId = @instructorId`,
+        { instructorId: socket.userId }
+      ).then(courses => {
+        courses.forEach(c => {
+          if (c.Id) {
+            socket.join(`course-${c.Id}`);
+          }
+        });
+        if (courses.length > 0) {
+          console.log(`Instructor ${socket.userId} joined ${courses.length} course rooms`);
+        }
+      }).catch(err => {
+        console.error('Error joining instructor course rooms:', err);
+      });
     }
 
     socket.on('disconnect', async () => {

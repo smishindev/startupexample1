@@ -34,6 +34,26 @@ interface SessionCancelledData {
   title: string;
 }
 
+interface SessionDeletedData {
+  sessionId: string;
+  courseId: string;
+  title: string;
+}
+
+interface SessionUpdatedData {
+  sessionId: string;
+  courseId: string;
+  updates: {
+    title?: string;
+    description?: string;
+    scheduledAt?: string;
+    duration?: number;
+    capacity?: number;
+    streamUrl?: string;
+    materials?: string;
+  };
+}
+
 interface AttendeeJoinedData {
   sessionId: string;
   userId: string;
@@ -53,6 +73,8 @@ interface LiveSessionSocketCallbacks {
   onSessionEnded?: (data: SessionEndedData) => void;
   onSessionCreated?: (data: SessionCreatedData) => void;
   onSessionCancelled?: (data: SessionCancelledData) => void;
+  onSessionDeleted?: (data: SessionDeletedData) => void;
+  onSessionUpdated?: (data: SessionUpdatedData) => void;
   onAttendeeJoined?: (data: AttendeeJoinedData) => void;
   onAttendeeLeft?: (data: AttendeeLeftData) => void;
 }
@@ -85,6 +107,16 @@ export const useLiveSessionSocket = (callbacks: LiveSessionSocketCallbacks) => {
       socket.on('session-cancelled', callbacks.onSessionCancelled);
     }
 
+    // Session deleted event
+    if (callbacks.onSessionDeleted) {
+      socket.on('session-deleted', callbacks.onSessionDeleted);
+    }
+
+    // Session updated event
+    if (callbacks.onSessionUpdated) {
+      socket.on('session-updated', callbacks.onSessionUpdated);
+    }
+
     // Attendee joined event
     if (callbacks.onAttendeeJoined) {
       socket.on('attendee-joined', callbacks.onAttendeeJoined);
@@ -108,6 +140,12 @@ export const useLiveSessionSocket = (callbacks: LiveSessionSocketCallbacks) => {
       }
       if (callbacks.onSessionCancelled) {
         socket.off('session-cancelled', callbacks.onSessionCancelled);
+      }
+      if (callbacks.onSessionDeleted) {
+        socket.off('session-deleted', callbacks.onSessionDeleted);
+      }
+      if (callbacks.onSessionUpdated) {
+        socket.off('session-updated', callbacks.onSessionUpdated);
       }
       if (callbacks.onAttendeeJoined) {
         socket.off('attendee-joined', callbacks.onAttendeeJoined);

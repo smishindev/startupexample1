@@ -75,6 +75,64 @@ export const InstructorSessionsList: React.FC<InstructorSessionsListProps> = ({
 
   // Setup Socket.IO listeners for real-time updates
   useLiveSessionSocket({
+    onSessionCreated: (data) => {
+      // Refresh sessions to include the newly created session
+      fetchSessions();
+      toast.success(`Session created: ${data.title}`);
+    },
+    onSessionStarted: (data) => {
+      // Update session status to live
+      setSessions((prev) =>
+        prev.map((s) =>
+          s.Id === data.sessionId
+            ? { ...s, Status: SessionStatus.InProgress, StartedAt: data.startedAt }
+            : s
+        )
+      );
+      toast.success('Session started!');
+    },
+    onSessionEnded: (data) => {
+      // Update session status to ended and reset attendee count
+      setSessions((prev) =>
+        prev.map((s) =>
+          s.Id === data.sessionId
+            ? { ...s, Status: SessionStatus.Ended, EndedAt: data.endedAt, AttendeeCount: 0 }
+            : s
+        )
+      );
+      toast.info('Session ended');
+    },
+    onSessionCancelled: (data) => {
+      // Update session status to cancelled
+      setSessions((prev) =>
+        prev.map((s) =>
+          s.Id === data.sessionId
+            ? { ...s, Status: SessionStatus.Cancelled }
+            : s
+        )
+      );
+      toast.warning(`Session cancelled: ${data.title}`);
+    },
+    onSessionUpdated: (data) => {
+      // Update session details
+      setSessions((prev) =>
+        prev.map((s) =>
+          s.Id === data.sessionId
+            ? { 
+                ...s, 
+                Title: data.updates.title ?? s.Title,
+                Description: data.updates.description ?? s.Description,
+                ScheduledAt: data.updates.scheduledAt ?? s.ScheduledAt,
+                Duration: data.updates.duration ?? s.Duration,
+                Capacity: data.updates.capacity ?? s.Capacity,
+                StreamUrl: data.updates.streamUrl ?? s.StreamUrl,
+                Materials: data.updates.materials ?? s.Materials
+              }
+            : s
+        )
+      );
+      toast.info('Session updated');
+    },
     onAttendeeJoined: (data) => {
       // Update attendee count for the session
       setSessions((prev) =>
@@ -95,6 +153,13 @@ export const InstructorSessionsList: React.FC<InstructorSessionsListProps> = ({
             : s
         )
       );
+      if (data.userName) {
+        toast.info(`${data.userName} left your session`);
+      }
+    },
+    onSessionDeleted: (data) => {
+      // Remove session from list (in case instructor deletes from another device/tab)
+      setSessions((prev) => prev.filter((s) => s.Id !== data.sessionId));
     },
   });
 

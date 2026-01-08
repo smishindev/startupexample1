@@ -120,6 +120,7 @@ export const CourseCreationForm: React.FC = () => {
   const [newLearningPoint, setNewLearningPoint] = useState('');
   const [lessonDialogOpen, setLessonDialogOpen] = useState(false);
   const [currentLesson, setCurrentLesson] = useState<Partial<Lesson>>({});
+  const [lessonErrors, setLessonErrors] = useState<{title?: string; description?: string; video?: string}>({});
   const [thumbnailPreview, setThumbnailPreview] = useState<string>('');
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
@@ -224,6 +225,9 @@ export const CourseCreationForm: React.FC = () => {
       ...prev, 
       pendingVideoFile: file || undefined
     }));
+    if (file && lessonErrors.video) {
+      setLessonErrors(prev => ({...prev, video: undefined}));
+    }
   };
 
   const handleVideoFileDeleted = () => {
@@ -257,28 +261,61 @@ export const CourseCreationForm: React.FC = () => {
     }));
   };
 
+  const closeLessonDialog = () => {
+    setLessonDialogOpen(false);
+    setCurrentLesson({});
+    setLessonErrors({});
+  };
+
   const saveLesson = () => {
-    if (currentLesson.title && currentLesson.description) {
-      const lesson: Lesson = {
-        id: Date.now().toString(),
-        title: currentLesson.title!,
-        description: currentLesson.description!,
-        type: currentLesson.type || 'video',
-        content: currentLesson.content,
-        videoUrl: currentLesson.videoUrl,
-        videoFile: currentLesson.videoFile,
-        transcriptFile: currentLesson.transcriptFile,
-        thumbnailUrl: currentLesson.thumbnailUrl,
-        useFileUpload: currentLesson.useFileUpload,
-        duration: currentLesson.duration,
-        order: currentLesson.order || lessons.length + 1,
-        pendingVideoFile: currentLesson.pendingVideoFile,
-        pendingTranscriptFile: currentLesson.pendingTranscriptFile
-      };
-      setLessons([...lessons, lesson]);
-      setLessonDialogOpen(false);
-      setCurrentLesson({});
+    // Validate required fields
+    const errors: {title?: string; description?: string; video?: string} = {};
+    
+    if (!currentLesson.title?.trim()) {
+      errors.title = 'Title is required';
     }
+    
+    if (!currentLesson.description?.trim()) {
+      errors.description = 'Description is required';
+    }
+    
+    // Validate video lessons have either a file or URL
+    if (currentLesson.type === 'video') {
+      const hasVideoFile = currentLesson.videoFile || currentLesson.pendingVideoFile;
+      const hasVideoUrl = currentLesson.videoUrl?.trim();
+      
+      if (!hasVideoFile && !hasVideoUrl) {
+        errors.video = 'Please upload a video file or provide a video URL';
+      }
+    }
+    
+    // Show errors if validation failed
+    if (Object.keys(errors).length > 0) {
+      setLessonErrors(errors);
+      return;
+    }
+    
+    // Clear errors and save lesson
+    setLessonErrors({});
+    const lesson: Lesson = {
+      id: Date.now().toString(),
+      title: currentLesson.title!,
+      description: currentLesson.description!,
+      type: currentLesson.type || 'video',
+      content: currentLesson.content,
+      videoUrl: currentLesson.videoUrl,
+      videoFile: currentLesson.videoFile,
+      transcriptFile: currentLesson.transcriptFile,
+      thumbnailUrl: currentLesson.thumbnailUrl,
+      useFileUpload: currentLesson.useFileUpload,
+      duration: currentLesson.duration,
+      order: currentLesson.order || lessons.length + 1,
+      pendingVideoFile: currentLesson.pendingVideoFile,
+      pendingTranscriptFile: currentLesson.pendingTranscriptFile
+    };
+    setLessons([...lessons, lesson]);
+    setLessonDialogOpen(false);
+    setCurrentLesson({});
   };
 
   const removeLesson = (lessonId: string) => {
@@ -1241,7 +1278,7 @@ export const CourseCreationForm: React.FC = () => {
       {/* Add Lesson Dialog */}
       <Dialog
         open={lessonDialogOpen}
-        onClose={() => setLessonDialogOpen(false)}
+        onClose={closeLessonDialog}
         maxWidth="md"
         fullWidth
         disableEnforceFocus
@@ -1254,7 +1291,12 @@ export const CourseCreationForm: React.FC = () => {
                 fullWidth
                 label="Lesson Title"
                 value={currentLesson.title || ''}
-                onChange={(e) => setCurrentLesson({...currentLesson, title: e.target.value})}
+                onChange={(e) => {
+                  setCurrentLesson({...currentLesson, title: e.target.value});
+                  if (lessonErrors.title) setLessonErrors(prev => ({...prev, title: undefined}));
+                }}
+                error={!!lessonErrors.title}
+                helperText={lessonErrors.title}
               />
             </Grid>
             <Grid item xs={12}>
@@ -1264,7 +1306,12 @@ export const CourseCreationForm: React.FC = () => {
                 rows={3}
                 label="Lesson Description"
                 value={currentLesson.description || ''}
-                onChange={(e) => setCurrentLesson({...currentLesson, description: e.target.value})}
+                onChange={(e) => {
+                  setCurrentLesson({...currentLesson, description: e.target.value});
+                  if (lessonErrors.description) setLessonErrors(prev => ({...prev, description: undefined}));
+                }}
+                error={!!lessonErrors.description}
+                helperText={lessonErrors.description}
               />
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -1287,7 +1334,10 @@ export const CourseCreationForm: React.FC = () => {
                 type="number"
                 label="Duration (minutes)"
                 value={currentLesson.duration || ''}
-                onChange={(e) => setCurrentLesson({...currentLesson, duration: parseInt(e.target.value) || 0})}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setCurrentLesson({...currentLesson, duration: value === '' ? 0 : parseInt(value) || 0});
+                }}
               />
             </Grid>
             {currentLesson.type === 'video' && (
@@ -1312,6 +1362,14 @@ export const CourseCreationForm: React.FC = () => {
                 <Grid item xs={12}>
                   <Divider sx={{ my: 2 }} />
                 </Grid>
+
+                {lessonErrors.video && (
+                  <Grid item xs={12}>
+                    <Typography variant="body2" color="error" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      ⚠️ {lessonErrors.video}
+                    </Typography>
+                  </Grid>
+                )}
 
                 {currentLesson.useFileUpload ? (
                   <>
@@ -1413,7 +1471,7 @@ export const CourseCreationForm: React.FC = () => {
           </Grid>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setLessonDialogOpen(false)} data-testid="course-creation-lesson-dialog-cancel-button">Cancel</Button>
+          <Button onClick={closeLessonDialog} data-testid="course-creation-lesson-dialog-cancel-button">Cancel</Button>
           <Button onClick={saveLesson} variant="contained" data-testid="course-creation-lesson-dialog-add-button">
             Add Lesson
           </Button>

@@ -222,17 +222,22 @@ router.post('/lessons/:lessonId/complete', authenticateToken, async (req: AuthRe
 
     const now = new Date().toISOString();
 
-    // Check if lesson progress already exists
+    // Check if lesson progress already exists and if it was already completed
     const existingProgress = await db.query(`
-      SELECT Id FROM dbo.UserProgress
+      SELECT Id, Status, CompletedAt FROM dbo.UserProgress
       WHERE UserId = @userId AND LessonId = @lessonId
     `, { userId, lessonId });
+
+    const wasAlreadyCompleted = existingProgress.length > 0 && 
+                                 existingProgress[0].Status === 'completed' &&
+                                 existingProgress[0].CompletedAt !== null;
 
     if (existingProgress.length > 0) {
       // Update existing progress
       await db.execute(`
         UPDATE dbo.UserProgress
-        SET CompletedAt = @completedAt, TimeSpent = @timeSpent, 
+        SET CompletedAt = CASE WHEN CompletedAt IS NULL THEN @completedAt ELSE CompletedAt END, 
+            TimeSpent = @timeSpent, 
             ProgressPercentage = 100, NotesJson = @notes, LastAccessedAt = @updatedAt, Status = @status
         WHERE UserId = @userId AND LessonId = @lessonId
       `, { userId, lessonId, completedAt: now, timeSpent, notes, updatedAt: now, status: 'completed' });
@@ -274,59 +279,64 @@ router.post('/lessons/:lessonId/complete', authenticateToken, async (req: AuthRe
     const io = req.app.get('io');
     const notificationService = new NotificationService(io);
 
-    // Notify student of lesson completion
-    try {
-      await notificationService.createNotificationWithControls(
-        {
-          userId: userId!,
-          type: 'progress',
-          priority: 'normal',
-          title: 'Lesson Completed!',
-          message: `Great work! You completed "${lesson[0].Title}" in ${courseTitle}. Course progress: ${Math.floor(courseProgress)}%`,
-          actionUrl: `/courses/${courseId}`,
-          actionText: 'Continue Learning'
-        },
-        {
-          category: 'progress',
-          subcategory: 'LessonCompletion'
-        }
-      );
-      console.log(`✅ Lesson completion notification sent to user ${userId}`);
-    } catch (notifError) {
-      console.error('⚠️ Failed to send lesson completion notification:', notifError);
-    }
-
-    // Notify instructor at milestones (25%, 50%, 75%, 100%)
-    const milestone = Math.floor(courseProgress);
-    if (instructorId && [25, 50, 75, 100].includes(milestone)) {
+    // Only send notifications if this is the first time completing the lesson
+    if (!wasAlreadyCompleted) {
+      // Notify student of lesson completion
       try {
-        const studentInfo = await db.query(`
-          SELECT FirstName, LastName FROM dbo.Users WHERE Id = @userId
-        `, { userId });
-        
-        const studentName = studentInfo[0] 
-          ? `${studentInfo[0].FirstName} ${studentInfo[0].LastName}`.trim()
-          : 'A student';
-
         await notificationService.createNotificationWithControls(
           {
-            userId: instructorId,
+            userId: userId!,
             type: 'progress',
             priority: 'normal',
-            title: 'Student Progress Milestone',
-            message: `${studentName} reached ${milestone}% completion in "${courseTitle}"`,
-            actionUrl: `/instructor/students`,
-            actionText: 'View Students'
+            title: 'Lesson Completed!',
+            message: `Great work! You completed "${lesson[0].Title}" in ${courseTitle}. Course progress: ${Math.floor(courseProgress)}%`,
+            actionUrl: `/courses/${courseId}`,
+            actionText: 'Continue Learning'
           },
           {
             category: 'progress',
-            subcategory: 'CourseMilestones'
+            subcategory: 'LessonCompletion'
           }
         );
-        console.log(`✅ Milestone notification sent to instructor ${instructorId} (${milestone}%)`);
+        console.log(`✅ Lesson completion notification sent to user ${userId}`);
       } catch (notifError) {
-        console.error('⚠️ Failed to send milestone notification:', notifError);
+        console.error('⚠️ Failed to send lesson completion notification:', notifError);
       }
+
+      // Notify instructor at milestones (25%, 50%, 75%, 100%)
+      const milestone = Math.floor(courseProgress);
+      if (instructorId && [25, 50, 75, 100].includes(milestone)) {
+        try {
+          const studentInfo = await db.query(`
+            SELECT FirstName, LastName FROM dbo.Users WHERE Id = @userId
+          `, { userId });
+          
+          const studentName = studentInfo[0] 
+            ? `${studentInfo[0].FirstName} ${studentInfo[0].LastName}`.trim()
+            : 'A student';
+
+          await notificationService.createNotificationWithControls(
+            {
+              userId: instructorId,
+              type: 'progress',
+              priority: 'normal',
+              title: 'Student Progress Milestone',
+              message: `${studentName} reached ${milestone}% completion in "${courseTitle}"`,
+              actionUrl: `/instructor/students`,
+              actionText: 'View Students'
+            },
+            {
+              category: 'progress',
+              subcategory: 'CourseMilestones'
+            }
+          );
+          console.log(`✅ Milestone notification sent to instructor ${instructorId} (${milestone}%)`);
+        } catch (notifError) {
+          console.error('⚠️ Failed to send milestone notification:', notifError);
+        }
+      }
+    } else {
+      console.log(`ℹ️ Lesson already completed, skipping duplicate notifications for user ${userId}`);
     }
 
     res.json({ message: 'Lesson marked as completed', lessonId, timeSpent });

@@ -81,12 +81,34 @@ export const LessonEditor: React.FC<LessonEditorProps> = ({
 
   useEffect(() => {
     if (open && lesson) {
-      // Editing existing lesson
-      setTitle(lesson.title);
-      setDescription(lesson.description);
-      setDuration(lesson.duration || 0);
-      setIsRequired(lesson.isRequired || true);
-      setContent(lesson.content);
+      // Editing existing lesson - fetch full details including content
+      const loadLessonDetails = async () => {
+        try {
+          setLoading(true);
+          console.log('[LESSON EDITOR] Loading lesson details for ID:', lesson.id);
+          const fullLesson = await lessonApi.getLesson(lesson.id);
+          console.log('[LESSON EDITOR] Received full lesson:', fullLesson);
+          console.log('[LESSON EDITOR] Content array:', fullLesson.content);
+          console.log('[LESSON EDITOR] Content length:', fullLesson.content?.length);
+          setTitle(fullLesson.title);
+          setDescription(fullLesson.description);
+          setDuration(fullLesson.duration || 0);
+          setIsRequired(fullLesson.isRequired || true);
+          setContent(fullLesson.content || []);
+        } catch (err) {
+          console.error('Error loading lesson details:', err);
+          // Fallback to prop data if API fails
+          setTitle(lesson.title);
+          setDescription(lesson.description);
+          setDuration(lesson.duration || 0);
+          setIsRequired(lesson.isRequired || true);
+          setContent(lesson.content || []);
+          setError('Failed to load lesson content. Some data may be missing.');
+        } finally {
+          setLoading(false);
+        }
+      };
+      loadLessonDetails();
     } else if (open) {
       // Creating new lesson
       setTitle('');
@@ -96,7 +118,7 @@ export const LessonEditor: React.FC<LessonEditorProps> = ({
       setContent([]);
     }
     setActiveStep(0);
-    setError(null);
+    if (!lesson) setError(null); // Only clear error for new lessons
   }, [open, lesson]);
 
   const handleNext = () => {
@@ -250,8 +272,11 @@ export const LessonEditor: React.FC<LessonEditorProps> = ({
         fullWidth
         type="number"
         label="Duration (minutes)"
-        value={duration}
-        onChange={(e) => setDuration(parseInt(e.target.value) || 0)}
+        value={duration || ''}
+        onChange={(e) => {
+          const value = e.target.value;
+          setDuration(value === '' ? 0 : parseInt(value) || 0);
+        }}
         helperText="Estimated time to complete this lesson"
       />
     </Box>
@@ -304,9 +329,26 @@ export const LessonEditor: React.FC<LessonEditorProps> = ({
                 <Box sx={{ display: 'flex', alignItems: 'center', flexGrow: 1 }}>
                   <DragIcon sx={{ mr: 1, color: 'text.secondary' }} />
                   {contentTypeIcons[item.type]}
-                  <Typography sx={{ ml: 1, flexGrow: 1 }}>
-                    {contentTypeLabels[item.type]} #{index + 1}
-                  </Typography>
+                  <Box sx={{ ml: 1, flexGrow: 1 }}>
+                    <Typography component="span" fontWeight={500}>
+                      {contentTypeLabels[item.type]} #{index + 1}
+                    </Typography>
+                    {item.type === 'video' && item.data.fileName && (
+                      <Typography component="span" variant="body2" color="text.secondary" sx={{ ml: 1 }}>
+                        - {item.data.fileName}
+                      </Typography>
+                    )}
+                    {item.type === 'video' && !item.data.fileName && item.data.url && (
+                      <Typography component="span" variant="body2" color="text.secondary" sx={{ ml: 1 }}>
+                        - {item.data.url.length > 40 ? item.data.url.substring(0, 40) + '...' : item.data.url}
+                      </Typography>
+                    )}
+                    {item.type === 'text' && item.data.html && (
+                      <Typography component="span" variant="body2" color="text.secondary" sx={{ ml: 1 }}>
+                        - {item.data.html.substring(0, 50).replace(/<[^>]*>/g, '')}...
+                      </Typography>
+                    )}
+                  </Box>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                     <IconButton
                       size="small"
@@ -364,10 +406,12 @@ export const LessonEditor: React.FC<LessonEditorProps> = ({
                     
                     {useFileUpload[index] ? (
                       <FileUpload
+                        key={`video-upload-${index}-${item.data.fileId || 'new'}`}
                         fileType="video"
                         courseId={courseId}
                         onFileUploaded={(file) => handleFileUploaded(index, file)}
                         maxFiles={1}
+                        showLibrary={false}
                         title="Upload Video"
                         description="Upload a video file for this lesson content"
                       />

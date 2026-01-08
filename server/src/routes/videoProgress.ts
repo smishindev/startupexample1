@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import sql from 'mssql';
 import { authenticateToken } from '../middleware/auth';
 import { DatabaseService } from '../services/DatabaseService';
+import { NotificationService } from '../services/NotificationService';
 
 const router = Router();
 const db = DatabaseService.getInstance();
@@ -248,9 +249,10 @@ router.post('/:videoLessonId/complete', authenticateToken, async (req: Request, 
     const { videoLessonId } = req.params;
     const userId = (req as any).user.userId;
 
-    // Verify access and get video duration
+    // Verify access and get video details
     const videoCheck = await db.query(`
-      SELECT VL.Id, VL.Duration, VL.LessonId
+      SELECT VL.Id, VL.Duration, VL.LessonId,
+             L.Title as LessonTitle, L.CourseId, C.Title as CourseTitle
       FROM dbo.VideoLessons VL
       INNER JOIN dbo.Lessons L ON VL.LessonId = L.Id
       INNER JOIN dbo.Courses C ON L.CourseId = C.Id
@@ -268,6 +270,14 @@ router.post('/:videoLessonId/complete', authenticateToken, async (req: Request, 
     const video = videoCheck[0];
     const videoDuration = video.Duration || 0;
 
+    // Check if video was already completed (to prevent duplicate notifications)
+    const existingProgress = await db.query(`
+      SELECT IsCompleted FROM dbo.VideoProgress 
+      WHERE UserId = @userId AND VideoLessonId = @videoLessonId
+    `, { userId, videoLessonId });
+
+    const wasAlreadyCompleted = existingProgress.length > 0 && existingProgress[0].IsCompleted;
+
     // Update or create progress record marking as completed
     const request = await db.getRequest();
     request.input('userId', sql.UniqueIdentifier, userId);
@@ -284,7 +294,7 @@ router.post('/:videoLessonId/complete', authenticateToken, async (req: Request, 
         UPDATE SET 
           IsCompleted = 1,
           CompletionPercentage = 100.00,
-          CompletedAt = @completedAt,
+          CompletedAt = CASE WHEN CompletedAt IS NULL THEN @completedAt ELSE CompletedAt END,
           UpdatedAt = GETUTCDATE()
       WHEN NOT MATCHED THEN
         INSERT (Id, UserId, VideoLessonId, WatchedDuration, LastPosition, 
@@ -313,6 +323,44 @@ router.post('/:videoLessonId/complete', authenticateToken, async (req: Request, 
       VALUES 
       (@id, @videoLessonId, @userId, @sessionId, @eventType, @timestamp, @eventData, GETUTCDATE())
     `);
+
+    // Get video details for notification
+    const lessonTitle = video.LessonTitle || 'lesson';
+    const courseTitle = video.CourseTitle || 'course';
+    const courseId = video.CourseId;
+    const lessonId = video.LessonId;
+    const durationMinutes = Math.round(videoDuration / 60);
+
+    // Only send notification if this is the first time completing the video
+    if (!wasAlreadyCompleted) {
+      // Get io instance and create notification service
+      const io = req.app.get('io');
+      const notificationService = new NotificationService(io);
+
+      // Notify student of video completion
+      try {
+        await notificationService.createNotificationWithControls(
+          {
+            userId: userId!,
+            type: 'progress',
+            priority: 'low',
+            title: 'Video Completed!',
+            message: `You finished watching the video in "${lessonTitle}". Duration: ${durationMinutes} minutes`,
+            actionUrl: `/courses/${courseId}/lessons/${lessonId}`,
+            actionText: 'Continue to Next Lesson'
+          },
+          {
+            category: 'progress',
+            subcategory: 'VideoCompletion'
+          }
+        );
+        console.log(`✅ Video completion notification sent to user ${userId}`);
+      } catch (notifError) {
+        console.error('⚠️ Failed to send video completion notification:', notifError);
+      }
+    } else {
+      console.log(`ℹ️ Video already completed, skipping duplicate notification for user ${userId}`);
+    }
 
     res.json({
       success: true,

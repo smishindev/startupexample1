@@ -402,7 +402,7 @@ const StudentManagement: React.FC = () => {
                     <TableCell>
                       <Box display="flex" alignItems="center">
                         <Avatar sx={{ mr: 2 }}>
-                          {student.firstName[0]}{student.lastName[0]}
+                          {student.firstName?.[0]?.toUpperCase() || ''}{student.lastName?.[0]?.toUpperCase() || ''}
                         </Avatar>
                         <Box>
                           <Typography variant="body2" fontWeight="medium">

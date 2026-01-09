@@ -222,25 +222,34 @@ router.post('/lessons/:lessonId/complete', authenticateToken, async (req: AuthRe
 
     const now = new Date().toISOString();
 
-    // Check if lesson progress already exists and if it was already completed
+    // Check if lesson was already completed (atomically during update to prevent race conditions)
+    let wasAlreadyCompleted = false;
+
+    // Check if progress exists first
     const existingProgress = await db.query(`
-      SELECT Id, Status, CompletedAt FROM dbo.UserProgress
+      SELECT Id FROM dbo.UserProgress
       WHERE UserId = @userId AND LessonId = @lessonId
     `, { userId, lessonId });
 
-    const wasAlreadyCompleted = existingProgress.length > 0 && 
-                                 existingProgress[0].Status === 'completed' &&
-                                 existingProgress[0].CompletedAt !== null;
-
     if (existingProgress.length > 0) {
-      // Update existing progress
-      await db.execute(`
+      // Update existing progress and capture previous completion status
+      const updateResult = await db.query(`
+        DECLARE @WasCompleted BIT;
+        
         UPDATE dbo.UserProgress
-        SET CompletedAt = CASE WHEN CompletedAt IS NULL THEN @completedAt ELSE CompletedAt END, 
+        SET @WasCompleted = CASE WHEN Status = 'completed' AND CompletedAt IS NOT NULL THEN 1 ELSE 0 END,
+            CompletedAt = CASE WHEN CompletedAt IS NULL THEN @completedAt ELSE CompletedAt END, 
             TimeSpent = @timeSpent, 
-            ProgressPercentage = 100, NotesJson = @notes, LastAccessedAt = @updatedAt, Status = @status
-        WHERE UserId = @userId AND LessonId = @lessonId
+            ProgressPercentage = 100, 
+            NotesJson = @notes, 
+            LastAccessedAt = @updatedAt, 
+            Status = @status
+        WHERE UserId = @userId AND LessonId = @lessonId;
+        
+        SELECT @WasCompleted as WasCompleted;
       `, { userId, lessonId, completedAt: now, timeSpent, notes, updatedAt: now, status: 'completed' });
+      
+      wasAlreadyCompleted = updateResult.length > 0 && updateResult[0].WasCompleted === 1;
     } else {
       // Create new progress record
       await db.execute(`

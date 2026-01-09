@@ -31,7 +31,7 @@ import {
   PictureInPicture,
   Help,
 } from '@mui/icons-material';
-import { updateVideoProgress, trackVideoEvent } from '../../services/videoProgressApi';
+import { updateVideoProgress } from '../../services/videoProgressApi';
 
 interface VideoPlayerProps {
   src: string;
@@ -82,12 +82,27 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     if (!video) return;
 
     const handleLoadedMetadata = () => {
+      console.log(`[VideoPlayer] Loaded metadata - Duration: ${video.duration}s for ${title}`);
       setDuration(video.duration);
       // Seek to initial time if provided
       if (initialTime > 0 && initialTime < video.duration) {
         video.currentTime = initialTime;
         setCurrentTime(initialTime);
       }
+    };
+
+    const handleLoadStart = () => {
+      console.log(`[VideoPlayer] Load started for: ${title}, src: ${src}`);
+    };
+
+    const handleError = (e: Event) => {
+      console.error(`[VideoPlayer] Error loading video: ${title}`, e);
+      console.error(`[VideoPlayer] Video src: ${src}`);
+      console.error(`[VideoPlayer] Video error code:`, (e.target as HTMLVideoElement).error);
+    };
+
+    const handleCanPlay = () => {
+      console.log(`[VideoPlayer] Can play: ${title}`);
     };
 
     const handleTimeUpdate = () => {
@@ -115,16 +130,22 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       }
     };
 
+    video.addEventListener('loadstart', handleLoadStart);
     video.addEventListener('loadedmetadata', handleLoadedMetadata);
+    video.addEventListener('canplay', handleCanPlay);
+    video.addEventListener('error', handleError);
     video.addEventListener('timeupdate', handleTimeUpdate);
     video.addEventListener('ended', handleEnded);
 
     return () => {
+      video.removeEventListener('loadstart', handleLoadStart);
       video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      video.removeEventListener('canplay', handleCanPlay);
+      video.removeEventListener('error', handleError);
       video.removeEventListener('timeupdate', handleTimeUpdate);
       video.removeEventListener('ended', handleEnded);
     };
-  }, [onProgress, onComplete, onTimeUpdate, initialTime, videoLessonId, enableProgressTracking]);
+  }, [onProgress, onComplete, onTimeUpdate, initialTime, videoLessonId, enableProgressTracking, src, title]);
 
   // Auto-save progress every 5 seconds
   useEffect(() => {
@@ -242,16 +263,6 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const togglePlay = () => {
     setIsPlaying(!isPlaying);
     
-    // Track play/pause events
-    if (videoLessonId) {
-      const video = videoRef.current;
-      if (video) {
-        trackVideoEvent(videoLessonId, {
-          eventType: isPlaying ? 'pause' : 'play',
-          timestamp: video.currentTime,
-        }).catch(err => console.error('Failed to track event:', err));
-      }
-    }
   };
 
   const handleSeek = (_event: Event, newValue: number | number[]) => {
@@ -261,14 +272,6 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     const time = (newValue / 100) * duration;
     video.currentTime = time;
     setCurrentTime(time);
-
-    // Track seek event
-    if (videoLessonId) {
-      trackVideoEvent(videoLessonId, {
-        eventType: 'seek',
-        timestamp: time,
-      }).catch(err => console.error('Failed to track seek:', err));
-    }
   };
 
   const handleVolumeChange = (_event: Event, newValue: number | number[]) => {
@@ -568,15 +571,6 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
             onClick={() => {
               setPlaybackRate(rate);
               handleSettingsClose();
-              
-              // Track speed change
-              if (videoLessonId && videoRef.current) {
-                trackVideoEvent(videoLessonId, {
-                  eventType: 'speed_change',
-                  timestamp: videoRef.current.currentTime,
-                  data: { speed: rate },
-                }).catch(err => console.error('Failed to track speed change:', err));
-              }
             }}
           >
             {rate}x

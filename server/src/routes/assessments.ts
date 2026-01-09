@@ -464,10 +464,6 @@ router.get('/:assessmentId', authenticateToken, async (req: AuthRequest, res: Re
         ORDER BY AttemptNumber DESC
       `, { userId, assessmentId });
       
-      // Debug: Log the TimeSpent values from database
-      console.log(`[DEBUG] Assessment ${assessmentId} - Raw TimeSpent values from DB:`, 
-        rawSubmissions.map(s => ({ id: s.Id, timeSpent: s.TimeSpent, attempt: s.AttemptNumber })));
-      
       // Transform to match frontend interface
       userSubmissions = rawSubmissions.map((submission: any) => ({
         id: submission.Id,
@@ -499,19 +495,6 @@ router.get('/:assessmentId', authenticateToken, async (req: AuthRequest, res: Re
       questions: parsedQuestions,
       userSubmissions: userSubmissions
     };
-
-    // Debug: Log final response data for this specific assessment
-    if (assessmentId === '372896DE-CA53-40FA-BDB4-7A486BCA1706') {
-      console.log(`[DEBUG] Assessment ${assessmentId} - Final Response:`, {
-        maxAttempts: responseData.maxAttempts,
-        userSubmissions: responseData.userSubmissions.map(s => ({
-          id: s.id,
-          timeSpent: s.timeSpent,
-          attemptNumber: s.attemptNumber,
-          status: s.status
-        }))
-      });
-    }
 
     res.json(responseData);
   } catch (error) {
@@ -841,15 +824,6 @@ router.post('/submissions/:submissionId/submit', authenticateToken, checkRole(['
     const now = Date.now();
     const startedAt = new Date(submission[0].StartedAt).getTime();
     const timeSpent = Math.floor((now - startedAt) / 1000);
-    
-    // Debug: Log time calculation details
-    console.log(`[DEBUG Time Calculation] Submission ${submissionId}:`, {
-      now: new Date(now).toISOString(),
-      startedAt: submission[0].StartedAt,
-      startedAtParsed: new Date(startedAt).toISOString(),
-      differenceMs: now - startedAt,
-      timeSpentSeconds: timeSpent
-    });
 
     // Get questions with correct answers
     const questions = await db.query(`

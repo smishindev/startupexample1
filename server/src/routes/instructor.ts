@@ -286,6 +286,12 @@ router.post('/courses', authenticateToken, authorize(['instructor', 'admin']), a
             }];
           }
 
+          // Add content IDs (format: {lessonId}-{type}-{index})
+          const contentWithIds = lessonContent.map((item: any, index: number) => ({
+            ...item,
+            id: `${lessonId}-${item.type}-${index}`
+          }));
+
           // Create the lesson
           await db.execute(`
             INSERT INTO dbo.Lessons 
@@ -296,7 +302,7 @@ router.post('/courses', authenticateToken, authorize(['instructor', 'admin']), a
             courseId,
             title: lesson.title,
             description: lesson.description,
-            contentJson: JSON.stringify(lessonContent),
+            contentJson: JSON.stringify(contentWithIds),
             orderIndex: lesson.order || 1,
             duration: lesson.duration || 0,
             isRequired: true,
@@ -304,39 +310,6 @@ router.post('/courses', authenticateToken, authorize(['instructor', 'admin']), a
             createdAt: now,
             updatedAt: now
           });
-
-          // Create VideoLesson record if this is a video lesson
-          if (lesson.type === 'video' && lessonContent.length > 0 && lessonContent[0].type === 'video') {
-            const videoData = lessonContent[0].data;
-            const videoLessonId = uuidv4();
-            
-            await db.execute(`
-              INSERT INTO dbo.VideoLessons 
-              (Id, LessonId, VideoURL, Duration, Thumbnail, TranscriptURL, TranscriptText, 
-               VideoMetadata, ProcessingStatus, FileSize, UploadedBy, CreatedAt, UpdatedAt)
-              VALUES 
-              (@id, @lessonId, @videoURL, @duration, @thumbnail, @transcriptURL, @transcriptText,
-               @videoMetadata, @processingStatus, @fileSize, @uploadedBy, @createdAt, @updatedAt)
-            `, {
-              id: videoLessonId,
-              lessonId: lessonId,
-              videoURL: videoData.url,
-              duration: lesson.duration || 0,
-              thumbnail: null,
-              transcriptURL: null,
-              transcriptText: null,
-              videoMetadata: videoData.fileId ? JSON.stringify({
-                fileId: videoData.fileId,
-                originalName: videoData.originalName,
-                mimeType: videoData.mimeType
-              }) : null,
-              processingStatus: 'ready',
-              fileSize: null,
-              uploadedBy: userId,
-              createdAt: now,
-              updatedAt: now
-            });
-          }
         }
       }
 

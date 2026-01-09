@@ -1,32 +1,9 @@
+/**
+ * VTT Transcript Parser Utility
+ * Extracts transcript segments from VTT (WebVTT) subtitle files
+ */
+
 import axios from 'axios';
-
-const API_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3001';
-
-// Helper function to get auth token from Zustand store
-const getAuthToken = (): string | null => {
-  const authStorage = localStorage.getItem('auth-storage');
-  if (authStorage) {
-    try {
-      const parsedAuth = JSON.parse(authStorage);
-      return parsedAuth?.state?.token || null;
-    } catch (error) {
-      console.warn('Failed to parse auth storage:', error);
-      return null;
-    }
-  }
-  return null;
-};
-
-export interface VideoLesson {
-  id: string;
-  lessonId: string;
-  videoUrl: string;
-  duration: number;
-  transcriptUrl?: string;
-  thumbnailUrl?: string;
-  createdAt: string;
-  updatedAt: string;
-}
 
 export interface TranscriptSegment {
   startTime: number;
@@ -35,46 +12,9 @@ export interface TranscriptSegment {
 }
 
 /**
- * Get video lesson details by lesson ID
- */
-export const getVideoLessonByLessonId = async (lessonId: string): Promise<VideoLesson | null> => {
-  try {
-    const token = getAuthToken();
-    const response = await axios.get(
-      `${API_URL}/api/video-lessons/lesson/${lessonId}`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
-    return response.data.videoLesson;
-  } catch (error: any) {
-    if (error.response?.status === 404) {
-      return null; // No video lesson for this lesson
-    }
-    throw error;
-  }
-};
-
-/**
- * Get video lesson by video lesson ID
- */
-export const getVideoLesson = async (videoLessonId: string): Promise<VideoLesson> => {
-  const token = getAuthToken();
-  const response = await axios.get(
-    `${API_URL}/api/video-lessons/${videoLessonId}`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
-  );
-  return response.data.videoLesson;
-};
-
-/**
- * Parse VTT transcript file
+ * Parse VTT transcript file from URL
+ * @param transcriptUrl - URL to the VTT transcript file
+ * @returns Array of transcript segments with timestamps and text
  */
 export const parseVTTTranscript = async (transcriptUrl: string): Promise<TranscriptSegment[]> => {
   try {
@@ -117,7 +57,10 @@ export const parseVTTTranscript = async (transcriptUrl: string): Promise<Transcr
 };
 
 /**
- * Parse VTT timestamp to seconds
+ * Parse VTT timestamp string to seconds
+ * Supports both HH:MM:SS.mmm and MM:SS.mmm formats
+ * @param timestamp - VTT timestamp string
+ * @returns Time in seconds
  */
 const parseVTTTimestamp = (timestamp: string): number => {
   const parts = timestamp.split(':');

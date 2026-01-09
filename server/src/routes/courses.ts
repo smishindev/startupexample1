@@ -137,7 +137,12 @@ router.get('/:id', async (req: any, res: any) => {
         u.FirstName as InstructorFirstName,
         u.LastName as InstructorLastName,
         u.Avatar as InstructorAvatar,
-        u.Email as InstructorEmail
+        u.Email as InstructorEmail,
+        (SELECT COUNT(*) FROM Enrollments e WHERE e.CourseId = c.Id AND e.Status = 'active') as ActiveEnrollmentCount,
+        (SELECT COUNT(DISTINCT e2.UserId) 
+         FROM Enrollments e2 
+         INNER JOIN Courses c2 ON e2.CourseId = c2.Id 
+         WHERE c2.InstructorId = c.InstructorId AND e2.Status = 'active') as InstructorStudentCount
       FROM Courses c
       INNER JOIN Users u ON c.InstructorId = u.Id
       WHERE c.Id = @id AND c.IsPublished = 1
@@ -150,6 +155,11 @@ router.get('/:id', async (req: any, res: any) => {
     }
 
     const course = result[0];
+    
+    console.log('Course enrollment data:', {
+      ActiveEnrollmentCount: course.ActiveEnrollmentCount,
+      InstructorStudentCount: course.InstructorStudentCount
+    });
 
     // Get lessons for this course
     const lessonsQuery = `
@@ -164,6 +174,7 @@ router.get('/:id', async (req: any, res: any) => {
     // Format response
     const courseData = {
       ...course,
+      EnrollmentCount: course.ActiveEnrollmentCount || 0, // Use computed count
       Prerequisites: course.Prerequisites ? JSON.parse(course.Prerequisites) : [],
       LearningOutcomes: course.LearningOutcomes ? JSON.parse(course.LearningOutcomes) : [],
       Tags: course.Tags ? JSON.parse(course.Tags) : [],
@@ -177,7 +188,8 @@ router.get('/:id', async (req: any, res: any) => {
       Lessons: lessons
     };
 
-    // Remove instructor fields from main course object
+    // Remove temporary and instructor fields from main course object
+    delete courseData.ActiveEnrollmentCount;
     delete courseData.InstructorFirstName;
     delete courseData.InstructorLastName;
     delete courseData.InstructorAvatar;
@@ -197,8 +209,6 @@ router.get('/:id/enrollment', authenticateToken, async (req: any, res: any) => {
     const { id } = req.params;
     const userId = req.user.userId; // Changed from req.user.id to req.user.userId
 
-    console.log(`[ENROLLMENT DEBUG] Checking enrollment for userId: ${userId}, courseId: ${id}`);
-
     const query = `
       SELECT Id, Status, EnrolledAt, CompletedAt
       FROM Enrollments
@@ -207,10 +217,7 @@ router.get('/:id/enrollment', authenticateToken, async (req: any, res: any) => {
 
     const result = await db.query(query, { userId, courseId: id });
 
-    console.log(`[ENROLLMENT DEBUG] Query result:`, result);
-
     if (result.length === 0) {
-      console.log(`[ENROLLMENT DEBUG] No enrollment found, returning isEnrolled: false`);
       return res.json({ isEnrolled: false });
     }
 
@@ -222,7 +229,6 @@ router.get('/:id/enrollment', authenticateToken, async (req: any, res: any) => {
       completedAt: enrollment.CompletedAt
     };
     
-    console.log(`[ENROLLMENT DEBUG] Enrollment found, returning:`, response);
     res.json(response);
 
   } catch (error) {

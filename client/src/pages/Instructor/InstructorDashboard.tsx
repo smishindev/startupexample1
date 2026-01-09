@@ -364,7 +364,7 @@ export const InstructorDashboard: React.FC = () => {
             variant="outlined" 
             startIcon={<VideoLibraryIcon />}
             onClick={() => navigate('/instructor/video-analytics')}
-            color="secondary"
+            color="primary"
             data-testid="instructor-video-analytics-button"
           >
             Video Analytics

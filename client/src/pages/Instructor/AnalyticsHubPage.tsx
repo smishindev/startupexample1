@@ -84,6 +84,17 @@ export const AnalyticsHubPage: React.FC = () => {
       isNew: true
     },
     {
+      title: 'Video Analytics',
+      description: 'Track video engagement, completion rates, and watch time across all video content in your courses.',
+      icon: <VideoLibraryIcon sx={{ fontSize: 40 }} />,
+      path: '/instructor/video-analytics',
+      color: '#e91e63',
+      stats: {
+        primary: '📹',
+        secondary: 'Content Analytics'
+      }
+    },
+    {
       title: 'Student Analytics & AI',
       description: 'AI-powered student progress insights, risk assessment, and personalized intervention recommendations.',
       icon: <StudentsIcon sx={{ fontSize: 40 }} />,
@@ -94,17 +105,6 @@ export const AnalyticsHubPage: React.FC = () => {
         secondary: 'AI Insights'
       },
       isNew: true
-    },
-    {
-      title: 'Video Analytics',
-      description: 'Track video engagement, completion rates, and viewer behavior across all your video lessons.',
-      icon: <VideoLibraryIcon sx={{ fontSize: 40 }} />,
-      path: '/instructor/video-analytics',
-      color: '#9c27b0',
-      stats: {
-        primary: '📹',
-        secondary: 'Video Insights'
-      }
     },
     {
       title: 'Intervention Dashboard',

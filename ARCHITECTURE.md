@@ -156,7 +156,7 @@ POST   /api/payments/test-complete               - DEV ONLY: Complete test payme
   - CourseCheckoutPage tracks courseId in useRef (not boolean) to prevent Strict Mode double-execution
   - CoursesPage maintains Set of enrolling courseIds with loading states
 - **Result**: Mathematically impossible to create duplicate pending transactions
-- **Files**: `database/fix_duplicate_transactions.sql`, `server/src/services/StripeService.ts`, `DUPLICATE_FIX_FINAL.md`
+- **Files**: Database IX_Transactions_Unique_Pending index (applied), `server/src/services/StripeService.ts`, `DUPLICATE_FIX_FINAL.md`
 
 **Error Handling & Reliability (Phase 5 - Dec 15, 2025):**
 - Idempotency keys: Prevent duplicate charges (checks last 30 min)

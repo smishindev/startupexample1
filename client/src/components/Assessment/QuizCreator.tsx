@@ -35,8 +35,6 @@ import {
 } from '@mui/icons-material';
 import { useParams, useNavigate } from 'react-router-dom';
 import { assessmentApi, Assessment, Question, CreateAssessmentRequest } from '../../services/assessmentApi';
-// import QuestionEditor from './QuestionEditor';
-// import AssessmentPreview from './AssessmentPreview';
 
 interface QuizCreatorProps {
   lessonId?: string;

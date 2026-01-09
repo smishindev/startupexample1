@@ -281,7 +281,7 @@ const ProfilePage: React.FC = () => {
                     alt={`${profile.firstName} ${profile.lastName}`}
                     sx={{ width: 80, height: 80, bgcolor: 'primary.dark' }}
                   >
-                    {profile.firstName[0]}{profile.lastName[0]}
+                    {profile.firstName?.[0]?.toUpperCase() || ''}{profile.lastName?.[0]?.toUpperCase() || ''}
                   </Avatar>
                   <IconButton
                     onClick={handleAvatarClick}

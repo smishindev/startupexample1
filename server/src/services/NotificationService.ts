@@ -814,7 +814,49 @@ export class NotificationService {
         `);
 
       return result.recordset[0];
-    } catch (error) {
+    } catch (error: any) {
+      // Handle race condition: if preferences were created by another concurrent request
+      if (error.number === 2627) { // Unique constraint violation
+        console.log(`⚠️ Preferences already exist for user ${userId} (race condition), fetching existing preferences`);
+        // Fetch existing preferences
+        const request = await this.dbService.getRequest();
+        const result = await request
+          .input('UserId', sql.UniqueIdentifier, userId)
+          .query(`
+            SELECT 
+              UserId, EnableInAppNotifications, EnableProgressUpdates, EnableSystemAlerts,
+              EnableCommunityUpdates, EnableCourseUpdates,
+              EnableAssessmentUpdates, EnableEmailNotifications,
+              EmailDigestFrequency, QuietHoursStart, QuietHoursEnd,
+              EnableLessonCompletion, EmailLessonCompletion,
+              EnableVideoCompletion, EmailVideoCompletion,
+              EnableCourseMilestones, EmailCourseMilestones,
+              EnableProgressSummary, EmailProgressSummary,
+              EnableCourseEnrollment, EmailCourseEnrollment,
+              EnableNewLessons, EmailNewLessons,
+              EnableLiveSessions, EmailLiveSessions,
+              EnableCoursePublished, EmailCoursePublished,
+              EnableInstructorAnnouncements, EmailInstructorAnnouncements,
+              EnableAssessmentSubmitted, EmailAssessmentSubmitted,
+              EnableAssessmentGraded, EmailAssessmentGraded,
+              EnableNewAssessment, EmailNewAssessment,
+              EnableAssessmentDue, EmailAssessmentDue,
+              EnableSubmissionToGrade, EmailSubmissionToGrade,
+              EnableComments, EmailComments,
+              EnableReplies, EmailReplies,
+              EnableMentions, EmailMentions,
+              EnableGroupInvites, EmailGroupInvites,
+              EnableOfficeHours, EmailOfficeHours,
+              EnablePaymentConfirmation, EmailPaymentConfirmation,
+              EnableRefundConfirmation, EmailRefundConfirmation,
+              EnableCertificates, EmailCertificates,
+              EnableSecurityAlerts, EmailSecurityAlerts,
+              EnableProfileUpdates, EmailProfileUpdates
+            FROM NotificationPreferences
+            WHERE UserId = @UserId
+          `);
+        return result.recordset[0];
+      }
       console.error('❌ Error creating default preferences:', error);
       throw error;
     }

@@ -460,7 +460,6 @@ The following files use `GETDATE()` instead of `GETUTCDATE()`. These are **NOT p
 - `server/src/scripts/create-video-lesson.ts`
 - `server/src/scripts/create-sample-data.ts`
 - `server/src/scripts/create-instructor-test-data.ts`
-- `database/sample_progress_data.sql`
 
 **Analytics/Progress Tracking** (minor timezone impact):
 - `server/src/routes/student-progress.ts` - Lines 53, 71, 353

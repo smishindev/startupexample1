@@ -284,7 +284,7 @@ export const InterventionDashboard: React.FC = () => {
                     <CardContent>
                       <Stack direction="row" spacing={2} sx={{ mb: 2 }}>
                         <Avatar sx={{ bgcolor: 'primary.main' }}>
-                          {student.FirstName[0]}{student.LastName[0]}
+                          {student.FirstName?.[0]?.toUpperCase() || ''}{student.LastName?.[0]?.toUpperCase() || ''}
                         </Avatar>
                         <Box>
                           <Typography variant="h6">
@@ -383,7 +383,7 @@ export const InterventionDashboard: React.FC = () => {
                     <ListItem>
                       <ListItemAvatar>
                         <Avatar sx={{ bgcolor: 'warning.main' }}>
-                          {student.FirstName[0]}{student.LastName[0]}
+                          {student.FirstName?.[0]?.toUpperCase() || ''}{student.LastName?.[0]?.toUpperCase() || ''}
                         </Avatar>
                       </ListItemAvatar>
                       <ListItemText
@@ -465,7 +465,7 @@ export const InterventionDashboard: React.FC = () => {
                     <ListItem>
                       <ListItemAvatar>
                         <Avatar sx={{ bgcolor: 'secondary.main' }}>
-                          {assessment.FirstName[0]}{assessment.LastName[0]}
+                          {assessment.FirstName?.[0]?.toUpperCase() || ''}{assessment.LastName?.[0]?.toUpperCase() || ''}
                         </Avatar>
                       </ListItemAvatar>
                       <ListItemText

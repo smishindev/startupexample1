@@ -1,7 +1,18 @@
 import { useEffect } from 'react';
-import { Routes, Route, Navigate, BrowserRouter } from 'react-router-dom';
+import { Routes, Route, Navigate, BrowserRouter, useLocation } from 'react-router-dom';
 import { Box } from '@mui/material';
 import { Toaster } from 'sonner';
+
+// Scroll to top on route change
+function ScrollToTop() {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+
+  return null;
+}
 
 // Auth Components
 import { LoginForm } from './components/Auth/LoginForm';
@@ -32,9 +43,9 @@ import StudentManagement from './pages/Instructor/StudentManagement';
 import CourseAnalyticsDashboard from './pages/Instructor/CourseAnalyticsDashboard';
 import { EnhancedAssessmentAnalyticsPage } from './pages/Instructor/EnhancedAssessmentAnalyticsPage';
 import { AnalyticsHubPage } from './pages/Instructor/AnalyticsHubPage';
+import { VideoAnalyticsPage } from './pages/Instructor/VideoAnalyticsPage';
 import { InterventionDashboard } from './pages/Instructor/InterventionDashboard';
 import { InstructorStudentAnalytics } from './pages/Instructor/InstructorStudentAnalytics';
-import { VideoAnalyticsPage } from './pages/Instructor/VideoAnalyticsPage';
 import LandingPage from './pages/Landing/LandingPage';
 import MyLearningPage from './pages/Learning/MyLearningPage';
 import NotificationsPage from './pages/Notifications/NotificationsPage';
@@ -109,6 +120,9 @@ function App() {
       
       {/* Token expiration warning */}
       {isAuthenticated && <TokenExpirationWarning />}
+      
+      {/* Scroll to top on route change */}
+      <ScrollToTop />
       
       <Routes>
         {/* Public Routes */}

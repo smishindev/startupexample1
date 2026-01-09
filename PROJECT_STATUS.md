@@ -1,12 +1,71 @@
 # Mishin Learn Platform - Project Status & Memory
 
-**Last Updated**: January 8, 2026 - Video Completion Notifications Implemented ✅  
+**Last Updated**: January 9, 2026 - Text Content Completion Fixed + Cleanup ✅  
 **Developer**: Sergey Mishin (s.mishin.dev@gmail.com)  
 **AI Assistant Context**: This file serves as project memory for continuity across chat sessions
 
 ---
 
-## 🔥 LATEST UPDATE - January 8, 2026
+## 🔥 LATEST UPDATE - January 9, 2026
+
+### 🐛 Text Content Completion Behavior Fixed
+
+**Issue**: Lessons with only text content were auto-completing within 1 second and redirecting immediately.
+
+**Root Cause**: 
+- Text content had scroll-to-bottom detection that auto-completed content
+- Short text that fit on screen was immediately visible → triggered completion instantly
+- 1-second timeout + 2-second lesson completion = ~3 second total before redirect
+
+**Fix Implemented**:
+- ✅ Removed all auto-completion on scroll behavior
+- ✅ Text content now only completes via manual "Mark as Read" button click
+- ✅ Preserved all other functionality (video auto-complete, lesson auto-play, progress tracking)
+
+**Files Modified**:
+- [client/src/components/Lesson/TextContentItem.tsx](client/src/components/Lesson/TextContentItem.tsx)
+  - Removed: `handleScroll`, event listeners, timeout refs, state management
+  - Removed: `useState`, `useEffect` imports (no longer needed)
+  - Kept: Manual "Mark as Read" button, read time calculation, word count
+
+**Behavior After Fix**:
+- Text content: Manual completion only (button click)
+- Video content: Still auto-completes on watch completion
+- Mixed lessons: Require ALL content to complete before auto-play
+- Lesson auto-play: Still triggers after all content complete (2-second delay)
+
+### 🗑️ Project Cleanup - Deleted 12 Unused Files
+
+**Test Scripts Removed** (temporary/one-time use):
+- `test-email-notifications.ps1`
+- `test-lesson-completion.ps1`
+- `database/sample_progress_data.sql`
+- `database/create_adaptive_test.sql`
+- `database/fix_lesson_content_ids.sql`
+
+**Completed Plan Documents**:
+- `PRIVACY_SETTINGS_ENFORCEMENT_PLAN.md` (superseded by `PRIVACY_IMPLEMENTATION_COMPLETE.md`)
+- `BOOKMARK_IMPLEMENTATION_PLAN.md` (feature complete)
+
+**Migration Scripts** (already applied):
+- `database/fix_duplicate_transactions.sql`
+- `database/student_progress_migration.sql`
+- `database/migrate_user_progress.sql`
+- `database/add_privacy_columns.sql`
+
+**Other**:
+- `database/schema_output.log`
+
+**Kept for Testing**:
+- `database/create-1000-test-courses.sql`
+- `database/delete-test-courses.sql`
+
+**Documentation Updated**:
+- Updated all references to deleted files in PROJECT_STATUS.md, ARCHITECTURE.md, DATE_HANDLING_GUIDE.md, PRIVACY_EMAIL_QUICK_REF.md
+
+---
+
+## 🔥 PREVIOUS UPDATE - January 8, 2026
 
 ### 📧 Video Completion Notification Trigger - IMPLEMENTED
 
@@ -1297,7 +1356,7 @@ built in 13.84s
 2. `client/src/pages/Courses/CoursesPage.tsx` - Added Snackbar feedback to bookmark actions
 
 #### Related Documentation
-- Implementation plan: `BOOKMARK_IMPLEMENTATION_PLAN.md`
+- Status: ✅ COMPLETE (December 18, 2025)
 - Database schema: `database/schema.sql` lines 473-481 (Bookmarks table)
 - API routes: `server/src/routes/bookmarks.ts`
 - API service: `client/src/services/bookmarkApi.ts`
@@ -1710,7 +1769,7 @@ All endpoints now filter emails based on ShowEmail setting:
 **Comprehensive plan created for system-wide privacy settings enforcement**
 
 #### Plan Overview
-Created complete implementation plan (`PRIVACY_SETTINGS_ENFORCEMENT_PLAN.md`) covering:
+Privacy settings enforcement (completed, see `PRIVACY_IMPLEMENTATION_COMPLETE.md`) covered:
 - ✅ **21 files** identified for modification (16 backend, 5 frontend)
 - ✅ **4 privacy settings** enforcement: ProfileVisibility, ShowEmail, ShowProgress, AllowMessages
 - ✅ **7 phases** with detailed implementation steps
@@ -1790,8 +1849,8 @@ Created complete implementation plan (`PRIVACY_SETTINGS_ENFORCEMENT_PLAN.md`) co
 - Build foundation for all privacy checks
 - Ensure system-wide consistency
 
-**Documentation**: `PRIVACY_SETTINGS_ENFORCEMENT_PLAN.md`
-- 400+ lines of detailed implementation guide
+**Documentation**: `PRIVACY_IMPLEMENTATION_COMPLETE.md`
+- 600+ lines of complete implementation documentation
 - Complete file-by-file modification list
 - Code examples for each enforcement pattern
 - Testing checklist and validation criteria
@@ -1813,7 +1872,7 @@ Created complete implementation plan (`PRIVACY_SETTINGS_ENFORCEMENT_PLAN.md`) co
 - ✅ **Testing Verified**: Zero duplicates possible with database-level enforcement
 
 **Technical Implementation**:
-- `database/fix_duplicate_transactions.sql` - Unique constraint migration
+- Database unique constraint: IX_Transactions_Unique_Pending (applied)
 - `server/src/services/StripeService.ts` - Constraint violation handling
 - `server/src/routes/instructor.ts` - Revenue calculation from transactions
 - `client/src/pages/Payment/CourseCheckoutPage.tsx` - Course-specific useRef tracking
@@ -5066,7 +5125,8 @@ npm run dev
 ### Database
 - `database/schema.sql` - **PRIMARY DATABASE SCHEMA** - Complete database schema with all tables including Student Progress Integration and Real-time Notifications. **IMPORTANT: Always add new tables to this file, not separate schema files.**
 - `database/schema_clean.sql` - Production-ready schema without sample data (created October 25, 2025)
-- `database/migrate_user_progress.sql` - Data migration script (UserProgress → CourseProgress)
+- `database/create-1000-test-courses.sql` - Bulk test data generation (kept for testing)
+- `database/delete-test-courses.sql` - Test data cleanup script (kept for testing)
 - `scripts/create-test-assessments.js` - Test data generation
 - `server/src/scripts/check-progress-data.ts` - Database integrity verification script
 - `DATABASE_SAFETY_RULES.md` - **⚠️ MANDATORY READ**: Critical safety protocols for database operations - created after October 25, 2025 incident

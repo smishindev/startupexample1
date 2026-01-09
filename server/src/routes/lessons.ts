@@ -67,19 +67,39 @@ router.get('/:courseId', authenticateToken, async (req: Request, res: Response) 
       { courseId }
     );
 
-    const lessons: Lesson[] = result.map((row: any) => ({
-      id: row.Id,
-      courseId: row.CourseId,
-      title: row.Title,
-      description: row.Description,
-      content: JSON.parse(row.ContentJson || '[]'),
-      orderIndex: row.OrderIndex,
-      duration: row.Duration,
-      isRequired: row.IsRequired,
-      prerequisites: JSON.parse(row.Prerequisites || '[]'),
-      createdAt: row.CreatedAt,
-      updatedAt: row.UpdatedAt
-    }));
+    const lessons: Lesson[] = result.map((row: any) => {
+      // Safe JSON parsing with fallbacks for corrupt data
+      let content = [];
+      let prerequisites = [];
+      
+      try {
+        content = JSON.parse(row.ContentJson || '[]');
+      } catch (e) {
+        console.error(`[LESSONS] Failed to parse ContentJson for lesson ${row.Id}:`, e);
+        content = []; // Fallback to empty array
+      }
+      
+      try {
+        prerequisites = JSON.parse(row.Prerequisites || '[]');
+      } catch (e) {
+        console.error(`[LESSONS] Failed to parse Prerequisites for lesson ${row.Id}:`, e);
+        prerequisites = []; // Fallback to empty array
+      }
+      
+      return {
+        id: row.Id,
+        courseId: row.CourseId,
+        title: row.Title,
+        description: row.Description,
+        content,
+        orderIndex: row.OrderIndex,
+        duration: row.Duration,
+        isRequired: row.IsRequired,
+        prerequisites,
+        createdAt: row.CreatedAt,
+        updatedAt: row.UpdatedAt
+      };
+    });
 
     res.json(lessons);
   } catch (error) {
@@ -114,16 +134,35 @@ router.get('/lesson/:id', authenticateToken, async (req: Request, res: Response)
     }
 
     const row = result[0];
+    
+    // Safe JSON parsing with fallbacks for corrupt data
+    let content = [];
+    let prerequisites = [];
+    
+    try {
+      content = JSON.parse(row.ContentJson || '[]');
+    } catch (e) {
+      console.error(`[LESSONS] Failed to parse ContentJson for lesson ${row.Id}:`, e);
+      content = []; // Fallback to empty array
+    }
+    
+    try {
+      prerequisites = JSON.parse(row.Prerequisites || '[]');
+    } catch (e) {
+      console.error(`[LESSONS] Failed to parse Prerequisites for lesson ${row.Id}:`, e);
+      prerequisites = []; // Fallback to empty array
+    }
+    
     const lesson: Lesson = {
       id: row.Id,
       courseId: row.CourseId,
       title: row.Title,
       description: row.Description,
-      content: JSON.parse(row.ContentJson || '[]'),
+      content,
       orderIndex: row.OrderIndex,
       duration: row.Duration,
       isRequired: row.IsRequired,
-      prerequisites: JSON.parse(row.Prerequisites || '[]'),
+      prerequisites,
       createdAt: row.CreatedAt,
       updatedAt: row.UpdatedAt,
       // Add course details
@@ -178,6 +217,26 @@ router.post('/', authenticateToken, async (req: Request, res: Response) => {
     const lessonId = uuidv4();
     const now = new Date().toISOString();
 
+    // Ensure all content items have stable IDs (format: {lessonId}-{type}-{uniqueId})
+    // IMPORTANT: Preserve existing IDs to maintain progress tracking when content is reordered
+    // For new items (empty ID or temp client-side ID), generate unique ID using UUID
+    const contentWithIds = content.map((item: any) => {
+      // Generate ID for new items (don't mutate original object)
+      const itemId = (!item.id || item.id === '' || item.id.startsWith('temp-'))
+        ? `${lessonId}-${item.type}-${uuidv4().split('-')[0]}`
+        : item.id;
+      
+      // Validate video content has required fields
+      if (item.type === 'video') {
+        if (!item.data?.url && !item.data?.fileId) {
+          console.warn(`[LESSONS] Video content ${itemId} missing URL and fileId in data object`);
+        }
+      }
+      
+      // Return new object to avoid mutating input
+      return { ...item, id: itemId };
+    });
+
     await db.execute(
       `INSERT INTO dbo.Lessons 
        (Id, CourseId, Title, Description, ContentJson, OrderIndex, Duration, IsRequired, Prerequisites, CreatedAt, UpdatedAt)
@@ -187,7 +246,7 @@ router.post('/', authenticateToken, async (req: Request, res: Response) => {
         courseId,
         title,
         description,
-        contentJson: JSON.stringify(content),
+        contentJson: JSON.stringify(contentWithIds),
         orderIndex: finalOrderIndex,
         duration,
         isRequired,
@@ -197,38 +256,16 @@ router.post('/', authenticateToken, async (req: Request, res: Response) => {
       }
     );
 
-    // If content includes video, create VideoLessons record
-    const videoContent = content.find((item: any) => item.type === 'video');
-    if (videoContent && videoContent.data) {
-      const videoUrl = videoContent.data.url || videoContent.data.videoUrl;
-      if (videoUrl) {
-        const videoLessonId = uuidv4();
-        await db.execute(
-          `INSERT INTO dbo.VideoLessons 
-           (Id, LessonId, VideoURL, Duration, Thumbnail, ProcessingStatus, UploadedBy, CreatedAt, UpdatedAt)
-           VALUES (@id, @lessonId, @videoUrl, @duration, @thumbnail, @status, @uploadedBy, @createdAt, @updatedAt)`,
-          {
-            id: videoLessonId,
-            lessonId: lessonId,
-            videoUrl: videoUrl,
-            duration: duration || 0,
-            thumbnail: videoContent.data.thumbnail || null,
-            status: 'ready',
-            uploadedBy: userId,
-            createdAt: now,
-            updatedAt: now
-          }
-        );
-        console.log(`[LESSONS] Created VideoLessons record ${videoLessonId} for lesson ${lessonId}`);
-      }
-    }
+    // DEPRECATED: VideoLessons table no longer used for new lessons
+    // All content (videos, text, quizzes) stored in ContentJson
+    console.log(`[LESSONS] Created lesson ${lessonId} with ${contentWithIds.length} content items`);
 
     const lesson: Lesson = {
       id: lessonId,
       courseId,
       title,
       description,
-      content,
+      content: contentWithIds,
       orderIndex: finalOrderIndex,
       duration,
       isRequired,
@@ -251,7 +288,7 @@ router.put('/:id', authenticateToken, async (req: Request, res: Response) => {
     const {
       title,
       description,
-      content,
+      content = [], // Default to empty array if not provided
       orderIndex,
       duration,
       isRequired,
@@ -278,6 +315,26 @@ router.put('/:id', authenticateToken, async (req: Request, res: Response) => {
     
     const now = new Date().toISOString();
 
+    // Ensure all content items have stable IDs (format: {lessonId}-{type}-{uniqueId})
+    // IMPORTANT: Preserve existing IDs to maintain progress tracking when content is reordered
+    // For new items (empty ID or temp client-side ID), generate unique ID using UUID
+    const contentWithIds = content.map((item: any) => {
+      // Generate ID for new items (don't mutate original object)
+      const itemId = (!item.id || item.id === '' || item.id.startsWith('temp-'))
+        ? `${id}-${item.type}-${uuidv4().split('-')[0]}`
+        : item.id;
+      
+      // Validate video content has required fields
+      if (item.type === 'video') {
+        if (!item.data?.url && !item.data?.fileId) {
+          console.warn(`[LESSONS] Video content ${itemId} missing URL and fileId in data object`);
+        }
+      }
+      
+      // Return new object to avoid mutating input
+      return { ...item, id: itemId };
+    });
+
     await db.execute(
       `UPDATE dbo.Lessons 
        SET Title = @title, Description = @description, ContentJson = @contentJson, OrderIndex = @orderIndex, 
@@ -286,7 +343,7 @@ router.put('/:id', authenticateToken, async (req: Request, res: Response) => {
       {
         title,
         description,
-        contentJson: JSON.stringify(content),
+        contentJson: JSON.stringify(contentWithIds),
         orderIndex: finalOrderIndex,
         duration,
         isRequired,
@@ -296,69 +353,16 @@ router.put('/:id', authenticateToken, async (req: Request, res: Response) => {
       }
     );
 
-    // Handle VideoLessons record updates
-    const videoContent = content?.find((item: any) => item.type === 'video');
-    if (videoContent && videoContent.data) {
-      const videoUrl = videoContent.data.url || videoContent.data.videoUrl;
-      if (videoUrl) {
-        // Check if VideoLessons record exists
-        const existingVideo = await db.query(
-          'SELECT Id FROM dbo.VideoLessons WHERE LessonId = @lessonId',
-          { lessonId: id }
-        );
-
-        if (existingVideo.length > 0) {
-          // Update existing record
-          await db.execute(
-            `UPDATE dbo.VideoLessons 
-             SET VideoURL = @videoUrl, Duration = @duration, Thumbnail = @thumbnail, UpdatedAt = @updatedAt
-             WHERE LessonId = @lessonId`,
-            {
-              videoUrl: videoUrl,
-              duration: duration || 0,
-              thumbnail: videoContent.data.thumbnail || null,
-              updatedAt: now,
-              lessonId: id
-            }
-          );
-          console.log(`[LESSONS] Updated VideoLessons record for lesson ${id}`);
-        } else {
-          // Create new record
-          const videoLessonId = uuidv4();
-          await db.execute(
-            `INSERT INTO dbo.VideoLessons 
-             (Id, LessonId, VideoURL, Duration, Thumbnail, ProcessingStatus, UploadedBy, CreatedAt, UpdatedAt)
-             VALUES (@id, @lessonId, @videoUrl, @duration, @thumbnail, @status, @uploadedBy, @createdAt, @updatedAt)`,
-            {
-              id: videoLessonId,
-              lessonId: id,
-              videoUrl: videoUrl,
-              duration: duration || 0,
-              thumbnail: videoContent.data.thumbnail || null,
-              status: 'ready',
-              uploadedBy: userId,
-              createdAt: now,
-              updatedAt: now
-            }
-          );
-          console.log(`[LESSONS] Created VideoLessons record ${videoLessonId} for lesson ${id}`);
-        }
-      }
-    } else {
-      // No video content - delete VideoLessons record if exists
-      await db.execute(
-        'DELETE FROM dbo.VideoLessons WHERE LessonId = @lessonId',
-        { lessonId: id }
-      );
-      console.log(`[LESSONS] Deleted VideoLessons record for lesson ${id} (no video content)`);
-    }
+    // DEPRECATED: VideoLessons table no longer maintained for updates
+    // All content managed through ContentJson array
+    console.log(`[LESSONS] Updated lesson ${id} with ${contentWithIds.length} content items`);
 
     const lesson: Lesson = {
       id,
       courseId: currentLesson.CourseId,
       title,
       description,
-      content,
+      content: contentWithIds,
       orderIndex: finalOrderIndex,
       duration,
       isRequired,

@@ -43,15 +43,11 @@ import {
 } from '@mui/icons-material';
 import { useParams, useNavigate } from 'react-router-dom';
 import { HeaderV4 as Header } from '../../components/Navigation/HeaderV4';
-import { VideoPlayer } from '../../components/Video/VideoPlayer';
-import { VideoTranscript, TranscriptSegment } from '../../components/Video/VideoTranscript';
-import { VideoErrorBoundary } from '../../components/Video/VideoErrorBoundary';
-import { VideoProgressTracker } from '../../components/Video/VideoProgressTracker';
 import { lessonApi, Lesson } from '../../services/lessonApi';
 import { progressApi } from '../../services/progressApi';
 import { assessmentApi, AssessmentWithProgress } from '../../services/assessmentApi';
-import { getVideoLessonByLessonId, parseVTTTranscript, VideoLesson } from '../../services/videoLessonApi';
-import { getVideoProgress, markVideoComplete } from '../../services/videoProgressApi';
+import { getLessonContentProgress, markContentComplete, ContentProgressItem } from '../../services/contentProgressApi';
+import { ContentItem } from '../../components/Lesson/ContentItem';
 import { coursesApi } from '../../services/coursesApi';
 import { BookmarkApi } from '../../services/bookmarkApi';
 
@@ -139,10 +135,7 @@ export const LessonDetailPage: React.FC = () => {
   const [allLessons, setAllLessons] = useState<Lesson[]>([]);
   const [assessments, setAssessments] = useState<AssessmentWithProgress[]>([]);
   const [progress, setProgress] = useState<any>(null);
-  const [videoLesson, setVideoLesson] = useState<VideoLesson | null>(null);
-  const [transcript, setTranscript] = useState<TranscriptSegment[]>([]);
-  const [currentVideoTime, setCurrentVideoTime] = useState(0);
-  const [videoProgress, setVideoProgress] = useState<any>(null);
+  const [contentProgress, setContentProgress] = useState<{[key: string]: ContentProgressItem}>({});
   const [newComment, setNewComment] = useState('');
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -168,11 +161,8 @@ export const LessonDetailPage: React.FC = () => {
         setLoading(true);
         setError(null);
         
-        // Clear video-related state when navigating to a new lesson
-        setVideoLesson(null);
-        setVideoProgress(null);
-        setTranscript([]);
-        setCurrentVideoTime(0);
+        // Clear content progress when navigating to a new lesson
+        setContentProgress({});
 
         // Check if user is the course instructor (preview mode)
         const enrollmentStatus = await coursesApi.getEnrollmentStatus(courseId);
@@ -241,69 +231,19 @@ export const LessonDetailPage: React.FC = () => {
           // Don't fail the whole page if bookmark check fails
         }
 
-        // Fetch video lesson data only if this lesson has video content
-        const hasVideoContent = lessonData.content?.some((c: any) => c.type === 'video');
-        
-        if (hasVideoContent) {
+        // Load content progress for ALL content items (videos, texts, quizzes)
+        if (!isPreview) {
           try {
-            const videoLessonData = await getVideoLessonByLessonId(lessonId);
-            if (videoLessonData) {
-              setVideoLesson(videoLessonData);
-              
-              // Fetch video progress (skip for instructor preview)
-              if (!isPreview) {
-                const videoProgressData = await getVideoProgress(videoLessonData.id);
-                setVideoProgress(videoProgressData);
-              }
-              
-              // Load transcript if available
-              if (videoLessonData.transcriptUrl) {
-                const transcriptSegments = await parseVTTTranscript(videoLessonData.transcriptUrl);
-                setTranscript(transcriptSegments);
-              }
-            } else {
-              // Fallback: Check if lesson content has video data but no VideoLessons record exists
-              // This can happen for lessons created before the VideoLessons auto-creation was added
-              const videoContent = lessonData.content?.find((c: any) => c.type === 'video');
-              if (videoContent && videoContent.data?.url) {
-                console.log('[LESSON] Using video URL from lesson content (no VideoLessons record)');
-                console.log('[LESSON] Video content data:', videoContent);
-                // Create a virtual video lesson object for display purposes
-                const fallbackVideoLesson: VideoLesson = {
-                  id: '', // No ID since no record exists
-                  lessonId: lessonId,
-                  videoUrl: videoContent.data.url,
-                  duration: videoContent.data.duration || 0,
-                  transcriptUrl: videoContent.data.transcriptUrl,
-                  thumbnailUrl: videoContent.data.thumbnail,
-                  createdAt: lessonData.createdAt || new Date().toISOString(),
-                  updatedAt: lessonData.updatedAt || new Date().toISOString()
-                };
-                setVideoLesson(fallbackVideoLesson);
-              }
-            }
+            const progressData = await getLessonContentProgress(lessonId);
+            const progressMap: {[key: string]: ContentProgressItem} = {};
+            progressData.forEach(p => {
+              progressMap[p.contentItemId] = p;
+            });
+            setContentProgress(progressMap);
+            console.log('[LESSON] Loaded content progress:', progressMap);
           } catch (error) {
-            console.error('Failed to load video lesson data:', error);
-            // Fallback: Check if lesson content has video data
-            const videoContent = lessonData.content?.find((c: any) => c.type === 'video');
-            if (videoContent && videoContent.data?.url) {
-              console.log('[LESSON] Using video URL from lesson content (API error fallback)');
-              console.log('[LESSON] Video content data:', videoContent);
-              const fallbackVideoLesson: VideoLesson = {
-                id: '',
-                lessonId: lessonId,
-                videoUrl: videoContent.data.url,
-                duration: videoContent.data.duration || 0,
-                transcriptUrl: videoContent.data.transcriptUrl,
-                thumbnailUrl: videoContent.data.thumbnail,
-                createdAt: lessonData.createdAt || new Date().toISOString(),
-                updatedAt: lessonData.updatedAt || new Date().toISOString()
-              };
-              setVideoLesson(fallbackVideoLesson);
-            }
+            console.error('Failed to load content progress:', error);
           }
-        } else {
-          console.log('[LESSON] No video content in lesson - skipping video API call');
         }
 
         // Debug: Log progress data (can be removed in production)
@@ -324,6 +264,69 @@ export const LessonDetailPage: React.FC = () => {
 
     fetchLessonData();
   }, [courseId, lessonId]);
+
+  const handleContentComplete = async (contentItemId: string) => {
+    if (isInstructorPreview) {
+      console.log('[LESSON] Instructor preview - skipping content completion');
+      return;
+    }
+
+    try {
+      await markContentComplete(contentItemId);
+      
+      // Extract content type from ID (format: {lessonId}-{type}-{uniqueId})
+      // Since lessonId is a UUID with hyphens, find the type by looking for known types
+      const contentType = contentItemId.includes('-video-') ? 'video' 
+        : contentItemId.includes('-text-') ? 'text'
+        : contentItemId.includes('-quiz-') ? 'quiz'
+        : 'unknown';
+      
+      // Update local state
+      setContentProgress(prev => ({
+        ...prev,
+        [contentItemId]: {
+          ...prev[contentItemId],
+          contentItemId,
+          contentType: contentType as any,
+          isCompleted: true,
+          completedAt: new Date().toISOString()
+        }
+      }));
+      
+      console.log('[LESSON] Content item completed:', contentItemId);
+      
+      // Check if ALL content complete (only check items that have IDs)
+      if (lesson) {
+        const validContent = lesson.content.filter(item => item.id);
+        const allComplete = validContent.every(
+          item => contentProgress[item.id]?.isCompleted || item.id === contentItemId
+        );
+        
+        if (allComplete && !lesson.completed) {
+          console.log('[LESSON] All content completed - marking lesson complete');
+          await progressApi.markLessonComplete(lesson.id, {
+            notes: `All content completed at ${new Date().toISOString()}`
+          });
+          
+          // Reload lesson progress
+          if (courseId) {
+            const updatedProgress = await progressApi.getCourseProgress(courseId);
+            setProgress(updatedProgress);
+          }
+          setLesson(prev => prev ? { ...prev, completed: true, progress: 100 } : null);
+          
+          // Auto-play next lesson if enabled
+          if (lesson.nextLessonId && autoPlayNext) {
+            setTimeout(() => {
+              navigate(`/courses/${courseId}/lessons/${lesson.nextLessonId}`);
+            }, 2000);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('[LESSON] Failed to mark content complete:', error);
+    }
+  };
 
   const handleMarkComplete = async () => {
     if (lesson) {
@@ -543,7 +546,7 @@ export const LessonDetailPage: React.FC = () => {
                       fontWeight: 'bold',
                       fontSize: '1.2rem'
                     }}>
-                      {Math.round((progress.lessonProgress?.filter((lp: any) => lp.CompletedAt).length || 0) / allLessons.length * 100)}%
+                      {allLessons.length > 0 ? Math.round((progress.lessonProgress?.filter((lp: any) => lp.CompletedAt).length || 0) / allLessons.length * 100) : 0}%
                     </Box>
                     <Box>
                       <Typography variant="h6" gutterBottom>
@@ -551,7 +554,7 @@ export const LessonDetailPage: React.FC = () => {
                       </Typography>
                       <LinearProgress 
                         variant="determinate" 
-                        value={(progress.lessonProgress?.filter((lp: any) => lp.CompletedAt).length || 0) / allLessons.length * 100} 
+                        value={allLessons.length > 0 ? (progress.lessonProgress?.filter((lp: any) => lp.CompletedAt).length || 0) / allLessons.length * 100 : 0} 
                         sx={{ height: 8, borderRadius: 4 }}
                       />
                     </Box>
@@ -594,69 +597,29 @@ export const LessonDetailPage: React.FC = () => {
             flex: 1,
             minWidth: 0
           }}>
-            {/* Video Player - Full Width, Cinema Style */}
-            {videoLesson && (
-              <Paper 
-                elevation={0}
-                sx={{ 
-                  mb: 3, 
-                  overflow: 'hidden',
-                  borderRadius: 2,
-                  bgcolor: '#000',
-                  border: '1px solid',
-                  borderColor: 'divider'
-                }}
-              >
-                <VideoErrorBoundary onRetry={() => window.location.reload()}>
-                  <VideoPlayer
-                    src={videoLesson.videoUrl}
-                    title={lesson.title}
-                    videoLessonId={videoLesson.id}
-                    poster={videoLesson.thumbnailUrl}
-                    initialTime={videoProgress?.currentPosition || 0}
-                    enableProgressTracking={true}
-                    onProgress={(currentTime, duration, percentWatched) => {
-                      console.log('Video progress:', { currentTime, duration, percentWatched });
-                    }}
-                    onComplete={async () => {
-                      console.log('Video completed!');
-                      
-                      if (isInstructorPreview) {
-                        console.log('Instructor preview mode - skipping completion');
-                        return;
-                      }
-                      
-                      try {
-                        // Mark video as complete
-                        await markVideoComplete(videoLesson.id);
-                        
-                        // Mark lesson as complete
-                        await progressApi.markLessonComplete(lesson.id, {
-                          notes: `Video completed at ${new Date().toISOString()}`
-                        });
-                        
-                        // Refetch progress data to update UI
-                        if (courseId) {
-                          const updatedProgress = await progressApi.getCourseProgress(courseId);
-                          setProgress(updatedProgress);
-                        }
-                        
-                        setLesson(prev => prev ? { ...prev, completed: true, progress: 100 } : null);
-                      
-                        if (lesson.nextLessonId && autoPlayNext) {
-                          setTimeout(() => {
-                            navigate(`/courses/${courseId}/lessons/${lesson.nextLessonId}`);
-                          }, 2000);
-                        }
-                      } catch (error) {
-                        console.error('Failed to mark video complete:', error);
-                      }
-                    }}
-                    onTimeUpdate={(currentTime) => {
-                      setCurrentVideoTime(currentTime);
-                    }}
+            {/* Lesson Content Items - Sequential Display */}
+            {lesson.content && lesson.content.length > 0 ? (
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4, mb: 3 }}>
+                {lesson.content.filter(item => item.id).map((contentItem, index) => (
+                  <ContentItem
+                    key={contentItem.id}
+                    content={contentItem}
+                    index={index}
+                    total={lesson.content.filter(item => item.id).length}
+                    lessonId={lesson.id}
+                    courseId={courseId!}
+                    isInstructorPreview={isInstructorPreview}
+                    onComplete={() => handleContentComplete(contentItem.id)}
+                    isCompleted={contentProgress[contentItem.id]?.isCompleted || false}
+                    progressData={contentProgress[contentItem.id]?.progressData}
                   />
-                </VideoErrorBoundary>
+                ))}
+              </Box>
+            ) : (
+              <Paper sx={{ p: 3, textAlign: 'center' }}>
+                <Typography color="text.secondary">
+                  No content available for this lesson yet.
+                </Typography>
               </Paper>
             )}
 
@@ -768,17 +731,15 @@ export const LessonDetailPage: React.FC = () => {
                     <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                       <strong>Duration:</strong> {lesson.duration}
                     </Typography>
-                    {videoLesson && (
+                    {lesson.content && lesson.content.length > 0 && (
                       <>
                         <Typography variant="body2" color="text.secondary">•</Typography>
                         <Typography variant="body2" color="text.secondary">
-                          <strong>Video:</strong> {Math.floor(videoLesson.duration / 60)}:{(videoLesson.duration % 60).toString().padStart(2, '0')}
+                          <strong>Content:</strong> {lesson.content.length} item{lesson.content.length !== 1 ? 's' : ''}
                           {!isInstructorPreview && (
-                            videoProgress && videoProgress.watchedPercentage !== undefined && videoProgress.watchedPercentage > 0 ? (
-                              <> ({Math.round(videoProgress.watchedPercentage)}% watched)</>
-                            ) : (
-                              <> (Not started)</>
-                            )
+                            <>
+                              {' '}({Object.values(contentProgress).filter(p => p.isCompleted).length}/{lesson.content.length} completed)
+                            </>
                           )}
                         </Typography>
                       </>
@@ -893,112 +854,6 @@ export const LessonDetailPage: React.FC = () => {
                 </Box>
               </Box>
             </Paper>
-
-            {/* Fallback to legacy video content blocks */}
-            {!videoLesson && lesson.extendedContent?.map((content) => (
-              <Paper key={content.id} sx={{ mb: 3 }}>
-                {content.type === 'video' && (
-                  <VideoProgressTracker
-                    lessonId={lesson.id}
-                    onProgress={(progress) => {
-                      console.log('Video progress:', progress);
-                    }}
-                    onComplete={() => {
-                      console.log('Lesson completed!');
-                      
-                      // Skip completion logic for instructors in preview mode
-                      if (isInstructorPreview) {
-                        console.log('Instructor preview mode - skipping completion');
-                        return;
-                      }
-                      
-                      // Update lesson state to show completion
-                      setLesson(prev => prev ? { ...prev, completed: true, progress: 100 } : null);
-                      
-                      // Auto-navigate to next lesson after 2 seconds if available
-                      if (lesson.nextLessonId) {
-                        setTimeout(() => {
-                          navigate(`/courses/${courseId}/lessons/${lesson.nextLessonId}`);
-                        }, 2000);
-                      }
-                    }}
-                  >
-                    {(trackingProps) => {
-                      // Use saved position if available, otherwise start from beginning
-                      const initialTime = lesson.savedPosition || 0;
-                      
-                      return (
-                        <VideoPlayer 
-                          src={content.videoUrl || '/api/videos/placeholder.mp4'}
-                          title={content.title || lesson.title}
-                          onProgress={trackingProps.onVideoProgress}
-                          onComplete={trackingProps.onVideoComplete}
-                          onTimeUpdate={trackingProps.onTimeUpdate}
-                          initialTime={initialTime}
-                        />
-                      );
-                    }}
-                  </VideoProgressTracker>
-                )}
-
-                {content.type === 'text' && (
-                  <CardContent>
-                    <Typography variant="h6" sx={{ mb: 2 }}>
-                      {content.title}
-                    </Typography>
-                    <Box
-                      sx={{
-                        '& h1': { fontSize: '1.5rem', fontWeight: 'bold', mb: 2 },
-                        '& h2': { fontSize: '1.3rem', fontWeight: 'bold', mb: 1.5 },
-                        '& h3': { fontSize: '1.1rem', fontWeight: 'bold', mb: 1 },
-                        '& p': { mb: 2 },
-                        '& code': {
-                          backgroundColor: '#f5f5f5',
-                          padding: '2px 4px',
-                          borderRadius: '4px',
-                          fontFamily: 'monospace',
-                        },
-                        '& pre': {
-                          backgroundColor: '#f5f5f5',
-                          padding: '16px',
-                          borderRadius: '8px',
-                          overflow: 'auto',
-                          mb: 2,
-                        },
-                      }}
-                      dangerouslySetInnerHTML={{ __html: content.content.replace(/\n/g, '<br/>') }}
-                    />
-                  </CardContent>
-                )}
-
-                {content.type === 'quiz' && (
-                  <CardContent>
-                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                      <Quiz sx={{ mr: 1, color: 'primary.main' }} />
-                      <Typography variant="h6">{content.title}</Typography>
-                    </Box>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                      {content.content}
-                    </Typography>
-                    <Button variant="contained" startIcon={<Quiz />}>
-                      Take Quiz
-                    </Button>
-                  </CardContent>
-                )}
-              </Paper>
-            ))}
-
-            {/* Text Content for lessons without legacy video blocks */}
-            {!videoLesson && !lesson.extendedContent?.some(c => c.type === 'video') && lesson.content && (
-              <Paper sx={{ p: 3, mb: 3 }}>
-                <Typography variant="h6" sx={{ mb: 2 }}>
-                  Lesson Content
-                </Typography>
-                <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
-                  {lesson.description}
-                </Typography>
-              </Paper>
-            )}
 
             {/* Assessments Section */}
             {assessments.length > 0 && (
@@ -1278,25 +1133,7 @@ export const LessonDetailPage: React.FC = () => {
             minWidth: { xs: '100%', md: 300, lg: 350 },
             maxWidth: { xs: '100%', md: 400 }
           }}>
-            {/* Video Transcript */}
-            {videoLesson && transcript.length > 0 && (
-              <Box sx={{ mb: 3 }}>
-                <VideoTranscript
-                  segments={transcript}
-                  currentTime={currentVideoTime}
-                  onSeek={(time) => {
-                    // Find the video element and seek to the specified time
-                    const video = document.querySelector('video') as HTMLVideoElement;
-                    if (video) {
-                      video.currentTime = time;
-                      // Update the current time state
-                      setCurrentVideoTime(time);
-                    }
-                  }}
-                  height={500}
-                />
-              </Box>
-            )}
+            {/* Video Transcript - Now handled within VideoContentItem */}
 
             {/* Resources */}
             <Paper sx={{ p: 3, mb: 3 }}>

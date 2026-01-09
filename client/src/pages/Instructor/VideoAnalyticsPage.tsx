@@ -1,3 +1,9 @@
+/**
+ * Video Analytics Page - ContentJson-based Multi-Content Analytics
+ * Tracks video engagement, completion rates, and watch time across all video content
+ * Uses ContentItemId from VideoProgress table and Lessons.ContentJson for metadata
+ */
+
 import React, { useState, useEffect } from 'react';
 import {
   Box,
@@ -13,129 +19,242 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  LinearProgress,
-  Chip,
-  FormControl,
-  InputLabel,
   Select,
   MenuItem,
+  FormControl,
+  InputLabel,
   CircularProgress,
   Alert,
-  Button,
+  Chip,
+  LinearProgress
 } from '@mui/material';
 import {
-  PlayCircleOutline,
-  Schedule,
-  CheckCircle,
-  VideoLibrary,
+  VideoLibrary as VideoIcon,
+  TrendingUp as TrendingUpIcon,
+  People as PeopleIcon,
+  Schedule as ScheduleIcon,
+  PlayCircle as PlayIcon,
+  CheckCircle as CompleteIcon
 } from '@mui/icons-material';
-import { useSearchParams } from 'react-router-dom';
-import { HeaderV4 as Header } from '../../components/Navigation/HeaderV4';
 import axios from 'axios';
-import { instructorApi } from '../../services/instructorApi';
-import { useAuthStore } from '../../stores/authStore';
 
+// Use environment variable or fallback to localhost
 const API_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3001';
 
-// Create axios instance with auth
-const createAuthAxios = () => {
-  const instance = axios.create({
-    baseURL: API_URL,
-  });
-  
-  instance.interceptors.request.use((config) => {
-    const token = useAuthStore.getState().token;
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  });
-  
-  return instance;
-};
-
-interface VideoAnalyticsSummary {
-  videoLessonId: string;
-  lessonTitle: string;
-  totalViews: number;
-  uniqueViewers: number;
-  averageWatchTime: number;
-  completionRate: number;
-  averageCompletionTime: number;
-  totalWatchTime: number;
+interface Course {
+  id: string;
+  title: string;
 }
 
-interface CourseVideoAnalytics {
+interface VideoContentItem {
+  contentItemId: string;
+  lessonId: string;
+  lessonTitle: string;
   courseId: string;
   courseTitle: string;
+  videoIndex: number;
+  duration: number;
+  url: string;
+}
+
+interface VideoAnalytics {
+  contentItemId: string;
+  lessonTitle: string;
+  courseTitle: string;
+  videoIndex: number;
+  duration: number;
+  totalViews: number;
+  completions: number;
+  completionRate: number;
+  avgWatchTime: number;
+  avgCompletionPercentage: number;
+  engagementScore: number;
+}
+
+interface OverallStats {
   totalVideos: number;
   totalViews: number;
-  averageCompletionRate: number;
-  videos: VideoAnalyticsSummary[];
+  totalCompletions: number;
+  avgCompletionRate: number;
+  avgWatchTime: number;
+  totalWatchTimeHours: number;
 }
 
-interface VideoEventAnalytics {
-  eventType: string;
-  count: number;
-  percentage: number;
-}
+const createAuthAxios = () => {
+  const token = localStorage.getItem('auth-storage');
+  let authToken = '';
+  
+  if (token) {
+    try {
+      const parsed = JSON.parse(token);
+      authToken = parsed?.state?.token || '';
+    } catch (e) {
+      console.error('Failed to parse auth token:', e);
+    }
+  }
+
+  return axios.create({
+    baseURL: API_URL,
+    headers: {
+      Authorization: `Bearer ${authToken}`,
+      'Content-Type': 'application/json'
+    }
+  });
+};
 
 export const VideoAnalyticsPage: React.FC = () => {
-  const [searchParams] = useSearchParams();
-  const courseId = searchParams.get('courseId');
-
-  const [courses, setCourses] = useState<any[]>([]);
-  const [selectedCourseId, setSelectedCourseId] = useState<string>(courseId || '');
-  const [analytics, setAnalytics] = useState<CourseVideoAnalytics | null>(null);
-  const [eventAnalytics, setEventAnalytics] = useState<VideoEventAnalytics[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [selectedCourseId, setSelectedCourseId] = useState<string>('');
+  const [analytics, setAnalytics] = useState<VideoAnalytics[]>([]);
+  const [overallStats, setOverallStats] = useState<OverallStats | null>(null);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch instructor courses
+  // Fetch instructor's courses
   useEffect(() => {
     const fetchCourses = async () => {
       try {
-        const coursesResponse = await instructorApi.getCourses();
-        setCourses(coursesResponse.courses);
+        const authAxios = createAuthAxios();
+        const response = await authAxios.get('/api/instructor/courses');
+        setCourses(response.data.courses || []);
         
-        // Set first course as selected if none selected
-        if (!selectedCourseId && coursesResponse.courses.length > 0) {
-          setSelectedCourseId(coursesResponse.courses[0].id);
+        if (response.data.courses?.length > 0 && !selectedCourseId) {
+          setSelectedCourseId(response.data.courses[0].id);
         }
       } catch (error) {
         console.error('Failed to fetch courses:', error);
+        setError('Failed to load courses');
       }
     };
 
     fetchCourses();
-  }, [selectedCourseId]);
+  }, []);
 
-  // Fetch video analytics for selected course
+  // Fetch video analytics when course changes
   useEffect(() => {
-    const fetchAnalytics = async () => {
-      if (!selectedCourseId) {
-        setLoading(false);
-        return;
-      }
+    if (!selectedCourseId) return;
 
+    const fetchAnalytics = async () => {
       try {
         setLoading(true);
         setError(null);
         const authAxios = createAuthAxios();
 
-        // Fetch course video analytics
-        const analyticsResponse = await authAxios.get(
-          `/api/video-analytics/course/${selectedCourseId}`
-        );
+        // Fetch all lessons for the course
+        const lessonsResponse = await authAxios.get(`/api/lessons/${selectedCourseId}`);
+        const lessons = lessonsResponse.data.lessons || [];
 
-        setAnalytics(analyticsResponse.data);
+        // Fetch course details
+        const courseResponse = await authAxios.get(`/api/courses/${selectedCourseId}`);
+        const courseTitle = courseResponse.data.course?.title || 'Unknown Course';
 
-        // Fetch event analytics
-        const eventsResponse = await authAxios.get(
-          `/api/video-analytics/course/${selectedCourseId}/events`
-        );
+        // Extract video content items from lessons
+        const videoItems: VideoContentItem[] = [];
+        lessons.forEach((lesson: any) => {
+          try {
+            const content = lesson.contentJson ? JSON.parse(lesson.contentJson) : [];
+            content.forEach((item: any, index: number) => {
+              if (item.type === 'video' && item.id) {
+                videoItems.push({
+                  contentItemId: item.id,
+                  lessonId: lesson.id,
+                  lessonTitle: lesson.title,
+                  courseId: selectedCourseId,
+                  courseTitle,
+                  videoIndex: index,
+                  duration: item.data?.duration || 0,
+                  url: item.data?.url || ''
+                });
+              }
+            });
+          } catch (e) {
+            console.error(`Failed to parse lesson ${lesson.id} content:`, e);
+          }
+        });
 
-        setEventAnalytics(eventsResponse.data || []);
+        if (videoItems.length === 0) {
+          setAnalytics([]);
+          setOverallStats({
+            totalVideos: 0,
+            totalViews: 0,
+            totalCompletions: 0,
+            avgCompletionRate: 0,
+            avgWatchTime: 0,
+            totalWatchTimeHours: 0
+          });
+          setLoading(false);
+          return;
+        }
+
+        // Fetch aggregated video progress for all students in this course
+        const progressResponse = await authAxios.get(`/api/video-analytics/course/${selectedCourseId}`);
+        const progressData = progressResponse.data.progress || [];
+
+        // Map progress by contentItemId
+        const progressMap = new Map();
+        progressData.forEach((p: any) => {
+          if (!progressMap.has(p.contentItemId)) {
+            progressMap.set(p.contentItemId, []);
+          }
+          progressMap.get(p.contentItemId).push(p);
+        });
+
+        // Calculate analytics for each video
+        const videoAnalytics: VideoAnalytics[] = videoItems.map(video => {
+          const progress = progressMap.get(video.contentItemId) || [];
+          const totalViews = progress.length;
+          const completions = progress.filter((p: any) => p.isCompleted).length;
+          const completionRate = totalViews > 0 ? (completions / totalViews) * 100 : 0;
+          
+          const totalWatchTime = progress.reduce((sum: number, p: any) => sum + (p.watchedDuration || 0), 0);
+          const avgWatchTime = totalViews > 0 ? totalWatchTime / totalViews : 0;
+          
+          const totalCompletionPercentage = progress.reduce((sum: number, p: any) => 
+            sum + (p.completionPercentage || 0), 0);
+          const avgCompletionPercentage = totalViews > 0 ? totalCompletionPercentage / totalViews : 0;
+
+          // Engagement score: weighted combination of views, completion rate, and avg watch percentage
+          const engagementScore = totalViews > 0 
+            ? (totalViews * 0.3) + (completionRate * 0.4) + (avgCompletionPercentage * 0.3)
+            : 0;
+
+          return {
+            contentItemId: video.contentItemId,
+            lessonTitle: video.lessonTitle,
+            courseTitle: video.courseTitle,
+            videoIndex: video.videoIndex,
+            duration: video.duration,
+            totalViews,
+            completions,
+            completionRate,
+            avgWatchTime,
+            avgCompletionPercentage,
+            engagementScore
+          };
+        });
+
+        // Calculate overall stats
+        const totalVideos = videoAnalytics.length;
+        const totalViews = videoAnalytics.reduce((sum, v) => sum + v.totalViews, 0);
+        const totalCompletions = videoAnalytics.reduce((sum, v) => sum + v.completions, 0);
+        const avgCompletionRate = totalVideos > 0 
+          ? videoAnalytics.reduce((sum, v) => sum + v.completionRate, 0) / totalVideos 
+          : 0;
+        const totalWatchTimeSeconds = videoAnalytics.reduce((sum, v) => 
+          sum + (v.avgWatchTime * v.totalViews), 0);
+        const avgWatchTime = totalViews > 0 ? totalWatchTimeSeconds / totalViews : 0;
+        const totalWatchTimeHours = totalWatchTimeSeconds / 3600;
+
+        setAnalytics(videoAnalytics);
+        setOverallStats({
+          totalVideos,
+          totalViews,
+          totalCompletions,
+          avgCompletionRate,
+          avgWatchTime,
+          totalWatchTimeHours
+        });
+
       } catch (error: any) {
         console.error('Failed to fetch analytics:', error);
         setError(error.response?.data?.error || 'Failed to load video analytics');
@@ -148,301 +267,295 @@ export const VideoAnalyticsPage: React.FC = () => {
   }, [selectedCourseId]);
 
   const formatDuration = (seconds: number): string => {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
+    const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
-
-    if (hours > 0) {
-      return `${hours}h ${minutes}m ${secs}s`;
-    }
-    return `${minutes}m ${secs}s`;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  if (loading && !analytics) {
+  const formatHours = (hours: number): string => {
+    return hours.toFixed(1);
+  };
+
+  const getEngagementColor = (score: number): string => {
+    if (score >= 70) return '#4caf50';
+    if (score >= 40) return '#ff9800';
+    return '#f44336';
+  };
+
+  if (error) {
     return (
-      <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-        <Header />
-        <Container maxWidth="xl" sx={{ mt: 4, mb: 4, flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <CircularProgress />
-        </Container>
-      </Box>
+      <Container maxWidth="xl" sx={{ py: 4 }}>
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      </Container>
     );
   }
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-      <Header />
-      
-      <Container maxWidth="xl" sx={{ mt: 4, mb: 4, flex: 1 }}>
-        {/* Page Header */}
-        <Box sx={{ mb: 4 }}>
-          <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1 }}>
-            📊 Video Analytics
+    <Container maxWidth="xl" sx={{ py: 4 }}>
+      {/* Header */}
+      <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Box>
+          <Typography variant="h4" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <VideoIcon fontSize="large" color="primary" />
+            Video Analytics
           </Typography>
-          <Typography variant="body1" color="text.secondary">
-            Track video engagement, completion rates, and viewer behavior
+          <Typography variant="body2" color="text.secondary">
+            Track video engagement and completion rates across your courses
           </Typography>
         </Box>
+        
+        <FormControl sx={{ minWidth: 300 }}>
+          <InputLabel>Select Course</InputLabel>
+          <Select
+            value={selectedCourseId}
+            onChange={(e) => setSelectedCourseId(e.target.value)}
+            label="Select Course"
+            data-testid="video-analytics-course-select"
+          >
+            {courses.map((course) => (
+              <MenuItem key={course.id} value={course.id}>
+                {course.title}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      </Box>
 
-        {/* Course Selector */}
-        <Paper sx={{ p: 3, mb: 3 }}>
-          <FormControl fullWidth>
-            <InputLabel>Select Course</InputLabel>
-            <Select
-              data-testid="video-analytics-course-select"
-              value={selectedCourseId}
-              onChange={(e) => setSelectedCourseId(e.target.value)}
-              label="Select Course"
-            >
-              {courses.map((course) => (
-                <MenuItem key={course.id} value={course.id}>
-                  {course.title}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </Paper>
-
-        {error && (
-          <Alert severity="error" sx={{ mb: 3 }}>
-            {error}
-          </Alert>
-        )}
-
-        {courses.length === 0 ? (
-          <Paper sx={{ p: 6, textAlign: 'center' }}>
-            <VideoLibrary sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
-            <Typography variant="h6" color="text.secondary" gutterBottom>
-              No courses with video lessons yet
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-              Create a course and add video lessons to start tracking video analytics and viewer engagement!
-            </Typography>
-            <Button 
-              data-testid="video-analytics-go-to-dashboard"
-              variant="contained" 
-              onClick={() => window.location.href = '/instructor/dashboard'}
-            >
-              Go to Dashboard
-            </Button>
-          </Paper>
-        ) : (
-          <>
-            {!selectedCourseId && (
-              <Alert severity="info" sx={{ mb: 3 }}>
-                Please select a course to view video analytics
-              </Alert>
-            )}
-
-            {analytics && (
-          <>
-            {/* Summary Cards */}
-            <Grid container spacing={3} sx={{ mb: 3 }}>
-              <Grid item xs={12} sm={6} md={3}>
-                <Card>
-                  <CardContent>
-                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                      <VideoLibrary sx={{ mr: 1, color: 'primary.main' }} />
-                      <Typography variant="body2" color="text.secondary">
-                        Total Videos
-                      </Typography>
-                    </Box>
-                    <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
-                      {analytics.totalVideos}
+      {loading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+          <CircularProgress />
+        </Box>
+      ) : overallStats ? (
+        <>
+          {/* Overall Stats Cards */}
+          <Grid container spacing={3} sx={{ mb: 4 }}>
+            <Grid item xs={12} sm={6} md={3}>
+              <Card>
+                <CardContent>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                    <VideoIcon color="primary" sx={{ mr: 1 }} />
+                    <Typography variant="body2" color="text.secondary">
+                      Total Videos
                     </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-
-              <Grid item xs={12} sm={6} md={3}>
-                <Card>
-                  <CardContent>
-                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                      <PlayCircleOutline sx={{ mr: 1, color: 'info.main' }} />
-                      <Typography variant="body2" color="text.secondary">
-                        Total Views
-                      </Typography>
-                    </Box>
-                    <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
-                      {analytics.totalViews}
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-
-              <Grid item xs={12} sm={6} md={3}>
-                <Card>
-                  <CardContent>
-                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                      <CheckCircle sx={{ mr: 1, color: 'success.main' }} />
-                      <Typography variant="body2" color="text.secondary">
-                        Avg Completion
-                      </Typography>
-                    </Box>
-                    <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
-                      {Math.round(analytics.averageCompletionRate)}%
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-
-              <Grid item xs={12} sm={6} md={3}>
-                <Card>
-                  <CardContent>
-                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                      <Schedule sx={{ mr: 1, color: 'warning.main' }} />
-                      <Typography variant="body2" color="text.secondary">
-                        Avg Watch Time
-                      </Typography>
-                    </Box>
-                    <Typography variant="h4" sx={{ fontWeight: 'bold', fontSize: '1.5rem' }}>
-                      {formatDuration(analytics.videos.reduce((sum, v) => sum + v.averageWatchTime, 0) / analytics.videos.length || 0)}
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
+                  </Box>
+                  <Typography variant="h4">{overallStats.totalVideos}</Typography>
+                </CardContent>
+              </Card>
             </Grid>
 
-            {/* Video Performance Table */}
-            <Paper sx={{ mb: 3 }}>
-              <Box sx={{ p: 3, borderBottom: 1, borderColor: 'divider' }}>
-                <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                  Video Performance
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Detailed metrics for each video lesson
-                </Typography>
-              </Box>
+            <Grid item xs={12} sm={6} md={3}>
+              <Card>
+                <CardContent>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                    <PeopleIcon color="primary" sx={{ mr: 1 }} />
+                    <Typography variant="body2" color="text.secondary">
+                      Total Views
+                    </Typography>
+                  </Box>
+                  <Typography variant="h4">{overallStats.totalViews}</Typography>
+                </CardContent>
+              </Card>
+            </Grid>
 
+            <Grid item xs={12} sm={6} md={3}>
+              <Card>
+                <CardContent>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                    <CompleteIcon color="success" sx={{ mr: 1 }} />
+                    <Typography variant="body2" color="text.secondary">
+                      Completions
+                    </Typography>
+                  </Box>
+                  <Typography variant="h4">{overallStats.totalCompletions}</Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                    {overallStats.avgCompletionRate.toFixed(1)}% avg rate
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+
+            <Grid item xs={12} sm={6} md={3}>
+              <Card>
+                <CardContent>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                    <ScheduleIcon color="primary" sx={{ mr: 1 }} />
+                    <Typography variant="body2" color="text.secondary">
+                      Watch Time
+                    </Typography>
+                  </Box>
+                  <Typography variant="h4">{formatHours(overallStats.totalWatchTimeHours)}h</Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                    {formatDuration(overallStats.avgWatchTime)} avg
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+          </Grid>
+
+          {/* Video Analytics Table */}
+          <Paper sx={{ p: 3 }}>
+            <Typography variant="h6" gutterBottom>
+              Video Performance Details
+            </Typography>
+            
+            {analytics.length === 0 ? (
+              <Alert severity="info" sx={{ mt: 2 }}>
+                No video content found in this course. Add videos to lessons to see analytics.
+              </Alert>
+            ) : (
               <TableContainer>
                 <Table>
                   <TableHead>
                     <TableRow>
-                      <TableCell>Video Lesson</TableCell>
+                      <TableCell>Lesson</TableCell>
+                      <TableCell>Video</TableCell>
+                      <TableCell align="center">Duration</TableCell>
                       <TableCell align="center">Views</TableCell>
-                      <TableCell align="center">Unique Viewers</TableCell>
-                      <TableCell align="center">Avg Watch Time</TableCell>
+                      <TableCell align="center">Completions</TableCell>
                       <TableCell align="center">Completion Rate</TableCell>
-                      <TableCell align="center">Total Watch Time</TableCell>
+                      <TableCell align="center">Avg Watch Time</TableCell>
+                      <TableCell align="center">Engagement</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {analytics.videos.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={6} align="center">
-                          <Typography variant="body2" color="text.secondary" sx={{ py: 3 }}>
-                            No video data available yet
-                          </Typography>
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      analytics.videos.map((video) => (
-                        <TableRow key={video.videoLessonId} hover>
+                    {analytics
+                      .sort((a, b) => b.engagementScore - a.engagementScore)
+                      .map((video) => (
+                        <TableRow key={video.contentItemId} hover>
                           <TableCell>
-                            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                            <Typography variant="body2" fontWeight="medium">
                               {video.lessonTitle}
                             </Typography>
                           </TableCell>
-                          <TableCell align="center">
-                            <Chip label={video.totalViews} size="small" color="primary" />
+                          <TableCell>
+                            <Chip 
+                              label={`Video ${video.videoIndex + 1}`} 
+                              size="small" 
+                              color="primary" 
+                              variant="outlined"
+                            />
                           </TableCell>
                           <TableCell align="center">
-                            {video.uniqueViewers}
+                            <Typography variant="body2">
+                              {formatDuration(video.duration)}
+                            </Typography>
                           </TableCell>
                           <TableCell align="center">
-                            {formatDuration(video.averageWatchTime)}
+                            <Chip 
+                              label={video.totalViews} 
+                              size="small"
+                              icon={<PlayIcon />}
+                            />
                           </TableCell>
                           <TableCell align="center">
-                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
-                              <LinearProgress
-                                variant="determinate"
-                                value={video.completionRate}
-                                sx={{ width: 80, height: 8, borderRadius: 4 }}
-                                color={
-                                  video.completionRate >= 70 ? 'success' :
-                                  video.completionRate >= 40 ? 'warning' : 'error'
-                                }
-                              />
-                              <Typography variant="body2">
-                                {Math.round(video.completionRate)}%
+                            <Chip 
+                              label={video.completions} 
+                              size="small"
+                              color="success"
+                              icon={<CompleteIcon />}
+                            />
+                          </TableCell>
+                          <TableCell align="center">
+                            <Box sx={{ width: '100%', display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <Box sx={{ flexGrow: 1 }}>
+                                <LinearProgress 
+                                  variant="determinate" 
+                                  value={Math.min(video.completionRate, 100)} 
+                                  sx={{ 
+                                    height: 8, 
+                                    borderRadius: 1,
+                                    backgroundColor: '#e0e0e0',
+                                    '& .MuiLinearProgress-bar': {
+                                      backgroundColor: video.completionRate >= 70 ? '#4caf50' : 
+                                                       video.completionRate >= 40 ? '#ff9800' : '#f44336'
+                                    }
+                                  }}
+                                />
+                              </Box>
+                              <Typography variant="body2" fontWeight="medium" sx={{ minWidth: 45 }}>
+                                {video.completionRate.toFixed(0)}%
                               </Typography>
                             </Box>
                           </TableCell>
                           <TableCell align="center">
-                            {formatDuration(video.totalWatchTime)}
+                            <Typography variant="body2">
+                              {formatDuration(video.avgWatchTime)}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              {video.avgCompletionPercentage.toFixed(0)}% watched
+                            </Typography>
+                          </TableCell>
+                          <TableCell align="center">
+                            <Chip 
+                              label={video.engagementScore.toFixed(0)}
+                              size="small"
+                              sx={{ 
+                                backgroundColor: getEngagementColor(video.engagementScore),
+                                color: 'white',
+                                fontWeight: 'bold'
+                              }}
+                            />
                           </TableCell>
                         </TableRow>
-                      ))
-                    )}
+                      ))}
                   </TableBody>
                 </Table>
               </TableContainer>
-            </Paper>
-
-            {/* Event Analytics */}
-            {eventAnalytics.length > 0 && (
-              <Paper sx={{ p: 3, mb: 3 }}>
-                <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 3 }}>
-                  Viewer Interactions
-                </Typography>
-                <Grid container spacing={2}>
-                  {eventAnalytics.map((event) => (
-                    <Grid item xs={12} sm={6} md={4} key={event.eventType}>
-                      <Card variant="outlined">
-                        <CardContent>
-                          <Typography variant="body2" color="text.secondary" gutterBottom>
-                            {event.eventType.replace('_', ' ').toUpperCase()}
-                          </Typography>
-                          <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1 }}>
-                            <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
-                              {event.count}
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary">
-                              ({Math.round(event.percentage)}%)
-                            </Typography>
-                          </Box>
-                        </CardContent>
-                      </Card>
-                    </Grid>
-                  ))}
-                </Grid>
-              </Paper>
             )}
+          </Paper>
 
-            {/* Insights */}
-            <Paper sx={{ p: 3, bgcolor: 'info.light' }}>
-              <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
-                💡 Insights & Recommendations
+          {/* Insights */}
+          {analytics.length > 0 && (
+            <Paper sx={{ p: 3, mt: 3 }}>
+              <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <TrendingUpIcon color="primary" />
+                Key Insights
               </Typography>
-              <Grid container spacing={2}>
-                {analytics.averageCompletionRate < 50 && (
-                  <Grid item xs={12}>
-                    <Alert severity="warning">
-                      Low completion rate detected. Consider breaking longer videos into shorter segments or adding more engaging content.
-                    </Alert>
-                  </Grid>
-                )}
-                {analytics.totalViews === 0 && (
-                  <Grid item xs={12}>
-                    <Alert severity="info">
-                      No views yet. Promote your course to students and encourage them to start watching videos.
-                    </Alert>
-                  </Grid>
-                )}
-                {analytics.averageCompletionRate >= 70 && (
-                  <Grid item xs={12}>
-                    <Alert severity="success">
-                      Great engagement! Your videos have a high completion rate. Keep up the good work!
-                    </Alert>
-                  </Grid>
-                )}
+              <Grid container spacing={2} sx={{ mt: 1 }}>
+                {(() => {
+                  const topVideo = analytics.reduce((max, v) => 
+                    v.engagementScore > max.engagementScore ? v : max, analytics[0]);
+                  const lowVideo = analytics.reduce((min, v) => 
+                    v.engagementScore < min.engagementScore ? v : min, analytics[0]);
+                  
+                  return (
+                    <>
+                      <Grid item xs={12} md={6}>
+                        <Alert severity="success">
+                          <Typography variant="body2" fontWeight="medium">
+                            Top Performing Video
+                          </Typography>
+                          <Typography variant="body2">
+                            "{topVideo.lessonTitle}" - Video {topVideo.videoIndex + 1} has the highest engagement 
+                            with {topVideo.totalViews} views and {topVideo.completionRate.toFixed(0)}% completion rate.
+                          </Typography>
+                        </Alert>
+                      </Grid>
+                      <Grid item xs={12} md={6}>
+                        <Alert severity="warning">
+                          <Typography variant="body2" fontWeight="medium">
+                            Needs Attention
+                          </Typography>
+                          <Typography variant="body2">
+                            "{lowVideo.lessonTitle}" - Video {lowVideo.videoIndex + 1} has lower engagement 
+                            ({lowVideo.engagementScore.toFixed(0)}). Consider reviewing content or placement.
+                          </Typography>
+                        </Alert>
+                      </Grid>
+                    </>
+                  );
+                })()}
               </Grid>
             </Paper>
-          </>
-        )}
+          )}
         </>
-        )}
-      </Container>
-    </Box>
+      ) : (
+        <Alert severity="info">
+          Select a course to view video analytics
+        </Alert>
+      )}
+    </Container>
   );
 };

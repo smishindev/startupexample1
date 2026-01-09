@@ -137,8 +137,7 @@ const MyLearningPage: React.FC = () => {
       }
       
       if (response.ok) {
-        const result = await response.json();
-        console.log('Test data created:', result);
+        await response.json();
         // Reload enrollments after creating test data
         await loadEnrollments();
         setError(null);
@@ -284,7 +283,7 @@ const MyLearningPage: React.FC = () => {
                       </Avatar>
                       <Box>
                         <Typography variant="h6">
-                          {Math.round(enrollments.reduce((acc, e) => acc + (e.OverallProgress || 0), 0) / enrollments.length) || 0}%
+                          {enrollments.length > 0 ? Math.round(enrollments.reduce((acc, e) => acc + (e.OverallProgress || 0), 0) / enrollments.length) : 0}%
                         </Typography>
                         <Typography variant="body2" color="text.secondary">
                           Avg Progress

@@ -289,8 +289,8 @@ router.get('/files', authenticateToken, async (req: Request, res: Response) => {
     }
 
     query += ` ORDER BY UploadedAt DESC OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY`;
-    params.offset = parseInt(offset as string);
-    params.limit = parseInt(limit as string);
+    params.offset = parseInt(offset as string, 10) || 0;
+    params.limit = Math.min(parseInt(limit as string, 10) || 50, 100); // Cap at 100
 
     const result = await db.query(query, params);
 
@@ -359,6 +359,53 @@ router.delete('/:fileId', authenticateToken, async (req: Request, res: Response)
   } catch (error) {
     console.error('Error deleting file:', error);
     res.status(500).json({ error: 'Failed to delete file' });
+  }
+});
+
+// GET /upload/:fileId - Get file metadata by ID
+router.get('/:fileId', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const { fileId } = req.params;
+    const userId = (req as any).user.userId;
+    
+    // Get file with access check - user must be uploader OR enrolled in related course (handles both Course and Lesson associations)
+    const result = await db.query(
+      `SELECT F.Id, F.FileName, F.FilePath, F.MimeType, F.FileSize, F.FileType, F.UploadedAt 
+       FROM dbo.FileUploads F
+       -- For Course-related files
+       LEFT JOIN dbo.Courses C1 ON F.RelatedEntityType = 'Course' AND F.RelatedEntityId = C1.Id
+       LEFT JOIN dbo.Enrollments E1 ON C1.Id = E1.CourseId AND E1.UserId = @userId
+       -- For Lesson-related files (most common for videos)
+       LEFT JOIN dbo.Lessons L ON F.RelatedEntityType = 'Lesson' AND F.RelatedEntityId = L.Id
+       LEFT JOIN dbo.Courses C2 ON L.CourseId = C2.Id
+       LEFT JOIN dbo.Enrollments E2 ON C2.Id = E2.CourseId AND E2.UserId = @userId
+       WHERE F.Id = @fileId 
+       AND (
+         F.UploadedBy = @userId 
+         OR C1.InstructorId = @userId OR E1.UserId IS NOT NULL
+         OR C2.InstructorId = @userId OR E2.UserId IS NOT NULL
+       )`,
+      { fileId, userId }
+    );
+
+    if (!result.length) {
+      return res.status(404).json({ error: 'File not found or access denied' });
+    }
+
+    const file = result[0];
+    res.json({
+      id: file.Id,
+      fileName: file.FileName,
+      url: file.FilePath,
+      mimeType: file.MimeType,
+      fileSize: file.FileSize,
+      fileType: file.FileType,
+      uploadedAt: file.UploadedAt
+    });
+
+  } catch (error) {
+    console.error('Error fetching file metadata:', error);
+    res.status(500).json({ error: 'Failed to fetch file metadata' });
   }
 });
 

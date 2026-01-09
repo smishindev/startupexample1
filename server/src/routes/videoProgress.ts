@@ -8,14 +8,60 @@ import { NotificationService } from '../services/NotificationService';
 const router = Router();
 const db = DatabaseService.getInstance();
 
+// Helper function to parse contentItemId and get lesson/video data
+// ContentItemId format: {lessonId}-{type}-{uniqueId} where uniqueId is UUID suffix
+const getVideoDataFromContentItemId = async (contentItemId: string, userId: string) => {
+  const parts = contentItemId.split('-');
+  if (parts.length < 3) {
+    throw new Error('Invalid contentItemId format');
+  }
+  
+  // Extract content type (second-to-last part)
+  const contentType = parts[parts.length - 2];
+  const lessonId = parts.slice(0, -2).join('-');
+  
+  // Get lesson data with access verification
+  const lessonData = await db.query(`
+    SELECT L.Id, L.Title, L.ContentJson, L.CourseId
+    FROM dbo.Lessons L
+    INNER JOIN dbo.Courses C ON L.CourseId = C.Id
+    LEFT JOIN dbo.Enrollments E ON E.CourseId = C.Id AND E.UserId = @userId
+    WHERE L.Id = @lessonId
+    AND (C.InstructorId = @userId OR E.UserId IS NOT NULL)
+  `, { lessonId, userId });
+  
+  if (!lessonData.length) {
+    throw new Error('Lesson not found or access denied');
+  }
+  
+  const content = JSON.parse(lessonData[0].ContentJson || '[]');
+  const contentItem = content.find((item: any) => item.id === contentItemId);
+  
+  if (!contentItem) {
+    throw new Error(`Content item not found in lesson: ${contentItemId}`);
+  }
+  
+  // For non-video content, duration might not exist
+  const duration = contentItem.data?.duration || 0;
+  
+  return {
+    lessonId,
+    lessonTitle: lessonData[0].Title,
+    courseId: lessonData[0].CourseId,
+    videoDuration: duration,
+    videoUrl: contentItem.data?.url || contentItem.url || '',
+    contentItemId,
+    contentType: contentItem.type
+  };
+};
+
 // POST /api/video-progress/:videoLessonId/update - Update video watch progress
+// Note: Route param is named videoLessonId for backward compatibility, but it's actually contentItemId format
 router.post('/:videoLessonId/update', authenticateToken, async (req: Request, res: Response) => {
   try {
-    const { videoLessonId } = req.params;
+    const contentItemId = req.params.videoLessonId; // Route param named videoLessonId for backward compatibility
     const { lastPosition, watchedDuration, playbackSpeed } = req.body;
     const userId = (req as any).user.userId;
-
-    console.log('Updating video progress:', { videoLessonId, lastPosition, watchedDuration });
 
     // Validate required fields
     if (lastPosition === undefined) {
@@ -24,25 +70,14 @@ router.post('/:videoLessonId/update', authenticateToken, async (req: Request, re
       });
     }
 
-    // Verify video lesson exists and user has access
-    const videoCheck = await db.query(`
-      SELECT VL.Id, VL.Duration, L.CourseId
-      FROM dbo.VideoLessons VL
-      INNER JOIN dbo.Lessons L ON VL.LessonId = L.Id
-      INNER JOIN dbo.Courses C ON L.CourseId = C.Id
-      LEFT JOIN dbo.Enrollments E ON E.CourseId = C.Id AND E.UserId = @userId
-      WHERE VL.Id = @videoLessonId
-      AND (C.InstructorId = @userId OR E.UserId IS NOT NULL)
-    `, { videoLessonId, userId });
+    // Use contentItemId format: {lessonId}-{type}-{index}
+    
+    let videoDuration = 0;
 
-    if (!videoCheck.length) {
-      return res.status(404).json({ 
-        error: 'Video lesson not found or you do not have access' 
-      });
-    }
-
-    const video = videoCheck[0];
-    const videoDuration = video.Duration || 0;
+    // Get video data from contentItemId
+    const videoData = await getVideoDataFromContentItemId(contentItemId, userId);
+    videoDuration = videoData.videoDuration;
+    console.log(`[VIDEO-PROGRESS] Using contentItemId: ${contentItemId}`);
     
     // Calculate completion percentage
     const completionPercentage = videoDuration > 0 
@@ -52,15 +87,15 @@ router.post('/:videoLessonId/update', authenticateToken, async (req: Request, re
     // Mark as completed if watched >= 90% of the video
     const isCompleted = completionPercentage >= 90;
 
-    // Check if progress record exists
+    // Check if progress record exists using ContentItemId
     const existingProgress = await db.query(
-      'SELECT Id FROM dbo.VideoProgress WHERE UserId = @userId AND VideoLessonId = @videoLessonId',
-      { userId, videoLessonId }
+      'SELECT Id FROM dbo.VideoProgress WHERE UserId = @userId AND ContentItemId = @contentItemId',
+      { userId, contentItemId }
     );
 
     const request = await db.getRequest();
     request.input('userId', sql.UniqueIdentifier, userId);
-    request.input('videoLessonId', sql.UniqueIdentifier, videoLessonId);
+    request.input('contentItemId', sql.NVarChar(100), contentItemId);
     request.input('lastPosition', sql.Int, lastPosition);
     request.input('watchedDuration', sql.Int, watchedDuration || lastPosition);
     request.input('completionPercentage', sql.Decimal(5, 2), completionPercentage);
@@ -79,7 +114,10 @@ router.post('/:videoLessonId/update', authenticateToken, async (req: Request, re
           END,
           LastPosition = @lastPosition,
           CompletionPercentage = @completionPercentage,
-          IsCompleted = @isCompleted,
+          IsCompleted = CASE 
+            WHEN IsCompleted = 1 THEN 1 
+            ELSE @isCompleted 
+          END,
           PlaybackSpeed = @playbackSpeed,
           LastWatchedAt = @lastWatchedAt,
           CompletedAt = CASE 
@@ -87,7 +125,7 @@ router.post('/:videoLessonId/update', authenticateToken, async (req: Request, re
             ELSE CompletedAt 
           END,
           UpdatedAt = GETUTCDATE()
-        WHERE UserId = @userId AND VideoLessonId = @videoLessonId
+        WHERE UserId = @userId AND ContentItemId = @contentItemId
       `;
       await request.query(updateQuery);
     } else {
@@ -98,10 +136,10 @@ router.post('/:videoLessonId/update', authenticateToken, async (req: Request, re
       try {
         const insertQuery = `
           INSERT INTO dbo.VideoProgress 
-          (Id, UserId, VideoLessonId, WatchedDuration, LastPosition, CompletionPercentage, 
+          (Id, UserId, ContentItemId, WatchedDuration, LastPosition, CompletionPercentage, 
            IsCompleted, PlaybackSpeed, LastWatchedAt, CompletedAt, CreatedAt, UpdatedAt)
           VALUES 
-          (@id, @userId, @videoLessonId, @watchedDuration, @lastPosition, @completionPercentage,
+          (@id, @userId, @contentItemId, @watchedDuration, @lastPosition, @completionPercentage,
            @isCompleted, @playbackSpeed, @lastWatchedAt, @completedAt, GETUTCDATE(), GETUTCDATE())
         `;
         await request.query(insertQuery);
@@ -117,8 +155,12 @@ router.post('/:videoLessonId/update', authenticateToken, async (req: Request, re
                 ELSE WatchedDuration 
               END,
               LastPosition = @lastPosition,
+              ContentItemId = @contentItemId,
               CompletionPercentage = @completionPercentage,
-              IsCompleted = @isCompleted,
+              IsCompleted = CASE 
+                WHEN IsCompleted = 1 THEN 1 
+                ELSE @isCompleted 
+              END,
               PlaybackSpeed = @playbackSpeed,
               LastWatchedAt = @lastWatchedAt,
               CompletedAt = CASE 
@@ -126,7 +168,7 @@ router.post('/:videoLessonId/update', authenticateToken, async (req: Request, re
                 ELSE CompletedAt 
               END,
               UpdatedAt = GETUTCDATE()
-            WHERE UserId = @userId AND VideoLessonId = @videoLessonId
+            WHERE UserId = @userId AND ContentItemId = @contentItemId
           `;
           await request.query(updateQuery);
         } else {
@@ -134,27 +176,6 @@ router.post('/:videoLessonId/update', authenticateToken, async (req: Request, re
         }
       }
     }
-
-    // Track analytics event
-    const sessionId = req.headers['x-session-id'] || uuidv4();
-    const analyticsRequest = await db.getRequest();
-    analyticsRequest.input('id', sql.UniqueIdentifier, uuidv4());
-    analyticsRequest.input('videoLessonId', sql.UniqueIdentifier, videoLessonId);
-    analyticsRequest.input('userId', sql.UniqueIdentifier, userId);
-    analyticsRequest.input('sessionId', sql.UniqueIdentifier, sessionId);
-    analyticsRequest.input('eventType', sql.NVarChar(20), 'seek');
-    analyticsRequest.input('timestamp', sql.Int, lastPosition);
-    analyticsRequest.input('eventData', sql.NVarChar(sql.MAX), JSON.stringify({ 
-      completionPercentage,
-      playbackSpeed 
-    }));
-
-    await analyticsRequest.query(`
-      INSERT INTO dbo.VideoAnalytics 
-      (Id, VideoLessonId, UserId, SessionId, EventType, Timestamp, EventData, CreatedAt)
-      VALUES 
-      (@id, @videoLessonId, @userId, @sessionId, @eventType, @timestamp, @eventData, GETUTCDATE())
-    `);
 
     res.json({
       success: true,
@@ -175,38 +196,24 @@ router.post('/:videoLessonId/update', authenticateToken, async (req: Request, re
   }
 });
 
-// GET /api/video-progress/:videoLessonId - Get user's progress for a video
+// GET /api/video-progress/:contentItemId - Get user's progress for a video/content item
 router.get('/:videoLessonId', authenticateToken, async (req: Request, res: Response) => {
   try {
-    const { videoLessonId } = req.params;
+    const contentItemId = req.params.videoLessonId; // Route param named videoLessonId for backward compatibility
     const userId = (req as any).user.userId;
 
-    // Verify access to video lesson
-    const accessCheck = await db.query(`
-      SELECT 1 as HasAccess
-      FROM dbo.VideoLessons VL
-      INNER JOIN dbo.Lessons L ON VL.LessonId = L.Id
-      INNER JOIN dbo.Courses C ON L.CourseId = C.Id
-      LEFT JOIN dbo.Enrollments E ON E.CourseId = C.Id AND E.UserId = @userId
-      WHERE VL.Id = @videoLessonId
-      AND (C.InstructorId = @userId OR E.UserId IS NOT NULL)
-    `, { videoLessonId, userId });
-
-    if (!accessCheck.length) {
-      return res.status(403).json({ 
-        error: 'You do not have access to this video' 
-      });
-    }
+    // Verify access via contentItemId (parse lessonId from it)
+    const videoData = await getVideoDataFromContentItemId(contentItemId, userId);
 
     // Get progress
     const result = await db.query(`
       SELECT 
-        Id, UserId, VideoLessonId, WatchedDuration, LastPosition, 
+        Id, UserId, ContentItemId, WatchedDuration, LastPosition, 
         CompletionPercentage, IsCompleted, PlaybackSpeed, 
         LastWatchedAt, CompletedAt, CreatedAt, UpdatedAt
       FROM dbo.VideoProgress
-      WHERE UserId = @userId AND VideoLessonId = @videoLessonId
-    `, { userId, videoLessonId });
+      WHERE UserId = @userId AND ContentItemId = @contentItemId
+    `, { userId, contentItemId });
 
     if (!result.length) {
       // No progress yet - return default values
@@ -243,123 +250,120 @@ router.get('/:videoLessonId', authenticateToken, async (req: Request, res: Respo
   }
 });
 
-// POST /api/video-progress/:videoLessonId/complete - Mark video as completed
+// POST /api/video-progress/:contentItemId/complete - Mark video as completed
 router.post('/:videoLessonId/complete', authenticateToken, async (req: Request, res: Response) => {
   try {
-    const { videoLessonId } = req.params;
+    const contentItemId = req.params.videoLessonId; // Route param named videoLessonId for backward compatibility
     const userId = (req as any).user.userId;
 
-    // Verify access and get video details
-    const videoCheck = await db.query(`
-      SELECT VL.Id, VL.Duration, VL.LessonId,
-             L.Title as LessonTitle, L.CourseId, C.Title as CourseTitle
-      FROM dbo.VideoLessons VL
-      INNER JOIN dbo.Lessons L ON VL.LessonId = L.Id
-      INNER JOIN dbo.Courses C ON L.CourseId = C.Id
-      LEFT JOIN dbo.Enrollments E ON E.CourseId = C.Id AND E.UserId = @userId
-      WHERE VL.Id = @videoLessonId
-      AND (C.InstructorId = @userId OR E.UserId IS NOT NULL)
-    `, { videoLessonId, userId });
+    let videoDuration = 0;
+    let lessonId = '';
+    let lessonTitle = '';
+    let courseId = '';
 
-    if (!videoCheck.length) {
-      return res.status(404).json({ 
-        error: 'Video lesson not found or you do not have access' 
-      });
-    }
-
-    const video = videoCheck[0];
-    const videoDuration = video.Duration || 0;
-
-    // Check if video was already completed (to prevent duplicate notifications)
-    const existingProgress = await db.query(`
-      SELECT IsCompleted FROM dbo.VideoProgress 
-      WHERE UserId = @userId AND VideoLessonId = @videoLessonId
-    `, { userId, videoLessonId });
-
-    const wasAlreadyCompleted = existingProgress.length > 0 && existingProgress[0].IsCompleted;
-
+    // Get video data from contentItemId
+    const videoData = await getVideoDataFromContentItemId(contentItemId, userId);
+    videoDuration = videoData.videoDuration;
+    lessonId = videoData.lessonId;
+    lessonTitle = videoData.lessonTitle;
+    courseId = videoData.courseId;
+      
     // Update or create progress record marking as completed
     const request = await db.getRequest();
     request.input('userId', sql.UniqueIdentifier, userId);
-    request.input('videoLessonId', sql.UniqueIdentifier, videoLessonId);
+    request.input('contentItemId', sql.NVarChar(100), contentItemId);
     request.input('duration', sql.Int, videoDuration);
     request.input('completedAt', sql.DateTime2, new Date());
 
-    // Use MERGE to update or insert
-    await request.query(`
+    // Use MERGE to handle insert or update, and OUTPUT to detect if it was already completed
+    const result = await request.query(`
+      DECLARE @WasAlreadyCompleted BIT;
+      
       MERGE INTO dbo.VideoProgress AS target
-      USING (SELECT @userId as UserId, @videoLessonId as VideoLessonId) AS source
-      ON (target.UserId = source.UserId AND target.VideoLessonId = source.VideoLessonId)
+      USING (SELECT @userId as UserId, @contentItemId as ContentItemId) AS source
+      ON (target.UserId = source.UserId AND target.ContentItemId = source.ContentItemId)
       WHEN MATCHED THEN
         UPDATE SET 
+          @WasAlreadyCompleted = IsCompleted,
           IsCompleted = 1,
           CompletionPercentage = 100.00,
           CompletedAt = CASE WHEN CompletedAt IS NULL THEN @completedAt ELSE CompletedAt END,
           UpdatedAt = GETUTCDATE()
       WHEN NOT MATCHED THEN
-        INSERT (Id, UserId, VideoLessonId, WatchedDuration, LastPosition, 
+        INSERT (Id, UserId, ContentItemId, WatchedDuration, LastPosition, 
                 CompletionPercentage, IsCompleted, PlaybackSpeed, 
                 LastWatchedAt, CompletedAt, CreatedAt, UpdatedAt)
-        VALUES (NEWID(), @userId, @videoLessonId, @duration, @duration,
+        VALUES (NEWID(), @userId, @contentItemId, @duration, @duration,
                 100.00, 1, 1.00, @completedAt, @completedAt, GETUTCDATE(), GETUTCDATE());
+      
+      SELECT ISNULL(@WasAlreadyCompleted, 0) as WasAlreadyCompleted;
     `);
 
-    // Track completion event in analytics
-    const sessionId = req.headers['x-session-id'] || uuidv4();
-    const analyticsRequest = await db.getRequest();
-    analyticsRequest.input('id', sql.UniqueIdentifier, uuidv4());
-    analyticsRequest.input('videoLessonId', sql.UniqueIdentifier, videoLessonId);
-    analyticsRequest.input('userId', sql.UniqueIdentifier, userId);
-    analyticsRequest.input('sessionId', sql.UniqueIdentifier, sessionId);
-    analyticsRequest.input('eventType', sql.NVarChar(20), 'complete');
-    analyticsRequest.input('timestamp', sql.Int, videoDuration);
-    analyticsRequest.input('eventData', sql.NVarChar(sql.MAX), JSON.stringify({ 
-      completedAt: new Date().toISOString()
-    }));
+    const wasAlreadyCompleted = result.recordset && result.recordset[0]?.WasAlreadyCompleted === 1;
 
-    await analyticsRequest.query(`
-      INSERT INTO dbo.VideoAnalytics 
-      (Id, VideoLessonId, UserId, SessionId, EventType, Timestamp, EventData, CreatedAt)
-      VALUES 
-      (@id, @videoLessonId, @userId, @sessionId, @eventType, @timestamp, @eventData, GETUTCDATE())
-    `);
-
-    // Get video details for notification
-    const lessonTitle = video.LessonTitle || 'lesson';
-    const courseTitle = video.CourseTitle || 'course';
-    const courseId = video.CourseId;
-    const lessonId = video.LessonId;
     const durationMinutes = Math.round(videoDuration / 60);
 
-    // Only send notification if this is the first time completing the video
+    // Only send notification if this is the first time completing the content
     if (!wasAlreadyCompleted) {
+      // Determine content type from contentItemId format: {lessonId}-{type}-{index}
+      const contentType = contentItemId.split('-').slice(-2, -1)[0] || 'video'; // Extract type from ID
+      
       // Get io instance and create notification service
       const io = req.app.get('io');
       const notificationService = new NotificationService(io);
 
-      // Notify student of video completion
+      // Send appropriate notification based on content type
       try {
+        let notificationData;
+        
+        if (contentType === 'video') {
+          notificationData = {
+            title: 'Video Completed!',
+            message: `You finished watching the video in "${lessonTitle}". Duration: ${durationMinutes} minutes`,
+            subcategory: 'VideoCompletion'
+          };
+        } else if (contentType === 'text') {
+          notificationData = {
+            title: 'Content Completed!',
+            message: `You finished reading the content in "${lessonTitle}".`,
+            subcategory: 'LessonCompletion'
+          };
+        } else if (contentType === 'quiz') {
+          notificationData = {
+            title: 'Quiz Completed!',
+            message: `You completed the quiz in "${lessonTitle}".`,
+            subcategory: 'LessonCompletion'
+          };
+        } else {
+          // Fallback for unknown types
+          notificationData = {
+            title: 'Content Completed!',
+            message: `You completed content in "${lessonTitle}".`,
+            subcategory: 'LessonCompletion'
+          };
+        }
+
         await notificationService.createNotificationWithControls(
           {
             userId: userId!,
             type: 'progress',
             priority: 'low',
-            title: 'Video Completed!',
-            message: `You finished watching the video in "${lessonTitle}". Duration: ${durationMinutes} minutes`,
+            title: notificationData.title,
+            message: notificationData.message,
             actionUrl: `/courses/${courseId}/lessons/${lessonId}`,
             actionText: 'Continue to Next Lesson'
           },
           {
             category: 'progress',
-            subcategory: 'VideoCompletion'
+            subcategory: notificationData.subcategory
           }
         );
-        console.log(`✅ Video completion notification sent to user ${userId}`);
+        console.log(`✅ ${contentType} completion notification sent to user ${userId}`);
       } catch (notifError) {
-        console.error('⚠️ Failed to send video completion notification:', notifError);
+        console.error('⚠️ Failed to send content completion notification:', notifError);
       }
     } else {
-      console.log(`ℹ️ Video already completed, skipping duplicate notification for user ${userId}`);
+      console.log(`ℹ️ Content already completed, skipping duplicate notification for user ${userId}`);
     }
 
     res.json({
@@ -373,63 +377,62 @@ router.post('/:videoLessonId/complete', authenticateToken, async (req: Request, 
   }
 });
 
-// POST /api/video-progress/:videoLessonId/event - Track video playback event
-router.post('/:videoLessonId/event', authenticateToken, async (req: Request, res: Response) => {
+// GET /api/video-progress/lesson/:lessonId - Get all content progress for a lesson
+router.get('/lesson/:lessonId', authenticateToken, async (req: Request, res: Response) => {
   try {
-    const { videoLessonId } = req.params;
-    const { eventType, timestamp, eventData } = req.body;
+    const { lessonId } = req.params;
     const userId = (req as any).user.userId;
 
-    // Validate event type
-    const validEvents = ['play', 'pause', 'seek', 'complete', 'speed_change', 'quality_change'];
-    if (!validEvents.includes(eventType)) {
-      return res.status(400).json({ 
-        error: `Invalid event type. Must be one of: ${validEvents.join(', ')}` 
+    // Verify access to lesson
+    const accessCheck = await db.query(`
+      SELECT 1 as HasAccess
+      FROM dbo.Lessons L
+      INNER JOIN dbo.Courses C ON L.CourseId = C.Id
+      LEFT JOIN dbo.Enrollments E ON E.CourseId = C.Id AND E.UserId = @userId
+      WHERE L.Id = @lessonId
+      AND (C.InstructorId = @userId OR E.UserId IS NOT NULL)
+    `, { lessonId, userId });
+
+    if (!accessCheck.length) {
+      return res.status(403).json({ 
+        error: 'You do not have access to this lesson' 
       });
     }
 
-    // Verify access
-    const accessCheck = await db.query(`
-      SELECT 1 as HasAccess
-      FROM dbo.VideoLessons VL
-      INNER JOIN dbo.Lessons L ON VL.LessonId = L.Id
-      INNER JOIN dbo.Courses C ON L.CourseId = C.Id
-      LEFT JOIN dbo.Enrollments E ON E.CourseId = C.Id AND E.UserId = @userId
-      WHERE VL.Id = @videoLessonId
-      AND (C.InstructorId = @userId OR E.UserId IS NOT NULL)
-    `, { videoLessonId, userId });
+    // Get video progress for all content items in this lesson (using ContentItemId)
+    const result = await db.query(`
+      SELECT 
+        ContentItemId, WatchedDuration, LastPosition, 
+        CompletionPercentage, IsCompleted, LastWatchedAt, CompletedAt
+      FROM dbo.VideoProgress
+      WHERE UserId = @userId 
+      AND ContentItemId LIKE @lessonPrefix
+    `, { 
+      userId, 
+      lessonId,
+      lessonPrefix: `${lessonId}-%`
+    });
 
-    if (!accessCheck.length) {
-      return res.status(403).json({ error: 'Access denied' });
-    }
+    const progress = result.map((row: any) => ({
+      contentItemId: row.ContentItemId,
+      lastPosition: row.LastPosition || 0,
+      watchedDuration: row.WatchedDuration || 0,
+      completionPercentage: row.CompletionPercentage ? parseFloat(row.CompletionPercentage) : 0,
+      isCompleted: row.IsCompleted || false,
+      lastWatchedAt: row.LastWatchedAt,
+      completedAt: row.CompletedAt,
+      totalDuration: 0 // Will be enriched by frontend if needed
+    }));
 
-    // Track event
-    const sessionId = req.headers['x-session-id'] || uuidv4();
-    const request = await db.getRequest();
-    request.input('id', sql.UniqueIdentifier, uuidv4());
-    request.input('videoLessonId', sql.UniqueIdentifier, videoLessonId);
-    request.input('userId', sql.UniqueIdentifier, userId);
-    request.input('sessionId', sql.UniqueIdentifier, sessionId);
-    request.input('eventType', sql.NVarChar(20), eventType);
-    request.input('timestamp', sql.Int, timestamp || 0);
-    request.input('eventData', sql.NVarChar(sql.MAX), eventData ? JSON.stringify(eventData) : null);
-
-    await request.query(`
-      INSERT INTO dbo.VideoAnalytics 
-      (Id, VideoLessonId, UserId, SessionId, EventType, Timestamp, EventData, CreatedAt)
-      VALUES 
-      (@id, @videoLessonId, @userId, @sessionId, @eventType, @timestamp, @eventData, GETUTCDATE())
-    `);
-
-    res.json({ success: true });
+    res.json({ progress });
 
   } catch (error) {
-    console.error('Error tracking video event:', error);
-    res.status(500).json({ error: 'Failed to track event' });
+    console.error('Error fetching lesson content progress:', error);
+    res.status(500).json({ error: 'Failed to fetch progress' });
   }
 });
 
-// GET /api/video-progress/course/:courseId - Get user's progress for all videos in a course
+// GET /api/video-progress/course/:courseId - Get user's progress for all content items in a course
 router.get('/course/:courseId', authenticateToken, async (req: Request, res: Response) => {
   try {
     const { courseId } = req.params;
@@ -448,42 +451,85 @@ router.get('/course/:courseId', authenticateToken, async (req: Request, res: Res
       return res.status(403).json({ error: 'Access denied' });
     }
 
-    // Get all video progress for the course
-    const result = await db.query(`
+    // Get all lessons for the course with their ContentJson
+    const lessons = await db.query(`
       SELECT 
-        VL.Id as VideoLessonId,
-        VL.LessonId,
-        VL.Duration as VideoDuration,
+        L.Id as LessonId,
         L.Title as LessonTitle,
-        VP.LastPosition,
-        VP.WatchedDuration,
-        VP.CompletionPercentage,
-        VP.IsCompleted,
-        VP.LastWatchedAt
-      FROM dbo.VideoLessons VL
-      INNER JOIN dbo.Lessons L ON VL.LessonId = L.Id
-      LEFT JOIN dbo.VideoProgress VP ON VP.VideoLessonId = VL.Id AND VP.UserId = @userId
+        L.ContentJson,
+        L.OrderIndex
+      FROM dbo.Lessons L
       WHERE L.CourseId = @courseId
       ORDER BY L.OrderIndex
-    `, { courseId, userId });
+    `, { courseId });
 
-    const progress = result.map((row: any) => ({
-      videoLessonId: row.VideoLessonId,
-      lessonId: row.LessonId,
-      lessonTitle: row.LessonTitle,
-      videoDuration: row.VideoDuration,
-      lastPosition: row.LastPosition || 0,
-      watchedDuration: row.WatchedDuration || 0,
-      completionPercentage: row.CompletionPercentage ? parseFloat(row.CompletionPercentage) : 0,
-      isCompleted: row.IsCompleted || false,
-      lastWatchedAt: row.LastWatchedAt
-    }));
+    // Get all progress for content items in these lessons
+    const lessonIds = lessons.map((l: any) => l.LessonId);
+    if (lessonIds.length === 0) {
+      return res.json({ progress: [] });
+    }
 
+    // Build contentItemId pattern for all lessons (lessonId-%)
+    const progressResult = await db.query(`
+      SELECT 
+        ContentItemId,
+        LastPosition,
+        WatchedDuration,
+        CompletionPercentage,
+        IsCompleted,
+        LastWatchedAt,
+        CompletedAt
+      FROM dbo.VideoProgress
+      WHERE UserId = @userId
+      AND (${lessonIds.map((_: any, idx: number) => `ContentItemId LIKE @lessonPrefix${idx}`).join(' OR ')})
+    `, lessonIds.reduce((params: any, id: string, idx: number) => {
+      params[`lessonPrefix${idx}`] = `${id}-%`;
+      return params;
+    }, { userId }));
+
+    // Map progress by contentItemId
+    const progressMap: any = {};
+    progressResult.forEach((row: any) => {
+      progressMap[row.ContentItemId] = {
+        lastPosition: row.LastPosition || 0,
+        watchedDuration: row.WatchedDuration || 0,
+        completionPercentage: row.CompletionPercentage ? parseFloat(row.CompletionPercentage) : 0,
+        isCompleted: row.IsCompleted || false,
+        lastWatchedAt: row.LastWatchedAt,
+        completedAt: row.CompletedAt
+      };
+    });
+
+    // Build response with lesson info and progress
+    const progress = lessons.flatMap((lesson: any) => {
+      try {
+        const content = lesson.ContentJson ? JSON.parse(lesson.ContentJson) : [];
+        return content
+          .filter((item: any) => item.type === 'video') // Only videos for this endpoint
+          .map((item: any) => ({
+            contentItemId: item.id,
+            lessonId: lesson.LessonId,
+            lessonTitle: lesson.LessonTitle,
+            videoDuration: item.data?.duration || 0,
+            ...progressMap[item.id] || {
+              lastPosition: 0,
+              watchedDuration: 0,
+              completionPercentage: 0,
+              isCompleted: false,
+              lastWatchedAt: null,
+              completedAt: null
+            }
+          }));
+      } catch (e) {
+        console.error(`Failed to parse ContentJson for lesson ${lesson.LessonId}`, e);
+        return [];
+      }
+    });
     res.json({ progress });
 
   } catch (error) {
     console.error('Error fetching course video progress:', error);
-    res.status(500).json({ error: 'Failed to fetch progress' });
+    res.status(500).json({ error: 'Failed to fetch video progress' });
   }
 });
 

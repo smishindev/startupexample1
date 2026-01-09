@@ -215,7 +215,7 @@ export const CourseDetailPage: React.FC = () => {
             avatar: courseData.Instructor.Avatar || '',
             bio: '',
             rating: 0,
-            studentCount: 0,
+            studentCount: courseData.InstructorStudentCount || 0,
           },
           thumbnail: courseData.Thumbnail || '',
           duration: `${Math.floor(courseData.Duration / 60)}h ${courseData.Duration % 60}m`,

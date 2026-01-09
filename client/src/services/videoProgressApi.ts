@@ -18,14 +18,14 @@ const getAuthToken = (): string | null => {
 };
 
 export interface VideoProgressUpdate {
-  videoLessonId: string;
+  contentItemId: string; // Format: {lessonId}-video-{index}
   currentPosition: number;
   duration: number;
   watchedPercentage?: number;
 }
 
 export interface VideoProgressResponse {
-  videoLessonId: string;
+  contentItemId: string; // Format: {lessonId}-video-{index}
   userId: string;
   currentPosition: number;
   duration: number;
@@ -34,14 +34,8 @@ export interface VideoProgressResponse {
   lastWatched: string;
 }
 
-export interface VideoAnalyticsEvent {
-  eventType: 'play' | 'pause' | 'seek' | 'complete' | 'speed_change' | 'quality_change';
-  timestamp: number;
-  data?: Record<string, any>;
-}
-
 export interface CourseVideoProgress {
-  videoLessonId: string;
+  contentItemId: string; // Format: {lessonId}-video-{index}
   lessonTitle: string;
   currentPosition: number;
   duration: number;
@@ -52,14 +46,15 @@ export interface CourseVideoProgress {
 
 /**
  * Update video progress (auto-save every 5 seconds)
+ * @param contentItemId - Format: {lessonId}-video-{index}
  */
 export const updateVideoProgress = async (
-  videoLessonId: string,
+  contentItemId: string,
   currentPosition: number
 ): Promise<VideoProgressResponse> => {
   const token = getAuthToken();
   const response = await axios.post(
-    `${API_URL}/api/video-progress/${videoLessonId}/update`,
+    `${API_URL}/api/video-progress/${contentItemId}/update`,
     { 
       lastPosition: Math.floor(currentPosition),
       watchedDuration: Math.floor(currentPosition),
@@ -76,13 +71,14 @@ export const updateVideoProgress = async (
 
 /**
  * Get current video progress for a user
+ * @param contentItemId - Format: {lessonId}-video-{index}
  */
 export const getVideoProgress = async (
-  videoLessonId: string
+  contentItemId: string
 ): Promise<VideoProgressResponse | null> => {
   const token = getAuthToken();
   const response = await axios.get(
-    `${API_URL}/api/video-progress/${videoLessonId}`,
+    `${API_URL}/api/video-progress/${contentItemId}`,
     {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -94,13 +90,14 @@ export const getVideoProgress = async (
 
 /**
  * Mark video as completed (automatically happens at 90% or can be called manually)
+ * @param contentItemId - Format: {lessonId}-video-{index}
  */
 export const markVideoComplete = async (
-  videoLessonId: string
+  contentItemId: string
 ): Promise<VideoProgressResponse> => {
   const token = getAuthToken();
   const response = await axios.post(
-    `${API_URL}/api/video-progress/${videoLessonId}/complete`,
+    `${API_URL}/api/video-progress/${contentItemId}/complete`,
     {},
     {
       headers: {
@@ -109,25 +106,6 @@ export const markVideoComplete = async (
     }
   );
   return response.data;
-};
-
-/**
- * Track analytics events (play, pause, seek, speed change, etc.)
- */
-export const trackVideoEvent = async (
-  videoLessonId: string,
-  event: VideoAnalyticsEvent
-): Promise<void> => {
-  const token = getAuthToken();
-  await axios.post(
-    `${API_URL}/api/video-progress/${videoLessonId}/event`,
-    event,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
-  );
 };
 
 /**

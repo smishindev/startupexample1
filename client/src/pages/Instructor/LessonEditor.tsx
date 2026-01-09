@@ -180,15 +180,19 @@ export const LessonEditor: React.FC<LessonEditorProps> = ({
   const addContent = (type: 'video' | 'text' | 'quiz') => {
     let newContent: LessonContent;
     
+    // Generate temporary client-side ID for React keys (will be replaced by backend)
+    const tempId = `temp-${type}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    
     switch (type) {
       case 'video':
-        newContent = createVideoContent('');
+        newContent = { ...createVideoContent(''), id: tempId };
         break;
       case 'text':
-        newContent = createTextContent('<p>Enter your content here...</p>');
+        newContent = { ...createTextContent('<p>Enter your content here...</p>'), id: tempId };
         break;
       case 'quiz':
         newContent = {
+          id: tempId,
           type: 'quiz',
           data: {
             questions: [],
@@ -232,11 +236,23 @@ export const LessonEditor: React.FC<LessonEditorProps> = ({
   };
 
   const handleFileUploaded = (index: number, file: UploadedFile) => {
-    updateContent(index, { 
-      url: file.url,
-      fileId: file.id,
-      fileName: file.originalName
-    });
+    // Store complete file information in data object
+    // Do NOT set fileId at top level - it causes confusion
+    setContent(prev => prev.map((item, i) => 
+      i === index 
+        ? { 
+            ...item,
+            data: { 
+              ...item.data, 
+              url: file.url,
+              fileName: file.originalName,
+              fileId: file.id, // Store fileId in data for reference
+              mimeType: file.mimetype,
+              fileSize: file.size
+            } 
+          } 
+        : item
+    ));
   };
 
   const toggleUploadMode = (index: number) => {
@@ -324,7 +340,7 @@ export const LessonEditor: React.FC<LessonEditorProps> = ({
             Content will be displayed to students in this order. Use the arrow buttons to reorder.
           </Typography>
           {content.map((item, index) => (
-            <Accordion key={index} sx={{ mb: 1 }}>
+            <Accordion key={item.id || `fallback-${index}`} sx={{ mb: 1 }}>
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                 <Box sx={{ display: 'flex', alignItems: 'center', flexGrow: 1 }}>
                   <DragIcon sx={{ mr: 1, color: 'text.secondary' }} />

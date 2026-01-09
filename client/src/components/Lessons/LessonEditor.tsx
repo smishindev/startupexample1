@@ -80,7 +80,7 @@ export const LessonEditor: React.FC<LessonEditorProps> = ({
     
     try {
       setLoading(true);
-      const loadedLesson = await lessonApi.getLesson(lessonId);
+      const loadedLesson = await lessonApi.getLesson(lessonId!);
       // Ensure all fields have proper defaults
       setLesson({
         ...loadedLesson,
@@ -125,7 +125,7 @@ export const LessonEditor: React.FC<LessonEditorProps> = ({
       
       if (useFileUpload && selectedVideoFile) {
         const videoContent: LessonContent = {
-          id: existingVideoIndex >= 0 ? lessonData.content[existingVideoIndex].id : undefined,
+          id: existingVideoIndex >= 0 ? lessonData.content[existingVideoIndex].id : '',
           type: 'video',
           fileId: selectedVideoFile.id,
           orderIndex: existingVideoIndex >= 0 ? lessonData.content[existingVideoIndex].orderIndex : 0
@@ -138,7 +138,7 @@ export const LessonEditor: React.FC<LessonEditorProps> = ({
         }
       } else if (!useFileUpload && videoUrl.trim()) {
         const videoContent: LessonContent = {
-          id: existingVideoIndex >= 0 ? lessonData.content[existingVideoIndex].id : undefined,
+          id: existingVideoIndex >= 0 ? lessonData.content[existingVideoIndex].id : '',
           type: 'video',
           url: videoUrl.trim(),
           orderIndex: existingVideoIndex >= 0 ? lessonData.content[existingVideoIndex].orderIndex : 0

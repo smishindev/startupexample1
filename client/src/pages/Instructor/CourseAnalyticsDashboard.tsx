@@ -571,7 +571,7 @@ const CourseView: React.FC<{
                 <ListItem key={index} divider={index < recentActivity.length - 1}>
                   <ListItemAvatar>
                     <Avatar>
-                      {activity.FirstName[0]}{activity.LastName[0]}
+                      {activity.FirstName?.[0]?.toUpperCase() || ''}{activity.LastName?.[0]?.toUpperCase() || ''}
                     </Avatar>
                   </ListItemAvatar>
                   <ListItemText

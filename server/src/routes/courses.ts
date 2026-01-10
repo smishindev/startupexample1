@@ -57,7 +57,7 @@ router.get('/', async (req: any, res: any) => {
         c.Duration,
         c.Price,
         c.Rating,
-        c.EnrollmentCount,
+        (SELECT COUNT(*) FROM Enrollments e WHERE e.CourseId = c.Id AND e.Status IN ('active', 'completed')) as EnrollmentCount,
         c.Tags,
         c.CreatedAt,
         c.UpdatedAt,
@@ -138,11 +138,11 @@ router.get('/:id', async (req: any, res: any) => {
         u.LastName as InstructorLastName,
         u.Avatar as InstructorAvatar,
         u.Email as InstructorEmail,
-        (SELECT COUNT(*) FROM Enrollments e WHERE e.CourseId = c.Id AND e.Status = 'active') as ActiveEnrollmentCount,
+        (SELECT COUNT(*) FROM Enrollments e WHERE e.CourseId = c.Id AND e.Status IN ('active', 'completed')) as ActiveEnrollmentCount,
         (SELECT COUNT(DISTINCT e2.UserId) 
          FROM Enrollments e2 
          INNER JOIN Courses c2 ON e2.CourseId = c2.Id 
-         WHERE c2.InstructorId = c.InstructorId AND e2.Status = 'active') as InstructorStudentCount
+         WHERE c2.InstructorId = c.InstructorId AND e2.Status IN ('active', 'completed')) as InstructorStudentCount
       FROM Courses c
       INNER JOIN Users u ON c.InstructorId = u.Id
       WHERE c.Id = @id AND c.IsPublished = 1
@@ -157,8 +157,10 @@ router.get('/:id', async (req: any, res: any) => {
     const course = result[0];
     
     console.log('Course enrollment data:', {
+      CourseId: course.Id,
       ActiveEnrollmentCount: course.ActiveEnrollmentCount,
-      InstructorStudentCount: course.InstructorStudentCount
+      InstructorStudentCount: course.InstructorStudentCount,
+      StaticEnrollmentCount: course.EnrollmentCount
     });
 
     // Get lessons for this course

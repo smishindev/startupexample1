@@ -253,37 +253,41 @@ router.post('/courses', authenticateToken, authorize(['instructor', 'admin']), a
           const lessonId = uuidv4();
           const now = new Date().toISOString();
           
-          // Prepare lesson content based on type
+          // Handle lesson content - support both new array format and legacy single-content format
           let lessonContent: any[] = [];
           
-          if (lesson.type === 'video') {
-            if (lesson.useFileUpload && lesson.videoFile) {
-              // Use uploaded file
+          if (lesson.content && Array.isArray(lesson.content)) {
+            // New format: content is already an array of {type, data} objects
+            lessonContent = lesson.content;
+          } else if (lesson.type) {
+            // Legacy format: single content item with type/videoUrl/content fields
+            if (lesson.type === 'video') {
+              if (lesson.useFileUpload && lesson.videoFile) {
+                lessonContent = [{
+                  type: 'video',
+                  data: {
+                    fileId: lesson.videoFile.id,
+                    url: lesson.videoFile.url,
+                    originalName: lesson.videoFile.originalName,
+                    mimeType: lesson.videoFile.mimeType
+                  }
+                }];
+              } else if (lesson.videoUrl) {
+                lessonContent = [{
+                  type: 'video',
+                  data: {
+                    url: lesson.videoUrl
+                  }
+                }];
+              }
+            } else if (lesson.type === 'text' && lesson.content) {
               lessonContent = [{
-                type: 'video',
+                type: 'text',
                 data: {
-                  fileId: lesson.videoFile.id,
-                  url: lesson.videoFile.url,
-                  originalName: lesson.videoFile.originalName,
-                  mimeType: lesson.videoFile.mimeType
-                }
-              }];
-            } else if (lesson.videoUrl) {
-              // Use video URL
-              lessonContent = [{
-                type: 'video',
-                data: {
-                  url: lesson.videoUrl
+                  content: lesson.content
                 }
               }];
             }
-          } else if (lesson.type === 'text' && lesson.content) {
-            lessonContent = [{
-              type: 'text',
-              data: {
-                content: lesson.content
-              }
-            }];
           }
 
           // Add content IDs (format: {lessonId}-{type}-{index})

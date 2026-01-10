@@ -90,8 +90,8 @@ Comprehensive automated tests for notification settings functionality with full 
    
    # Edit tests\.env.test with actual values
    # Default credentials from QUICK_REFERENCE.md:
-   # - student1@gmail.com / Aa123456
-   # - ins1@gmail.com / Aa123456
+   # - s.mishin.dev+student1@gmail.com / Aa123456
+   # - s.mishin.dev+ins1@gmail.com / Aa123456
    ```
 
 3. **Activate Python environment:**

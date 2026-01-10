@@ -450,7 +450,7 @@ async function testQuietHours() {
   
   // Login as student
   const loginRes = await axios.post(`${API_URL}/auth/login`, {
-    email: 'student1@gmail.com',
+    email: 's.mishin.dev+student1@gmail.com',
     password: 'Aa123456'
   });
   
@@ -508,7 +508,7 @@ async function testTypeFiltering() {
   console.log('\n🧪 Testing Notification Type Filtering\n');
   
   const loginRes = await axios.post(`${API_URL}/auth/login`, {
-    email: 'student2@gmail.com',
+    email: 's.mishin.dev+student2@gmail.com',
     password: 'Aa123456'
   });
   
@@ -560,7 +560,7 @@ async function testTypeFiltering() {
 ```
 
 #### 2.3 Manual Testing (10 min)
-1. Login as student1@gmail.com
+1. Login as s.mishin.dev+student1@gmail.com
 2. Navigate to Profile → Preferences tab
 3. Set quiet hours: Current time to 1 hour from now
 4. Have instructor create a course update / assignment

@@ -14,9 +14,9 @@ cp tests\.env.test.example tests\.env.test
 ```
 
 The example file already has the correct credentials:
-- `STUDENT_EMAIL=student1@gmail.com`
+- `STUDENT_EMAIL=s.mishin.dev+student1@gmail.com`
 - `STUDENT_PASSWORD=Aa123456`
-- `INSTRUCTOR_EMAIL=ins1@gmail.com`
+- `INSTRUCTOR_EMAIL=s.mishin.dev+ins1@gmail.com`
 - `INSTRUCTOR_PASSWORD=Aa123456`
 
 ### Step 3: Activate Python environment (Terminal 2)

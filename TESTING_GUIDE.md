@@ -72,14 +72,14 @@ From `QUICK_REFERENCE.md`:
 
 **Student Account:**
 ```
-Email: student1@gmail.com
+Email: s.mishin.dev+student1@gmail.com
 Password: Aa123456
 Role: Student
 ```
 
 **Instructor Account:**
 ```
-Email: ins1@gmail.com
+Email: s.mishin.dev+ins1@gmail.com
 Password: Aa123456
 Role: Instructor
 ```
@@ -122,7 +122,7 @@ The selector map includes:
 page.goto(f"{base_url}/login")
 
 # Form fields (using test IDs)
-page.fill('[data-testid="login-email-input"]', 'student1@gmail.com')
+page.fill('[data-testid="login-email-input"]', 's.mishin.dev+student1@gmail.com')
 page.fill('[data-testid="login-password-input"]', 'Aa123456')
 
 # Optional: Check remember me
@@ -191,7 +191,7 @@ def test_login(page: Page, base_url: str):
     page.wait_for_load_state("networkidle")
     
     # Fill credentials
-    page.fill('#email', "student1@gmail.com")
+    page.fill('#email', "s.mishin.dev+student1@gmail.com")
     page.fill('#password', "Aa123456")
     
     # Submit
@@ -347,7 +347,7 @@ class TestAuthentication:
         page.wait_for_selector('#email', state='visible')
         
         # Fill in student credentials
-        page.fill('#email', "student1@gmail.com")
+        page.fill('#email', "s.mishin.dev+student1@gmail.com")
         page.fill('#password', "Aa123456")
         
         # Submit login form

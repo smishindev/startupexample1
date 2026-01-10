@@ -53,14 +53,14 @@ npm run dev
 ```
 
 ### 2. Test as Instructor
-1. Login as instructor (ins1@gmail.com / password123)
+1. Login as instructor (s.mishin.dev+ins1@gmail.com / Aa123456)
 2. Navigate to `http://localhost:5173/office-hours`
 3. Create a schedule (e.g., Monday 2-4 PM)
 4. Switch to "Current Queue" tab
 5. Wait for students to join
 
 ### 3. Test as Student
-1. Login as student (student1@gmail.com / password123)
+1. Login as student (s.mishin.dev+student1@gmail.com / Aa123456)
 2. Navigate to `http://localhost:5173/office-hours`
 3. Select an instructor from dropdown
 4. View their schedule

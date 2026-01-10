@@ -74,7 +74,7 @@ Creates authenticated HTTP session for **student** user:
 session, auth_token, user_id = api_client
 ```
 - **Scope**: Function (new session per test)
-- **User**: student1@gmail.com
+- **User**: s.mishin.dev+student1@gmail.com
 - **Returns**: (requests.Session, token_string, user_id_string)
 
 ### `api_client_instructor` Fixture
@@ -83,7 +83,7 @@ Creates authenticated HTTP session for **instructor** user:
 session, auth_token, user_id = api_client_instructor
 ```
 - **Scope**: Function
-- **User**: ins1@gmail.com
+- **User**: s.mishin.dev+ins1@gmail.com
 - **Returns**: (requests.Session, token_string, user_id_string)
 
 ### Using the Session
@@ -252,11 +252,11 @@ Required in `tests/.env.test`:
 API_BASE_URL=http://localhost:3001
 
 # Student credentials
-STUDENT_EMAIL=student1@gmail.com
+STUDENT_EMAIL=s.mishin.dev+student1@gmail.com
 STUDENT_PASSWORD=Aa123456
 
 # Instructor credentials  
-INSTRUCTOR_EMAIL=ins1@gmail.com
+INSTRUCTOR_EMAIL=s.mishin.dev+ins1@gmail.com
 INSTRUCTOR_PASSWORD=Aa123456
 
 # Browser

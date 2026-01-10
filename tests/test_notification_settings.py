@@ -747,7 +747,7 @@ class TestNotificationSettingsWithAPI:
         """
         # Login as instructor and enable progress notifications
         page.goto(f"{base_url}/login")
-        page.fill('[data-testid="login-email-input"]', "ins1@gmail.com")
+        page.fill('[data-testid="login-email-input"]', "s.mishin.dev+ins1@gmail.com")
         page.fill('[data-testid="login-password-input"]', "Aa123456")
         page.click('[data-testid="login-submit-button"]')
         page.wait_for_url(re.compile(r".*/dashboard.*"))
@@ -792,7 +792,7 @@ class TestNotificationSettingsWithAPI:
         """
         # Login as instructor and enable settings
         page.goto(f"{base_url}/login")
-        page.fill('[data-testid="login-email-input"]', "ins1@gmail.com")
+        page.fill('[data-testid="login-email-input"]', "s.mishin.dev+ins1@gmail.com")
         page.fill('[data-testid="login-password-input"]', "Aa123456")
         page.click('[data-testid="login-submit-button"]')
         page.wait_for_url(re.compile(r".*/dashboard.*"))
@@ -833,7 +833,7 @@ class TestNotificationSettingsWithAPI:
         """
         # Login as instructor
         page.goto(f"{base_url}/login")
-        page.fill('[data-testid="login-email-input"]', "ins1@gmail.com")
+        page.fill('[data-testid="login-email-input"]', "s.mishin.dev+ins1@gmail.com")
         page.fill('[data-testid="login-password-input"]', "Aa123456")
         page.click('[data-testid="login-submit-button"]')
         page.wait_for_url(re.compile(r".*/dashboard.*"))
@@ -878,7 +878,7 @@ class TestNotificationSettingsWithAPI:
         """
         # Login as instructor
         page.goto(f"{base_url}/login")
-        page.fill('[data-testid="login-email-input"]', "ins1@gmail.com")
+        page.fill('[data-testid="login-email-input"]', "s.mishin.dev+ins1@gmail.com")
         page.fill('[data-testid="login-password-input"]', "Aa123456")
         page.click('[data-testid="login-submit-button"]')
         page.wait_for_url(re.compile(r".*/dashboard.*"))
@@ -932,7 +932,7 @@ class TestNotificationSettingsWithAPI:
         course_id = enrolled['courseId']
         
         # Setup student1: Enable live session notifications
-        switch_user("student1@gmail.com", "Aa123456")
+        switch_user("s.mishin.dev+student1@gmail.com", "Aa123456")
         page.goto(f"{base_url}/settings/notifications")
         page.wait_for_load_state("networkidle")
         
@@ -949,13 +949,13 @@ class TestNotificationSettingsWithAPI:
         page.wait_for_selector('[data-testid="notifications-settings-success-message"]', timeout=5000)
         
         # Instructor creates live session
-        switch_user("ins1@gmail.com", "Aa123456")
+        switch_user("s.mishin.dev+ins1@gmail.com", "Aa123456")
         session_id = create_live_session(course_id, "Multi-Student Test Session")
         
         page.wait_for_timeout(3000)
         
         # Switch back to student1 and verify notification
-        switch_user("student1@gmail.com", "Aa123456")
+        switch_user("s.mishin.dev+student1@gmail.com", "Aa123456")
         page.goto(f"{base_url}/dashboard")
         
         page.wait_for_timeout(1000)
@@ -976,14 +976,14 @@ class TestNotificationSettingsWithAPI:
         # Create a live session in a course (using course ID that student might not be in)
         # Note: This test assumes student1 is not enrolled in all courses
         
-        switch_user("ins1@gmail.com", "Aa123456")
+        switch_user("s.mishin.dev+ins1@gmail.com", "Aa123456")
         
         # Use a specific course ID or create a new course
         # For testing, we'll use a test course ID
         test_course_id = "test-course-no-enrollment"
         
         # Get initial notification count for a different student
-        switch_user("student1@gmail.com", "Aa123456")
+        switch_user("s.mishin.dev+student1@gmail.com", "Aa123456")
         page.goto(f"{base_url}/dashboard")
         page.wait_for_load_state("networkidle")
         
@@ -991,7 +991,7 @@ class TestNotificationSettingsWithAPI:
         initial_count = int(badge.inner_text()) if badge.is_visible() and badge.inner_text() else 0
         
         # Create live session as instructor
-        switch_user("ins1@gmail.com", "Aa123456")
+        switch_user("s.mishin.dev+ins1@gmail.com", "Aa123456")
         # Note: This may fail if course doesn't exist, which is expected for this edge case test
         try:
             create_live_session(test_course_id, "Not Enrolled Test Session")
@@ -1001,7 +1001,7 @@ class TestNotificationSettingsWithAPI:
         page.wait_for_timeout(2000)
         
         # Verify student didn't receive notification
-        switch_user("student1@gmail.com", "Aa123456")
+        switch_user("s.mishin.dev+student1@gmail.com", "Aa123456")
         page.goto(f"{base_url}/dashboard")
         page.wait_for_timeout(1000)
         
@@ -1022,7 +1022,7 @@ class TestNotificationSettingsWithAPI:
         """
         # Login as student
         page.goto(f"{base_url}/login")
-        page.fill('[data-testid="login-email-input"]', "student1@gmail.com")
+        page.fill('[data-testid="login-email-input"]', "s.mishin.dev+student1@gmail.com")
         page.fill('[data-testid="login-password-input"]', "Aa123456")
         page.click('[data-testid="login-submit-button"]')
         page.wait_for_url(re.compile(r".*/dashboard.*"))
@@ -1075,7 +1075,7 @@ class TestNotificationSettingsWithAPI:
         """
         # Login as student
         page.goto(f"{base_url}/login")
-        page.fill('[data-testid="login-email-input"]', "student1@gmail.com")
+        page.fill('[data-testid="login-email-input"]', "s.mishin.dev+student1@gmail.com")
         page.fill('[data-testid="login-password-input"]', "Aa123456")
         page.click('[data-testid="login-submit-button"]')
         page.wait_for_url(re.compile(r".*/dashboard.*"))
@@ -1119,7 +1119,7 @@ class TestNotificationSettingsWithAPI:
         """
         # Login as student
         page.goto(f"{base_url}/login")
-        page.fill('[data-testid="login-email-input"]', "student1@gmail.com")
+        page.fill('[data-testid="login-email-input"]', "s.mishin.dev+student1@gmail.com")
         page.fill('[data-testid="login-password-input"]', "Aa123456")
         page.click('[data-testid="login-submit-button"]')
         page.wait_for_url(re.compile(r".*/dashboard.*"))
@@ -1173,7 +1173,7 @@ class TestNotificationSettingsWithAPI:
         """
         # Login as student
         page.goto(f"{base_url}/login")
-        page.fill('[data-testid="login-email-input"]', "student1@gmail.com")
+        page.fill('[data-testid="login-email-input"]', "s.mishin.dev+student1@gmail.com")
         page.fill('[data-testid="login-password-input"]', "Aa123456")
         page.click('[data-testid="login-submit-button"]')
         page.wait_for_url(re.compile(r".*/dashboard.*"))
@@ -1218,7 +1218,7 @@ class TestNotificationSettingsWithAPI:
         """
         # Login as student
         page.goto(f"{base_url}/login")
-        page.fill('[data-testid="login-email-input"]', "student1@gmail.com")
+        page.fill('[data-testid="login-email-input"]', "s.mishin.dev+student1@gmail.com")
         page.fill('[data-testid="login-password-input"]', "Aa123456")
         page.click('[data-testid="login-submit-button"]')
         page.wait_for_url(re.compile(r".*/dashboard.*"))
@@ -1283,7 +1283,7 @@ class TestNotificationSettingsWithAPI:
         """
         # Login as student
         page.goto(f"{base_url}/login")
-        page.fill('[data-testid="login-email-input"]', "student1@gmail.com")
+        page.fill('[data-testid="login-email-input"]', "s.mishin.dev+student1@gmail.com")
         page.fill('[data-testid="login-password-input"]', "Aa123456")
         page.click('[data-testid="login-submit-button"]')
         page.wait_for_url(re.compile(r".*/dashboard.*"))
@@ -1330,7 +1330,7 @@ class TestNotificationSettingsWithAPI:
         """
         # Login as student
         page.goto(f"{base_url}/login")
-        page.fill('[data-testid="login-email-input"]', "student1@gmail.com")
+        page.fill('[data-testid="login-email-input"]', "s.mishin.dev+student1@gmail.com")
         page.fill('[data-testid="login-password-input"]', "Aa123456")
         page.click('[data-testid="login-submit-button"]')
         page.wait_for_url(re.compile(r".*/dashboard.*"))
@@ -1377,7 +1377,7 @@ class TestNotificationSettingsWithAPI:
         """
         # Login as student
         page.goto(f"{base_url}/login")
-        page.fill('[data-testid="login-email-input"]', "student1@gmail.com")
+        page.fill('[data-testid="login-email-input"]', "s.mishin.dev+student1@gmail.com")
         page.fill('[data-testid="login-password-input"]', "Aa123456")
         page.click('[data-testid="login-submit-button"]')
         page.wait_for_url(re.compile(r".*/dashboard.*"))
@@ -1424,7 +1424,7 @@ class TestNotificationSettingsWithAPI:
         """
         # Login as student
         page.goto(f"{base_url}/login")
-        page.fill('[data-testid="login-email-input"]', "student1@gmail.com")
+        page.fill('[data-testid="login-email-input"]', "s.mishin.dev+student1@gmail.com")
         page.fill('[data-testid="login-password-input"]', "Aa123456")
         page.click('[data-testid="login-submit-button"]')
         page.wait_for_url(re.compile(r".*/dashboard.*"))
@@ -1473,7 +1473,7 @@ class TestNotificationSettingsWithAPI:
         """
         # Login as student
         page.goto(f"{base_url}/login")
-        page.fill('[data-testid="login-email-input"]', "student1@gmail.com")
+        page.fill('[data-testid="login-email-input"]', "s.mishin.dev+student1@gmail.com")
         page.fill('[data-testid="login-password-input"]', "Aa123456")
         page.click('[data-testid="login-submit-button"]')
         page.wait_for_url(re.compile(r".*/dashboard.*"))

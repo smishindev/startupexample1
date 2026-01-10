@@ -805,7 +805,7 @@ Automated digest sending with node-cron:
    ```sql
    UPDATE NotificationPreferences 
    SET EnableEmailNotifications = 1, EmailDigestFrequency = 'realtime'
-   WHERE UserId = (SELECT Id FROM Users WHERE Email = 'student1@gmail.com')
+   WHERE UserId = (SELECT Id FROM Users WHERE Email = 's.mishin.dev+student1@gmail.com')
    ```
 2. Send test notification via API
 3. Check email inbox immediately
@@ -815,12 +815,12 @@ Automated digest sending with node-cron:
    ```sql
    UPDATE NotificationPreferences 
    SET EnableEmailNotifications = 1, EmailDigestFrequency = 'daily'
-   WHERE UserId = (SELECT Id FROM Users WHERE Email = 'student1@gmail.com')
+   WHERE UserId = (SELECT Id FROM Users WHERE Email = 's.mishin.dev+student1@gmail.com')
    ```
 2. Send multiple test notifications throughout the day
 3. Check EmailDigests table:
    ```sql
-   SELECT * FROM EmailDigests WHERE UserId = (SELECT Id FROM Users WHERE Email = 'student1@gmail.com')
+   SELECT * FROM EmailDigests WHERE UserId = (SELECT Id FROM Users WHERE Email = 's.mishin.dev+student1@gmail.com')
    ```
 4. Wait for next 8 AM OR manually trigger:
    ```typescript
@@ -3011,8 +3011,8 @@ const days = Math.floor((now.getTime() - purchaseDate.getTime()) / (1000*60*60*2
 - ✅ **Role-Based Auth Testing**: Student restrictions working (403 on instructor-only endpoints)
 
 **Testing Results (100% Pass Rate):**
-- ✅ Student Account (student1@gmail.com): All accessible endpoints working
-- ✅ Instructor Account (ins1@gmail.com): All endpoints including instructor-only working
+- ✅ Student Account (s.mishin.dev+student1@gmail.com): All accessible endpoints working
+- ✅ Instructor Account (s.mishin.dev+ins1@gmail.com): All endpoints including instructor-only working
 - ✅ Presence API: 2 users tracked (student1 + ins1)
 - ✅ Study Groups: 2 groups created (1 by student, 1 by instructor)
 - ✅ Live Sessions: 1 session created by instructor (status: scheduled, capacity: 50)

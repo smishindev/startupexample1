@@ -8,21 +8,21 @@
 
 **Instructor Account:**
 ```
-Email: ins1@gmail.com
+Email: s.mishin.dev+ins1@gmail.com
 Password: Aa123456
 Role: Instructor
 ```
 
 **Student Account 1:**
 ```
-Email: student1@gmail.com
+Email: s.mishin.dev+student1@gmail.com
 Password: Aa123456
 Role: Student
 ```
 
 **Student Account 2:**
 ```
-Email: student2@gmail.com
+Email: s.mishin.dev+student2@gmail.com
 Password: Aa123456
 Role: Student
 ```

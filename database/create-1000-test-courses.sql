@@ -1,6 +1,6 @@
 -- ============================================================
 -- Create 1000 Test Courses with Enrollments and Payments
--- For testing purposes with student1@gmail.com
+-- For testing purposes with s.mishin.dev+student1@gmail.com
 -- ============================================================
 
 USE [startUp1]
@@ -18,32 +18,32 @@ DECLARE @InvoiceNumber NVARCHAR(50);
 -- Find the student user ID
 SELECT @StudentId = Id 
 FROM dbo.Users 
-WHERE Email = 'student1@gmail.com';
+WHERE Email = 's.mishin.dev+student1@gmail.com';
 
 -- Check if student exists
 IF @StudentId IS NULL
 BEGIN
-    PRINT '❌ ERROR: Student with email student1@gmail.com not found!';
+    PRINT '❌ ERROR: Student with email s.mishin.dev+student1@gmail.com not found!';
     PRINT 'Please create this user first before running this script.';
     RETURN;
 END
 
-PRINT '✅ Found student: student1@gmail.com (ID: ' + CAST(@StudentId AS NVARCHAR(50)) + ')';
+PRINT '✅ Found student: s.mishin.dev+student1@gmail.com (ID: ' + CAST(@StudentId AS NVARCHAR(50)) + ')';
 
 -- Find the instructor user ID
 SELECT @InstructorId = Id 
 FROM dbo.Users 
-WHERE Email = 'ins1@gmail.com';
+WHERE Email = 's.mishin.dev+ins1@gmail.com';
 
 -- Check if instructor exists
 IF @InstructorId IS NULL
 BEGIN
-    PRINT '❌ ERROR: Instructor with email ins1@gmail.com not found!';
+    PRINT '❌ ERROR: Instructor with email s.mishin.dev+ins1@gmail.com not found!';
     PRINT 'Please create this user first before running this script.';
     RETURN;
 END
 
-PRINT '✅ Found instructor: ins1@gmail.com (ID: ' + CAST(@InstructorId AS NVARCHAR(50)) + ')';
+PRINT '✅ Found instructor: s.mishin.dev+ins1@gmail.com (ID: ' + CAST(@InstructorId AS NVARCHAR(50)) + ')';
 PRINT '';
 PRINT '🚀 Starting to create 1000 test courses with enrollments and payments...';
 PRINT '';
@@ -201,7 +201,7 @@ BEGIN TRY
             CAST((29.99 + (@Counter % 200)) * 1.10 AS DECIMAL(10,2)), -- Total with tax
             'USD',
             'Test Student One',
-            'student1@gmail.com',
+            's.mishin.dev+student1@gmail.com',
             '{"street": "123 Test St", "city": "Test City", "state": "TC", "zip": "12345", "country": "USA"}',
             10.00, -- 10% tax rate
             NULL,
@@ -283,13 +283,13 @@ BEGIN TRY
     PRINT '🎉 SUCCESS! Created 1000 test courses with:';
     PRINT '   - 1000 Courses (all published)';
     PRINT '   - 2000 Lessons (2 text lessons per course)';
-    PRINT '   - 1000 Enrollments (for student1@gmail.com)';
+    PRINT '   - 1000 Enrollments (for s.mishin.dev+student1@gmail.com)';
     PRINT '   - 1000 Transactions (all completed)';
     PRINT '   - 1000 Invoices (all generated)';
     PRINT '';
     PRINT '📊 Summary:';
-    PRINT '   Instructor: ins1@gmail.com (ID: ' + CAST(@InstructorId AS NVARCHAR(50)) + ')';
-    PRINT '   Student: student1@gmail.com (ID: ' + CAST(@StudentId AS NVARCHAR(50)) + ')';
+    PRINT '   Instructor: s.mishin.dev+ins1@gmail.com (ID: ' + CAST(@InstructorId AS NVARCHAR(50)) + ')';
+    PRINT '   Student: s.mishin.dev+student1@gmail.com (ID: ' + CAST(@StudentId AS NVARCHAR(50)) + ')';
     PRINT '   All courses are published and paid for';
     PRINT '   Invoice numbers: INV-TEST-00001 to INV-TEST-01000';
     PRINT '';
@@ -328,14 +328,14 @@ SELECT
     COUNT(*) AS Count
 FROM dbo.Enrollments e
 INNER JOIN dbo.Users u ON e.UserId = u.Id
-WHERE u.Email = 'student1@gmail.com'
+WHERE u.Email = 's.mishin.dev+student1@gmail.com'
 UNION ALL
 SELECT 
     'Completed Transactions' AS Metric,
     COUNT(*) AS Count
 FROM dbo.Transactions t
 INNER JOIN dbo.Users u ON t.UserId = u.Id
-WHERE u.Email = 'student1@gmail.com' AND t.Status = 'completed'
+WHERE u.Email = 's.mishin.dev+student1@gmail.com' AND t.Status = 'completed'
 UNION ALL
 SELECT 
     'Generated Invoices' AS Metric,

@@ -25,7 +25,7 @@ class TestAuthentication:
         page.wait_for_selector('[data-testid="login-email-input"]', state='visible')
         
         # Fill in student credentials from QUICK_REFERENCE.md (using test IDs)
-        page.fill('[data-testid="login-email-input"]', "student1@gmail.com")
+        page.fill('[data-testid="login-email-input"]', "s.mishin.dev+student1@gmail.com")
         page.fill('[data-testid="login-password-input"]', "Aa123456")
         
         # Submit login form (using test ID)

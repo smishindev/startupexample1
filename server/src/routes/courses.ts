@@ -254,7 +254,7 @@ router.get('/meta/categories', async (req: any, res: any) => {
           CourseId,
           COUNT(*) as EnrollmentCount
         FROM Enrollments 
-        WHERE Status = 'active'
+        WHERE Status IN ('active', 'completed')
         GROUP BY CourseId
       ) e ON c.Id = e.CourseId
       WHERE c.IsPublished = 1
@@ -289,7 +289,7 @@ router.get('/meta/levels', async (req: any, res: any) => {
           CourseId,
           COUNT(*) as EnrollmentCount
         FROM Enrollments 
-        WHERE Status = 'active'
+        WHERE Status IN ('active', 'completed')
         GROUP BY CourseId
       ) e ON c.Id = e.CourseId
       WHERE c.IsPublished = 1
@@ -316,7 +316,7 @@ router.get('/meta/stats', async (req: any, res: any) => {
       SELECT 
         COUNT(*) as TotalCourses,
         COUNT(CASE WHEN c.Price = 0 THEN 1 END) as FreeCourses,
-        ISNULL((SELECT COUNT(DISTINCT UserId) FROM Enrollments WHERE Status = 'active'), 0) as TotalStudents,
+        ISNULL((SELECT COUNT(DISTINCT UserId) FROM Enrollments WHERE Status IN ('active', 'completed')), 0) as TotalStudents,
         COUNT(DISTINCT c.Category) as TotalCategories
       FROM Courses c
       WHERE c.IsPublished = 1

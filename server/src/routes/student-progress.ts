@@ -24,7 +24,7 @@ router.get('/analytics/me', authenticateToken, async (req: AuthRequest, res) => 
         SUM(CAST(cp.TimeSpent as FLOAT)) / 60.0 as totalTimeSpent
       FROM Enrollments e
       LEFT JOIN CourseProgress cp ON e.CourseId = cp.CourseId AND e.UserId = cp.UserId
-      WHERE e.UserId = @userId AND e.Status = 'active'
+      WHERE e.UserId = @userId AND e.Status IN ('active', 'completed')
     `;
 
     const basicProgress = await dbService.query(basicProgressQuery, { userId });
@@ -49,7 +49,7 @@ router.get('/analytics/me', authenticateToken, async (req: AuthRequest, res) => 
       JOIN Lessons l ON a.LessonId = l.Id
       JOIN Courses c ON l.CourseId = c.Id
       JOIN Enrollments e ON c.Id = e.CourseId
-      WHERE e.UserId = @userId AND e.Status = 'active'
+      WHERE e.UserId = @userId AND e.Status IN ('active', 'completed')
         AND asub.CompletedAt >= DATEADD(day, -90, GETDATE())
         AND asub.CompletedAt IS NOT NULL
     `;
@@ -430,7 +430,7 @@ router.get('/peer-comparison/:courseId', authenticateToken, async (req: AuthRequ
         COUNT(*) as totalPeers
       FROM CourseProgress cp
       JOIN Enrollments e ON cp.UserId = e.UserId AND cp.CourseId = e.CourseId
-      WHERE cp.CourseId = @courseId AND e.Status = 'active' AND cp.UserId != @userId
+      WHERE cp.CourseId = @courseId AND e.Status IN ('active', 'completed') AND cp.UserId != @userId
     `;
 
     const peerStats = await dbService.query(peerStatsQuery, { userId, courseId });
@@ -448,7 +448,7 @@ router.get('/peer-comparison/:courseId', authenticateToken, async (req: AuthRequ
       FROM CourseProgress cp
       JOIN Enrollments e ON cp.UserId = e.UserId AND cp.CourseId = e.CourseId
       WHERE cp.CourseId = @courseId 
-        AND e.Status = 'active' 
+        AND e.Status IN ('active', 'completed') 
         AND cp.UserId != @userId 
         AND cp.OverallProgress < @userProgress
     `;

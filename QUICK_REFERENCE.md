@@ -67,17 +67,19 @@ Role: Student
   - **UI**: 5 expandable accordion sections, professional MUI design (734 lines)
   - **Persistence**: All 64 settings save to database and persist across sessions
 
-**Privacy Settings Testing (Dec 18, 2025):**
+**Privacy Settings Testing (Dec 18, 2025, Verified Jan 10, 2026):**
 - Navigate to Settings page (`/settings`)
 - Test privacy controls:
-  - **Profile Visibility**: Public / Students Only / Private
-  - **Show Email**: Toggle to hide/show email in lists
-  - **Show Progress**: Toggle to hide/show learning progress
-  - **Allow Messages**: Toggle to enable/disable messaging (ready for chat)
+  - **Profile Visibility**: Public / Students Only / Private ✅ WORKING
+  - **Show Email**: Toggle to hide/show email in lists ✅ WORKING
+  - **Show Progress**: Toggle to hide/show learning progress ✅ WORKING
+  - **Allow Messages**: Toggle to enable/disable messaging ⚠️ NOT ENFORCED (chat disabled)
 - Test privacy enforcement:
-  - Student Management: Instructors see all emails (override)
-  - Course Detail: "Email not public" for hidden emails
-  - Progress viewing: 403 error for hidden progress
+  - Student Management: Instructors see all emails (override) ✅
+  - Course Detail: "Email not public" for hidden emails ✅
+  - Progress viewing: 403 error for hidden progress ✅
+  - Email filtering: 7 endpoints enforce ShowEmail ✅
+- Appearance Settings (theme/language/fontSize): ⚠️ STORED ONLY, not yet applied to UI
 - Run automated tests: `node test-privacy-settings.js` (93% pass rate)
 
 **Use these accounts for:**

@@ -31,7 +31,7 @@ router.get('/stats', authenticateToken, async (req: Request, res: Response) => {
       .query(`
         SELECT COUNT(DISTINCT CourseId) as TotalCourses
         FROM Enrollments
-        WHERE UserId = @userId AND Status = 'active'
+        WHERE UserId = @userId AND Status IN ('active', 'completed')
       `);
 
     const totalCourses = enrollmentResult.recordset[0]?.TotalCourses || 0;

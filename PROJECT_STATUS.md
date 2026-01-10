@@ -1693,6 +1693,7 @@ All endpoints now filter emails based on ShowEmail setting:
 - Fix: Removed privacy filtering from /api/students endpoint
 - Reasoning: Endpoint already filtered by InstructorId, only returns instructor's own students
 - Result: Instructors now always see emails in Student Management page ✅
+- **Verified Working**: Jan 10, 2026 - Instructor override correctly shows all student emails regardless of ShowEmail setting
 
 **Bug #2: Course Price Showing for Enrolled Students**
 - Files: `client/src/pages/Courses/CourseDetail.tsx`, `client/src/pages/Course/CourseDetailPage.tsx`
@@ -2146,12 +2147,13 @@ const days = Math.floor((now.getTime() - purchaseDate.getTime()) / (1000*60*60*2
    - Direct messages permission toggle
    - Save privacy settings button
 
-2. **Appearance Settings** ✅
-   - Theme selector (Light, Dark, Auto/System)
-   - Language selector (English, Español, Français, Deutsch, 中文)
-   - Font size selector (Small, Medium, Large)
-   - "Coming Soon" badge (persistence pending)
-   - Save appearance settings button
+2. **Appearance Settings** ⚠️ UI ONLY - Not Yet Applied
+   - Theme selector (Light, Dark, Auto/System) - saves to DB but doesn't change UI
+   - Language selector (English, Español, Français, Deutsch, 中文) - saves to DB but doesn't translate
+   - Font size selector (Small, Medium, Large) - saves to DB but doesn't scale fonts
+   - Settings persist correctly in database
+   - Save appearance settings button functional
+   - **Status**: Backend storage ✅ | Frontend application ❌ (Jan 10, 2026)
 
 3. **Data Management** ✅
    - Export personal data button
@@ -2189,19 +2191,24 @@ const days = Math.floor((now.getTime() - purchaseDate.getTime()) / (1000*60*60*2
 - ✅ POST /api/settings/export-data - Request data export (placeholder)
 - ✅ POST /api/settings/delete-account - Delete account (placeholder)
 
+**Verified Implementation Status (Jan 10, 2026):**
+- ✅ **Privacy Settings** - ALL WORKING:
+  - ✅ Profile Visibility - Enforced in profile.ts via canViewProfile()
+  - ✅ Show Email - Enforced in 7 endpoints (users, presence, studyGroups, officeHours, analytics, instructor)
+  - ✅ Show Progress - Enforced in profile.ts via canViewProgress()
+  - ⚠️ Allow Messages - Stored but not enforced (chat system disabled, returns 501)
+  - ✅ Instructor override working for enrolled students (email always visible)
+
 **TODO (Future Enhancements):**
 - [ ] Implement data export as ZIP file with email notification
 - [ ] Implement account deletion workflow with password verification
-- [ ] **ENFORCE SETTINGS SYSTEM-WIDE** (Currently storage only, no enforcement):
-  - [ ] **Privacy Settings Enforcement**:
-    - [ ] Profile Visibility - Control who can view user profiles (check in ProfilePage API)
-    - [ ] Show Email - Hide/show email on profile and in API responses
-    - [ ] Show Progress - Hide/show progress in dashboard and stats
-    - [ ] Allow Messages - Enable/disable direct messaging (check in chat system)
-  - [ ] **Appearance Settings Enforcement**:
-    - [ ] Theme - Integrate with Material-UI theme provider for dark/light/auto mode
-    - [ ] Language - Implement i18n (react-i18next) for interface translation
-    - [ ] Font Size - Adjust MUI theme typography for system-wide font scaling
+- [ ] **Appearance Settings Frontend Implementation**:
+  - [ ] Theme - Integrate with Material-UI theme provider for dark/light/auto mode
+  - [ ] Language - Implement i18n (react-i18next) for interface translation
+  - [ ] Font Size - Adjust MUI theme typography for system-wide font scaling
+- [ ] **AllowMessages Enforcement** (when chat is re-enabled):
+  - [ ] Check canReceiveMessages() before creating messages
+  - [ ] Return 403 with MESSAGES_DISABLED code if blocked
 
 **Code Statistics:**
 - 1 file updated

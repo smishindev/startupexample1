@@ -37,7 +37,21 @@ PUT    /api/profile/preferences        - Update notification preferences
 
 GET    /api/notifications/preferences  - Get notification preferences
 PATCH  /api/notifications/preferences  - Update notification preferences
+
+GET    /api/settings                   - Get user settings
+PATCH  /api/settings                   - Update settings (privacy + appearance)
+POST   /api/settings/export-data       - Request data export (TODO)
+POST   /api/settings/delete-account    - Delete account (TODO)
 ```
+
+**Settings Implementation Status (Verified Jan 10, 2026):**
+- **Privacy Settings**: ✅ Fully enforced across 8+ endpoints
+  - ProfileVisibility (public/students/private) - enforced in profile viewing
+  - ShowEmail - enforced in 7 endpoints with instructor override
+  - ShowProgress - enforced with 403 errors for private progress
+  - AllowMessages - stored but not enforced (chat disabled)
+- **Appearance Settings**: ⚠️ Stored in DB but NOT applied to UI
+  - Theme/Language/FontSize save correctly but don't change frontend
 
 ### Email Verification (added Dec 27, 2025)
 ```

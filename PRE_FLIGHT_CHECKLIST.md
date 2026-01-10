@@ -265,7 +265,7 @@ get_errors(filePaths=["path/to/modified/file.tsx"])
 - [x] "Continue Learning" button appears after payment ✅
 - [ ] Webhook testing with Stripe CLI (requires local setup)
 
-**Privacy Settings Testing Checklist (Dec 18, 2025):**
+**Privacy Settings Testing Checklist (Dec 18, 2025, Verified Jan 10, 2026):**
 - [x] Run automated test suite: `node test-privacy-settings.js` ✅
 - [x] ShowEmail setting: Hidden from students, visible to instructors ✅
 - [x] ShowProgress setting: Blocked from students, allowed for instructors ✅
@@ -275,6 +275,12 @@ get_errors(filePaths=["path/to/modified/file.tsx"])
 - [x] Course Detail: "Email not public" message shown ✅
 - [x] TypeScript compilation: No errors ✅
 - [x] No breaking changes: All existing features working ✅
+- [x] **Jan 10, 2026 Verification**: All 4 privacy settings enforcement confirmed ✅
+  - [x] ProfileVisibility enforced via canViewProfile() ✅
+  - [x] ShowEmail enforced in 7 endpoints (users, presence, studyGroups, officeHours, analytics, instructor, profile) ✅
+  - [x] ShowProgress enforced via canViewProgress() ✅
+  - [x] AllowMessages stored (not enforced - chat disabled) ⚠️
+  - [x] Appearance settings (theme/language/fontSize) stored but not applied to UI ⚠️
 
 **Notification Preferences Testing Checklist (Dec 18, 2025):**
 - [x] Database: NotificationQueue table created with 3 indexes ✅

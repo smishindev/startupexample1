@@ -26,7 +26,7 @@ router.get('/my-progress', authenticateToken, async (req: AuthRequest, res: Resp
           COUNT(DISTINCT CASE WHEN cp.OverallProgress = 100 THEN e.UserId END) as studentsCompleted,
           COUNT(DISTINCT CASE WHEN cp.OverallProgress > 0 AND cp.OverallProgress < 100 THEN e.UserId END) as studentsInProgress
         FROM dbo.Courses c
-        LEFT JOIN dbo.Enrollments e ON c.Id = e.CourseId AND e.Status = 'active'
+        LEFT JOIN dbo.Enrollments e ON c.Id = e.CourseId AND e.Status IN ('active', 'completed')
         LEFT JOIN dbo.CourseProgress cp ON e.UserId = cp.UserId AND e.CourseId = cp.CourseId
         WHERE c.InstructorId = @userId AND c.IsPublished = 1
       `, { userId });
@@ -42,7 +42,7 @@ router.get('/my-progress', authenticateToken, async (req: AuthRequest, res: Resp
           'Dashboard' as instructorLastName,
           0 as TimeSpent
         FROM dbo.Courses c
-        LEFT JOIN dbo.Enrollments e ON c.Id = e.CourseId AND e.Status = 'active'
+        LEFT JOIN dbo.Enrollments e ON c.Id = e.CourseId AND e.Status IN ('active', 'completed')
         LEFT JOIN dbo.CourseProgress cp ON e.UserId = cp.UserId AND e.CourseId = cp.CourseId
         WHERE c.InstructorId = @userId AND c.IsPublished = 1
         GROUP BY c.Id, c.Title, c.UpdatedAt
@@ -71,7 +71,7 @@ router.get('/my-progress', authenticateToken, async (req: AuthRequest, res: Resp
           COUNT(CASE WHEN cp.OverallProgress > 0 AND cp.OverallProgress < 100 THEN 1 END) as inProgressCourses
         FROM dbo.CourseProgress cp
         INNER JOIN dbo.Enrollments e ON cp.UserId = e.UserId AND cp.CourseId = e.CourseId
-        WHERE cp.UserId = @userId AND e.Status = 'active'
+        WHERE cp.UserId = @userId AND e.Status IN ('active', 'completed')
       `, { userId });
 
       const recentActivity = await db.query(`
@@ -87,7 +87,7 @@ router.get('/my-progress', authenticateToken, async (req: AuthRequest, res: Resp
         INNER JOIN dbo.Courses c ON cp.CourseId = c.Id
         INNER JOIN dbo.Users u ON c.InstructorId = u.Id
         INNER JOIN dbo.Enrollments e ON cp.UserId = e.UserId AND cp.CourseId = e.CourseId
-        WHERE cp.UserId = @userId AND e.Status = 'active'
+        WHERE cp.UserId = @userId AND e.Status IN ('active', 'completed')
         ORDER BY cp.LastAccessedAt DESC
       `, { userId });
 
@@ -526,7 +526,7 @@ router.get('/achievements', authenticateToken, async (req: AuthRequest, res: Res
           COALESCE(SUM(cp.TimeSpent), 0) as totalTeachingTime,
           MAX(c.UpdatedAt) as lastActivity
         FROM dbo.Courses c
-        LEFT JOIN dbo.Enrollments e ON c.Id = e.CourseId AND e.Status = 'active'
+        LEFT JOIN dbo.Enrollments e ON c.Id = e.CourseId AND e.Status IN ('active', 'completed')
         LEFT JOIN dbo.CourseProgress cp ON e.UserId = cp.UserId AND e.CourseId = cp.CourseId
         WHERE c.InstructorId = @userId AND c.IsPublished = 1
       `, { userId });

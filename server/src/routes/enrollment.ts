@@ -41,7 +41,7 @@ router.get('/my-enrollments', authenticateToken, async (req: AuthRequest, res: R
           COUNT(DISTINCT e.UserId) as TimeSpent,
           MAX(COALESCE(up.LastAccessedAt, GETUTCDATE())) as LastAccessedAt
         FROM dbo.Courses c
-        LEFT JOIN dbo.Enrollments e ON c.Id = e.CourseId AND e.Status = 'active'
+        LEFT JOIN dbo.Enrollments e ON c.Id = e.CourseId AND e.Status IN ('active', 'completed')
         LEFT JOIN dbo.UserProgress up ON e.UserId = up.UserId AND e.CourseId = up.CourseId
         WHERE c.InstructorId = @userId AND c.IsPublished = 1
         GROUP BY c.Id, c.Title, c.Description, c.Thumbnail, c.Duration, c.Level, c.Price, c.Category

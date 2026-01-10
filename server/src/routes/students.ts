@@ -285,7 +285,7 @@ router.post('/message', authenticateToken, async (req: any, res) => {
         SELECT e.UserId 
         FROM dbo.Enrollments e
         INNER JOIN dbo.Courses c ON e.CourseId = c.Id
-        WHERE c.Id = @courseId AND c.InstructorId = @instructorId AND e.Status = 'active'
+        WHERE c.Id = @courseId AND c.InstructorId = @instructorId AND e.Status IN ('active', 'completed')
       `, { courseId, instructorId });
       
       recipients = allStudents.map((s: any) => s.UserId);

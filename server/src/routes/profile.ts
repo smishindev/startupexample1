@@ -196,7 +196,7 @@ router.get('/user/:userId/progress', authenticateToken, async (req: AuthRequest,
         COUNT(CASE WHEN cp.OverallProgress > 0 AND cp.OverallProgress < 100 THEN 1 END) as inProgressCourses
       FROM dbo.CourseProgress cp
       INNER JOIN dbo.Enrollments e ON cp.UserId = e.UserId AND cp.CourseId = e.CourseId
-      WHERE cp.UserId = @userId AND e.Status = 'active'
+      WHERE cp.UserId = @userId AND e.Status IN ('active', 'completed')
     `, { userId: targetUserId });
 
     // Get recent course activity
@@ -210,7 +210,7 @@ router.get('/user/:userId/progress', authenticateToken, async (req: AuthRequest,
       FROM dbo.CourseProgress cp
       INNER JOIN dbo.Courses c ON cp.CourseId = c.Id
       INNER JOIN dbo.Enrollments e ON cp.UserId = e.UserId AND cp.CourseId = e.CourseId
-      WHERE cp.UserId = @userId AND e.Status = 'active'
+      WHERE cp.UserId = @userId AND e.Status IN ('active', 'completed')
       ORDER BY cp.LastAccessedAt DESC
     `, { userId: targetUserId });
 

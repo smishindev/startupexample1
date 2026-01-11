@@ -25,7 +25,7 @@ export interface CourseAnalytics {
     totalEnrollments: number;
     activeEnrollments: number;
     completedEnrollments: number;
-    droppedEnrollments: number;
+    cancelledEnrollments: number;
     avgCompletionDays: number;
   };
   progress: {

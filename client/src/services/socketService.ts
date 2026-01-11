@@ -35,6 +35,8 @@ export interface NotificationEvent {
 class SocketService {
   private socket: Socket | null = null;
   private connected = false;
+  private connectCallbacks: Array<() => void> = [];
+  private disconnectCallbacks: Array<() => void> = [];
 
   connect(): Promise<void> {
     return new Promise((resolve, reject) => {
@@ -68,6 +70,16 @@ class SocketService {
       this.socket.on('connect', () => {
         console.log('Connected to socket server');
         this.connected = true;
+        
+        // Trigger all registered connect callbacks
+        this.connectCallbacks.forEach(callback => {
+          try {
+            callback();
+          } catch (error) {
+            console.error('Error in connect callback:', error);
+          }
+        });
+        
         resolve();
       });
 
@@ -80,6 +92,15 @@ class SocketService {
       this.socket.on('disconnect', () => {
         console.log('Disconnected from socket server');
         this.connected = false;
+        
+        // Trigger all registered disconnect callbacks
+        this.disconnectCallbacks.forEach(callback => {
+          try {
+            callback();
+          } catch (error) {
+            console.error('Error in disconnect callback:', error);
+          }
+        });
       });
     });
   }
@@ -89,6 +110,9 @@ class SocketService {
       this.socket.disconnect();
       this.socket = null;
       this.connected = false;
+      // Clear all callbacks to prevent memory leaks
+      this.connectCallbacks = [];
+      this.disconnectCallbacks = [];
     }
   }
 
@@ -176,12 +200,33 @@ class SocketService {
     }
   }
 
+  // Connection lifecycle listeners
+  onConnect(callback: () => void): void {
+    this.connectCallbacks.push(callback);
+  }
+
+  offConnect(callback: () => void): void {
+    this.connectCallbacks = this.connectCallbacks.filter(cb => cb !== callback);
+  }
+
+  onDisconnect(callback: () => void): void {
+    this.disconnectCallbacks.push(callback);
+  }
+
+  offDisconnect(callback: () => void): void {
+    this.disconnectCallbacks = this.disconnectCallbacks.filter(cb => cb !== callback);
+  }
+
   // Notification event listeners
   onNotification(callback: (notification: NotificationEvent) => void): void {
     if (this.socket) {
       // Remove any existing listeners to prevent duplicates
       this.socket.off('notification-created');
-      this.socket.on('notification-created', callback);
+      
+      // Register the listener
+      this.socket.on('notification-created', (notification) => {
+        callback(notification);
+      });
     }
   }
 
@@ -206,6 +251,68 @@ class SocketService {
       // Remove any existing listeners to prevent duplicates
       this.socket.off('notification-deleted');
       this.socket.on('notification-deleted', callback);
+    }
+  }
+
+  // Remove specific event listeners (for cleanup on component unmount)
+  offNotification(): void {
+    if (this.socket) {
+      this.socket.off('notification-created');
+    }
+  }
+
+  offNotificationRead(): void {
+    if (this.socket) {
+      this.socket.off('notification-read');
+    }
+  }
+
+  offNotificationsReadAll(): void {
+    if (this.socket) {
+      this.socket.off('notifications-read-all');
+    }
+  }
+
+  offNotificationDeleted(): void {
+    if (this.socket) {
+      this.socket.off('notification-deleted');
+    }
+  }
+
+  // Remove chat event listeners (for cleanup on Chat component unmount)
+  offMessage(): void {
+    if (this.socket) {
+      this.socket.off('new-message');
+    }
+  }
+
+  offJoinedRoom(): void {
+    if (this.socket) {
+      this.socket.off('joined-room');
+    }
+  }
+
+  offLeftRoom(): void {
+    if (this.socket) {
+      this.socket.off('left-room');
+    }
+  }
+
+  offUserTyping(): void {
+    if (this.socket) {
+      this.socket.off('user-typing');
+    }
+  }
+
+  offUserStopTyping(): void {
+    if (this.socket) {
+      this.socket.off('user-stop-typing');
+    }
+  }
+
+  offError(): void {
+    if (this.socket) {
+      this.socket.off('error');
     }
   }
 

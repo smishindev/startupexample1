@@ -3,6 +3,7 @@ import { Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { authenticateToken, AuthRequest } from '../middleware/auth';
 import { DatabaseService } from '../services/DatabaseService';
+import { NotificationService } from '../services/NotificationService';
 
 const router = Router();
 const db = DatabaseService.getInstance();
@@ -204,16 +205,104 @@ router.post('/courses/:courseId/enroll', authenticateToken, async (req: AuthRequ
           code: 'ALREADY_ENROLLED',
           enrollmentId: existingEnrollment[0].Id
         });
-      } else if (status === 'dropped') {
-        // Reactivate dropped enrollment
+      } else if (status === 'completed') {
+        // Student completed the course but can remain enrolled to access new content
+        // Just return the existing enrollment
+        return res.status(200).json({
+          enrollmentId: existingEnrollment[0].Id,
+          courseId,
+          status: 'completed',
+          enrolledAt: existingEnrollment[0].EnrolledAt,
+          completedAt: existingEnrollment[0].CompletedAt,
+          message: 'Already completed this course. You still have full access.',
+          code: 'ALREADY_COMPLETED'
+        });
+      } else if (status === 'cancelled') {
+        // Reactivate cancelled enrollment
         await db.execute(`
           UPDATE dbo.Enrollments
-          SET Status = 'active', EnrolledAt = @enrolledAt, DroppedAt = NULL
+          SET Status = 'active', EnrolledAt = @enrolledAt
           WHERE Id = @enrollmentId
         `, {
           enrollmentId: existingEnrollment[0].Id,
           enrolledAt: new Date().toISOString()
         });
+
+        // Get course and user details for notifications
+        const course = await db.query(`
+          SELECT Title, InstructorId FROM dbo.Courses WHERE Id = @courseId
+        `, { courseId });
+
+        if (course.length === 0) {
+          // Course was deleted between checks - still return success for enrollment
+          return res.status(200).json({
+            enrollmentId: existingEnrollment[0].Id,
+            courseId,
+            status: 'active',
+            enrolledAt: new Date().toISOString(),
+            message: 'Successfully re-enrolled in course',
+            code: 'RE_ENROLLED'
+          });
+        }
+
+        const userDetails = await db.query(`
+          SELECT FirstName, LastName FROM dbo.Users WHERE Id = @userId
+        `, { userId });
+        const studentName = userDetails.length > 0 
+          ? `${userDetails[0].FirstName} ${userDetails[0].LastName}` 
+          : 'A student';
+
+        // Send notifications for re-enrollment
+        const io = req.app.get('io');
+        if (io) {
+          try {
+            const notificationService = new NotificationService(io);
+
+            // Notify student: Welcome back notification
+            const studentNotificationId = await notificationService.createNotificationWithControls(
+              {
+                userId: userId!,
+                type: 'course',
+                priority: 'high',
+                title: `Welcome Back to ${course[0].Title}!`,
+                message: `You're re-enrolled! Continue your learning journey.`,
+                actionUrl: `/courses/${courseId}`,
+                actionText: 'Continue Learning'
+              },
+              {
+                category: 'course',
+                subcategory: 'CourseEnrollment'
+              }
+            );
+
+            // NotificationService already emits Socket.IO event, no need to emit again
+
+            // Notify instructor: Re-enrollment alert
+            const instructorId = course[0].InstructorId;
+            const instructorNotificationId = await notificationService.createNotificationWithControls(
+              {
+                userId: instructorId,
+                type: 'course',
+                priority: 'normal',
+                title: 'Student Re-enrolled',
+                message: `${studentName} re-enrolled in "${course[0].Title}"`,
+                actionUrl: `/instructor/courses/${courseId}/students`,
+                actionText: 'View Students'
+              },
+              {
+                category: 'course',
+                subcategory: 'CourseEnrollment'
+              }
+            );
+
+            // NotificationService already emits Socket.IO event, no need to emit again
+          } catch (notifError) {
+            console.error('⚠️ Failed to send re-enrollment notifications:', notifError);
+            // Don't block re-enrollment on notification failure
+          }
+        } else {
+          console.warn('⚠️ Socket.IO not available, skipping real-time re-enrollment notifications');
+        }
 
         return res.status(200).json({
           enrollmentId: existingEnrollment[0].Id,
@@ -293,6 +382,66 @@ router.post('/courses/:courseId/enroll', authenticateToken, async (req: AuthRequ
       courseId
     });
 
+    // Get user details for notifications
+    const userDetails = await db.query(`
+      SELECT FirstName, LastName FROM dbo.Users WHERE Id = @userId
+    `, { userId });
+    const studentName = userDetails.length > 0 
+      ? `${userDetails[0].FirstName} ${userDetails[0].LastName}` 
+      : 'A student';
+
+    // Send notification to io instance
+    const io = req.app.get('io');
+    if (io) {
+      try {
+        const notificationService = new NotificationService(io);
+
+        // Notify student: Welcome notification
+        const studentNotificationId = await notificationService.createNotificationWithControls(
+          {
+            userId: userId!,
+            type: 'course',
+            priority: 'high',
+            title: `Welcome to ${course[0].Title}!`,
+            message: `You're now enrolled! Start with the first lesson and track your progress.`,
+            actionUrl: `/courses/${courseId}`,
+            actionText: 'Start Learning'
+          },
+          {
+            category: 'course',
+            subcategory: 'CourseEnrollment'
+          }
+        );
+
+        // NotificationService already emits Socket.IO event, no need to emit again
+
+        // Notify instructor: New enrollment alert
+        const instructorId = course[0].InstructorId;
+        const instructorNotificationId = await notificationService.createNotificationWithControls(
+          {
+            userId: instructorId,
+            type: 'course',
+            priority: 'normal',
+            title: 'New Student Enrolled',
+            message: `${studentName} enrolled in "${course[0].Title}"`,
+            actionUrl: `/instructor/courses/${courseId}/students`,
+            actionText: 'View Students'
+          },
+          {
+            category: 'course',
+            subcategory: 'CourseEnrollment'
+          }
+        );
+
+        // NotificationService already emits Socket.IO event, no need to emit again
+        } catch (notifError) {
+        console.error('⚠️ Failed to send enrollment notifications:', notifError);
+        // Don't block enrollment on notification failure
+      }
+    } else {
+      console.warn('⚠️ Socket.IO not available, skipping real-time enrollment notifications');
+    }
+
     res.status(201).json({
       enrollmentId,
       courseId,
@@ -333,15 +482,14 @@ router.delete('/courses/:courseId/unenroll', authenticateToken, async (req: Auth
       return res.status(404).json({ error: 'Not enrolled in this course' });
     }
 
-    // Update enrollment status to 'dropped' instead of deleting
+    // Update enrollment status to 'cancelled' instead of deleting
     await db.execute(`
       UPDATE dbo.Enrollments
-      SET Status = 'dropped', DroppedAt = @droppedAt
+      SET Status = 'cancelled'
       WHERE UserId = @userId AND CourseId = @courseId
     `, {
       userId,
-      courseId,
-      droppedAt: new Date().toISOString()
+      courseId
     });
 
     res.json({ message: 'Successfully unenrolled from course' });
@@ -362,7 +510,7 @@ router.get('/courses/:courseId/stats', async (req: AuthRequest, res: Response) =
         COUNT(*) as totalEnrollments,
         COUNT(CASE WHEN Status = 'active' THEN 1 END) as activeEnrollments,
         COUNT(CASE WHEN Status = 'completed' THEN 1 END) as completedEnrollments,
-        COUNT(CASE WHEN Status = 'dropped' THEN 1 END) as droppedEnrollments,
+        COUNT(CASE WHEN Status = 'cancelled' THEN 1 END) as cancelledEnrollments,
         AVG(CASE WHEN up.ProgressPercentage IS NOT NULL THEN CAST(up.ProgressPercentage as FLOAT) END) as avgProgress
       FROM dbo.Enrollments e
       LEFT JOIN dbo.UserProgress up ON e.UserId = up.UserId AND e.CourseId = up.CourseId
@@ -373,7 +521,7 @@ router.get('/courses/:courseId/stats', async (req: AuthRequest, res: Response) =
       totalEnrollments: 0,
       activeEnrollments: 0,
       completedEnrollments: 0,
-      droppedEnrollments: 0,
+      cancelledEnrollments: 0,
       avgProgress: 0
     });
 

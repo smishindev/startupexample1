@@ -179,7 +179,7 @@ router.get('/my-progress', authenticateToken, async (req: AuthRequest, res: Resp
       JOIN dbo.Lessons l ON a.LessonId = l.Id
       JOIN dbo.Courses c ON l.CourseId = c.Id
       JOIN dbo.Enrollments e ON c.Id = e.CourseId
-      WHERE e.UserId = @userId AND e.Status = 'active'
+      WHERE e.UserId = @userId AND e.Status IN ('active', 'completed')
       ORDER BY c.Title, l.OrderIndex, a.CreatedAt
     `, { userId });
 
@@ -423,7 +423,7 @@ router.get('/:assessmentId', authenticateToken, async (req: AuthRequest, res: Re
     if (userRole === 'student') {
       const enrollment = await db.query(`
         SELECT Id FROM dbo.Enrollments 
-        WHERE UserId = @userId AND CourseId = @courseId AND Status = 'active'
+        WHERE UserId = @userId AND CourseId = @courseId AND Status IN ('active', 'completed')
       `, { userId, courseId: assessment[0].CourseId });
 
       if (enrollment.length === 0) {

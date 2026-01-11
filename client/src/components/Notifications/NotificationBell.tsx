@@ -62,38 +62,60 @@ export const NotificationBell: React.FC = () => {
     // Initial fetch for historical notifications
     fetchNotifications();
     
-    // Connect socket and setup real-time listeners
-    const connectSocket = async () => {
+    // Setup listeners after ensuring socket is connected
+    const setupListeners = () => {
+      // App.tsx handles socket connection - just check if it's ready
+      if (!socketService.isConnected()) {
+        console.log('🔌 [NotificationBell] Socket not ready yet, will retry via reconnect handler');
+        return;
+      }
+      
+      console.log('✅ [NotificationBell] Socket ready, setting up listeners...');
+      
       try {
-        await socketService.connect();
-        console.log('✅ [NotificationBell] Socket connected for notifications');
-        
-        // Listen for new notifications
+        // Register listener for new notifications
         socketService.onNotification((notification) => {
           console.log('🔔 [NotificationBell] Received real-time notification:', notification);
           
-          // Add to notifications list (cast to proper type)
-          const newNotification: Notification = {
-            Id: notification.id,
-            UserId: '',
-            Type: notification.type as any,
-            Priority: notification.priority as any,
-            Title: notification.title,
-            Message: notification.message,
-            Data: null,
-            RelatedEntityId: null,
-            RelatedEntityType: null,
-            ActionUrl: notification.actionUrl || null,
-            ActionText: notification.actionText || null,
-            CreatedAt: new Date().toISOString(),
-            ReadAt: null,
-            ExpiresAt: null,
-            IsRead: false
-          };
-          setNotifications(prev => [newNotification, ...prev]);
+          // Use functional updates to ensure we only increment count for new notifications
+          let wasAdded = false;
           
-          // Increment unread count
-          setUnreadCount(prev => prev + 1);
+          setNotifications(prev => {
+            const exists = prev.some(n => n.Id === notification.id);
+            if (exists) {
+              console.log('⚠️ [NotificationBell] Notification already exists, skipping:', notification.id);
+              return prev;
+            }
+            
+            // Mark that we're adding a new notification
+            wasAdded = true;
+            
+            // Add to notifications list (cast to proper type)
+            const newNotification: Notification = {
+              Id: notification.id,
+              UserId: '',
+              Type: notification.type as any,
+              Priority: notification.priority as any,
+              Title: notification.title,
+              Message: notification.message,
+              Data: null,
+              RelatedEntityId: null,
+              RelatedEntityType: null,
+              ActionUrl: notification.actionUrl || null,
+              ActionText: notification.actionText || null,
+              CreatedAt: new Date().toISOString(),
+              ReadAt: null,
+              ExpiresAt: null,
+              IsRead: false
+            };
+            
+            return [newNotification, ...prev];
+          });
+          
+          // Only increment if we actually added the notification
+          if (wasAdded) {
+            setUnreadCount(prev => prev + 1);
+          }
           
           // Don't show toast here - the feature-specific components 
           // (like StudentSessionsList) already show appropriate toasts
@@ -123,18 +145,31 @@ export const NotificationBell: React.FC = () => {
           setUnreadCount(prev => Math.max(0, prev - 1));
         });
         
+        console.log('✅ [NotificationBell] All Socket.IO listeners registered successfully');
       } catch (error) {
-        console.error('❌ [NotificationBell] Socket connection failed, will use REST API only:', error);
-        // Fallback: Socket connection failed, but initial fetch already loaded notifications
+        console.error('❌ [NotificationBell] Failed to setup Socket.IO listeners:', error);
       }
     };
     
-    connectSocket();
+    // Try to setup listeners immediately if socket is already connected
+    setupListeners();
+
+    // Re-setup listeners when socket connects/reconnects
+    const handleConnect = () => {
+      console.log('🔄 [NotificationBell] Socket connected - setting up listeners');
+      setupListeners();
+    };
+
+    socketService.onConnect(handleConnect);
     
-    // Don't disconnect socket on unmount - it's shared across the app
-    // Just log that this component is unmounting
+    // Clean up listeners when component unmounts (socket stays connected for app)
     return () => {
-      console.log('🔕 [NotificationBell] Component unmounting (socket stays connected)');
+      console.log('🔕 [NotificationBell] Component unmounting - cleaning up listeners');
+      socketService.offConnect(handleConnect);
+      socketService.offNotification();
+      socketService.offNotificationRead();
+      socketService.offNotificationsReadAll();
+      socketService.offNotificationDeleted();
     };
   }, [navigate]);
 

@@ -101,7 +101,7 @@ export interface EnrollmentStats {
   totalEnrollments: number;
   activeEnrollments: number;
   completedEnrollments: number;
-  droppedEnrollments: number;
+  cancelledEnrollments: number;
   avgProgress: number;
 }
 

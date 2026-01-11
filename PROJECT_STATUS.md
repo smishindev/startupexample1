@@ -1,12 +1,123 @@
 # Mishin Learn Platform - Project Status & Memory
 
-**Last Updated**: January 9, 2026 - Text Content Completion Fixed + Cleanup ✅  
+**Last Updated**: January 11, 2026 - Course Management Notification Triggers Complete ✅  
 **Developer**: Sergey Mishin (s.mishin.dev@gmail.com)  
 **AI Assistant Context**: This file serves as project memory for continuity across chat sessions
 
 ---
 
-## 🔥 LATEST UPDATE - January 9, 2026
+## 🔥 LATEST UPDATE - January 11, 2026
+
+### 🔔 Course Management Email Notification Triggers - COMPLETE
+
+**3 Critical Notification Triggers Implemented + Major Bug Fixes**
+
+✅ **1. Course Enrollment Notifications**
+- **Trigger**: Student enrolls in a course (new or re-enrollment after cancellation)
+- **Recipients**: 
+  - Student: Welcome notification with course access link
+  - Instructor: New enrollment alert with student management link
+- **Implementation**: [enrollment.ts](server/src/routes/enrollment.ts#L260-L300, #L390-L440)
+- **Subcategory**: `CourseEnrollment` (respects user preferences)
+- **Status**: ✅ Complete
+
+✅ **2. New Lesson Notifications**
+- **Trigger**: Instructor creates a new lesson in a published course
+- **Recipients**: All enrolled students (active AND completed)
+- **Implementation**: [lessons.ts](server/src/routes/lessons.ts#L263-L310)
+- **Subcategory**: `NewLessons` (respects user preferences)
+- **Query Fix**: Changed `Status = 'active'` → `Status IN ('active', 'completed')`
+- **Rationale**: Completed students should receive notifications about new content
+- **Status**: ✅ Complete
+
+✅ **3. Course Publish Notifications**
+- **Trigger**: Instructor publishes a draft course
+- **Recipients**: All enrolled students (active AND completed)
+- **Implementation**: [instructor.ts](server/src/routes/instructor.ts#L365-L410)
+- **Subcategory**: `CoursePublished` (respects user preferences)
+- **Query Fix**: Changed `Status = 'active'` → `Status IN ('active', 'completed')`
+- **Status**: ✅ Complete
+
+---
+
+### 🐛 Critical Bug Fixes (5 Major Issues)
+
+**Bug #1: Assessment Access Blocked for Completed Students** (4 locations)
+- **Problem**: Completed students received notifications but couldn't access assessments
+- **Root Cause**: Queries used `Status = 'active'` only, excluding completed enrollments
+- **Fix**: Changed to `Status IN ('active', 'completed')` in:
+  - [assessments.ts:182](server/src/routes/assessments.ts#L182) - Assessment list query
+  - [assessments.ts:426](server/src/routes/assessments.ts#L426) - Individual assessment access
+  - [assessment-analytics.ts:214](server/src/routes/assessment-analytics.ts#L214) - Course analytics
+  - [assessment-analytics.ts:278](server/src/routes/assessment-analytics.ts#L278) - Instructor analytics
+- **Status**: ✅ Fixed
+
+**Bug #2: Database Schema Violation - DroppedAt Field** (2 locations)
+- **Problem**: Code tried to set `DroppedAt` field that doesn't exist in schema → SQL errors
+- **Fix**: Removed all references to `DroppedAt` field in:
+  - [enrollment.ts:224](server/src/routes/enrollment.ts#L224) - Re-enrollment query
+  - [enrollment.ts:488](server/src/routes/enrollment.ts#L488) - Unenrollment query
+- **Status**: ✅ Fixed
+
+**Bug #3: Schema CHECK Constraint Violation** (7 locations)
+- **Problem**: Code used `'dropped'` status but schema only allows: `'active', 'completed', 'suspended', 'cancelled'`
+- **Fix**: Changed all references from `'dropped'` to `'cancelled'` in:
+  - [enrollment.ts:232](server/src/routes/enrollment.ts#L232)
+  - [enrollment.ts:524](server/src/routes/enrollment.ts#L524)
+  - [analytics.ts:44](server/src/routes/analytics.ts#L44)
+  - [MyLearningPage.tsx:162](client/src/pages/Learning/MyLearningPage.tsx#L162)
+  - [enrollmentApi.ts:104](client/src/services/enrollmentApi.ts#L104)
+  - [analyticsApi.ts:28](client/src/services/analyticsApi.ts#L28)
+- **Status**: ✅ Fixed
+
+**Bug #4: Socket.IO Duplicate Connections** (Fixed earlier)
+- **Problem**: Components called `await socketService.connect()`, creating multiple socket instances
+- **Fix**: Components now use callback registration instead
+- **Status**: ✅ Fixed
+
+**Bug #5: Completed Students Excluded from Notifications** (Root Cause)
+- **Problem**: User had 100% course completion, notification queries only checked `Status = 'active'`
+- **Fix**: All notification queries now use `Status IN ('active', 'completed')`
+- **Status**: ✅ Fixed
+
+---
+
+### 📊 Implementation Summary
+
+**Notification Triggers Active:** 8 of 31
+1. ✅ Lesson Completion (Dec 29, 2025)
+2. ✅ Video Completion (Jan 8, 2026)
+3. ✅ Live Session Created (Pre-existing)
+4. ✅ Live Session Updated (Jan 6, 2026)
+5. ✅ Live Session Deleted (Jan 6, 2026)
+6. ✅ **Course Enrollment** (Jan 11, 2026) ⭐ NEW
+7. ✅ **New Lesson Created** (Jan 11, 2026) ⭐ NEW
+8. ✅ **Course Published** (Jan 11, 2026) ⭐ NEW
+
+**Design Patterns Verified:**
+- ✅ Unenrollment requires `Status = 'active'` only (correct - can't unenroll from completed courses)
+- ✅ Intervention notifications use `Status = 'active'` only (correct - no reminders for completed students)
+- ✅ Content access uses `Status IN ('active', 'completed')` (correct - access after completion)
+- ✅ New content notifications use `Status IN ('active', 'completed')` (correct - notify about updates)
+
+**Files Modified:**
+- `server/src/routes/lessons.ts` (new lesson notifications added, query fixed)
+- `server/src/routes/instructor.ts` (course publish notifications added, query fixed)
+- `server/src/routes/enrollment.ts` (enrollment notifications, schema fixes)
+- `server/src/routes/assessments.ts` (access control fixed for completed students)
+- `server/src/routes/assessment-analytics.ts` (analytics access fixed for completed students)
+- `server/src/routes/analytics.ts` (status terminology fixed)
+- `client/src/pages/Learning/MyLearningPage.tsx` (status color mapping fixed)
+- `client/src/services/enrollmentApi.ts` (interface updated)
+- `client/src/services/analyticsApi.ts` (interface updated)
+
+**Duration**: ~4 hours (implementation + debugging + comprehensive review)
+
+**Status**: Production-ready Course Management notification triggers with all critical bugs fixed
+
+---
+
+## 🔥 PREVIOUS UPDATE - January 9, 2026
 
 ### 🐛 Text Content Completion Behavior Fixed
 

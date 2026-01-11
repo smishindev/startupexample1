@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { authenticateToken } from '../middleware/auth';
 import { DatabaseService } from '../services/DatabaseService';
+import { NotificationService } from '../services/NotificationService';
 import { v4 as uuidv4 } from 'uuid';
 
 const router = Router();
@@ -259,6 +260,63 @@ router.post('/', authenticateToken, async (req: Request, res: Response) => {
     // DEPRECATED: VideoLessons table no longer used for new lessons
     // All content (videos, text, quizzes) stored in ContentJson
     console.log(`[LESSONS] Created lesson ${lessonId} with ${contentWithIds.length} content items`);
+    console.log('[LESSONS] CourseId for notification query:', courseId);
+
+    // Get course details for notifications
+    const courseDetails = await db.query(
+      'SELECT Title FROM dbo.Courses WHERE Id = @courseId',
+      { courseId }
+    );
+    const courseTitle = courseDetails.length > 0 ? courseDetails[0].Title : 'Course';
+    console.log('[LESSONS] Course title:', courseTitle);
+
+    // Get all enrolled students for this course (including completed students)
+    console.log('[LESSONS] About to query enrolled students for courseId:', courseId);
+    const enrolledStudents = await db.query(
+      `SELECT DISTINCT UserId FROM dbo.Enrollments 
+       WHERE CourseId = @courseId AND Status IN ('active', 'completed')`,
+      { courseId }
+    );
+    console.log('[LESSONS] Enrolled students query result:', enrolledStudents);
+    console.log('[LESSONS] Enrolled students count:', enrolledStudents.length);
+
+    // Only send notifications if there are enrolled students
+    if (enrolledStudents.length > 0) {
+      const io = req.app.get('io');
+      console.log('🔍 [NEW LESSON] io instance:', io ? 'Available' : 'NOT AVAILABLE');
+      if (io) {
+        try {
+          const notificationService = new NotificationService(io);
+          console.log(`📢 [NEW LESSON] Sending notifications to ${enrolledStudents.length} students`);
+
+          // Notify each enrolled student about the new lesson
+          for (const student of enrolledStudents) {
+            const notificationId = await notificationService.createNotificationWithControls(
+              {
+                userId: student.UserId,
+                type: 'course',
+                priority: 'normal',
+                title: 'New Lesson Available!',
+                message: `New lesson added to "${courseTitle}": ${title}`,
+                actionUrl: `/courses/${courseId}`,
+                actionText: 'Check it Out'
+              },
+              {
+                category: 'course',
+                subcategory: 'NewLessons'
+              }
+            );
+
+            // NotificationService already emits Socket.IO event, no need to emit again
+          }
+        } catch (notifError) {
+          console.error('⚠️ Failed to send new lesson notifications:', notifError);
+          // Don't block lesson creation on notification failure
+        }
+      } else {
+        console.warn('⚠️ Socket.IO not available, skipping real-time notifications for new lesson');
+      }
+    }
 
     const lesson: Lesson = {
       id: lessonId,

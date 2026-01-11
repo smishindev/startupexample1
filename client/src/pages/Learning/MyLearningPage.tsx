@@ -159,7 +159,7 @@ const MyLearningPage: React.FC = () => {
         return 'success';
       case 'active':
         return 'primary';
-      case 'dropped':
+      case 'cancelled':
         return 'error';
       default:
         return 'default';

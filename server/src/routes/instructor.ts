@@ -2,6 +2,7 @@ import express from 'express';
 import { authenticateToken, authorize, AuthRequest } from '../middleware/auth';
 import { DatabaseService } from '../services/DatabaseService';
 import { SettingsService } from '../services/SettingsService';
+import { NotificationService } from '../services/NotificationService';
 import { v4 as uuidv4 } from 'uuid';
 
 const router = express.Router();
@@ -350,6 +351,9 @@ router.post('/courses/:id/publish', authenticateToken, authorize(['instructor', 
       return res.status(404).json({ error: 'Course not found' });
     }
 
+    // Check if already published to prevent duplicate notifications
+    const isAlreadyPublished = course[0].IsPublished === 1 || course[0].IsPublished === true;
+
     // Update the course status to published
     await db.query(`
       UPDATE Courses 
@@ -357,10 +361,64 @@ router.post('/courses/:id/publish', authenticateToken, authorize(['instructor', 
       WHERE Id = @courseId AND InstructorId = @instructorId
     `, { courseId, instructorId: userId });
 
+    // Only send notifications if course was NOT already published
+    if (!isAlreadyPublished) {
+      // Get course title for notifications
+      const courseDetails = await db.query(
+        'SELECT Title FROM dbo.Courses WHERE Id = @courseId',
+        { courseId }
+      );
+      const courseTitle = courseDetails.length > 0 ? courseDetails[0].Title : 'Course';
+
+      // Get all enrolled students for this course (including completed students)
+      const enrolledStudents = await db.query(
+        `SELECT DISTINCT UserId FROM dbo.Enrollments 
+         WHERE CourseId = @courseId AND Status IN ('active', 'completed')`,
+        { courseId }
+      );
+
+      // Only send notifications if there are enrolled students
+      if (enrolledStudents.length > 0) {
+        const io = req.app.get('io');
+        if (io) {
+          try {
+            const notificationService = new NotificationService(io);
+
+            // Notify each enrolled student that course is now published
+            for (const student of enrolledStudents) {
+              const notificationId = await notificationService.createNotificationWithControls(
+                {
+                  userId: student.UserId,
+                  type: 'course',
+                  priority: 'high',
+                  title: 'Course Now Available',
+                  message: `"${courseTitle}" is now published and ready to start`,
+                  actionUrl: `/courses/${courseId}`,
+                  actionText: 'Start Learning'
+                },
+                {
+                  category: 'course',
+                  subcategory: 'CoursePublished'
+                }
+              );
+
+              // NotificationService already emits Socket.IO event, no need to emit again
+            }
+          } catch (notifError) {
+            console.error('⚠️ Failed to send course publish notifications:', notifError);
+            // Don't block publish operation on notification failure
+          }
+        } else {
+          console.warn('⚠️ Socket.IO not available, skipping real-time course publish notifications');
+        }
+      }
+    }
+
     res.json({ 
       success: true, 
-      message: 'Course published successfully',
-      courseId
+      message: isAlreadyPublished ? 'Course is already published' : 'Course published successfully',
+      courseId,
+      alreadyPublished: isAlreadyPublished
     });
   } catch (error) {
     console.error('Failed to publish course:', error);

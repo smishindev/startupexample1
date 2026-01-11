@@ -41,7 +41,7 @@ router.get('/courses/:courseId', authenticateToken, authorize(['instructor']), a
           COUNT(*) as totalEnrollments,
           COUNT(CASE WHEN Status = 'active' THEN 1 END) as activeEnrollments,
           COUNT(CASE WHEN Status = 'completed' THEN 1 END) as completedEnrollments,
-          COUNT(CASE WHEN Status = 'dropped' THEN 1 END) as droppedEnrollments,
+          COUNT(CASE WHEN Status = 'cancelled' THEN 1 END) as cancelledEnrollments,
           AVG(CASE WHEN Status = 'completed' THEN DATEDIFF(day, EnrolledAt, GETUTCDATE()) END) as avgCompletionDays
         FROM dbo.Enrollments 
         WHERE CourseId = @courseId

@@ -99,25 +99,46 @@ POST   /api/email-unsubscribe/resubscribe - Resubscribe to emails
 - **Unsubscribe**: One-click token-based unsubscribe with database tracking
 - **Templates**: Beautiful HTML emails with type-specific styling (progress, course, system, social, assessment)
 
-**Notification Triggers (2/31 Active - Dec 29, 2025):**
-- ✅ **Lesson Completion**: Student progress update + instructor milestones (25%, 50%, 75%, 100%)
-- ✅ **Live Session Created**: All enrolled students notified with session details
-- 🔜 **29 Remaining**: Video completion, course enrollment, assessments, new content, etc.
+**Notification Triggers (8/31 Active - January 11, 2026):**
+- ✅ **Lesson Completion**: Student progress update + instructor milestones (25%, 50%, 75%, 100%) - Dec 29, 2025
+- ✅ **Video Completion**: Student completion notification - Jan 8, 2026
+- ✅ **Live Session Created**: All enrolled students notified with session details - Pre-existing
+- ✅ **Live Session Updated**: Students notified of changes - Jan 6, 2026
+- ✅ **Live Session Deleted**: Students notified of cancellation - Jan 6, 2026
+- ✅ **Course Enrollment**: Welcome message to student + enrollment alert to instructor - Jan 11, 2026
+- ✅ **New Lesson Created**: All enrolled students (active + completed) notified - Jan 11, 2026
+- ✅ **Course Published**: All enrolled students (active + completed) notified - Jan 11, 2026
+- 🔜 **23 Remaining**: Assessment submissions/grading, due dates, payments, community features, etc.
 
 **Implementation Pattern:**
 ```typescript
-// Backend route (e.g., progress.ts)
+// Backend route (e.g., lessons.ts, enrollment.ts)
 const io = req.app.get('io'); // Get Socket.io instance
 const notificationService = new NotificationService(io);
-await notificationService.createNotification({
-  userId, type, priority, title, message, actionUrl, actionText
-});
+
+await notificationService.createNotificationWithControls(
+  {
+    userId,
+    type: 'course',
+    priority: 'normal',
+    title: 'New Lesson Available!',
+    message: `New lesson added to "${courseTitle}": ${lessonTitle}`,
+    actionUrl: `/courses/${courseId}`,
+    actionText: 'Check it Out'
+  },
+  {
+    category: 'course',
+    subcategory: 'NewLessons'
+  }
+);
 ```
 
 **Real-time Updates:**
 - Socket.io emits to user-specific rooms: `io.to(\`user-${userId}\`).emit('notification-created', {...})`
 - Frontend NotificationBell listens and updates count instantly
 - Cross-tab synchronization via socket events
+- **Single Socket Connection**: Managed by App.tsx, components register via callbacks
+- **Callback Lifecycle**: connectCallbacks[] and disconnectCallbacks[] arrays for proper cleanup
 
 ### Payment & Billing (added Dec 11, updated Dec 14, 2025)
 ```

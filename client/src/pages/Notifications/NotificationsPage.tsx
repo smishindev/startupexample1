@@ -207,33 +207,49 @@ export const NotificationsPage: React.FC = () => {
 
   useEffect(() => {
     // Setup socket listeners for real-time updates
-    const connectSocket = async () => {
+    const setupListeners = () => {
+      // App.tsx handles socket connection - just check if it's ready
+      if (!socketService.isConnected()) {
+        console.log('🔌 [NotificationsPage] Socket not ready yet, will retry via reconnect handler');
+        return;
+      }
+      
+      console.log('✅ [NotificationsPage] Socket ready, setting up listeners...');
+      
       try {
-        await socketService.connect();
-        
         // Listen for new notifications
         socketService.onNotification((notification) => {
           console.log('NotificationsPage: Received new notification', notification);
           
-          // Add to list
-          const newNotification: Notification = {
-            Id: notification.id,
-            UserId: '',
-            Type: notification.type as any,
-            Priority: notification.priority as any,
-            Title: notification.title,
-            Message: notification.message,
-            Data: null,
-            RelatedEntityId: null,
-            RelatedEntityType: null,
-            ActionUrl: notification.actionUrl || null,
-            ActionText: notification.actionText || null,
-            CreatedAt: new Date().toISOString(),
-            ReadAt: null,
-            ExpiresAt: null,
-            IsRead: false
-          };
-          setItems(prev => [newNotification, ...prev]);
+          // Check if notification already exists to prevent duplicates
+          setItems(prev => {
+            const exists = prev.some(n => n.Id === notification.id);
+            if (exists) {
+              console.log('⚠️ [NotificationsPage] Notification already exists, skipping:', notification.id);
+              return prev;
+            }
+            
+            // Add to list
+            const newNotification: Notification = {
+              Id: notification.id,
+              UserId: '',
+              Type: notification.type as any,
+              Priority: notification.priority as any,
+              Title: notification.title,
+              Message: notification.message,
+              Data: null,
+              RelatedEntityId: null,
+              RelatedEntityType: null,
+              ActionUrl: notification.actionUrl || null,
+              ActionText: notification.actionText || null,
+              CreatedAt: new Date().toISOString(),
+              ReadAt: null,
+              ExpiresAt: null,
+              IsRead: false
+            };
+            
+            return [newNotification, ...prev];
+          });
         });
 
         // Listen for read events from other tabs
@@ -252,15 +268,32 @@ export const NotificationsPage: React.FC = () => {
         socketService.onNotificationDeleted((data) => {
           setItems(prev => prev.filter(n => n.Id !== data.notificationId));
         });
+        
+        console.log('✅ [NotificationsPage] All Socket.IO listeners registered successfully');
       } catch (error) {
-        console.error('Socket connection failed:', error);
+        console.error('❌ [NotificationsPage] Failed to setup Socket.IO listeners:', error);
       }
     };
 
-    connectSocket();
+    // Try to setup listeners immediately if socket is already connected
+    setupListeners();
 
+    // Re-setup listeners when socket connects/reconnects
+    const handleConnect = () => {
+      console.log('🔄 [NotificationsPage] Socket connected - setting up listeners');
+      setupListeners();
+    };
+
+    socketService.onConnect(handleConnect);
+
+    // Clean up listeners when component unmounts (socket stays connected for app)
     return () => {
-      socketService.disconnect();
+      console.log('🔕 [NotificationsPage] Component unmounting - cleaning up listeners');
+      socketService.offConnect(handleConnect);
+      socketService.offNotification();
+      socketService.offNotificationRead();
+      socketService.offNotificationsReadAll();
+      socketService.offNotificationDeleted();
     };
   }, []);
 

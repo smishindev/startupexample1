@@ -1,8 +1,8 @@
 # Notification Triggers - Full Implementation Plan
 
 **Created**: December 28, 2025  
-**Last Updated**: January 8, 2026  
-**Status**: In Progress (5/31 Complete + Hybrid Controls Design)  
+**Last Updated**: January 11, 2026  
+**Status**: In Progress (8/31 Complete + Hybrid Controls Design)  
 **Goal**: Integrate automatic notification creation throughout the application with granular user controls
 
 ---
@@ -97,14 +97,17 @@ When creating notification:
 
 Users receive email notifications (based on their preferences) when these events occur:
 
-#### ✅ **Currently Active (5 triggers)**
+#### ✅ **Currently Active (8 triggers)**
 1. **Lesson Completed** - Student completes any lesson → Email to student + instructor (at milestones)
 2. **Video Completed** - Student finishes watching video → Email to student (January 8, 2026)
 3. **Live Session Created** - Instructor schedules session → Email to all enrolled students
 4. **Live Session Updated** - Instructor edits session → Notification to all enrolled students (January 6, 2026)
 5. **Live Session Deleted** - Instructor deletes session → Notification to all enrolled students (January 6, 2026)
+6. **Course Enrollment** - Student enrolls in course → Email to student + instructor (January 11, 2026) ⭐ NEW
+7. **New Lesson Created** - Instructor adds lesson → Email to all enrolled students (active + completed) (January 11, 2026) ⭐ NEW
+8. **Course Published** - Instructor publishes course → Email to all enrolled students (active + completed) (January 11, 2026) ⭐ NEW
 
-#### 🔄 **Coming Soon (26 triggers)**
+#### 🔄 **Coming Soon (23 triggers)**
 - Course enrollments, assessment submissions
 - Grading notifications, new content alerts
 - Payment receipts, refund confirmations
@@ -127,13 +130,13 @@ Users receive email notifications (based on their preferences) when these events
 - ✅ Email delivery infrastructure complete (Phases 1-3)
 - ✅ Notification preferences UI complete
 - ✅ Email tracking and analytics complete
-- ✅ Two notification triggers implemented (Lesson Completion, Live Session Created)
-- ❌ 29 additional notification triggers NOT implemented
+- ✅ Eight notification triggers implemented (Lesson, Video, Live Sessions x3, Enrollment, New Lesson, Course Publish)
+- ❌ 23 additional notification triggers NOT implemented
 
 **What's Missing:**
-Event hooks that create notifications when users perform actions (enrollment, grading, course creation, etc.)
+Event hooks that create notifications when users perform actions (assessment grading, due dates, payments, community, etc.)
 
-**Estimated Effort:** 18-20 hours (3 phases remaining)
+**Estimated Effort:** 15-18 hours (remaining triggers)
 
 ---
 
@@ -159,13 +162,16 @@ Event hooks that create notifications when users perform actions (enrollment, gr
 - Infrastructure: 5 scheduled jobs
 
 **Implementation Status:**
-- ✅ **Implemented & Working**: 5 triggers
-  - Lesson Completion (Student + Instructor notifications)
+- ✅ **Implemented & Working**: 8 triggers
+  - Lesson Completion (Student + Instructor notifications) - December 29, 2025
   - Video Completion (Student notification) - January 8, 2026
-  - Live Session Created (Student notifications)
+  - Live Session Created (Student notifications) - Pre-existing
   - Live Session Updated (Student notifications) - January 6, 2026
   - Live Session Deleted (Student notifications) - January 6, 2026
-- ⏳ **Pending**: 26 triggers
+  - **Course Enrollment (Student + Instructor notifications) - January 11, 2026** ⭐ NEW
+  - **New Lesson Created (All enrolled students) - January 11, 2026** ⭐ NEW
+  - **Course Published (All enrolled students) - January 11, 2026** ⭐ NEW
+- ⏳ **Pending**: 23 triggers
 
 ---
 
@@ -287,7 +293,9 @@ await notificationService.createNotificationWithControls(
 ### 1.3 Course Enrollment
 **File**: `server/src/routes/enrollment.ts`  
 **Endpoint**: `POST /api/courses/:courseId/enroll`  
-**Line**: ~135
+**Line**: ~260, ~390
+
+**Status**: ✅ **IMPLEMENTED** - January 11, 2026
 
 **Triggers:**
 - ✅ **Student**: Welcome notification
@@ -299,9 +307,11 @@ await notificationService.createNotificationWithControls(
 type: 'course'
 priority: 'high'
 title: 'Welcome to {courseTitle}!'
-message: 'You\'re now enrolled! Start with the first lesson and track your progress.'
+message: 'You're now enrolled! Start with the first lesson and track your progress.'
 actionUrl: '/courses/{courseId}'
 actionText: 'Start Learning'
+category: 'course'
+subcategory: 'CourseEnrollment'
 
 // To Instructor
 type: 'course'
@@ -310,7 +320,46 @@ title: 'New Student Enrolled'
 message: '{studentName} enrolled in "{courseTitle}"'
 actionUrl: '/instructor/courses/{courseId}/students'
 actionText: 'View Students'
+category: 'course'
+subcategory: 'CourseEnrollment'
 ```
+
+**Implementation:**
+```typescript
+// After enrollment creation
+const io = req.app.get('io');
+const notificationService = new NotificationService(io);
+
+// Notify student
+await notificationService.createNotificationWithControls(
+  {
+    userId: userId!,
+    type: 'course',
+    priority: 'high',
+    title: `Welcome to ${course[0].Title}!`,
+    message: `You're now enrolled! Start with the first lesson and track your progress.`,
+    actionUrl: `/courses/${courseId}`,
+    actionText: 'Start Learning'
+  },
+  { category: 'course', subcategory: 'CourseEnrollment' }
+);
+
+// Notify instructor
+await notificationService.createNotificationWithControls(
+  {
+    userId: instructorId,
+    type: 'course',
+    priority: 'normal',
+    title: 'New Student Enrolled',
+    message: `${studentName} enrolled in "${course[0].Title}"`,
+    actionUrl: `/instructor/courses/${courseId}/students`,
+    actionText: 'View Students'
+  },
+  { category: 'course', subcategory: 'CourseEnrollment' }
+);
+```
+
+**Important Note:** Also handles re-enrollment after cancellation with appropriate messaging.
 
 ---
 
@@ -367,10 +416,12 @@ actionText: 'View Feedback'
 
 ### 2.1 New Lesson Created
 **File**: `server/src/routes/lessons.ts`  
-**Endpoint**: `POST /api/lessons` (Line ~144)
+**Endpoint**: `POST /api/lessons` (Line ~263)
+
+**Status**: ✅ **IMPLEMENTED** - January 11, 2026
 
 **Triggers:**
-- ✅ **All enrolled students**: New content notification
+- ✅ **All enrolled students (active + completed)**: New content notification
 
 **Notification Details:**
 ```typescript
@@ -380,16 +431,51 @@ title: 'New Lesson Available!'
 message: 'New lesson added to "{courseTitle}": {lessonTitle}'
 actionUrl: '/courses/{courseId}'
 actionText: 'Check it Out'
+category: 'course'
+subcategory: 'NewLessons'
 ```
+
+**Implementation:**
+```typescript
+// After lesson creation
+const io = req.app.get('io');
+const notificationService = new NotificationService(io);
+
+// Get enrolled students (active AND completed)
+const enrolledStudents = await db.query(`
+  SELECT DISTINCT UserId FROM dbo.Enrollments 
+  WHERE CourseId = @courseId AND Status IN ('active', 'completed')
+`, { courseId });
+
+// Notify each enrolled student
+for (const student of enrolledStudents) {
+  await notificationService.createNotificationWithControls(
+    {
+      userId: student.UserId,
+      type: 'course',
+      priority: 'normal',
+      title: 'New Lesson Available!',
+      message: `New lesson added to "${courseTitle}": ${title}`,
+      actionUrl: `/courses/${courseId}`,
+      actionText: 'Check it Out'
+    },
+    { category: 'course', subcategory: 'NewLessons' }
+  );
+}
+```
+
+**Important Note:** Query includes both `'active'` and `'completed'` enrollments because students who completed the course should still receive notifications about new content.
 
 ---
 
 ### 2.2 Course Published
 **File**: `server/src/routes/instructor.ts`  
-**Endpoint**: `POST /api/instructor/courses/:id/publish` (Line ~328)
+**Endpoint**: `POST /api/instructor/courses/:id/publish` (Line ~365)
+
+**Status**: ✅ **IMPLEMENTED** - January 11, 2026
 
 **Triggers:**
-- ✅ **Enrolled students**: Course published notification
+- ✅ **Enrolled students (active + completed)**: Course published notification
 
 **Notification Details:**
 ```typescript
@@ -399,7 +485,40 @@ title: 'Course Now Available'
 message: '"{courseTitle}" is now published and ready to start'
 actionUrl: '/courses/{courseId}'
 actionText: 'Start Learning'
+category: 'course'
+subcategory: 'CoursePublished'
 ```
+
+**Implementation:**
+```typescript
+// After publishing course
+const io = req.app.get('io');
+const notificationService = new NotificationService(io);
+
+// Get enrolled students (active AND completed)
+const enrolledStudents = await db.query(`
+  SELECT DISTINCT UserId FROM dbo.Enrollments 
+  WHERE CourseId = @courseId AND Status IN ('active', 'completed')
+`, { courseId });
+
+// Notify each enrolled student
+for (const student of enrolledStudents) {
+  await notificationService.createNotificationWithControls(
+    {
+      userId: student.UserId,
+      type: 'course',
+      priority: 'high',
+      title: 'Course Now Available',
+      message: `"${courseTitle}" is now published and ready to start`,
+      actionUrl: `/courses/${courseId}`,
+      actionText: 'Start Learning'
+    },
+    { category: 'course', subcategory: 'CoursePublished' }
+  );
+}
+```
+
+**Important Note:** Query includes both `'active'` and `'completed'` enrollments to notify all students who have access to the course.
 
 ---
 

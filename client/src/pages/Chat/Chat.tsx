@@ -208,8 +208,12 @@ const Chat: React.FC = () => {
   useEffect(() => {
     const initializeChat = async () => {
       try {
-        // Connect to socket
-        await socketService.connect();
+        // Wait for socket to be ready (App.tsx handles connection)
+        if (!socketService.isConnected()) {
+          console.log('🔌 [Chat] Waiting for socket connection...');
+          await socketService.connect();
+        }
+        console.log('✅ [Chat] Socket ready');
         
         // Load rooms
         await loadRooms();
@@ -277,9 +281,15 @@ const Chat: React.FC = () => {
 
     initializeChat();
 
+    // Clean up chat listeners when component unmounts (socket stays connected for app)
     return () => {
-      socketService.removeAllListeners();
-      socketService.disconnect();
+      console.log('🔕 [Chat] Component unmounting - cleaning up chat listeners');
+      socketService.offMessage();
+      socketService.offJoinedRoom();
+      socketService.offLeftRoom();
+      socketService.offUserTyping();
+      socketService.offUserStopTyping();
+      socketService.offError();
       if (typingTimeoutRef.current) {
         clearTimeout(typingTimeoutRef.current);
       }

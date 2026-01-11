@@ -198,6 +198,8 @@ export class NotificationService {
           actionText: params.actionText
         });
         console.log(`📡 Real-time notification sent to user-${params.userId}`);
+      } else {
+        console.warn(`⚠️ Socket.IO not available - notification ${notificationId} created in DB but NOT sent in real-time to user ${params.userId}`);
       }
 
       // Handle email notifications based on frequency preference
@@ -325,7 +327,11 @@ export class NotificationService {
 
       // Emit real-time notification via Socket.io
       if (this.io) {
-        this.io.to(`user-${params.userId}`).emit('notification-created', {
+        const roomName = `user-${params.userId}`;
+        const socketsInRoom = await this.io.in(roomName).fetchSockets();
+        console.log(`🔍 Room "${roomName}" has ${socketsInRoom.length} connected socket(s)`);
+        
+        this.io.to(roomName).emit('notification-created', {
           id: notificationId,
           userId: params.userId,
           type: params.type,
@@ -336,7 +342,9 @@ export class NotificationService {
           actionText: params.actionText,
           createdAt: new Date().toISOString()
         });
-        console.log(`🔔 Socket.io event emitted to user-${params.userId}`);
+        console.log(`🔔 Socket.io event emitted to ${roomName}`);
+      } else {
+        console.warn(`⚠️ Socket.IO not available in NotificationService - notification ${notificationId} created in DB but NOT sent in real-time to user ${params.userId}`);
       }
 
       // Send email if enabled

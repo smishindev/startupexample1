@@ -211,7 +211,7 @@ router.get('/student-performance/:courseId', authenticateToken, authorize(['inst
       JOIN dbo.Lessons l ON l.CourseId = e.CourseId
       JOIN dbo.Assessments a ON l.Id = a.LessonId
       LEFT JOIN dbo.AssessmentSubmissions s ON a.Id = s.AssessmentId AND u.Id = s.UserId AND s.IsPreview = 0
-      WHERE e.CourseId = @courseId AND e.Status = 'active' AND u.Role = 'student'
+      WHERE e.CourseId = @courseId AND e.Status IN ('active', 'completed') AND u.Role = 'student'
       GROUP BY u.Id, u.FirstName, u.LastName, u.Email
       ORDER BY progressPercentage DESC, avgScore DESC
     `, { courseId });
@@ -275,7 +275,7 @@ router.get('/learning-insights/:studentId', authenticateToken, async (req: AuthR
         SELECT COUNT(*) as hasAccess
         FROM dbo.Enrollments e
         JOIN dbo.Courses c ON e.CourseId = c.Id
-        WHERE e.UserId = @studentId AND c.InstructorId = @instructorId AND e.Status = 'active'
+        WHERE e.UserId = @studentId AND c.InstructorId = @instructorId AND e.Status IN ('active', 'completed')
       `, { studentId, instructorId: currentUserId });
 
       if (accessCheck[0].hasAccess === 0) {

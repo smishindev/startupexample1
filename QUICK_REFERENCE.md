@@ -1,6 +1,6 @@
 # 🚀 Quick Reference - Development Workflow
 
-**Last Updated**: December 27, 2025
+**Last Updated**: January 11, 2026
 
 ---
 
@@ -207,6 +207,43 @@ Role: Student
   - Settings shortcut button
   - Text wrapping for long messages
   - Date display: "5 minutes ago" (relative time)
+
+**Notification Triggers Testing (January 11, 2026):**
+- **8 Active Triggers**: Test all automatic notification creation scenarios
+- Test scenarios:
+  1. **Course Enrollment**:
+     - Enroll in a course → Student receives welcome notification
+     - Instructor receives "New Student Enrolled" notification
+     - Verify both in-app and email delivery (respects preferences)
+  2. **New Lesson Created**:
+     - Instructor creates new lesson in published course
+     - All enrolled students (active + completed) receive notification
+     - Verify completed students receive notifications too
+  3. **Course Published**:
+     - Instructor publishes draft course
+     - All enrolled students receive "Course Now Available" notification
+     - Verify both active and completed enrollments notified
+  4. **Lesson Completion**:
+     - Complete a lesson → Progress notification received
+     - At 25%, 50%, 75%, 100% → Instructor receives milestone notification
+  5. **Video Completion**:
+     - Complete watching a video → Video completion notification
+  6. **Live Session Created**:
+     - Instructor creates live session → All enrolled students notified
+  7. **Live Session Updated**:
+     - Instructor edits session → Students notified of changes
+  8. **Live Session Deleted**:
+     - Instructor deletes session → Students notified of cancellation
+- Database verification:
+  - `SELECT * FROM Notifications WHERE Type='course' ORDER BY CreatedAt DESC`
+  - `SELECT * FROM Enrollments WHERE Status IN ('active', 'completed')`
+- Socket.IO verification:
+  - Open browser console, watch for `notification-created` events
+  - Bell icon count updates in real-time without refresh
+- Email verification:
+  - Check Gmail inbox: s.mishin.dev@gmail.com
+  - Verify realtime/digest emails sent based on preferences
+  - **Critical Bug Fixed**: Completed students now receive notifications AND can access content
 
 ---
 

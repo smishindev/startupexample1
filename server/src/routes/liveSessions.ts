@@ -7,7 +7,6 @@ import { authenticateToken, AuthRequest } from '../middleware/auth';
 import { checkRole } from '../middleware/roleCheck';
 
 const router = Router();
-const notificationService = new NotificationService();
 
 /**
  * @route   POST /api/live-sessions
@@ -66,38 +65,31 @@ router.post('/', authenticateToken, checkRole(['instructor']), async (req: AuthR
           { courseId: session.CourseId }
         );
 
-        // Create notification for each enrolled student
-        for (const student of enrolledStudents) {
-          const notificationId = await notificationService.createNotificationWithControls(
-            {
-              userId: student.UserId,
-              type: 'course',
-              priority: 'normal',
-              title: 'New Live Session',
-              message: `A new live session "${session.Title}" has been scheduled`,
-              actionUrl: `/live-sessions`,
-              actionText: 'View Session',
-              relatedEntityId: session.Id,
-              relatedEntityType: 'course'
-            },
-            {
-              category: 'course',
-              subcategory: 'LiveSessions'
-            }
-          );
+        // Only send notifications if there are enrolled students
+        if (enrolledStudents.length > 0) {
+          const notificationService = new NotificationService(io);
 
-          // Only emit notification-created event if notification was actually created
-          if (notificationId) {
-            io.to(`user-${student.UserId}`).emit('notification-created', {
-              id: notificationId,
-              userId: student.UserId,
-              type: 'course',
-              priority: 'normal',
-              title: 'New Live Session',
-              message: `A new live session "${session.Title}" has been scheduled`,
-              actionUrl: '/live-sessions',
-              actionText: 'View Session'
-            });
+          // Create notification for each enrolled student
+          for (const student of enrolledStudents) {
+            const notificationId = await notificationService.createNotificationWithControls(
+              {
+                userId: student.UserId,
+                type: 'course',
+                priority: 'normal',
+                title: 'New Live Session',
+                message: `A new live session "${session.Title}" has been scheduled`,
+                actionUrl: `/live-sessions`,
+                actionText: 'View Session',
+                relatedEntityId: session.Id,
+                relatedEntityType: 'course'
+              },
+              {
+                category: 'course',
+                subcategory: 'LiveSessions'
+              }
+            );
+
+            // NotificationService already emits Socket.IO event, no need to emit again
           }
         }
       } catch (notifError) {
@@ -218,38 +210,31 @@ router.put('/:sessionId', authenticateToken, checkRole(['instructor']), async (r
           { courseId: session.CourseId }
         );
 
-        // Create notification for each enrolled student
-        for (const student of enrolledStudents) {
-          const notificationId = await notificationService.createNotificationWithControls(
-            {
-              userId: student.UserId,
-              type: 'course',
-              priority: 'normal',
-              title: 'Live Session Updated',
-              message: `The live session "${session.Title}" has been updated. Please check the new schedule.`,
-              actionUrl: `/live-sessions`,
-              actionText: 'View Session',
-              relatedEntityId: session.Id,
-              relatedEntityType: 'course'
-            },
-            {
-              category: 'course',
-              subcategory: 'LiveSessions'
-            }
-          );
+        // Only send notifications if there are enrolled students
+        if (enrolledStudents.length > 0) {
+          const notificationService = new NotificationService(io);
 
-          // Only emit notification-created event if notification was actually created
-          if (notificationId) {
-            io.to(`user-${student.UserId}`).emit('notification-created', {
-              id: notificationId,
-              userId: student.UserId,
-              type: 'course',
-              priority: 'normal',
-              title: 'Live Session Updated',
-              message: `The live session "${session.Title}" has been updated. Please check the new schedule.`,
-              actionUrl: '/live-sessions',
-              actionText: 'View Session'
-            });
+          // Create notification for each enrolled student
+          for (const student of enrolledStudents) {
+            const notificationId = await notificationService.createNotificationWithControls(
+              {
+                userId: student.UserId,
+                type: 'course',
+                priority: 'normal',
+                title: 'Live Session Updated',
+                message: `The live session "${session.Title}" has been updated. Please check the new schedule.`,
+                actionUrl: `/live-sessions`,
+                actionText: 'View Session',
+                relatedEntityId: session.Id,
+                relatedEntityType: 'course'
+              },
+              {
+                category: 'course',
+                subcategory: 'LiveSessions'
+              }
+            );
+
+            // NotificationService already emits Socket.IO event, no need to emit again
           }
         }
       } catch (notifError) {
@@ -315,38 +300,31 @@ router.delete('/:sessionId', authenticateToken, checkRole(['instructor']), async
           { courseId: existingSession.CourseId }
         );
 
-        // Create notification for each enrolled student
-        for (const student of enrolledStudents) {
-          const notificationId = await notificationService.createNotificationWithControls(
-            {
-              userId: student.UserId,
-              type: 'course',
-              priority: 'high',
-              title: 'Live Session Deleted',
-              message: `The live session "${existingSession.Title}" has been permanently deleted.`,
-              actionUrl: `/live-sessions`,
-              actionText: 'View Sessions',
-              relatedEntityId: existingSession.Id,
-              relatedEntityType: 'course'
-            },
-            {
-              category: 'course',
-              subcategory: 'LiveSessions'
-            }
-          );
+        // Only send notifications if there are enrolled students
+        if (enrolledStudents.length > 0) {
+          const notificationService = new NotificationService(io);
 
-          // Only emit notification-created event if notification was actually created
-          if (notificationId) {
-            io.to(`user-${student.UserId}`).emit('notification-created', {
-              id: notificationId,
-              userId: student.UserId,
-              type: 'course',
-              priority: 'high',
-              title: 'Live Session Deleted',
-              message: `The live session "${existingSession.Title}" has been permanently deleted.`,
-              actionUrl: '/live-sessions',
-              actionText: 'View Sessions'
-            });
+          // Create notification for each enrolled student
+          for (const student of enrolledStudents) {
+            const notificationId = await notificationService.createNotificationWithControls(
+              {
+                userId: student.UserId,
+                type: 'course',
+                priority: 'high',
+                title: 'Live Session Deleted',
+                message: `The live session "${existingSession.Title}" has been permanently deleted.`,
+                actionUrl: `/live-sessions`,
+                actionText: 'View Sessions',
+                relatedEntityId: existingSession.Id,
+                relatedEntityType: 'course'
+              },
+              {
+                category: 'course',
+                subcategory: 'LiveSessions'
+              }
+            );
+
+            // NotificationService already emits Socket.IO event, no need to emit again
           }
         }
       } catch (notifError) {
@@ -457,38 +435,31 @@ router.post('/:sessionId/start', authenticateToken, checkRole(['instructor']), a
           { courseId: session.CourseId }
         );
 
-        // Create notification for each enrolled student
-        for (const student of enrolledStudents) {
-          const notificationId = await notificationService.createNotificationWithControls(
-            {
-              userId: student.UserId,
-              type: 'course',
-              priority: 'urgent',
-              title: 'Session Starting Now',
-              message: `The live session "${session.Title}" is starting now! Join now.`,
-              actionUrl: `/live-sessions`,
-              actionText: 'Join Session',
-              relatedEntityId: session.Id,
-              relatedEntityType: 'course'
-            },
-            {
-              category: 'course',
-              subcategory: 'LiveSessions'
-            }
-          );
+        // Only send notifications if there are enrolled students
+        if (enrolledStudents.length > 0) {
+          const notificationService = new NotificationService(io);
 
-          // Only emit notification-created event if notification was actually created
-          if (notificationId) {
-            io.to(`user-${student.UserId}`).emit('notification-created', {
-              id: notificationId,
-              userId: student.UserId,
-              type: 'course',
-              priority: 'urgent',
-              title: 'Session Starting Now',
-              message: `The live session "${session.Title}" is starting now! Join now.`,
-              actionUrl: '/live-sessions',
-              actionText: 'Join Session'
-            });
+          // Create notification for each enrolled student
+          for (const student of enrolledStudents) {
+            const notificationId = await notificationService.createNotificationWithControls(
+              {
+                userId: student.UserId,
+                type: 'course',
+                priority: 'urgent',
+                title: 'Session Starting Now',
+                message: `The live session "${session.Title}" is starting now! Join now.`,
+                actionUrl: `/live-sessions`,
+                actionText: 'Join Session',
+                relatedEntityId: session.Id,
+                relatedEntityType: 'course'
+              },
+              {
+                category: 'course',
+                subcategory: 'LiveSessions'
+              }
+            );
+
+            // NotificationService already emits Socket.IO event, no need to emit again
           }
         }
       } catch (notifError) {
@@ -559,38 +530,31 @@ router.post('/:sessionId/end', authenticateToken, checkRole(['instructor']), asy
           { courseId: session.CourseId }
         );
 
-        // Create notification for each enrolled student
-        for (const student of enrolledStudents) {
-          const notificationId = await notificationService.createNotificationWithControls(
-            {
-              userId: student.UserId,
-              type: 'course',
-              priority: 'normal',
-              title: 'Session Ended',
-              message: `The live session "${session.Title}" has ended`,
-              actionUrl: `/live-sessions`,
-              actionText: 'View Sessions',
-              relatedEntityId: session.Id,
-              relatedEntityType: 'course'
-            },
-            {
-              category: 'course',
-              subcategory: 'LiveSessions'
-            }
-          );
+        // Only send notifications if there are enrolled students
+        if (enrolledStudents.length > 0) {
+          const notificationService = new NotificationService(io);
 
-          // Only emit notification-created event if notification was actually created
-          if (notificationId) {
-            io.to(`user-${student.UserId}`).emit('notification-created', {
-              id: notificationId,
-              userId: student.UserId,
-              type: 'course',
-              priority: 'normal',
-              title: 'Session Ended',
-              message: `The live session "${session.Title}" has ended`,
-              actionUrl: '/live-sessions',
-              actionText: 'View Sessions'
-            });
+          // Create notification for each enrolled student
+          for (const student of enrolledStudents) {
+            const notificationId = await notificationService.createNotificationWithControls(
+              {
+                userId: student.UserId,
+                type: 'course',
+                priority: 'normal',
+                title: 'Session Ended',
+                message: `The live session "${session.Title}" has ended`,
+                actionUrl: `/live-sessions`,
+                actionText: 'View Sessions',
+                relatedEntityId: session.Id,
+                relatedEntityType: 'course'
+              },
+              {
+                category: 'course',
+                subcategory: 'LiveSessions'
+              }
+            );
+
+            // NotificationService already emits Socket.IO event, no need to emit again
           }
         }
       } catch (notifError) {
@@ -658,38 +622,31 @@ router.post('/:sessionId/cancel', authenticateToken, checkRole(['instructor']), 
           { courseId: session.CourseId }
         );
 
-        // Create notification for each enrolled student
-        for (const student of enrolledStudents) {
-          const notificationId = await notificationService.createNotificationWithControls(
-            {
-              userId: student.UserId,
-              type: 'course',
-              priority: 'high',
-              title: 'Session Cancelled',
-              message: `The live session "${session.Title}" has been cancelled`,
-              actionUrl: `/live-sessions`,
-              actionText: 'View Sessions',
-              relatedEntityId: session.Id,
-              relatedEntityType: 'course'
-            },
-            {
-              category: 'course',
-              subcategory: 'LiveSessions'
-            }
-          );
+        // Only send notifications if there are enrolled students
+        if (enrolledStudents.length > 0) {
+          const notificationService = new NotificationService(io);
 
-          // Only emit notification-created event if notification was actually created
-          if (notificationId) {
-            io.to(`user-${student.UserId}`).emit('notification-created', {
-              id: notificationId,
-              userId: student.UserId,
-              type: 'course',
-              priority: 'high',
-              title: 'Session Cancelled',
-              message: `The live session "${session.Title}" has been cancelled`,
-              actionUrl: '/live-sessions',
-              actionText: 'View Sessions'
-            });
+          // Create notification for each enrolled student
+          for (const student of enrolledStudents) {
+            const notificationId = await notificationService.createNotificationWithControls(
+              {
+                userId: student.UserId,
+                type: 'course',
+                priority: 'high',
+                title: 'Session Cancelled',
+                message: `The live session "${session.Title}" has been cancelled`,
+                actionUrl: `/live-sessions`,
+                actionText: 'View Sessions',
+                relatedEntityId: session.Id,
+                relatedEntityType: 'course'
+              },
+              {
+                category: 'course',
+                subcategory: 'LiveSessions'
+              }
+            );
+
+            // NotificationService already emits Socket.IO event, no need to emit again
           }
         }
       } catch (notifError) {
@@ -726,6 +683,7 @@ router.post('/:sessionId/join', authenticateToken, async (req: AuthRequest, res)
     const io: Server = req.app.get('io');
     if (io) {
       try {
+        const notificationService = new NotificationService(io);
         const dbService = DatabaseService.getInstance();
         const session = await dbService.query<{ 
           InstructorId: string; 
@@ -770,18 +728,7 @@ router.post('/:sessionId/join', authenticateToken, async (req: AuthRequest, res)
             }
           );
 
-          // Only emit real-time notification to instructor if notification was actually created
-          if (notificationId) {
-            io.to(`user-${InstructorId}`).emit('notification-created', {
-              userId: InstructorId,
-              type: 'course',
-              priority: 'low',
-              title: 'Student Joined Session',
-              message: `${studentName} joined "${Title}"`,
-              actionUrl: '/live-sessions',
-              actionText: 'View Session'
-            });
-          }
+          // NotificationService already emits Socket.IO event, no need to emit again
         }
       } catch (notifError) {
         console.error('Error creating join notification:', notifError);
@@ -817,6 +764,7 @@ router.post('/:sessionId/leave', authenticateToken, async (req: AuthRequest, res
     const io: Server = req.app.get('io');
     if (io) {
       try {
+        const notificationService = new NotificationService(io);
         const dbService = DatabaseService.getInstance();
         const session = await dbService.query<{ 
           InstructorId: string; 
@@ -861,18 +809,7 @@ router.post('/:sessionId/leave', authenticateToken, async (req: AuthRequest, res
             }
           );
 
-          // Only emit real-time notification to instructor if notification was actually created
-          if (notificationId) {
-            io.to(`user-${InstructorId}`).emit('notification-created', {
-              userId: InstructorId,
-              type: 'course',
-              priority: 'low',
-              title: 'Student Left Session',
-              message: `${studentName} left "${Title}"`,
-              actionUrl: '/live-sessions',
-              actionText: 'View Session'
-            });
-          }
+          // NotificationService already emits Socket.IO event, no need to emit again
         }
       } catch (notifError) {
         console.error('Error creating leave notification:', notifError);

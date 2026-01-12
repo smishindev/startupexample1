@@ -1,12 +1,145 @@
 # Mishin Learn Platform - Project Status & Memory
 
-**Last Updated**: January 11, 2026 - Course Management Notification Triggers Complete ✅  
+**Last Updated**: January 12, 2026 - Presence System & Logout Bug Fixes Complete ✅  
 **Developer**: Sergey Mishin (s.mishin.dev@gmail.com)  
 **AI Assistant Context**: This file serves as project memory for continuity across chat sessions
 
 ---
 
-## 🔥 LATEST UPDATE - January 11, 2026
+## 🔥 LATEST UPDATE - January 12, 2026
+
+### 🐛 Presence System & User Logout Bug Fixes - COMPLETE
+
+**Critical Bug Resolved: User Presence Not Clearing on Logout**
+
+✅ **Server-Side Logout Cleanup**
+- **Problem**: When users logged out, they remained visible as "online" in presence system
+- **Fix**: `/auth/logout` endpoint now calls `PresenceService.setUserOffline(userId)`
+- **Implementation**: [auth.ts](server/src/routes/auth.ts#L405-L430)
+- **Status**: ✅ Complete
+
+✅ **Client-Side Logout Flow Improvements**
+- **Added logout guard**: `isLoggingOut` flag prevents concurrent logout calls
+- **Async logout**: Made logout async with 5-second timeout using AbortController
+- **Proper cleanup order**: API call completes → state clears → App.tsx disconnects socket
+- **Implementation**: [authStore.ts](client/src/stores/authStore.ts#L166-L212)
+- **Status**: ✅ Complete
+
+✅ **Socket Connection Safety (8+ files)**
+- **Problem**: Components tried to emit socket events after disconnection → errors
+- **Fix**: All socket emit calls now check `socketService.isConnected()` before emitting
+- **Files Updated**:
+  - [socketService.ts](client/src/services/socketService.ts) - All emit methods
+  - [usePresence.ts](client/src/hooks/usePresence.ts) - updateStatus, updateActivity, sendHeartbeat
+  - [useStudyGroupSocket.ts](client/src/hooks/useStudyGroupSocket.ts) - join/leave functions
+  - [useOfficeHoursSocket.ts](client/src/hooks/useOfficeHoursSocket.ts) - join function
+  - [useLiveSessionSocket.ts](client/src/hooks/useLiveSessionSocket.ts) - join/leave functions
+- **Status**: ✅ Complete
+
+✅ **"Appear Offline" Feature Fix**
+- **Problem**: When user set status to "offline" (appear offline) and refreshed page → status changed to "online"
+- **Root Cause**: `PresenceService.setUserOnline()` only preserved "away" and "busy" status, not "offline"
+- **Fix**: Now preserves "offline" status on socket reconnect (page refresh)
+- **Implementation**: [PresenceService.ts](server/src/services/PresenceService.ts#L258-L289)
+- **Status**: ✅ Complete
+
+---
+
+### 📊 Logout Flow (Bulletproof Design)
+
+**Complete Logout Sequence:**
+1. User clicks logout → `logout()` called
+2. `isLoggingOut` guard prevents duplicate calls
+3. Set `isLoggingOut = true`
+4. Call `/auth/logout` API (5s timeout) → server marks user offline in DB
+5. Clear auth state (`isAuthenticated = false`, `isLoggingOut = false`)
+6. App.tsx useEffect cleanup detects auth change
+7. Socket disconnects via `socketService.disconnect()`
+8. Server socket disconnect handler updates LastSeenAt
+9. User redirected to login page
+10. All components unmount cleanly
+
+**Edge Cases Handled:**
+- ✅ Multiple concurrent logout calls (isLoggingOut guard)
+- ✅ Logout during token refresh (guard prevents race condition)
+- ✅ Token refresh failure triggering logout (guard prevents issues)
+- ✅ Socket connecting during logout (proper cleanup order)
+- ✅ Components trying to use socket after logout (isConnected checks)
+- ✅ API timeout (5-second timeout, continues logout anyway)
+- ✅ Browser tab close (socket disconnect + inactivity checker)
+
+---
+
+### 🕐 Relative Timestamp Auto-Update Fix
+
+**Problem Identified:** Relative timestamps ("X minutes ago") displayed using `formatDistanceToNow` were static and never updated without page refresh or data re-fetch.
+
+**Example Issue:**
+- Office hours: "Joined less than a minute ago" displayed for 10+ minutes
+- Notifications: "5 minutes ago" never changed to "6 minutes ago"
+- Chat: Message times stuck at old values
+- Tutoring: Session timestamps frozen
+
+✅ **Solution Implemented: 60-Second Auto-Update Timers**
+
+**Pattern Applied to 6 Components:**
+```typescript
+// State variable to trigger re-renders
+const [, setCurrentTime] = useState(Date.now());
+
+// Update every 60 seconds
+useEffect(() => {
+  const interval = setInterval(() => {
+    setCurrentTime(Date.now());
+  }, 60000);
+  return () => clearInterval(interval); // Cleanup on unmount
+}, []);
+```
+
+**Components Updated:**
+1. **[QueueDisplay.tsx](client/src/components/OfficeHours/QueueDisplay.tsx)** - Office hours wait times ("Joined X ago", "Admitted X ago")
+2. **[NotificationsPage.tsx](client/src/pages/Notifications/NotificationsPage.tsx)** - Full notification center timestamps
+3. **[NotificationBell.tsx](client/src/components/Notifications/NotificationBell.tsx)** - Header dropdown timestamps
+4. **[Chat.tsx](client/src/pages/Chat/Chat.tsx)** - Chat message and room timestamps
+5. **[Tutoring.tsx](client/src/pages/Tutoring/Tutoring.tsx)** - AI tutoring session and message times
+6. **[MyLearningPage.tsx](client/src/pages/Learning/MyLearningPage.tsx)** - "Last accessed X ago" for courses
+
+**Technical Details:**
+- Timer interval: 60 seconds (balance between freshness and performance)
+- Memory leak prevention: All timers have proper cleanup (`clearInterval` in useEffect return)
+- Date handling compliance: Follows [DATE_HANDLING_GUIDE.md](DATE_HANDLING_GUIDE.md)
+  - Database stores UTC timestamps (`GETUTCDATE()`)
+  - `formatDistanceToNow(new Date(utcTimestamp))` auto-converts to local time
+  - `Date.now()` used only as re-render trigger (value not used in calculations)
+- No breaking changes: Purely additive, no logic modifications
+- Performance impact: 6 components × 1 re-render/minute = minimal overhead
+
+**Benefits:**
+- ✅ Accurate relative time display without manual refresh
+- ✅ Consistent UX across all timestamp displays
+- ✅ No additional API calls (updates UI only, not data)
+- ✅ Timezone-safe (UTC in DB, local display via date-fns)
+
+---
+
+### 🎯 Status Persistence on Page Refresh
+
+**All Status Types Now Persist Correctly:**
+- "online" → refresh → "online" ✓
+- "away" → refresh → "away" ✓
+- "busy" → refresh → "busy" ✓
+- "offline" → refresh → "offline" ✓ (FIXED)
+
+**"Appear Offline" Feature:**
+- Users can set status to "offline" while connected
+- They don't show in online users lists
+- Their LastSeenAt still updates (they're connected)
+- Status persists across page refreshes
+- When they truly disconnect, they stay "offline" (correct behavior)
+
+---
+
+## 🔥 PREVIOUS UPDATE - January 11, 2026
 
 ### 🔔 Course Management Email Notification Triggers - COMPLETE
 

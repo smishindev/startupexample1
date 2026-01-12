@@ -53,6 +53,7 @@ const QueueDisplay: React.FC<QueueDisplayProps> = ({ instructorId, isInstructor,
   const [error, setError] = useState<string | null>(null);
   const [actioningId, setActioningId] = useState<string | null>(null);
   const [presenceMap, setPresenceMap] = useState<Record<string, PresenceStatus>>({});
+  const [, setCurrentTime] = useState(Date.now()); // Force re-render for relative time updates
 
   // Listen for real-time queue updates
   useOfficeHoursSocket({
@@ -74,6 +75,15 @@ const QueueDisplay: React.FC<QueueDisplayProps> = ({ instructorId, isInstructor,
   useEffect(() => {
     loadQueue();
   }, [instructorId]);
+
+  // Update relative timestamps every minute
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(Date.now());
+    }, 60000); // Update every 60 seconds
+
+    return () => clearInterval(interval);
+  }, []);
 
   // Load presence status for students in queue
   useEffect(() => {

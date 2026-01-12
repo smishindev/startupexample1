@@ -1,6 +1,6 @@
 # Date Handling Guide - Payment System & Email Verification
 
-**Last Updated**: December 27, 2025  
+**Last Updated**: January 12, 2026 - Added Relative Timestamp Auto-Update Pattern  
 **Status**: ✅ Fixed and Verified
 
 ---
@@ -25,6 +25,49 @@ This guide documents the correct date handling across the payment system and ema
 - Display dates use `date-fns format()` - automatically converts to user's local timezone
 - Calculations use `.getTime()` for timezone-independent comparisons
 - Never use `Date.now()` directly - use `new Date().getTime()` for consistency
+- **Exception**: `Date.now()` acceptable as re-render trigger (value not used in calculations)
+
+### ✅ Relative Timestamps ("X minutes ago") - Auto-Update Pattern (Jan 12, 2026)
+
+**Problem**: `formatDistanceToNow()` only calculates on component render - timestamps don't update automatically
+
+**Solution**: 60-second timer forces re-render without re-fetching data
+
+```typescript
+import { formatDistanceToNow } from 'date-fns';
+import { useState, useEffect } from 'react';
+
+const MyComponent = () => {
+  const [, setCurrentTime] = useState(Date.now()); // Value unused, just triggers render
+  
+  // Auto-update every 60 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(Date.now());
+    }, 60000);
+    return () => clearInterval(interval); // CRITICAL: Cleanup to prevent memory leaks
+  }, []);
+  
+  // Display (recalculates on each render)
+  return (
+    <span>{formatDistanceToNow(new Date(utcTimestamp), { addSuffix: true })}</span>
+  );
+};
+```
+
+**Why This Works:**
+- Database stores UTC: `GETUTCDATE()` → "2026-01-12T14:30:00.000Z"
+- `new Date(utcTimestamp)` parses UTC correctly
+- `formatDistanceToNow()` auto-converts UTC to user's local timezone
+- State change (`setCurrentTime`) triggers re-render
+- Component re-renders → `formatDistanceToNow` recalculates with current time
+- Result: "5 minutes ago" → wait 1 minute → "6 minutes ago" (automatic)
+
+**Note on `Date.now()` Usage:**
+- ❌ DON'T use for date calculations: `Date.now() - timestamp` (inconsistent)
+- ✅ DO use for re-render triggers: `useState(Date.now())` (acceptable)
+- The value isn't used in calculations, only to force React to re-render
+- Actual time calculation happens in `formatDistanceToNow()` which uses `new Date()`
 
 ---
 

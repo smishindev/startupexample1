@@ -162,7 +162,7 @@ export const useLiveSessionSocket = (callbacks: LiveSessionSocketCallbacks) => {
  */
 export const joinLiveSession = (sessionId: string) => {
   const socket = socketService.getSocket();
-  if (socket) {
+  if (socket && socketService.isConnected()) {
     socket.emit('join-live-session', { sessionId });
   }
 };
@@ -172,7 +172,7 @@ export const joinLiveSession = (sessionId: string) => {
  */
 export const leaveLiveSession = (sessionId: string) => {
   const socket = socketService.getSocket();
-  if (socket) {
+  if (socket && socketService.isConnected()) {
     socket.emit('leave-live-session', { sessionId });
   }
 };

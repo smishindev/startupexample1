@@ -1,6 +1,6 @@
 # Mishin Learn Platform - Component Registry
 
-**Last Updated**: December 29, 2025  
+**Last Updated**: January 12, 2026 - Added Timestamp Auto-Update Pattern  
 **Purpose**: Quick reference for all major components, their dependencies, and relationships
 
 ---
@@ -58,6 +58,116 @@
 - `enrollmentApi.getMyEnrollments()` - Get student's enrolled courses
 
 **Socket.IO Events**:
+
+---
+
+### QueueDisplay (Office Hours)
+**Path**: `client/src/components/OfficeHours/QueueDisplay.tsx`  
+**Purpose**: Display and manage office hours queue with real-time wait times
+
+**Key Features**:
+- ✅ **Auto-Updating Timestamps** (Jan 12, 2026) - 60-second timer updates "Joined X ago" / "Admitted X ago" automatically
+- Real-time queue updates via Socket.IO
+- Student presence status badges
+- Admit/Complete/Cancel actions for instructors
+- Wait time calculations with `formatDistanceToNow`
+
+**Timestamp Implementation**:
+```typescript
+const [, setCurrentTime] = useState(Date.now()); // Re-render trigger
+useEffect(() => {
+  const interval = setInterval(() => setCurrentTime(Date.now()), 60000);
+  return () => clearInterval(interval); // Cleanup
+}, []);
+```
+
+**Status**: ✅ Production-ready with auto-updating timestamps
+
+---
+
+## 🔔 Notifications Components
+
+### NotificationsPage
+**Path**: `client/src/pages/Notifications/NotificationsPage.tsx`  
+**Purpose**: Full-page notification center with filtering and pagination
+
+**Key Features**:
+- ✅ **Auto-Updating Timestamps** (Jan 12, 2026) - All notification times update every 60 seconds
+- Filter by type (all, progress, course, assessment, community, system)
+- Filter by priority (all, high, medium, low)
+- Pagination (20 per page)
+- Mark as read/unread
+- Real-time updates via Socket.IO
+
+**Status**: ✅ Production-ready with auto-updating timestamps
+
+---
+
+### NotificationBell
+**Path**: `client/src/components/Notifications/NotificationBell.tsx`  
+**Purpose**: Header notification dropdown with badge count
+
+**Key Features**:
+- ✅ **Auto-Updating Timestamps** (Jan 12, 2026) - Dropdown timestamps update without closing/reopening
+- Unread count badge
+- Recent 5 notifications preview
+- Click to navigate or mark as read
+- Real-time sync across tabs
+
+**Status**: ✅ Production-ready with auto-updating timestamps
+
+---
+
+## 💬 Chat Components
+
+### Chat
+**Path**: `client/src/pages/Chat/Chat.tsx`  
+**Purpose**: Real-time chat with rooms and direct messages
+
+**Key Features**:
+- ✅ **Auto-Updating Timestamps** (Jan 12, 2026) - Message times and room "last message" times update every 60 seconds
+- Room list with last message preview
+- Message history with infinite scroll
+- Typing indicators
+- Real-time message delivery
+
+**Status**: ✅ Production-ready with auto-updating timestamps
+
+---
+
+## 🤖 AI Tutoring Components
+
+### Tutoring
+**Path**: `client/src/pages/Tutoring/Tutoring.tsx`  
+**Purpose**: AI-powered tutoring sessions with multiple models
+
+**Key Features**:
+- ✅ **Auto-Updating Timestamps** (Jan 12, 2026) - Session "Updated X ago" and message times update automatically
+- Session management (create, select, delete)
+- Message history with AI responses
+- Model selection (GPT-4, GPT-4 Mini, GPT-3.5)
+- Suggestions and recommendations
+
+**Status**: ✅ Production-ready with auto-updating timestamps
+
+---
+
+## 🎓 Learning Components
+
+### MyLearningPage
+**Path**: `client/src/pages/Learning/MyLearningPage.tsx`  
+**Purpose**: Student dashboard showing enrolled courses
+
+**Key Features**:
+- ✅ **Auto-Updating Timestamps** (Jan 12, 2026) - "Last accessed X ago" updates every 60 seconds
+- Course progress tracking
+- Pagination (20 per page)
+- Course continuation
+- Bookmark integration
+
+**Status**: ✅ Production-ready with auto-updating timestamps
+
+---
 - Listens: `session-created`, `session-started`, `session-ended`, `session-cancelled`, `session-updated`, `session-deleted`, `attendee-joined`, `attendee-left`
 - Real-time session status updates, capacity changes, and deletions
 - Refetches on `session-created` to show new sessions

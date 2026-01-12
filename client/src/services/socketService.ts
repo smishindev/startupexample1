@@ -127,19 +127,19 @@ class SocketService {
 
   // Chat room methods
   joinRoom(roomId: string): void {
-    if (this.socket) {
+    if (this.socket && this.isConnected()) {
       this.socket.emit('join-room', roomId);
     }
   }
 
   leaveRoom(roomId: string): void {
-    if (this.socket) {
+    if (this.socket && this.isConnected()) {
       this.socket.emit('leave-room', roomId);
     }
   }
 
   sendMessage(roomId: string, content: string, messageId?: string, createdAt?: string, messageType = 'text'): void {
-    if (this.socket) {
+    if (this.socket && this.isConnected()) {
       this.socket.emit('chat-message', {
         roomId,
         content,
@@ -152,13 +152,13 @@ class SocketService {
 
   // Typing indicators
   startTyping(roomId: string): void {
-    if (this.socket) {
+    if (this.socket && this.isConnected()) {
       this.socket.emit('typing-start', { roomId });
     }
   }
 
   stopTyping(roomId: string): void {
-    if (this.socket) {
+    if (this.socket && this.isConnected()) {
       this.socket.emit('typing-stop', { roomId });
     }
   }

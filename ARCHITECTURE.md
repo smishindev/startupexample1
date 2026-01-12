@@ -1,6 +1,6 @@
 # Mishin Learn Platform - System Architecture
 
-**Last Updated**: December 2, 2025  
+**Last Updated**: January 12, 2026 - Added Timestamp Auto-Update Pattern  
 **Purpose**: Understanding system components, data flows, and dependencies
 
 ---
@@ -78,6 +78,46 @@ All endpoints require JWT authentication (authenticateToken middleware)
 - EmailVerificationPage (/verify-email) standalone page
 - EmailVerificationBanner in DashboardLayout
 - Profile badge integration (clickable for unverified)
+
+### Relative Timestamp Auto-Update (added Jan 12, 2026)
+
+**Pattern for Auto-Updating "X minutes ago" Displays:**
+
+All components displaying relative timestamps using `formatDistanceToNow` implement a 60-second auto-update timer:
+
+```typescript
+import { formatDistanceToNow } from 'date-fns';
+import { useState, useEffect } from 'react';
+
+// Component setup
+const [, setCurrentTime] = useState(Date.now()); // Trigger re-renders
+
+// Auto-update every 60 seconds
+useEffect(() => {
+  const interval = setInterval(() => {
+    setCurrentTime(Date.now());
+  }, 60000);
+  return () => clearInterval(interval); // Cleanup
+}, []);
+
+// Display (re-calculates on each render)
+{formatDistanceToNow(new Date(utcTimestamp), { addSuffix: true })}
+```
+
+**Components Using This Pattern:**
+- Office Hours: [QueueDisplay.tsx](client/src/components/OfficeHours/QueueDisplay.tsx)
+- Notifications: [NotificationsPage.tsx](client/src/pages/Notifications/NotificationsPage.tsx)
+- Notification Bell: [NotificationBell.tsx](client/src/components/Notifications/NotificationBell.tsx)
+- Chat: [Chat.tsx](client/src/pages/Chat/Chat.tsx)
+- AI Tutoring: [Tutoring.tsx](client/src/pages/Tutoring/Tutoring.tsx)
+- My Learning: [MyLearningPage.tsx](client/src/pages/Learning/MyLearningPage.tsx)
+
+**Why This Works:**
+- `Date.now()` change forces component re-render
+- `formatDistanceToNow` recalculates on each render
+- UTC timestamps from DB auto-convert to user's local time
+- No additional API calls needed
+- Cleanup prevents memory leaks
 - Registration dialog with verification prompt
 - authStore.updateEmailVerified() for state management
 
@@ -1089,7 +1129,78 @@ Status badge and online list show consistent status (bug fixed!)
 - Fix: Added presenceApi.getMyPresence() call on mount to fetch actual status
 - Result: Status now persists correctly through page refreshes
 
-**Last Updated**: December 2, 2025 - Production ready
+**Critical Bug Fixes (Jan 12, 2026)**:
+1. **Logout Not Clearing Presence**
+   - Issue: Users remained visible as "online" after logging out
+   - Cause: Logout endpoint didn't update presence database
+   - Fix: `/api/auth/logout` now calls `PresenceService.setUserOffline(userId)`
+   - Files: [auth.ts](server/src/routes/auth.ts), [PresenceService.ts](server/src/services/PresenceService.ts)
+
+2. **Concurrent Logout Prevention**
+   - Issue: Multiple logout calls could occur simultaneously (double-click, token refresh failure)
+   - Fix: Added `isLoggingOut` guard flag in authStore
+   - Implementation: Check guard → set flag → API call → clear flag
+   - Files: [authStore.ts](client/src/stores/authStore.ts)
+
+3. **Socket Emit After Disconnect Errors**
+   - Issue: Components tried to emit socket events after disconnection → errors
+   - Fix: All socket emit calls now check `socketService.isConnected()` before emitting
+   - Files: [socketService.ts](client/src/services/socketService.ts), [usePresence.ts](client/src/hooks/usePresence.ts), 
+     [useStudyGroupSocket.ts](client/src/hooks/useStudyGroupSocket.ts), [useOfficeHoursSocket.ts](client/src/hooks/useOfficeHoursSocket.ts),
+     [useLiveSessionSocket.ts](client/src/hooks/useLiveSessionSocket.ts)
+
+4. **"Appear Offline" Status Not Persisting**
+   - Issue: User sets status to "offline" → refresh page → status changed to "online"
+   - Cause: `PresenceService.setUserOnline()` only preserved "away" and "busy", not "offline"
+   - Fix: Now preserves all user-selected statuses including "offline" on socket reconnect
+   - Implementation: `if (existing.Status === 'away' || 'busy' || 'offline') { preserve }`
+   - Files: [PresenceService.ts](server/src/services/PresenceService.ts#L258-L289)
+
+**Logout Flow Architecture (Jan 12, 2026)**:
+```
+User clicks logout → logout() async function
+  ↓
+isLoggingOut guard check (prevent duplicates)
+  ↓
+Set isLoggingOut = true
+  ↓
+Call /api/auth/logout with 5s timeout (AbortController)
+  ↓ (POST /api/auth/logout, Authorization: Bearer token)
+Backend auth.ts:
+  ├─→ Extract userId from JWT
+  ├─→ PresenceService.setUserOffline(userId)
+  │   ├─→ UPDATE UserPresence SET Status='offline', UpdatedAt=GETUTCDATE()
+  │   └─→ Socket.IO broadcast('presence-changed', { userId, status: 'offline' })
+  └─→ Return success
+  ↓
+Clear auth state (isAuthenticated = false, token = null, isLoggingOut = false)
+  ↓
+App.tsx useEffect cleanup detects isAuthenticated change
+  ↓
+socketService.disconnect():
+  ├─→ socket.disconnect() - Close WebSocket connection
+  ├─→ this.socket = null
+  └─→ Clear all event listeners
+  ↓
+Server 'disconnect' event handler:
+  ├─→ User already offline in DB (from logout endpoint)
+  └─→ Update LastSeenAt = GETUTCDATE()
+  ↓
+User redirected to /login
+  ↓
+All components unmount cleanly
+```
+
+**Edge Cases Handled**:
+- ✅ Multiple concurrent logout calls (isLoggingOut guard)
+- ✅ Logout during token refresh (guard prevents race condition)
+- ✅ Token refresh failure calling logout (guard prevents infinite loops)
+- ✅ Socket connecting during logout (proper cleanup order)
+- ✅ Components using socket after logout (isConnected checks)
+- ✅ API timeout (5s timeout, continues logout anyway)
+- ✅ Browser tab close (socket disconnect + inactivity checker)
+
+**Last Updated**: January 12, 2026 - Production ready
 
 ---
 

@@ -28,6 +28,14 @@
 - [ ] Identified all pages that use this component
 
 **Recent Additions to Check:**
+- [x] **Timestamp Auto-Update** - 6 components (Jan 12, 2026) ✅
+  - Office Hours (QueueDisplay), Notifications (Page + Bell), Chat, AI Tutoring, My Learning
+  - 60-second timer pattern: `useState(Date.now())` + `setInterval(60000)`
+  - Auto-updates "X minutes ago" displays without page refresh
+  - Memory leak prevention: All timers have `clearInterval` cleanup
+  - Pattern: State variable triggers re-render → `formatDistanceToNow` recalculates
+  - Date handling: UTC in DB, date-fns auto-converts to local time
+  - No breaking changes: Purely additive (adds timer, no logic changes)
 - [x] **Notification Triggers** - 2/31 ACTIVE (Dec 29, 2025) ✅
   - Lesson completion: Student progress + instructor milestones
   - Live session created: All enrolled students notified

@@ -62,6 +62,7 @@ const Tutoring: React.FC = () => {
   const [currentSuggestions, setCurrentSuggestions] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [selectedModel, setSelectedModel] = useState<string>('gpt-4o-mini'); // Default model
+  const [, setCurrentTime] = useState(Date.now()); // For auto-updating relative timestamps
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -79,6 +80,14 @@ const Tutoring: React.FC = () => {
   useEffect(() => {
     loadSessions();
     loadRecommendations();
+  }, []);
+
+  // Auto-update relative timestamps every 60 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(Date.now());
+    }, 60000);
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {

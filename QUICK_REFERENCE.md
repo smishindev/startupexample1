@@ -1,6 +1,6 @@
 # 🚀 Quick Reference - Development Workflow
 
-**Last Updated**: January 11, 2026
+**Last Updated**: January 12, 2026 - Added Timestamp Auto-Update Testing
 
 ---
 
@@ -78,6 +78,16 @@ Role: Student
   - Student Management: Instructors see all emails (override) ✅
   - Course Detail: "Email not public" for hidden emails ✅
   - Progress viewing: 403 error for hidden progress ✅
+
+**Timestamp Auto-Update Testing (Jan 12, 2026):**
+- **Office Hours**: Student joins queue → Wait 2 minutes → Timestamp updates from "less than a minute ago" to "2 minutes ago" ✅
+- **Notifications**: Open notifications page → Wait 1 minute → All timestamps auto-update ✅
+- **Notification Bell**: Open header dropdown → Wait 1 minute → Timestamps update without closing/reopening ✅
+- **Chat**: Send message → Wait 1 minute → Message time updates automatically ✅
+- **AI Tutoring**: View session list → Wait 1 minute → "Updated X ago" changes ✅
+- **My Learning**: View enrolled courses → Wait 1 minute → "Last accessed X ago" updates ✅
+- **Update Interval**: All components update every 60 seconds
+- **Memory Leaks**: Navigate away and back → No console errors, timers cleaned up ✅
   - Email filtering: 7 endpoints enforce ShowEmail ✅
 - Appearance Settings (theme/language/fontSize): ⚠️ STORED ONLY, not yet applied to UI
 - Run automated tests: `node test-privacy-settings.js` (93% pass rate)
@@ -244,6 +254,46 @@ Role: Student
   - Check Gmail inbox: s.mishin.dev@gmail.com
   - Verify realtime/digest emails sent based on preferences
   - **Critical Bug Fixed**: Completed students now receive notifications AND can access content
+
+**Presence & Logout Testing (January 12, 2026):**
+- **Presence Page** (`/presence`): Real-time online users list with status management
+- **Test Logout Cleanup**:
+  1. Login as Student 1 → Navigate to Presence page
+  2. Login as Instructor in different browser/incognito
+  3. Instructor should see Student 1 as "online" (2 users total)
+  4. Logout Student 1 → Instructor should see user count decrease to 1
+  5. Verify: Student 1 no longer appears in online users list
+  6. Database check: `SELECT * FROM UserPresence WHERE Status != 'offline'`
+- **Test Status Persistence**:
+  1. Login → Navigate to /presence
+  2. Change status to "Away" → Refresh page → Should stay "Away" ✓
+  3. Change status to "Busy" → Refresh page → Should stay "Busy" ✓
+  4. Change status to "Offline" → Refresh page → Should stay "Offline" ✓ (FIXED Jan 12)
+  5. Change status to "Online" → Refresh page → Should stay "Online" ✓
+- **Test "Appear Offline" Feature**:
+  1. Login and navigate to /presence
+  2. Set status to "Offline" (while actually connected)
+  3. Open incognito window, login as another user
+  4. Verify: First user does NOT appear in online users list
+  5. Refresh page in first browser → Status still "Offline"
+  6. Socket connection still active (check console for heartbeat)
+- **Test Concurrent Logout Prevention**:
+  1. Login → Open browser console
+  2. Rapidly click logout button multiple times
+  3. Verify: Only 1 logout API call in Network tab (guard prevents duplicates)
+  4. No errors in console
+- **Test Socket Safety After Logout**:
+  1. Login → Navigate to any page with socket features (Chat, Office Hours, Presence)
+  2. Logout → Check console for errors
+  3. Verify: No "socket is null" or "cannot read property of undefined" errors
+  4. All socket emit calls safely check connection before emitting
+- **Database Verification**:
+  - `SELECT UserId, Status, LastSeenAt FROM UserPresence ORDER BY LastSeenAt DESC`
+  - `SELECT Id, Email, EmailVerified FROM Users WHERE Email LIKE 's.mishin.dev+%'`
+- **Socket.IO Events** (check browser console):
+  - `presence-changed`: Status updates broadcast to all users
+  - `presence-updated`: Personal confirmation after status change
+  - Connection/disconnection logs show proper cleanup
 
 ---
 

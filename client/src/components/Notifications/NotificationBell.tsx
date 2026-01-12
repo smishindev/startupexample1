@@ -36,8 +36,18 @@ export const NotificationBell: React.FC = () => {
   const [queuedCount, setQueuedCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const [, setCurrentTime] = useState(Date.now()); // Force re-render for relative time updates
 
   const open = Boolean(anchorEl);
+
+  // Update relative timestamps every minute
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(Date.now());
+    }, 60000); // Update every 60 seconds
+
+    return () => clearInterval(interval);
+  }, []);
 
   // Fetch notifications and unread count
   const fetchNotifications = async () => {

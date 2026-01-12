@@ -48,11 +48,21 @@ const Chat: React.FC = () => {
   const [newRoomData, setNewRoomData] = useState<CreateRoomRequest>({ name: '' });
   const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
+  const [, setCurrentTime] = useState(Date.now()); // Force re-render for relative time updates
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   const { user } = useAuthStore();
+
+  // Update relative timestamps every minute
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(Date.now());
+    }, 60000); // Update every 60 seconds
+
+    return () => clearInterval(interval);
+  }, []);
 
   // Scroll to bottom of messages
   const scrollToBottom = () => {

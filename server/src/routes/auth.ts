@@ -5,6 +5,7 @@ import { DatabaseService } from '../services/DatabaseService';
 import { authenticateToken, AuthRequest } from '../middleware/auth';
 import { logger } from '../utils/logger';
 import VerificationService from '../services/VerificationService';
+import { PresenceService } from '../services/PresenceService';
 
 const router = Router();
 const db = DatabaseService.getInstance();
@@ -403,10 +404,22 @@ router.get('/me', authenticateToken, async (req: AuthRequest, res, next) => {
 });
 
 // POST /api/auth/logout
-router.post('/logout', authenticateToken, (req: AuthRequest, res) => {
+router.post('/logout', authenticateToken, async (req: AuthRequest, res) => {
   // In a stateless JWT system, logout is handled client-side
   // by removing the token. We could implement token blacklisting
   // if needed for enhanced security.
+  
+  const userId = req.user?.userId;
+  
+  // Set user offline when they explicitly logout
+  if (userId) {
+    try {
+      await PresenceService.setUserOffline(userId);
+      logger.info(`User ${req.user?.email} logged out and set offline`);
+    } catch (error) {
+      logger.error('Error setting user offline on logout:', error);
+    }
+  }
   
   logger.info(`User logged out: ${req.user?.email}`);
   

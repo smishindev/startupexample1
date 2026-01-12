@@ -48,7 +48,7 @@ export const usePresence = (options: UsePresenceOptions = {}) => {
 
       // Also emit via socket for real-time updates
       const socket = socketService.getSocket();
-      if (socket) {
+      if (socket && socketService.isConnected()) {
         socket.emit('update-presence', { status, activity });
       }
     } catch (error) {
@@ -64,7 +64,7 @@ export const usePresence = (options: UsePresenceOptions = {}) => {
 
       // Emit via socket
       const socket = socketService.getSocket();
-      if (socket) {
+      if (socket && socketService.isConnected()) {
         socket.emit('update-activity', { activity });
       }
     } catch (error) {
@@ -81,7 +81,7 @@ export const usePresence = (options: UsePresenceOptions = {}) => {
 
       // Also send via socket
       const socket = socketService.getSocket();
-      if (socket) {
+      if (socket && socketService.isConnected()) {
         socket.emit('presence-heartbeat');
       }
     } catch (error) {

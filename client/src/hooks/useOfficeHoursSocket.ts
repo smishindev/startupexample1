@@ -44,7 +44,7 @@ export const useOfficeHoursSocket = ({
     if (!socket) return;
 
     // Join instructor's office hours room
-    if (instructorId) {
+    if (instructorId && socketService.isConnected()) {
       socket.emit('join-office-hours', { instructorId });
     }
 

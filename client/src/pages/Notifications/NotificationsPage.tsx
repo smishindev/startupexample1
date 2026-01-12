@@ -144,6 +144,16 @@ export const NotificationsPage: React.FC = () => {
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
   const [page, setPage] = useState(1);
   const pageSize = 20;
+  const [, setCurrentTime] = useState(Date.now()); // Force re-render for relative time updates
+
+  // Update relative timestamps every minute
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(Date.now());
+    }, 60000); // Update every 60 seconds
+
+    return () => clearInterval(interval);
+  }, []);
 
   const filtered = useMemo(() => {
     return items.filter(n => {

@@ -267,10 +267,10 @@ export class PresenceService {
     if (existing) {
       console.log('[PRESENCE] Existing status:', existing.Status);
       
-      // If status is away or busy, restore it (user is reconnecting)
-      // Only reset to online if they were actually offline
-      if (existing.Status === 'away' || existing.Status === 'busy') {
-        console.log('[PRESENCE] Restoring previous status:', existing.Status);
+      // Preserve user's chosen status (away, busy, or offline) on reconnect
+      // This allows "appear offline" functionality and status persistence across page refreshes
+      if (existing.Status === 'away' || existing.Status === 'busy' || existing.Status === 'offline') {
+        console.log('[PRESENCE] Preserving user-selected status:', existing.Status);
         return this.updatePresence({
           userId,
           status: existing.Status,
@@ -280,7 +280,7 @@ export class PresenceService {
     }
     
     console.log('[PRESENCE] Setting status to online');
-    // Otherwise, set to online (new user or was offline)
+    // Otherwise, set to online (new user or first connection)
     return this.updatePresence({
       userId,
       status: 'online',

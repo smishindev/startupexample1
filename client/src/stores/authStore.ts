@@ -25,11 +25,12 @@ export interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
+  isLoggingOut: boolean;
 
   // Actions
   login: (email: string, password: string, rememberMe?: boolean) => Promise<boolean>;
   register: (userData: RegisterData) => Promise<boolean>;
-  logout: () => void;
+  logout: () => Promise<void>;
   refreshToken: () => Promise<boolean>;
   clearError: () => void;
   setLoading: (loading: boolean) => void;
@@ -74,6 +75,7 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
       isLoading: false,
       error: null,
+      isLoggingOut: false,
 
       // Actions
       login: async (email: string, password: string, rememberMe: boolean = false): Promise<boolean> => {
@@ -162,24 +164,51 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
-      logout: () => {
-        // Call logout endpoint if token exists
-        const { token } = get();
-        if (token) {
-          fetch(`${API_BASE_URL}/auth/logout`, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json',
-            },
-          }).catch(console.error); // Silent fail for logout endpoint
+      logout: async () => {
+        // Prevent multiple simultaneous logout calls
+        const { isLoggingOut } = get();
+        if (isLoggingOut) {
+          console.log('Logout already in progress, skipping...');
+          return;
         }
 
+        set({ isLoggingOut: true });
+
+        // Call logout endpoint if token exists to set user offline
+        const { token } = get();
+        if (token) {
+          try {
+            // Use a timeout to prevent hanging
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+            
+            await fetch(`${API_BASE_URL}/auth/logout`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+              signal: controller.signal,
+            });
+            
+            clearTimeout(timeoutId);
+          } catch (error) {
+            if (error instanceof Error && error.name === 'AbortError') {
+              console.error('Logout endpoint timeout');
+            } else {
+              console.error('Logout endpoint error:', error);
+            }
+            // Continue with logout even if API call fails
+          }
+        }
+
+        // Clear auth state - socket disconnect will be handled by App.tsx useEffect cleanup
         set({
           user: null,
           token: null,
           isAuthenticated: false,
           error: null,
+          isLoggingOut: false,
         });
       },
 

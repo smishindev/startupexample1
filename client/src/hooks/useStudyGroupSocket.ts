@@ -114,7 +114,7 @@ export const useStudyGroupSocket = (callbacks: UseStudyGroupSocketCallbacks) => 
    */
   const joinStudyGroup = (groupId: string) => {
     const socket = socketService.getSocket();
-    if (socket) {
+    if (socket && socketService.isConnected()) {
       socket.emit('join-study-group', { groupId });
     }
   };
@@ -124,7 +124,7 @@ export const useStudyGroupSocket = (callbacks: UseStudyGroupSocketCallbacks) => 
    */
   const leaveStudyGroup = (groupId: string) => {
     const socket = socketService.getSocket();
-    if (socket) {
+    if (socket && socketService.isConnected()) {
       socket.emit('leave-study-group', { groupId });
     }
   };

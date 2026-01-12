@@ -45,6 +45,7 @@ const MyLearningPage: React.FC = () => {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
+  const [, setCurrentTime] = useState(Date.now()); // For auto-updating relative timestamps
   const limit = 20;
 
   const isInstructor = user?.role === 'instructor';
@@ -52,6 +53,14 @@ const MyLearningPage: React.FC = () => {
   useEffect(() => {
     loadEnrollments();
   }, [page]);
+
+  // Auto-update relative timestamps every 60 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(Date.now());
+    }, 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   const loadEnrollments = async () => {
     try {

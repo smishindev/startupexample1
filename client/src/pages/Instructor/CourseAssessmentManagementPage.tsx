@@ -367,17 +367,17 @@ export const CourseAssessmentManagementPage: React.FC = () => {
                                 </Box>
                               }
                               secondary={
-                                <Box>
-                                  <Typography variant="body2" color="text.secondary">
-                                    Assessment for lesson: {lesson.title}
-                                  </Typography>
-                                  <Typography variant="caption" color="text.secondary">
-                                    {assessment.questions?.length || 0} questions • 
-                                    {assessment.timeLimit ? ` ${assessment.timeLimit} minutes` : ' No time limit'} • 
-                                    Max attempts: {assessment.maxAttempts || 'Unlimited'}
-                                  </Typography>
-                                </Box>
+                                <>
+                                  Assessment for lesson: {lesson.title}
+                                  <br />
+                                  {assessment.questions?.length || 0} questions • 
+                                  {assessment.timeLimit ? ` ${assessment.timeLimit} minutes` : ' No time limit'} • 
+                                  Max attempts: {assessment.maxAttempts || 'Unlimited'}
+                                </>
                               }
+                              secondaryTypographyProps={{
+                                component: 'div'
+                              }}
                             />
                             <ListItemSecondaryAction>
                               <Box sx={{ display: 'flex', gap: 1 }}>

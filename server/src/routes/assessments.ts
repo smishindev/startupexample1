@@ -5,6 +5,7 @@ import { authenticateToken, AuthRequest } from '../middleware/auth';
 import { checkRole } from '../middleware/roleCheck';
 import { adaptiveAssessmentService } from '../services/AdaptiveAssessmentService';
 import { AssessmentFeedbackService } from '../services/AssessmentFeedbackService';
+import { NotificationService } from '../services/NotificationService';
 
 const router = express.Router();
 
@@ -568,6 +569,50 @@ router.post('/', authenticateToken, checkRole(['instructor']), async (req: AuthR
       FROM dbo.Assessments WHERE Id = @assessmentId
     `, { assessmentId });
 
+    // Get course and lesson details for notifications
+    const lessonCourseInfo = await db.query(`
+      SELECT l.CourseId, l.Title as LessonTitle, c.Title as CourseTitle, c.IsPublished
+      FROM dbo.Lessons l
+      JOIN dbo.Courses c ON l.CourseId = c.Id
+      WHERE l.Id = @lessonId
+    `, { lessonId });
+
+    // Only send notifications if course is published
+    if (lessonCourseInfo.length > 0 && lessonCourseInfo[0].IsPublished) {
+      const courseInfo = lessonCourseInfo[0];
+      
+      // Get all enrolled students (active + completed)
+      const enrolledStudents = await db.query(`
+        SELECT DISTINCT UserId 
+        FROM dbo.Enrollments 
+        WHERE CourseId = @courseId AND Status IN ('active', 'completed')
+      `, { courseId: courseInfo.CourseId });
+
+      // Send notification to each enrolled student
+      const io = req.app.get('io');
+      const notificationService = new NotificationService(io);
+
+      for (const student of enrolledStudents) {
+        await notificationService.createNotificationWithControls(
+          {
+            userId: student.UserId,
+            type: 'assessment',
+            priority: 'normal',
+            title: 'New Assessment Available',
+            message: `New ${type} added to "${courseInfo.CourseTitle}": ${title}`,
+            actionUrl: `/courses/${courseInfo.CourseId}/lessons/${lessonId}`,
+            actionText: 'Take Assessment'
+          },
+          {
+            category: 'assessment',
+            subcategory: 'NewAssessment'
+          }
+        );
+      }
+
+      console.log(`✅ [ASSESSMENT] Created ${type} "${title}" - notified ${enrolledStudents.length} students`);
+    }
+
     res.status(201).json(createdAssessment[0]);
   } catch (error) {
     console.error('Error creating assessment:', error);
@@ -958,6 +1003,70 @@ router.post('/submissions/:submissionId/submit', authenticateToken, checkRole(['
       // This would integrate with existing progress tracking
     }
 
+    // Send notifications for assessment submission
+    const io = req.app.get('io');
+    const notificationService = new NotificationService(io);
+
+    // Get assessment and course details for notifications
+    const assessmentDetails = await db.query(`
+      SELECT 
+        a.Title as AssessmentTitle,
+        a.Type,
+        l.Title as LessonTitle,
+        l.CourseId,
+        c.Title as CourseTitle,
+        c.InstructorId,
+        u.FirstName + ' ' + u.LastName as StudentName
+      FROM dbo.Assessments a
+      JOIN dbo.Lessons l ON a.LessonId = l.Id
+      JOIN dbo.Courses c ON l.CourseId = c.Id
+      JOIN dbo.Users u ON u.Id = @userId
+      WHERE a.Id = @assessmentId
+    `, { assessmentId: submission[0].AssessmentId, userId });
+
+    if (assessmentDetails.length > 0) {
+      const details = assessmentDetails[0];
+
+      // 1. Notify student of submission confirmation
+      await notificationService.createNotificationWithControls(
+        {
+          userId: userId!,
+          type: 'assessment',
+          priority: 'normal',
+          title: 'Assessment Submitted',
+          message: `Your "${details.AssessmentTitle}" submission was received. Score: ${finalScore}% ${finalScore >= submission[0].PassingScore ? '(Passed ✓)' : '(Below passing score)'}`,
+          actionUrl: `/courses/${details.CourseId}/assessments/${submission[0].AssessmentId}/results/${submissionId}`,
+          actionText: 'View Results'
+        },
+        {
+          category: 'assessment',
+          subcategory: 'AssessmentSubmitted'
+        }
+      );
+
+      // 2. Notify instructor of new submission (only if not passing or if it's essay/code type needing review)
+      const needsReview = ['essay', 'code', 'project'].includes(details.Type?.toLowerCase() || '');
+      if (needsReview || finalScore < submission[0].PassingScore) {
+        await notificationService.createNotificationWithControls(
+          {
+            userId: details.InstructorId,
+            type: 'assessment',
+            priority: needsReview ? 'high' : 'normal',
+            title: needsReview ? 'New Submission Needs Review' : 'Student Failed Assessment',
+            message: `${details.StudentName} submitted "${details.AssessmentTitle}" (Score: ${finalScore}%). ${needsReview ? 'Manual review required.' : 'May need support.'}`,
+            actionUrl: `/instructor/assessments/${submission[0].AssessmentId}/submissions`,
+            actionText: needsReview ? 'Review Submission' : 'View Details'
+          },
+          {
+            category: 'assessment',
+            subcategory: 'SubmissionToGrade'
+          }
+        );
+      }
+
+      console.log(`✅ [ASSESSMENT] Student ${userId} submitted "${details.AssessmentTitle}" - Score: ${finalScore}%`);
+    }
+
     res.json({
       score: finalScore,
       maxScore: 100,
@@ -1179,6 +1288,120 @@ router.get('/:assessmentId/submissions', authenticateToken, checkRole(['instruct
   } catch (error) {
     console.error('Error fetching assessment submissions:', error);
     res.status(500).json({ error: 'Failed to fetch assessment submissions' });
+  }
+});
+
+// PATCH /api/assessments/submissions/:submissionId/grade - Grade assessment submission (Instructors only)
+router.patch('/submissions/:submissionId/grade', authenticateToken, checkRole(['instructor']), async (req: AuthRequest, res: Response) => {
+  try {
+    const { submissionId } = req.params;
+    const { score, feedback, customFeedback } = req.body;
+    const instructorId = req.user?.userId;
+    const db = DatabaseService.getInstance();
+
+    // Validate input
+    if (score === undefined || score < 0 || score > 100) {
+      return res.status(400).json({ error: 'Valid score (0-100) is required' });
+    }
+
+    // Get submission details with verification
+    const submission = await db.query(`
+      SELECT 
+        s.Id,
+        s.UserId,
+        s.AssessmentId,
+        s.Status,
+        a.Title as AssessmentTitle,
+        a.PassingScore,
+        a.Type,
+        l.Title as LessonTitle,
+        l.CourseId,
+        c.Title as CourseTitle,
+        c.InstructorId,
+        u.FirstName + ' ' + u.LastName as StudentName
+      FROM dbo.AssessmentSubmissions s
+      JOIN dbo.Assessments a ON s.AssessmentId = a.Id
+      JOIN dbo.Lessons l ON a.LessonId = l.Id
+      JOIN dbo.Courses c ON l.CourseId = c.Id
+      JOIN dbo.Users u ON s.UserId = u.Id
+      WHERE s.Id = @submissionId
+    `, { submissionId });
+
+    if (submission.length === 0) {
+      return res.status(404).json({ error: 'Submission not found' });
+    }
+
+    const submissionData = submission[0];
+
+    // Verify instructor owns the course
+    if (submissionData.InstructorId !== instructorId) {
+      return res.status(403).json({ error: 'Access denied - not your course' });
+    }
+
+    // Build updated feedback object
+    let updatedFeedback: any = {};
+    if (feedback) {
+      try {
+        updatedFeedback = typeof feedback === 'string' ? JSON.parse(feedback) : feedback;
+      } catch {
+        updatedFeedback = {};
+      }
+    }
+
+    if (customFeedback) {
+      updatedFeedback.instructorFeedback = customFeedback;
+      updatedFeedback.gradedBy = instructorId;
+      updatedFeedback.gradedAt = new Date().toISOString();
+    }
+
+    // Update submission with manual grade
+    await db.query(`
+      UPDATE dbo.AssessmentSubmissions
+      SET 
+        Score = @score,
+        Feedback = @feedback,
+        Status = 'completed',
+        CompletedAt = CASE WHEN CompletedAt IS NULL THEN GETUTCDATE() ELSE CompletedAt END
+      WHERE Id = @submissionId
+    `, {
+      submissionId,
+      score,
+      feedback: JSON.stringify(updatedFeedback)
+    });
+
+    // Send notification to student about grading
+    const io = req.app.get('io');
+    const notificationService = new NotificationService(io);
+
+    const passed = score >= submissionData.PassingScore;
+    await notificationService.createNotificationWithControls(
+      {
+        userId: submissionData.UserId,
+        type: 'assessment',
+        priority: 'high',
+        title: 'Assessment Graded',
+        message: `Your "${submissionData.AssessmentTitle}" has been graded. Score: ${score}% ${passed ? '(Passed ✓)' : '(Did not pass)'}`,
+        actionUrl: `/courses/${submissionData.CourseId}/assessments/${submissionData.AssessmentId}/results/${submissionId}`,
+        actionText: 'View Feedback'
+      },
+      {
+        category: 'assessment',
+        subcategory: 'AssessmentGraded'
+      }
+    );
+
+    console.log(`✅ [ASSESSMENT] Instructor graded ${submissionData.StudentName}'s "${submissionData.AssessmentTitle}" - Score: ${score}%`);
+
+    res.json({
+      submissionId,
+      score,
+      passed,
+      message: 'Assessment graded successfully'
+    });
+
+  } catch (error) {
+    console.error('Error grading assessment:', error);
+    res.status(500).json({ error: 'Failed to grade assessment' });
   }
 });
 

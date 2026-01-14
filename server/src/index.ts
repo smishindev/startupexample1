@@ -251,9 +251,8 @@ cron.schedule('*/5 * * * *', async () => {
     // Clean up expired queue items
     const expired = await notificationService.cleanupExpiredQueue();
     
-    if (processed > 0 || expired > 0) {
-      console.log(`✅ [CRON] Queue processing complete: ${processed} delivered, ${expired} expired`);
-    }
+    // Always log the result
+    console.log(`✅ [CRON] Queue processing complete: ${processed} delivered, ${expired} expired`);
   } catch (error) {
     console.error('❌ [CRON] Error in notification queue processing:', error);
   }

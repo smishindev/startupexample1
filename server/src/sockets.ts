@@ -36,11 +36,16 @@ export const setupSocketHandlers = (io: Server) => {
   });
 
   io.on('connection', (socket: AuthenticatedSocket) => {
-    console.log('User connected:', socket.id, 'UserId:', socket.userId);
+    console.log('🟢 [Socket.IO] ===== USER CONNECTED =====');
+    console.log('   - Socket ID:', socket.id);
+    console.log('   - User ID:', socket.userId);
+    console.log('   - User Email:', socket.userEmail);
 
     // Join user to their personal room for direct messages
     if (socket.userId) {
-      socket.join(`user-${socket.userId}`);
+      const userRoom = `user-${socket.userId}`;
+      socket.join(userRoom);
+      console.log(`✅ [Socket.IO] User ${socket.userId} joined room: "${userRoom}"`);
       
       // Set user online presence
       PresenceService.setUserOnline(socket.userId).catch(err => {

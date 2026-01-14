@@ -1,8 +1,8 @@
 # Notification Triggers - Full Implementation Plan
 
 **Created**: December 28, 2025  
-**Last Updated**: January 11, 2026  
-**Status**: In Progress (8/31 Complete + Hybrid Controls Design)  
+**Last Updated**: January 12, 2026  
+**Status**: In Progress (11/31 Complete + Hybrid Controls Design)  
 **Goal**: Integrate automatic notification creation throughout the application with granular user controls
 
 ---
@@ -97,19 +97,21 @@ When creating notification:
 
 Users receive email notifications (based on their preferences) when these events occur:
 
-#### ✅ **Currently Active (8 triggers)**
+#### ✅ **Currently Active (11 triggers)**
 1. **Lesson Completed** - Student completes any lesson → Email to student + instructor (at milestones)
 2. **Video Completed** - Student finishes watching video → Email to student (January 8, 2026)
 3. **Live Session Created** - Instructor schedules session → Email to all enrolled students
 4. **Live Session Updated** - Instructor edits session → Notification to all enrolled students (January 6, 2026)
 5. **Live Session Deleted** - Instructor deletes session → Notification to all enrolled students (January 6, 2026)
-6. **Course Enrollment** - Student enrolls in course → Email to student + instructor (January 11, 2026) ⭐ NEW
-7. **New Lesson Created** - Instructor adds lesson → Email to all enrolled students (active + completed) (January 11, 2026) ⭐ NEW
-8. **Course Published** - Instructor publishes course → Email to all enrolled students (active + completed) (January 11, 2026) ⭐ NEW
+6. **Course Enrollment** - Student enrolls in course → Email to student + instructor (January 11, 2026)
+7. **New Lesson Created** - Instructor adds lesson → Email to all enrolled students (active + completed) (January 11, 2026)
+8. **Course Published** - Instructor publishes course → Email to all enrolled students (active + completed) (January 11, 2026)
+9. **Assessment Created** - Instructor creates assessment → Email to all enrolled students (January 12, 2026) ⭐ NEW
+10. **Assessment Submitted** - Student submits assessment → Confirmation to student + instructor alert (January 12, 2026) ⭐ NEW
+11. **Assessment Graded** - Instructor grades submission → Email to student with score/feedback (January 12, 2026) ⭐ NEW
 
-#### 🔄 **Coming Soon (23 triggers)**
-- Course enrollments, assessment submissions
-- Grading notifications, new content alerts
+#### 🔄 **Coming Soon (20 triggers)**
+- Due date reminders, payment receipts, refund confirmations
 - Payment receipts, refund confirmations
 - Study group invitations, office hours scheduling
 - Daily/weekly progress summaries
@@ -130,13 +132,13 @@ Users receive email notifications (based on their preferences) when these events
 - ✅ Email delivery infrastructure complete (Phases 1-3)
 - ✅ Notification preferences UI complete
 - ✅ Email tracking and analytics complete
-- ✅ Eight notification triggers implemented (Lesson, Video, Live Sessions x3, Enrollment, New Lesson, Course Publish)
-- ❌ 23 additional notification triggers NOT implemented
+- ✅ Eleven notification triggers implemented (Lesson, Video, Live Sessions x3, Course Management x3, Assessments x3)
+- ❌ 20 additional notification triggers NOT implemented
 
 **What's Missing:**
-Event hooks that create notifications when users perform actions (assessment grading, due dates, payments, community, etc.)
+Event hooks for due dates, payments, community features, and system alerts
 
-**Estimated Effort:** 15-18 hours (remaining triggers)
+**Estimated Effort:** 10-12 hours (remaining triggers)
 
 ---
 
@@ -162,16 +164,19 @@ Event hooks that create notifications when users perform actions (assessment gra
 - Infrastructure: 5 scheduled jobs
 
 **Implementation Status:**
-- ✅ **Implemented & Working**: 8 triggers
+- ✅ **Implemented & Working**: 11 triggers
   - Lesson Completion (Student + Instructor notifications) - December 29, 2025
   - Video Completion (Student notification) - January 8, 2026
   - Live Session Created (Student notifications) - Pre-existing
   - Live Session Updated (Student notifications) - January 6, 2026
   - Live Session Deleted (Student notifications) - January 6, 2026
-  - **Course Enrollment (Student + Instructor notifications) - January 11, 2026** ⭐ NEW
-  - **New Lesson Created (All enrolled students) - January 11, 2026** ⭐ NEW
-  - **Course Published (All enrolled students) - January 11, 2026** ⭐ NEW
-- ⏳ **Pending**: 23 triggers
+  - Course Enrollment (Student + Instructor notifications) - January 11, 2026
+  - New Lesson Created (All enrolled students) - January 11, 2026
+  - Course Published (All enrolled students) - January 11, 2026
+  - **Assessment Created (All enrolled students) - January 12, 2026** ⭐ NEW
+  - **Assessment Submitted (Student confirmation + Instructor alert) - January 12, 2026** ⭐ NEW
+  - **Assessment Graded (Student with score/feedback) - January 12, 2026** ⭐ NEW
+- ⏳ **Pending**: 20 triggers
 
 ---
 
@@ -366,11 +371,13 @@ await notificationService.createNotificationWithControls(
 ### 1.4 Assessment Submission
 **File**: `server/src/routes/assessments.ts`  
 **Endpoint**: `POST /api/assessments/submissions/:submissionId/submit`  
-**Line**: ~816
+**Line**: ~960
+
+**Status**: ✅ **IMPLEMENTED** - January 12, 2026
 
 **Triggers:**
-- ✅ **Student**: Submission confirmation
-- ✅ **Instructor**: New submission to grade
+- ✅ **Student**: Submission confirmation with score
+- ✅ **Instructor**: New submission alert (for essay/code types or failed attempts)
 
 **Notification Details:**
 ```typescript
@@ -395,10 +402,13 @@ actionText: 'Grade Now'
 
 ### 1.5 Assessment Grading
 **File**: `server/src/routes/assessments.ts`  
-**Endpoint**: `PATCH /api/assessments/submissions/:submissionId/grade` (needs creation)
+**Endpoint**: `PATCH /api/assessments/submissions/:submissionId/grade` (NEW ENDPOINT CREATED)
+**Line**: ~1083
+
+**Status**: ✅ **IMPLEMENTED** - January 12, 2026
 
 **Triggers:**
-- ✅ **Student**: Grade received notification
+- ✅ **Student**: Grade received notification with score and feedback
 
 **Notification Details:**
 ```typescript

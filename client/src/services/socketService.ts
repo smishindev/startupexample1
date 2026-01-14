@@ -68,18 +68,22 @@ class SocketService {
       });
 
       this.socket.on('connect', () => {
-        console.log('Connected to socket server');
+        console.log('🟢 [SocketService] ===== SOCKET CONNECTED ===== 🟢');
+        console.log('   - Socket ID:', this.socket?.id);
+        console.log('   - Registered connect callbacks:', this.connectCallbacks.length);
         this.connected = true;
         
         // Trigger all registered connect callbacks
-        this.connectCallbacks.forEach(callback => {
+        this.connectCallbacks.forEach((callback, index) => {
           try {
+            console.log(`   - Executing connect callback ${index + 1}/${this.connectCallbacks.length}`);
             callback();
           } catch (error) {
             console.error('Error in connect callback:', error);
           }
         });
         
+        console.log('✅ [SocketService] All connect callbacks executed');
         resolve();
       });
 
@@ -202,6 +206,14 @@ class SocketService {
 
   // Connection lifecycle listeners
   onConnect(callback: () => void): void {
+    // If already connected, call immediately
+    if (this.isConnected()) {
+      console.log('[SocketService] Already connected, executing callback immediately');
+      callback();
+      return;
+    }
+    
+    // Otherwise, register for future connection
     this.connectCallbacks.push(callback);
   }
 
@@ -220,36 +232,42 @@ class SocketService {
   // Notification event listeners
   onNotification(callback: (notification: NotificationEvent) => void): void {
     if (this.socket) {
-      // Remove any existing listeners to prevent duplicates
+      console.log('📡 [SocketService] Registering notification-created listener');
+      console.log('   - Socket connected:', this.socket.connected);
+      console.log('   - Socket ID:', this.socket.id);
+      
+      // Remove any existing listener first to prevent duplicates
       this.socket.off('notification-created');
       
       // Register the listener
       this.socket.on('notification-created', (notification) => {
+        console.log('📨 [SocketService] Raw notification-created event received:', notification);
         callback(notification);
       });
+      
+      console.log('✅ [SocketService] notification-created listener registered');
+    } else {
+      console.warn('⚠️ [SocketService] Cannot register notification listener - socket not available');
     }
   }
 
   onNotificationRead(callback: (data: { notificationId: string }) => void): void {
     if (this.socket) {
-      // Remove any existing listeners to prevent duplicates
-      this.socket.off('notification-read');
+      this.socket.off('notification-read'); // Remove existing
       this.socket.on('notification-read', callback);
     }
   }
 
   onNotificationsReadAll(callback: (data: { count: number }) => void): void {
     if (this.socket) {
-      // Remove any existing listeners to prevent duplicates
-      this.socket.off('notifications-read-all');
+      this.socket.off('notifications-read-all'); // Remove existing
       this.socket.on('notifications-read-all', callback);
     }
   }
 
   onNotificationDeleted(callback: (data: { notificationId: string }) => void): void {
     if (this.socket) {
-      // Remove any existing listeners to prevent duplicates
-      this.socket.off('notification-deleted');
+      this.socket.off('notification-deleted'); // Remove existing
       this.socket.on('notification-deleted', callback);
     }
   }
@@ -258,6 +276,7 @@ class SocketService {
   offNotification(): void {
     if (this.socket) {
       this.socket.off('notification-created');
+      console.log('🔕 [SocketService] notification-created listener removed');
     }
   }
 

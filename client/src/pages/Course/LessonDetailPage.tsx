@@ -239,6 +239,27 @@ export const LessonDetailPage: React.FC = () => {
             progressData.forEach(p => {
               progressMap[p.contentItemId] = p;
             });
+            
+            // If lesson is already completed, mark ALL content items as completed
+            // This handles cases where lesson was manually completed or content progress wasn't tracked
+            if (isLessonCompleted && lessonData.content) {
+              lessonData.content.forEach(item => {
+                if (item.id && !progressMap[item.id]) {
+                  // Create a default completed progress for missing items
+                  progressMap[item.id] = {
+                    contentItemId: item.id,
+                    contentType: item.type as any,
+                    isCompleted: true,
+                    completedAt: lessonProgress?.CompletedAt || new Date().toISOString(),
+                    progressData: undefined
+                  };
+                } else if (item.id && progressMap[item.id]) {
+                  // Ensure existing items are marked complete if lesson is complete
+                  progressMap[item.id].isCompleted = true;
+                }
+              });
+            }
+            
             setContentProgress(progressMap);
             console.log('[LESSON] Loaded content progress:', progressMap);
           } catch (error) {
@@ -304,6 +325,20 @@ export const LessonDetailPage: React.FC = () => {
         
         if (allComplete && !lesson.completed) {
           console.log('[LESSON] All content completed - marking lesson complete');
+          
+          // Check if there are assessments available before auto-advancing
+          if (assessments.length > 0 && lesson.nextLessonId && autoPlayNext) {
+            const shouldTakeAssessments = window.confirm(
+              `Great job! You've completed all content. This lesson has ${assessments.length} assessment(s) available. Would you like to take them now to test your understanding before moving to the next lesson?`
+            );
+            
+            if (shouldTakeAssessments) {
+              // Navigate to the first assessment instead of auto-advancing
+              navigate(`/assessments/${assessments[0].id}`);
+              return;
+            }
+          }
+          
           await progressApi.markLessonComplete(lesson.id, {
             notes: `All content completed at ${new Date().toISOString()}`
           });
@@ -1041,7 +1076,7 @@ export const LessonDetailPage: React.FC = () => {
                 <Paper sx={{ p: 2, mt: 2, bgcolor: 'info.light', border: '1px solid #1976d2' }}>
                   <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center' }}>
                     <Check sx={{ mr: 1, color: 'info.main' }} />
-                    <strong>Tip:</strong> Complete assessments to unlock the next lesson and track your progress!
+                    <strong>Tip:</strong> Complete assessments to test your understanding and reinforce your learning!
                   </Typography>
                 </Paper>
               </Paper>

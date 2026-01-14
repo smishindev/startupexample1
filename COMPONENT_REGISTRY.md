@@ -1,6 +1,6 @@
 # Mishin Learn Platform - Component Registry
 
-**Last Updated**: January 12, 2026 - Added Timestamp Auto-Update Pattern  
+**Last Updated**: January 14, 2026 - Notification System Architecture Refactored  
 **Purpose**: Quick reference for all major components, their dependencies, and relationships
 
 ---
@@ -91,30 +91,69 @@ useEffect(() => {
 **Path**: `client/src/pages/Notifications/NotificationsPage.tsx`  
 **Purpose**: Full-page notification center with filtering and pagination
 
-**Key Features**:
-- ✅ **Auto-Updating Timestamps** (Jan 12, 2026) - All notification times update every 60 seconds
-- Filter by type (all, progress, course, assessment, community, system)
-- Filter by priority (all, high, medium, low)
-- Pagination (20 per page)
-- Mark as read/unread
-- Real-time updates via Socket.IO
+**Architecture** (Refactored Jan 14, 2026):
+- ✅ **Centralized State** - Reads from Zustand store
+- ✅ **No Socket Listeners** - Removed ~100 lines of duplicate socket code
+- ✅ **Optimistic Updates** - All actions update store immediately
+- ✅ **Real-time Sync** - Updates via App.tsx socket listeners
+- ✅ **Auto-Updating Timestamps** - 60-second intervals
 
-**Status**: ✅ Production-ready with auto-updating timestamps
+**Features**:
+- View all notifications with filtering
+- Mark individual/all as read
+- Delete notifications
+- Filter by type (progress, risk, achievement, etc.)
+- Filter by priority (urgent, high, normal, low)
+- Filter by status (all/unread)
+- Pagination (20 per page)
+- Click-to-navigate for notifications with ActionUrl
+- Real-time cross-tab synchronization
+
+**State Management**:
+```tsx
+const { notifications, setNotifications, removeNotification, 
+        markAsRead, markAllAsRead } = useNotificationStore();
+```
+
+**No Socket Events** - All handled centrally in App.tsx:
+- `notification-created` → Store updated → Page rerenders
+- `notification-read` → Store updated → Page rerenders
+- `notifications-read-all` → Store updated → Page rerenders
+- `notification-deleted` → Store updated → Page rerenders
+
+**Status**: ✅ Complete, fully refactored (Jan 14, 2026)
 
 ---
 
-### NotificationBell
+#### NotificationBell
 **Path**: `client/src/components/Notifications/NotificationBell.tsx`  
 **Purpose**: Header notification dropdown with badge count
 
-**Key Features**:
-- ✅ **Auto-Updating Timestamps** (Jan 12, 2026) - Dropdown timestamps update without closing/reopening
-- Unread count badge
-- Recent 5 notifications preview
-- Click to navigate or mark as read
-- Real-time sync across tabs
+**Architecture** (Refactored Jan 14, 2026):
+- ✅ **Centralized State** - Reads from Zustand store (no local notification state)
+- ✅ **Computed Values** - Uses `useMemo` to filter unread from store
+- ✅ **No Socket Listeners** - All listeners centralized in App.tsx
+- ✅ **Optimistic Updates** - API call + immediate store update
+- ✅ **Auto-Updating Timestamps** - Refreshes every 60s
 
-**Status**: ✅ Production-ready with auto-updating timestamps
+**Key Features**:
+- Unread count badge (red)
+- Queued count badge (blue, during quiet hours)
+- Recent 5 unread notifications preview
+- Click to navigate or mark as read
+- Real-time sync across tabs via socket events
+- Toast notifications disabled in bell (handled by App.tsx)
+
+**State Management**:
+```tsx
+const { notifications, unreadCount, queuedCount } = useNotificationStore();
+const unreadNotifications = useMemo(() => 
+  notifications.filter(n => !n.IsRead).slice(0, 5), 
+  [notifications]
+);
+```
+
+**Status**: ✅ Production-ready, fully refactored (Jan 14, 2026)
 
 ---
 
@@ -719,7 +758,34 @@ const coursesWithStatuses = uiCourses.map(course => ({
 
 ---
 
-### LessonDetailPage
+### LessonDetailPage (Updated Jan 14, 2026)
+
+**Recent Fixes:**
+- ✅ Fixed misleading tip: "Complete assessments to test your understanding" (not required for progression)
+- ✅ Fixed "Mark as Read" appearing on completed lessons (content items not marked complete)
+- ✅ Auto-marks all content complete when lesson is complete (lines 247-261)
+- ✅ Added assessment confirmation dialog for auto-completion (lines 328-340)
+
+**Lesson Completion Logic:**
+1. Complete all content items (text/video/quiz) → Auto-completes lesson
+2. If assessments exist → Shows confirmation dialog
+3. User chooses: Take assessments OR Skip and advance
+4. If auto-play enabled → Advances to next lesson after 2s
+
+**Assessment Behavior:**
+- Assessments are OPTIONAL for progression (do not block next lesson)
+- Confirmation dialog appears for both manual and auto-completion paths
+- Students can skip if they already understand material
+- Dialog text: "Great job! You've completed all content. This lesson has X assessment(s) available. Would you like to take them now to test your understanding before moving to the next lesson?"
+
+**Content Progress Tracking:**
+- When lesson marked as complete, all content items automatically marked complete
+- Prevents "Mark as Read" buttons appearing on completed lesson content
+- Consistent UI state across all content types (text, video, quiz)
+
+---
+
+### LessonDetailPage (Legacy)
 **Path**: `client/src/pages/Course/LessonDetailPage.tsx`  
 **Route**: `/learning/:courseId/lessons/:lessonId`  
 **Purpose**: Individual lesson view with video, content, progress tracking

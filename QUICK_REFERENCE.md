@@ -1,6 +1,6 @@
 # 🚀 Quick Reference - Development Workflow
 
-**Last Updated**: January 12, 2026 - Added Timestamp Auto-Update Testing
+**Last Updated**: January 14, 2026 - Notification System Architecture Refactored
 
 ---
 
@@ -47,6 +47,22 @@ Role: Student
 - App Password: tfjubtheusandbiy
 - Templates: Verification (6-digit code), Welcome (post-verification)
 - See: `server/src/services/EmailService.ts`
+
+---
+
+## 🔔 Notification System Quick Ref (Jan 14, 2026)
+
+**Architecture**: Backend → Socket.IO → App.tsx → Zustand Store → Components
+
+**Files**: `notificationStore.ts`, `App.tsx` (lines 104-203), `NotificationBell.tsx`, `NotificationsPage.tsx`
+
+**Usage**: `const { notifications, unreadCount, markAsRead } = useNotificationStore();`
+
+**Rules**: ❌ No socket listeners in components | ✅ Use store only
+
+---
+
+## 🎨 Settings & Preferences
 
 **Profile Testing:**
 - Login with either account
@@ -193,17 +209,32 @@ Role: Student
   - Snackbar feedback (success/error/warning)
   - Cross-page synchronization (via page refresh)
 
-**Notifications Center Testing (Dec 22, 2025):**
+**Notifications Center Testing (Updated Jan 14, 2026):**
 - **NotificationsPage** (`/notifications`): Full-page notification management
 - **NotificationBell**: Enhanced dropdown with unread + queued counts
-- Test scenarios:
+- **Architecture**: Centralized Zustand store + App.tsx socket listeners
+
+**New Architecture:**
+```
+Zustand Store (client/src/stores/notificationStore.ts)
+  ↓
+App.tsx (lines 104-203) - Socket listeners
+  ↓
+Components (NotificationBell, NotificationsPage) - Read-only
+```
+
+**Test scenarios:**
   1. **Pagination**: Load 100+ notifications, verify 20 per page
   2. **Filtering**: Test All/Unread toggle, type filter (6 options), priority filter (4 options)
   3. **Real-time Sync**: Open two tabs, delete in one → removed from both
-  4. **Cross-tab Updates**: Mark read in tab A → count updates in tab B
+  4. **Cross-tab Updates**: Mark read in tab A → count updates in tab B (socket events)
   5. **Navigation**: Click notification with ActionUrl → navigates to target page
   6. **Queued Notifications**: Set quiet hours, trigger notification → appears in bell badge (blue)
-  7. Database check: `SELECT * FROM Notifications WHERE UserId=@yourUserId ORDER BY CreatedAt DESC`
+  7. **Optimistic Updates**: Mark as read updates UI instantly (before API response)
+  8. **Toast Notifications**: Urgent/high = 5s warning, normal/low = 3s info, with action buttons
+  9. **No Duplicates**: Socket events are idempotent (wasUnread checks prevent double-decrement)
+  10. **Auto-updating Timestamps**: "X minutes ago" updates every 60 seconds
+  11. Database check: `SELECT * FROM Notifications WHERE UserId=@yourUserId ORDER BY CreatedAt DESC`
 - Socket.IO events to verify:
   - `notification-created`: New notification appears instantly
   - `notification-read`: Read status syncs across tabs

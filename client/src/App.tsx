@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { Routes, Route, Navigate, BrowserRouter, useLocation } from 'react-router-dom';
 import { Box } from '@mui/material';
-import { Toaster } from 'sonner';
+import { Toaster, toast } from 'sonner';
 
 // Scroll to top on route change
 function ScrollToTop() {
@@ -73,7 +73,9 @@ import { ContentUploadDemo } from './components/Demo/ContentUploadDemo';
 
 // Hooks
 import { useAuthStore } from './stores/authStore';
+import { useNotificationStore } from './stores/notificationStore';
 import { socketService } from './services/socketService';
+import { useCallback } from 'react';
 
 function App() {
   const { isAuthenticated, token, validateToken, logout } = useAuthStore();
@@ -98,20 +100,107 @@ function App() {
     initializeAuth();
   }, []); // Run once on app startup
 
-  // Initialize socket connection when authenticated
+  // Centralized notification listener setup (memoized to prevent recreating)
+  const setupNotificationListeners = useCallback(() => {
+    const { addNotification, removeNotification, markAsRead, markAllAsRead } = useNotificationStore.getState();
+    
+    console.log('📡 [App] Setting up CENTRALIZED notification listeners...');
+    
+    // Listen for new notifications
+    socketService.onNotification((notification) => {
+      console.log('🔔 [App] NEW NOTIFICATION RECEIVED:', notification);
+      
+      const newNotification = {
+        Id: notification.id,
+        UserId: '',
+        Type: notification.type,
+        Priority: notification.priority as any,
+        Title: notification.title,
+        Message: notification.message,
+        Data: notification.data,
+        RelatedEntityId: null,
+        RelatedEntityType: null,
+        ActionUrl: notification.actionUrl || null,
+        ActionText: notification.actionText || null,
+        CreatedAt: new Date().toISOString(),
+        ReadAt: null,
+        ExpiresAt: null,
+        IsRead: false
+      };
+      
+      addNotification(newNotification);
+      
+      // Show toast for urgent/high priority notifications
+      const actionUrl = notification.actionUrl; // Type narrowing
+      if (notification.priority === 'urgent' || notification.priority === 'high') {
+        toast.warning(notification.title, {
+          description: notification.message,
+          duration: 5000,
+          action: actionUrl ? {
+            label: notification.actionText || 'View',
+            onClick: () => {
+              window.location.href = actionUrl;
+            }
+          } : undefined
+        });
+      } else if (notification.priority === 'normal' || notification.priority === 'low') {
+        toast.info(notification.title, {
+          description: notification.message,
+          duration: 3000
+        });
+      }
+    });
+    
+    // Listen for notification read events (cross-tab sync)
+    socketService.onNotificationRead((data) => {
+      console.log('✅ [App] Notification marked as read:', data.notificationId);
+      markAsRead(data.notificationId);
+    });
+    
+    // Listen for mark-all-read events (cross-tab sync)
+    socketService.onNotificationsReadAll(() => {
+      console.log('✅ [App] All notifications marked as read');
+      markAllAsRead();
+    });
+    
+    // Listen for notification deleted events (cross-tab sync)
+    socketService.onNotificationDeleted((data) => {
+      console.log('🗑️ [App] Notification deleted:', data.notificationId);
+      removeNotification(data.notificationId);
+    });
+    
+    console.log('✅ [App] Centralized notification listeners registered');
+  }, []); // Empty deps - should only be created once
+
+  const cleanupNotificationListeners = useCallback(() => {
+    console.log('🧹 [App] Cleaning up notification listeners...');
+    socketService.offNotification();
+    socketService.offNotificationRead();
+    socketService.offNotificationsReadAll();
+    socketService.offNotificationDeleted();
+  }, []);
+
+  // Initialize socket connection and centralized notification handling when authenticated
   useEffect(() => {
     if (isAuthenticated && token) {
-      console.log('Initializing socket connection...');
+      console.log('🚀 [App] Initializing socket connection and notification system...');
+      
       socketService.connect()
-        .then(() => console.log('Socket connected successfully'))
-        .catch(err => console.error('Socket connection failed:', err));
+        .then(() => {
+          console.log('✅ [App] Socket connected successfully');
+          
+          // Setup centralized notification listeners - ONE TIME, AT APP LEVEL
+          setupNotificationListeners();
+        })
+        .catch(err => console.error('❌ [App] Socket connection failed:', err));
       
       return () => {
-        console.log('Disconnecting socket...');
+        console.log('🔌 [App] Disconnecting socket and cleaning up notification listeners...');
+        cleanupNotificationListeners();
         socketService.disconnect();
       };
     }
-  }, [isAuthenticated, token]);
+  }, [isAuthenticated, token, setupNotificationListeners, cleanupNotificationListeners]);
 
   return (
     <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>

@@ -48,6 +48,15 @@
   - Daily digest (8 AM UTC) and weekly digest (Monday 8 AM UTC)
   - Email tracking (opens, clicks) and analytics
   - One-click unsubscribe with token management
+- [x] **Real-time Notification System Refactoring** - COMPLETE (Jan 14, 2026) ✅
+  - Centralized Zustand store for all notification state
+  - Single socket listener registration in App.tsx (lines 104-203)
+  - Removed ~100+ lines of duplicate socket code from components
+  - Optimistic UI updates with cross-tab sync
+  - Idempotent store actions (safe to call multiple times)
+  - Priority-based toast notifications (urgent/high: 5s, normal/low: 3s)
+  - Fixed 13 critical bugs including race conditions and memory leaks
+  - Pattern: Backend → Socket Event → App.tsx → Store → Components
   - Beautiful HTML templates with type-specific styling
 - [x] Email Verification System - PRODUCTION READY (Dec 27, 2025) ✅
   - EmailVerificationPage: Standalone /verify-email page with 6-digit code input

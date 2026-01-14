@@ -32,7 +32,7 @@ import {
 } from '@mui/icons-material';
 import { HeaderV4 } from '../../components/Navigation/HeaderV4';
 import { notificationApi, Notification } from '../../services/notificationApi';
-import { socketService } from '../../services/socketService';
+import { useNotificationStore } from '../../stores/notificationStore';
 import { formatDistanceToNow } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 
@@ -52,6 +52,7 @@ const NotificationItem: React.FC<{
       case 'achievement':
         return <AchievementIcon color="success" />;
       case 'assignment':
+      case 'assessment':
         return <AssignmentIcon color="info" />;
       case 'course':
         return <CourseIcon color="secondary" />;
@@ -137,7 +138,7 @@ const NotificationItem: React.FC<{
 
 export const NotificationsPage: React.FC = () => {
   const navigate = useNavigate();
-  const [items, setItems] = useState<Notification[]>([]);
+  const { notifications, setNotifications, removeNotification, markAsRead: markStoreAsRead, markAllAsRead: markAllStoreAsRead } = useNotificationStore();
   const [loading, setLoading] = useState(false);
   const [show, setShow] = useState<'all' | 'unread'>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
@@ -156,13 +157,13 @@ export const NotificationsPage: React.FC = () => {
   }, []);
 
   const filtered = useMemo(() => {
-    return items.filter(n => {
+    return notifications.filter(n => {
       if (show === 'unread' && n.IsRead) return false;
       if (typeFilter !== 'all' && n.Type !== typeFilter) return false;
       if (priorityFilter !== 'all' && n.Priority !== priorityFilter) return false;
       return true;
     });
-  }, [items, show, typeFilter, priorityFilter]);
+  }, [notifications, show, typeFilter, priorityFilter]);
 
   const totalPages = Math.ceil(filtered.length / pageSize);
   const paginatedItems = filtered.slice((page - 1) * pageSize, page * pageSize);
@@ -170,12 +171,12 @@ export const NotificationsPage: React.FC = () => {
   const fetchAll = async () => {
     try {
       setLoading(true);
-      const { notifications } = await notificationApi.getNotifications(true, {
+      const { notifications: fetchedNotifications } = await notificationApi.getNotifications(true, {
         type: typeFilter !== 'all' ? typeFilter : undefined,
         priority: priorityFilter !== 'all' ? priorityFilter : undefined,
         limit: 100
       });
-      setItems(notifications);
+      setNotifications(fetchedNotifications);
     } catch (err) {
       console.error('Failed to load notifications', err);
     } finally {
@@ -186,7 +187,7 @@ export const NotificationsPage: React.FC = () => {
   const markRead = async (id: string) => {
     try {
       await notificationApi.markAsRead(id);
-      setItems(prev => prev.map(n => (n.Id === id ? { ...n, IsRead: true, ReadAt: new Date().toISOString() } : n)));
+      markStoreAsRead(id);
     } catch (err) {
       console.error('Failed to mark as read', err);
     }
@@ -195,7 +196,7 @@ export const NotificationsPage: React.FC = () => {
   const markAll = async () => {
     try {
       await notificationApi.markAllAsRead();
-      setItems(prev => prev.map(n => ({ ...n, IsRead: true, ReadAt: new Date().toISOString() })));
+      markAllStoreAsRead();
     } catch (err) {
       console.error('Failed to mark all as read', err);
     }
@@ -204,7 +205,7 @@ export const NotificationsPage: React.FC = () => {
   const remove = async (id: string) => {
     try {
       await notificationApi.deleteNotification(id);
-      setItems(prev => prev.filter(n => n.Id !== id));
+      removeNotification(id);
     } catch (err) {
       console.error('Failed to delete notification', err);
     }
@@ -215,97 +216,8 @@ export const NotificationsPage: React.FC = () => {
     setPage(1); // Reset to first page when filters change
   }, [show, typeFilter, priorityFilter]);
 
-  useEffect(() => {
-    // Setup socket listeners for real-time updates
-    const setupListeners = () => {
-      // App.tsx handles socket connection - just check if it's ready
-      if (!socketService.isConnected()) {
-        console.log('🔌 [NotificationsPage] Socket not ready yet, will retry via reconnect handler');
-        return;
-      }
-      
-      console.log('✅ [NotificationsPage] Socket ready, setting up listeners...');
-      
-      try {
-        // Listen for new notifications
-        socketService.onNotification((notification) => {
-          console.log('NotificationsPage: Received new notification', notification);
-          
-          // Check if notification already exists to prevent duplicates
-          setItems(prev => {
-            const exists = prev.some(n => n.Id === notification.id);
-            if (exists) {
-              console.log('⚠️ [NotificationsPage] Notification already exists, skipping:', notification.id);
-              return prev;
-            }
-            
-            // Add to list
-            const newNotification: Notification = {
-              Id: notification.id,
-              UserId: '',
-              Type: notification.type as any,
-              Priority: notification.priority as any,
-              Title: notification.title,
-              Message: notification.message,
-              Data: null,
-              RelatedEntityId: null,
-              RelatedEntityType: null,
-              ActionUrl: notification.actionUrl || null,
-              ActionText: notification.actionText || null,
-              CreatedAt: new Date().toISOString(),
-              ReadAt: null,
-              ExpiresAt: null,
-              IsRead: false
-            };
-            
-            return [newNotification, ...prev];
-          });
-        });
-
-        // Listen for read events from other tabs
-        socketService.onNotificationRead((data) => {
-          setItems(prev => prev.map(n => 
-            n.Id === data.notificationId ? { ...n, IsRead: true, ReadAt: new Date().toISOString() } : n
-          ));
-        });
-
-        // Listen for read-all events
-        socketService.onNotificationsReadAll(() => {
-          setItems(prev => prev.map(n => ({ ...n, IsRead: true, ReadAt: new Date().toISOString() })));
-        });
-
-        // Listen for delete events from other tabs
-        socketService.onNotificationDeleted((data) => {
-          setItems(prev => prev.filter(n => n.Id !== data.notificationId));
-        });
-        
-        console.log('✅ [NotificationsPage] All Socket.IO listeners registered successfully');
-      } catch (error) {
-        console.error('❌ [NotificationsPage] Failed to setup Socket.IO listeners:', error);
-      }
-    };
-
-    // Try to setup listeners immediately if socket is already connected
-    setupListeners();
-
-    // Re-setup listeners when socket connects/reconnects
-    const handleConnect = () => {
-      console.log('🔄 [NotificationsPage] Socket connected - setting up listeners');
-      setupListeners();
-    };
-
-    socketService.onConnect(handleConnect);
-
-    // Clean up listeners when component unmounts (socket stays connected for app)
-    return () => {
-      console.log('🔕 [NotificationsPage] Component unmounting - cleaning up listeners');
-      socketService.offConnect(handleConnect);
-      socketService.offNotification();
-      socketService.offNotificationRead();
-      socketService.offNotificationsReadAll();
-      socketService.offNotificationDeleted();
-    };
-  }, []);
+  // No socket listeners needed here - managed centrally in App.tsx
+  // All real-time updates come through the Zustand store
 
   return (
     <>
@@ -355,6 +267,7 @@ export const NotificationsPage: React.FC = () => {
                 <MenuItem value="intervention">Intervention</MenuItem>
                 <MenuItem value="achievement">Achievement</MenuItem>
                 <MenuItem value="assignment">Assignment</MenuItem>
+                <MenuItem value="assessment">Assessment</MenuItem>
                 <MenuItem value="course">Course</MenuItem>
               </Select>
             </FormControl>

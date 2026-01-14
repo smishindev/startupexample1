@@ -4,7 +4,7 @@
  * Phase 2 - Collaborative Features
  */
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { socketService } from '../services/socketService';
 
 interface SessionStartedData {
@@ -83,78 +83,73 @@ interface LiveSessionSocketCallbacks {
  * Hook to listen to live session real-time events
  */
 export const useLiveSessionSocket = (callbacks: LiveSessionSocketCallbacks) => {
+  // Use refs to store latest callbacks without triggering re-registration
+  const callbacksRef = useRef(callbacks);
+  
+  // Update ref when callbacks change
+  useEffect(() => {
+    callbacksRef.current = callbacks;
+  }, [callbacks]);
+
   useEffect(() => {
     const socket = socketService.getSocket();
     if (!socket) return;
 
-    // Session started event
-    if (callbacks.onSessionStarted) {
-      socket.on('session-started', callbacks.onSessionStarted);
-    }
+    // Wrapper functions that use the ref
+    const handleSessionStarted = (data: SessionStartedData) => {
+      callbacksRef.current.onSessionStarted?.(data);
+    };
 
-    // Session ended event
-    if (callbacks.onSessionEnded) {
-      socket.on('session-ended', callbacks.onSessionEnded);
-    }
+    const handleSessionEnded = (data: SessionEndedData) => {
+      callbacksRef.current.onSessionEnded?.(data);
+    };
 
-    // Session created event
-    if (callbacks.onSessionCreated) {
-      socket.on('session-created', callbacks.onSessionCreated);
-    }
+    const handleSessionCreated = (data: SessionCreatedData) => {
+      callbacksRef.current.onSessionCreated?.(data);
+    };
 
-    // Session cancelled event
-    if (callbacks.onSessionCancelled) {
-      socket.on('session-cancelled', callbacks.onSessionCancelled);
-    }
+    const handleSessionCancelled = (data: SessionCancelledData) => {
+      callbacksRef.current.onSessionCancelled?.(data);
+    };
 
-    // Session deleted event
-    if (callbacks.onSessionDeleted) {
-      socket.on('session-deleted', callbacks.onSessionDeleted);
-    }
+    const handleSessionDeleted = (data: SessionDeletedData) => {
+      callbacksRef.current.onSessionDeleted?.(data);
+    };
 
-    // Session updated event
-    if (callbacks.onSessionUpdated) {
-      socket.on('session-updated', callbacks.onSessionUpdated);
-    }
+    const handleSessionUpdated = (data: SessionUpdatedData) => {
+      callbacksRef.current.onSessionUpdated?.(data);
+    };
 
-    // Attendee joined event
-    if (callbacks.onAttendeeJoined) {
-      socket.on('attendee-joined', callbacks.onAttendeeJoined);
-    }
+    const handleAttendeeJoined = (data: AttendeeJoinedData) => {
+      callbacksRef.current.onAttendeeJoined?.(data);
+    };
 
-    // Attendee left event
-    if (callbacks.onAttendeeLeft) {
-      socket.on('attendee-left', callbacks.onAttendeeLeft);
-    }
+    const handleAttendeeLeft = (data: AttendeeLeftData) => {
+      callbacksRef.current.onAttendeeLeft?.(data);
+    };
+
+    // Register listeners (only once)
+    socket.on('session-started', handleSessionStarted);
+    socket.on('session-ended', handleSessionEnded);
+    socket.on('session-created', handleSessionCreated);
+    socket.on('session-cancelled', handleSessionCancelled);
+    socket.on('session-deleted', handleSessionDeleted);
+    socket.on('session-updated', handleSessionUpdated);
+    socket.on('attendee-joined', handleAttendeeJoined);
+    socket.on('attendee-left', handleAttendeeLeft);
 
     // Cleanup on unmount
     return () => {
-      if (callbacks.onSessionStarted) {
-        socket.off('session-started', callbacks.onSessionStarted);
-      }
-      if (callbacks.onSessionEnded) {
-        socket.off('session-ended', callbacks.onSessionEnded);
-      }
-      if (callbacks.onSessionCreated) {
-        socket.off('session-created', callbacks.onSessionCreated);
-      }
-      if (callbacks.onSessionCancelled) {
-        socket.off('session-cancelled', callbacks.onSessionCancelled);
-      }
-      if (callbacks.onSessionDeleted) {
-        socket.off('session-deleted', callbacks.onSessionDeleted);
-      }
-      if (callbacks.onSessionUpdated) {
-        socket.off('session-updated', callbacks.onSessionUpdated);
-      }
-      if (callbacks.onAttendeeJoined) {
-        socket.off('attendee-joined', callbacks.onAttendeeJoined);
-      }
-      if (callbacks.onAttendeeLeft) {
-        socket.off('attendee-left', callbacks.onAttendeeLeft);
-      }
+      socket.off('session-started', handleSessionStarted);
+      socket.off('session-ended', handleSessionEnded);
+      socket.off('session-created', handleSessionCreated);
+      socket.off('session-cancelled', handleSessionCancelled);
+      socket.off('session-deleted', handleSessionDeleted);
+      socket.off('session-updated', handleSessionUpdated);
+      socket.off('attendee-joined', handleAttendeeJoined);
+      socket.off('attendee-left', handleAttendeeLeft);
     };
-  }, [callbacks]);
+  }, []); // Empty deps - only register once when component mounts
 };
 
 /**

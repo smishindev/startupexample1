@@ -6,7 +6,7 @@ import EmailDigestService from './EmailDigestService';
 
 export interface CreateNotificationParams {
   userId: string;
-  type: 'progress' | 'risk' | 'achievement' | 'intervention' | 'assignment' | 'course';
+  type: 'progress' | 'risk' | 'achievement' | 'intervention' | 'assignment' | 'course' | 'assessment';
   priority: 'low' | 'normal' | 'high' | 'urgent';
   title: string;
   message: string;
@@ -329,7 +329,18 @@ export class NotificationService {
       if (this.io) {
         const roomName = `user-${params.userId}`;
         const socketsInRoom = await this.io.in(roomName).fetchSockets();
-        console.log(`🔍 Room "${roomName}" has ${socketsInRoom.length} connected socket(s)`);
+        console.log(`🔍 [NotificationService] ===== SOCKET EMIT ATTEMPT =====`);
+        console.log(`   - Target room: "${roomName}"`);
+        console.log(`   - User ID: ${params.userId}`);
+        console.log(`   - Sockets in room: ${socketsInRoom.length}`);
+        console.log(`   - Notification type: ${params.type}`);
+        console.log(`   - Notification title: "${params.title}"`);
+        
+        if (socketsInRoom.length > 0) {
+          console.log(`   - Connected socket IDs: ${socketsInRoom.map(s => s.id).join(', ')}`);
+        } else {
+          console.log(`   ⚠️  NO ACTIVE SOCKETS - user may not be connected`);
+        }
         
         this.io.to(roomName).emit('notification-created', {
           id: notificationId,
@@ -342,7 +353,7 @@ export class NotificationService {
           actionText: params.actionText,
           createdAt: new Date().toISOString()
         });
-        console.log(`🔔 Socket.io event emitted to ${roomName}`);
+        console.log(`✅ [NotificationService] Socket event "notification-created" emitted to ${roomName}`);
       } else {
         console.warn(`⚠️ Socket.IO not available in NotificationService - notification ${notificationId} created in DB but NOT sent in real-time to user ${params.userId}`);
       }
@@ -962,6 +973,7 @@ export class NotificationService {
       case 'course':
         return preferences.EnableCourseUpdates;
       case 'assignment':
+      case 'assessment':
         return preferences.EnableAssessmentUpdates;
       default:
         return true;
@@ -1007,7 +1019,7 @@ export class NotificationService {
     userId: string,
     notification: {
       id: string;
-      type: 'progress' | 'risk' | 'achievement' | 'intervention' | 'assignment' | 'course';
+      type: 'progress' | 'risk' | 'achievement' | 'intervention' | 'assignment' | 'course' | 'assessment';
       priority: 'low' | 'normal' | 'high' | 'urgent';
       title: string;
       message: string;

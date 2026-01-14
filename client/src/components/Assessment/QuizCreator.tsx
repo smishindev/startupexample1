@@ -421,9 +421,9 @@ const QuizCreator: React.FC<QuizCreatorProps> = ({
                     fullWidth
                     label="Passing Score (%)"
                     type="number"
-                    value={assessment.passingScore || 70}
-                    onChange={(e) => setAssessment({ ...assessment, passingScore: parseInt(e.target.value) })}
-                    inputProps={{ min: 1, max: 100 }}
+                    value={assessment.passingScore || ''}
+                    onChange={(e) => setAssessment({ ...assessment, passingScore: parseInt(e.target.value) || 0 })}
+                    inputProps={{ min: 0, max: 100 }}
                   />
                 </Grid>
               </Grid>
@@ -757,8 +757,8 @@ const QuizCreator: React.FC<QuizCreatorProps> = ({
                   fullWidth
                   label="Maximum Attempts"
                   type="number"
-                  value={assessment.maxAttempts || 3}
-                  onChange={(e) => setAssessment({ ...assessment, maxAttempts: parseInt(e.target.value) })}
+                  value={assessment.maxAttempts ?? ''}
+                  onChange={(e) => setAssessment({ ...assessment, maxAttempts: e.target.value ? parseInt(e.target.value) : undefined })}
                   inputProps={{ min: 1, max: 10 }}
                   helperText="How many times can students attempt this assessment?"
                 />

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   IconButton,
   Badge,
@@ -25,18 +25,25 @@ import {
   Settings as SettingsIcon
 } from '@mui/icons-material';
 import { notificationApi, Notification } from '../../services/notificationApi';
-import { socketService } from '../../services/socketService';
+import { useNotificationStore } from '../../stores/notificationStore';
 import { useNavigate } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 
 export const NotificationBell: React.FC = () => {
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [queuedCount, setQueuedCount] = useState(0);
-  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [, setCurrentTime] = useState(Date.now()); // Force re-render for relative time updates
+  
+  // Get full notification list and counts from centralized store
+  const { notifications, unreadCount, queuedCount, setNotifications, setUnreadCount, setQueuedCount, markAsRead: markStoreAsRead, markAllAsRead: markAllStoreAsRead } = useNotificationStore();
+  
+  // Filter to show only unread notifications in dropdown (computed from store)
+  const unreadNotifications = useMemo(() => 
+    notifications.filter(n => !n.IsRead).slice(0, 5), // Show max 5 recent unread
+    [notifications]
+  );
 
   const open = Boolean(anchorEl);
 
@@ -54,13 +61,13 @@ export const NotificationBell: React.FC = () => {
     try {
       setLoading(true);
       const [notificationsResult, count, qCount] = await Promise.all([
-        notificationApi.getNotifications(false), // Only unread
+        notificationApi.getNotifications(true), // Fetch ALL for store (limit to recent)
         notificationApi.getUnreadCount(),
         notificationApi.getQueuedCount().catch(() => 0)
       ]);
-      setNotifications(notificationsResult.notifications);
-      setUnreadCount(count);
-      setQueuedCount(qCount || 0);
+      setNotifications(notificationsResult.notifications); // Update store with full list
+      setUnreadCount(count); // Store count
+      setQueuedCount(qCount || 0); // Store queued count
     } catch (error) {
       console.error('Error fetching notifications:', error);
     } finally {
@@ -68,120 +75,10 @@ export const NotificationBell: React.FC = () => {
     }
   };
 
+  // Fetch notifications on mount - Socket listeners are centralized in App.tsx
   useEffect(() => {
-    // Initial fetch for historical notifications
     fetchNotifications();
-    
-    // Setup listeners after ensuring socket is connected
-    const setupListeners = () => {
-      // App.tsx handles socket connection - just check if it's ready
-      if (!socketService.isConnected()) {
-        console.log('🔌 [NotificationBell] Socket not ready yet, will retry via reconnect handler');
-        return;
-      }
-      
-      console.log('✅ [NotificationBell] Socket ready, setting up listeners...');
-      
-      try {
-        // Register listener for new notifications
-        socketService.onNotification((notification) => {
-          console.log('🔔 [NotificationBell] Received real-time notification:', notification);
-          
-          // Use functional updates to ensure we only increment count for new notifications
-          let wasAdded = false;
-          
-          setNotifications(prev => {
-            const exists = prev.some(n => n.Id === notification.id);
-            if (exists) {
-              console.log('⚠️ [NotificationBell] Notification already exists, skipping:', notification.id);
-              return prev;
-            }
-            
-            // Mark that we're adding a new notification
-            wasAdded = true;
-            
-            // Add to notifications list (cast to proper type)
-            const newNotification: Notification = {
-              Id: notification.id,
-              UserId: '',
-              Type: notification.type as any,
-              Priority: notification.priority as any,
-              Title: notification.title,
-              Message: notification.message,
-              Data: null,
-              RelatedEntityId: null,
-              RelatedEntityType: null,
-              ActionUrl: notification.actionUrl || null,
-              ActionText: notification.actionText || null,
-              CreatedAt: new Date().toISOString(),
-              ReadAt: null,
-              ExpiresAt: null,
-              IsRead: false
-            };
-            
-            return [newNotification, ...prev];
-          });
-          
-          // Only increment if we actually added the notification
-          if (wasAdded) {
-            setUnreadCount(prev => prev + 1);
-          }
-          
-          // Don't show toast here - the feature-specific components 
-          // (like StudentSessionsList) already show appropriate toasts
-          // This just adds the notification silently to the bell
-        });
-        
-        // Listen for notification-read events from other devices
-        socketService.onNotificationRead((data) => {
-          console.log('✅ [NotificationBell] Notification marked as read:', data.notificationId);
-          
-          // Remove from local list if present
-          setNotifications(prev => prev.filter(n => n.Id !== data.notificationId));
-          setUnreadCount(prev => Math.max(0, prev - 1));
-        });
-
-        // Listen for mark-all-read events
-        socketService.onNotificationsReadAll((data) => {
-          console.log('✅ [NotificationBell] All notifications marked as read on another tab');
-          setNotifications([]);
-          setUnreadCount(0);
-        });
-
-        // Listen for notification-deleted events from other tabs/page
-        socketService.onNotificationDeleted((data) => {
-          console.log('✅ [NotificationBell] Notification deleted:', data.notificationId);
-          setNotifications(prev => prev.filter(n => n.Id !== data.notificationId));
-          setUnreadCount(prev => Math.max(0, prev - 1));
-        });
-        
-        console.log('✅ [NotificationBell] All Socket.IO listeners registered successfully');
-      } catch (error) {
-        console.error('❌ [NotificationBell] Failed to setup Socket.IO listeners:', error);
-      }
-    };
-    
-    // Try to setup listeners immediately if socket is already connected
-    setupListeners();
-
-    // Re-setup listeners when socket connects/reconnects
-    const handleConnect = () => {
-      console.log('🔄 [NotificationBell] Socket connected - setting up listeners');
-      setupListeners();
-    };
-
-    socketService.onConnect(handleConnect);
-    
-    // Clean up listeners when component unmounts (socket stays connected for app)
-    return () => {
-      console.log('🔕 [NotificationBell] Component unmounting - cleaning up listeners');
-      socketService.offConnect(handleConnect);
-      socketService.offNotification();
-      socketService.offNotificationRead();
-      socketService.offNotificationsReadAll();
-      socketService.offNotificationDeleted();
-    };
-  }, [navigate]);
+  }, []);
 
   const handleClick = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -194,12 +91,11 @@ export const NotificationBell: React.FC = () => {
 
   const handleNotificationClick = async (notification: Notification) => {
     try {
-      // Mark as read
+      // Mark as read via API (will trigger socket event for cross-tab sync)
       await notificationApi.markAsRead(notification.Id);
       
-      // Update local state
-      setNotifications(prev => prev.filter(n => n.Id !== notification.Id));
-      setUnreadCount(prev => Math.max(0, prev - 1));
+      // Immediately update store for instant UI response (optimistic update)
+      markStoreAsRead(notification.Id);
       
       // Navigate if action URL exists
       if (notification.ActionUrl) {
@@ -215,9 +111,9 @@ export const NotificationBell: React.FC = () => {
   const handleMarkAllRead = async () => {
     try {
       await notificationApi.markAllAsRead();
-      setNotifications([]);
-      setUnreadCount(0);
-      handleClose();
+      
+      // Immediately update store for instant UI response (optimistic update)
+      markAllStoreAsRead();
     } catch (error) {
       console.error('Error marking all as read:', error);
     }
@@ -227,8 +123,7 @@ export const NotificationBell: React.FC = () => {
     event.stopPropagation();
     try {
       await notificationApi.deleteNotification(notificationId);
-      setNotifications(prev => prev.filter(n => n.Id !== notificationId));
-      setUnreadCount(prev => Math.max(0, prev - 1));
+      // The socket event from App.tsx will handle store updates
     } catch (error) {
       console.error('Error deleting notification:', error);
     }
@@ -244,6 +139,7 @@ export const NotificationBell: React.FC = () => {
       case 'achievement':
         return <AchievementIcon color="success" />;
       case 'assignment':
+      case 'assessment':
         return <AssignmentIcon color="info" />;
       case 'course':
         return <CourseIcon color="secondary" />;
@@ -356,7 +252,7 @@ export const NotificationBell: React.FC = () => {
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
             <CircularProgress />
           </Box>
-        ) : notifications.length === 0 ? (
+        ) : unreadNotifications.length === 0 ? (
           <Box sx={{ py: 4, px: 2, textAlign: 'center' }}>
             <NotificationsNoneIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 1 }} />
             <Typography variant="body2" color="text.secondary" gutterBottom>
@@ -379,7 +275,7 @@ export const NotificationBell: React.FC = () => {
           </Box>
         ) : (
           <Box sx={{ maxHeight: 400, overflow: 'auto' }}>
-            {notifications.map((notification, index) => (
+            {unreadNotifications.map((notification, index) => (
               <React.Fragment key={notification.Id || `notification-${index}`}>
                 {index > 0 && <Divider />}
                 <MenuItem

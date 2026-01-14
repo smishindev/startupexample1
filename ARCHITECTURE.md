@@ -1,6 +1,6 @@
 # Mishin Learn Platform - System Architecture
 
-**Last Updated**: January 12, 2026 - Added Timestamp Auto-Update Pattern  
+**Last Updated**: January 14, 2026 - Notification System Architecture Refactored  
 **Purpose**: Understanding system components, data flows, and dependencies
 
 ---
@@ -1512,7 +1512,139 @@ connect() {
 }
 ```
 
-### Real-time Notifications Flow
+### Real-time Notifications Flow (Updated Jan 14, 2026)
+
+**ARCHITECTURE REFACTORED - Centralized Pattern:**
+
+```
+Backend Event → Socket.IO → App.tsx Listener → Zustand Store → Components
+```
+
+**Key Changes:**
+1. ✅ **Zustand Store** - Single source of truth (`client/src/stores/notificationStore.ts`)
+2. ✅ **Centralized Listeners** - App.tsx registers all socket listeners once (lines 104-203)
+3. ✅ **No Component Listeners** - NotificationBell & NotificationsPage removed socket code
+4. ✅ **Optimistic Updates** - API call + immediate store update for instant feedback
+5. ✅ **Cross-Tab Sync** - Socket events update all tabs simultaneously
+6. ✅ **Toast Notifications** - Priority-based (urgent/high: 5s, normal/low: 3s)
+
+**Notification Store State:**
+```typescript
+{
+  notifications: Notification[],
+  unreadCount: number,
+  queuedCount: number,
+  addNotification: (notification) => void,      // Idempotent (duplicate check)
+  removeNotification: (id) => void,
+  markAsRead: (id) => void,                     // Idempotent (wasUnread check)
+  markAllAsRead: () => void,
+  setNotifications: (notifications) => void,
+  setUnreadCount: (count) => void,
+  setQueuedCount: (count) => void
+}
+```
+
+**Socket Events (Registered in App.tsx):**
+```typescript
+// Line 104-173: setupNotificationListeners()
+socket.on('notification-created', (notification) => {
+  addNotification(notification);
+  
+  // Toast notification with priority-based duration
+  const duration = ['urgent', 'high'].includes(notification.Priority) ? 5000 : 3000;
+  toast.info(notification.Title, { 
+    description: notification.Message,
+    duration,
+    action: notification.ActionUrl ? { label: 'View', onClick: navigate } : undefined
+  });
+});
+
+socket.on('notification-read', (notificationId) => {
+  markAsRead(notificationId);
+});
+
+socket.on('notifications-read-all', () => {
+  markAllAsRead();
+});
+
+socket.on('notification-deleted', (notificationId) => {
+  removeNotification(notificationId);
+});
+```
+
+**Component Usage:**
+```typescript
+// NotificationBell.tsx
+const { notifications, unreadCount, queuedCount } = useNotificationStore();
+const unreadNotifications = useMemo(() => 
+  notifications.filter(n => !n.IsRead).slice(0, 5), 
+  [notifications]
+);
+
+// NotificationsPage.tsx
+const { notifications, setNotifications, markAsRead } = useNotificationStore();
+// No socket listeners, just reads from store
+```
+
+**Flow Examples:**
+
+**New Notification:**
+```
+Backend creates notification → Socket.IO emits 'notification-created'
+  ↓
+App.tsx receives event → addNotification(notification)
+  ↓
+Store updates → notifications array + unreadCount incremented
+  ↓
+Toast notification shows (priority-based duration)
+  ↓
+All components using store rerender (NotificationBell, NotificationsPage)
+```
+
+**Mark as Read (Same Tab):**
+```
+User clicks notification → API call to /notifications/:id/read
+  ↓
+markAsRead(id) called immediately (optimistic update)
+  ↓
+Store updates → notification.IsRead = true, unreadCount decremented
+  ↓
+UI updates instantly
+  ↓
+Backend processes → Socket emits 'notification-read' to all tabs
+  ↓
+App.tsx receives → markAsRead(id) again
+  ↓
+Store action is idempotent (checks wasUnread) → no double-decrement
+```
+
+**Cross-Tab Synchronization:**
+```
+Tab A: User clicks mark all read
+  ↓
+Tab A: API call + markAllAsRead() optimistic update
+  ↓
+Backend: Socket emits 'notifications-read-all' to all connected clients
+  ↓
+Tab B: App.tsx receives event → markAllAsRead()
+  ↓
+Tab B: Store updates → All notifications marked read
+  ↓
+Tab B: Components rerender with updated state
+```
+
+**Benefits:**
+- ✅ No race conditions (single listener registration)
+- ✅ No duplicate events (off/on pattern in socketService)
+- ✅ Optimistic UI updates (instant feedback)
+- ✅ Cross-tab sync (automatic via socket events)
+- ✅ Memory efficient (proper cleanup on unmount)
+- ✅ Type-safe (TypeScript throughout)
+- ✅ Maintainable (centralized logic)
+
+---
+
+### Real-time Notifications Flow (Legacy Documentation)
 
 **Backend Emission** (`server/src/services/NotificationService.ts`):
 ```typescript

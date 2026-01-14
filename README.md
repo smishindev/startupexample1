@@ -4,7 +4,7 @@
 
 An innovative EdTech startup providing personalized learning experiences through AI tutoring, adaptive content delivery, and comprehensive progress analytics.
 
-**Last Major Update**: January 12, 2026 - Presence System, Logout Bug Fixes & Timestamp Auto-Update Complete
+**Last Major Update**: January 14, 2026 - Notification System Architecture Refactored
 
 ## 🚀 Features
 
@@ -28,7 +28,10 @@ An innovative EdTech startup providing personalized learning experiences through
   - **Delivery Options**: Realtime, daily digest (8 AM), weekly digest (Monday 8 AM)
   - **Email Tracking**: Open/click tracking and analytics
   - **User Control**: Customizable preferences with quiet hours and one-click unsubscribe
-- **Notifications Center** - Full-page notification management with real-time updates, pagination, filtering (type/priority), and cross-tab synchronization ✅
+- **Notifications Center** - Full-page notification management with **centralized Zustand store architecture**, real-time updates, pagination, filtering (type/priority), cross-tab synchronization, optimistic UI updates, and toast notifications (REFACTORED Jan 14, 2026) ✅
+  - **Architecture**: Single socket listener in App.tsx → Zustand store → Components
+  - **Features**: Optimistic updates, idempotent actions, priority-based toast (urgent/high: 5s, normal/low: 3s)
+  - **Bug Fixes**: Resolved 13 critical bugs including race conditions and memory leaks
 - **Privacy Settings** - Comprehensive privacy controls (profile visibility, email, progress, messages) - VERIFIED WORKING (Jan 10, 2026) ✅
   - **ProfileVisibility**: 3-tier system (public/students/private) enforced across platform
   - **ShowEmail**: Enforced in 7 endpoints with instructor override for enrolled students

@@ -483,7 +483,7 @@ class EmailService {
     notification: {
       title: string;
       message: string;
-      type: 'progress' | 'risk' | 'achievement' | 'intervention' | 'assignment' | 'course';
+      type: 'progress' | 'risk' | 'achievement' | 'intervention' | 'assignment' | 'course' | 'assessment';
       priority: 'low' | 'normal' | 'high' | 'urgent';
       actionUrl?: string;
       actionText?: string;
@@ -528,6 +528,12 @@ class EmailService {
         color: '#667eea',
         gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
         subject: 'Course Update'
+      },
+      assessment: {
+        icon: '📝',
+        color: '#2196F3',
+        gradient: 'linear-gradient(135deg, #2196F3 0%, #1976D2 100%)',
+        subject: 'Assessment Update'
       }
     };
 

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   Box,
   Container,
@@ -46,6 +47,7 @@ import { studentsApi, Student, StudentAnalytics, StudentFilters } from '../../se
 import { instructorApi } from '../../services/instructorApi';
 
 const StudentManagement: React.FC = () => {
+  const [searchParams] = useSearchParams();
   const [students, setStudents] = useState<Student[]>([]);
   const [analytics, setAnalytics] = useState<StudentAnalytics | null>(null);
   const [courses, setCourses] = useState<any[]>([]);
@@ -70,9 +72,23 @@ const StudentManagement: React.FC = () => {
     type: 'message' as 'message' | 'announcement'
   });
 
-  // Load data
+  // Set courseId from URL parameter and load data
   useEffect(() => {
-    loadData();
+    const courseIdFromUrl = searchParams.get('courseId');
+    if (courseIdFromUrl && courseIdFromUrl !== filters.courseId) {
+      setFilters(prev => ({ ...prev, courseId: courseIdFromUrl }));
+    } else if (!courseIdFromUrl && filters.courseId === undefined) {
+      // Load data immediately on first mount if no courseId in URL
+      loadData();
+    }
+  }, [searchParams]);
+
+  // Load data when filters change
+  useEffect(() => {
+    // Only load if filters have been initialized (courseId set or confirmed no courseId)
+    if (filters.courseId !== undefined) {
+      loadData();
+    }
   }, [filters]);
 
   const loadData = async () => {
@@ -85,12 +101,6 @@ const StudentManagement: React.FC = () => {
         studentsApi.getAnalytics(filters.courseId),
         instructorApi.getCourses()
       ]);
-      
-      console.log('[Student Management] Loaded data:', { 
-        students: studentsData.length, 
-        analytics: analyticsData,
-        courses: coursesResponse.courses.length 
-      });
       
       setStudents(studentsData);
       setAnalytics(analyticsData);

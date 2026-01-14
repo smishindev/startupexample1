@@ -586,7 +586,9 @@ export const InstructorDashboard: React.FC = () => {
                             ? 'rgba(76, 175, 80, 0.9)' 
                             : course.level === 'intermediate' 
                             ? 'rgba(255, 152, 0, 0.9)' 
-                            : 'rgba(244, 67, 54, 0.9)',
+                            : course.level === 'advanced'
+                            ? 'rgba(244, 67, 54, 0.9)'
+                            : 'rgba(183, 28, 28, 0.9)',
                           color: 'white',
                           fontWeight: 600,
                           fontSize: '0.7rem',
@@ -674,7 +676,7 @@ export const InstructorDashboard: React.FC = () => {
                       fullWidth
                       data-testid={`instructor-course-edit-button-${course.id}`}
                     >
-                      Edit
+                      Edit Course
                     </Button>
                     <Button
                       size="small"
@@ -690,26 +692,23 @@ export const InstructorDashboard: React.FC = () => {
                   <Box sx={{ display: 'flex', gap: 1 }}>
                     <Button
                       size="small"
-                      startIcon={<SchoolIcon />}
-                      onClick={() => navigate(`/instructor/courses/${course.id}/lessons`)}
+                      startIcon={<AnalyticsIcon />}
+                      onClick={() => navigate(`/instructor/analytics?courseId=${course.id}`)}
                       variant="outlined"
                       fullWidth
-                      data-testid={`instructor-course-lessons-button-${course.id}`}
+                      data-testid={`instructor-course-analytics-button-${course.id}`}
                     >
-                      Lessons
+                      Analytics
                     </Button>
                     <Button
                       size="small"
-                      startIcon={<AssignmentIcon />}
-                      onClick={() => {
-                        // Navigate to course-level assessments management
-                        navigate(`/instructor/courses/${course.id}/assessments`);
-                      }}
+                      startIcon={<PeopleIcon />}
+                      onClick={() => navigate(`/instructor/students?courseId=${course.id}`)}
                       variant="outlined"
                       fullWidth
-                      data-testid={`instructor-course-assessments-button-${course.id}`}
+                      data-testid={`instructor-course-students-button-${course.id}`}
                     >
-                      Assessments
+                      Students
                     </Button>
                   </Box>
                 </Box>
@@ -774,14 +773,14 @@ export const InstructorDashboard: React.FC = () => {
           <ListItemText>Preview Course</ListItemText>
         </MenuItem>
         <MenuItem onClick={() => {
-          navigate(`/instructor/courses/${selectedCourse}/analytics`);
+          navigate(`/instructor/analytics?courseId=${selectedCourse}`);
           handleCourseMenuClose();
         }} data-testid="instructor-dashboard-course-menu-analytics">
           <ListItemIcon><AnalyticsIcon fontSize="small" /></ListItemIcon>
           <ListItemText>View Analytics</ListItemText>
         </MenuItem>
         <MenuItem onClick={() => {
-          navigate(`/instructor/courses/${selectedCourse}/students`);
+          navigate(`/instructor/students?courseId=${selectedCourse}`);
           handleCourseMenuClose();
         }} data-testid="instructor-dashboard-course-menu-students">
           <ListItemIcon><PeopleIcon fontSize="small" /></ListItemIcon>

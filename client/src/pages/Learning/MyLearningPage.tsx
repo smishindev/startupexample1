@@ -424,12 +424,12 @@ const MyLearningPage: React.FC = () => {
                             label={enrollment.Level} 
                             size="small" 
                             sx={{ 
-                              backgroundColor: alpha(getLevelColor(enrollment.Level as 'Beginner' | 'Intermediate' | 'Advanced', theme), 0.15),
-                              color: getLevelColor(enrollment.Level as 'Beginner' | 'Intermediate' | 'Advanced', theme),
+                              backgroundColor: alpha(getLevelColor(enrollment.Level as 'Beginner' | 'Intermediate' | 'Advanced' | 'Expert', theme), 0.15),
+                              color: getLevelColor(enrollment.Level as 'Beginner' | 'Intermediate' | 'Advanced' | 'Expert', theme),
                               fontWeight: 600,
                               fontSize: '0.7rem',
                               height: 24,
-                              border: `1.5px solid ${alpha(getLevelColor(enrollment.Level as 'Beginner' | 'Intermediate' | 'Advanced', theme), 0.4)}`,
+                              border: `1.5px solid ${alpha(getLevelColor(enrollment.Level as 'Beginner' | 'Intermediate' | 'Advanced' | 'Expert', theme), 0.4)}`,
                             }}
                           />
                         )}
@@ -523,7 +523,7 @@ const MyLearningPage: React.FC = () => {
                               variant="outlined"
                               size="small"
                               fullWidth
-                              onClick={() => navigate(`/instructor/courses/${enrollment.courseId}/lessons`)}
+                              onClick={() => navigate(`/instructor/courses/${enrollment.courseId}/edit?tab=1`)}
                               sx={{
                                 borderRadius: 2,
                                 borderWidth: 2,

@@ -60,8 +60,14 @@ router.get('/my-enrollments', authenticateToken, async (req: AuthRequest, res: R
       const totalEnrollments = countResult[0]?.total || 0;
       const totalPages = Math.ceil(totalEnrollments / limitNum);
 
+      // Normalize level to lowercase
+      const normalizedCourses = instructorCourses.map((course: any) => ({
+        ...course,
+        Level: course.Level?.toLowerCase()
+      }));
+
       res.json({
-        enrollments: instructorCourses,
+        enrollments: normalizedCourses,
         pagination: {
           currentPage: pageNum,
           totalPages,
@@ -113,11 +119,17 @@ router.get('/my-enrollments', authenticateToken, async (req: AuthRequest, res: R
       const totalEnrollments = countResult[0]?.total || 0;
       const totalPages = Math.ceil(totalEnrollments / limitNum);
 
+      // Normalize level to lowercase
+      const normalizedEnrollments = enrollments.map((enrollment: any) => ({
+        ...enrollment,
+        Level: enrollment.Level?.toLowerCase()
+      }));
+
       console.log('[ENROLLMENT API] First enrollment from DB:', enrollments[0]);
       console.log('[ENROLLMENT API] Pagination:', { page: pageNum, limit: limitNum, total: totalEnrollments, totalPages });
 
       res.json({
-        enrollments,
+        enrollments: normalizedEnrollments,
         pagination: {
           currentPage: pageNum,
           totalPages,
@@ -286,7 +298,7 @@ router.post('/courses/:courseId/enroll', authenticateToken, async (req: AuthRequ
                 priority: 'normal',
                 title: 'Student Re-enrolled',
                 message: `${studentName} re-enrolled in "${course[0].Title}"`,
-                actionUrl: `/instructor/courses/${courseId}/students`,
+                actionUrl: `/instructor/students?courseId=${courseId}`,
                 actionText: 'View Students'
               },
               {
@@ -424,7 +436,7 @@ router.post('/courses/:courseId/enroll', authenticateToken, async (req: AuthRequ
             priority: 'normal',
             title: 'New Student Enrolled',
             message: `${studentName} enrolled in "${course[0].Title}"`,
-            actionUrl: `/instructor/courses/${courseId}/students`,
+            actionUrl: `/instructor/students?courseId=${courseId}`,
             actionText: 'View Students'
           },
           {

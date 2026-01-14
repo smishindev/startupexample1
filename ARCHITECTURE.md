@@ -25,6 +25,42 @@ State: Zustand (auth), React state (components)
 
 ## 🔌 API ENDPOINTS
 
+### Instructor Course Management (updated Jan 14, 2026)
+```
+GET    /api/instructor/courses         - Get instructor's courses with pagination
+                                        - Query params: status (all/published/draft), page, limit
+                                        - Returns: { courses: [], pagination: {} }
+                                        - Level field: lowercase 'level'
+
+POST   /api/instructor/courses         - Create new course
+                                        - Validates & normalizes level to lowercase
+                                        - Validates & maps category to database enum
+                                        - Returns: { id, message, status }
+
+PUT    /api/instructor/courses/:id     - Update course details
+                                        - Validates ownership (instructor can only edit own courses)
+                                        - Dynamic updates (only changed fields)
+                                        - Normalizes level to lowercase
+                                        - Maps category names to database values
+                                        - Returns: { message, courseId }
+
+GET    /api/instructor/stats           - Get instructor dashboard statistics
+GET    /api/instructor/courses/:id/students - Get students enrolled in course
+```
+
+**Level Field Normalization (Critical Fix - Jan 14, 2026):**
+- **Database**: Stores lowercase (beginner, intermediate, advanced, expert)
+- **API Responses**: All GET endpoints normalize to lowercase `level` property
+- **API Inputs**: All POST/PUT validate and lowercase before saving
+- **Frontend**: Expects lowercase, uses `.toLowerCase()` for safety
+- **Validation**: Invalid levels default to 'beginner'
+
+**Category Mapping:**
+- Frontend displays: "Web Development", "Data Science", "Mathematics", etc.
+- Database stores: 'programming', 'data_science', 'mathematics', etc.
+- Backend maps user-friendly names to database enums
+- 10 valid categories: programming, data_science, design, business, marketing, language, mathematics, science, arts, other
+
 ### Profile Management (added Dec 11, 2025)
 ```
 GET    /api/profile                    - Get user profile

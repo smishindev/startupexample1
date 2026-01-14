@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Box,
   Typography,
@@ -15,11 +15,14 @@ import {
 } from '@mui/material';
 import {
   ArrowBack as ArrowBackIcon,
+  Info as InfoIcon,
   PlaylistAdd as PlaylistAddIcon,
+  Assignment as AssignmentIcon,
   Settings as SettingsIcon
 } from '@mui/icons-material';
 import { instructorApi, InstructorCourse } from '../../services/instructorApi';
 import { CurriculumBuilder } from './CurriculumBuilder';
+import { CourseDetailsEditor } from './CourseDetailsEditor';
 import { HeaderV4 as Header } from '../../components/Navigation/HeaderV4';
 
 interface TabPanelProps {
@@ -45,6 +48,7 @@ const TabPanel: React.FC<TabPanelProps> = ({ children, value, index, ...other })
 export const CourseEditPage: React.FC = () => {
   const { courseId } = useParams<{ courseId: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [tabValue, setTabValue] = useState(0);
   const [course, setCourse] = useState<InstructorCourse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -56,6 +60,17 @@ export const CourseEditPage: React.FC = () => {
       loadCourse();
     }
   }, [courseId]);
+
+  // Handle tab parameter from URL
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab) {
+      const tabIndex = parseInt(tab, 10);
+      if (!isNaN(tabIndex) && tabIndex >= 0 && tabIndex <= 3) {
+        setTabValue(tabIndex);
+      }
+    }
+  }, [searchParams]);
 
   const loadCourse = async () => {
     if (!courseId) return;
@@ -101,10 +116,16 @@ export const CourseEditPage: React.FC = () => {
 
   const handleTabChange = (_: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
+    // Update URL with tab parameter
+    setSearchParams({ tab: newValue.toString() });
   };
 
   const handleBackToDashboard = () => {
     navigate('/instructor');
+  };
+
+  const handleCourseUpdate = (updatedCourse: InstructorCourse) => {
+    setCourse(updatedCourse);
   };
 
   if (loading) {
@@ -186,37 +207,78 @@ export const CourseEditPage: React.FC = () => {
         <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
           <Tabs value={tabValue} onChange={handleTabChange} data-testid="course-edit-tabs">
             <Tab
+              icon={<InfoIcon />}
+              iconPosition="start"
+              label="Course Details"
+              id="course-tab-0"
+              data-testid="course-edit-tab-details"
+            />
+            <Tab
               icon={<PlaylistAddIcon />}
               iconPosition="start"
-              label="Curriculum"
-              id="course-tab-0"
+              label="Lesson Details"
+              id="course-tab-1"
               data-testid="course-edit-tab-curriculum"
+            />
+            <Tab
+              icon={<AssignmentIcon />}
+              iconPosition="start"
+              label="Assessments"
+              id="course-tab-2"
+              data-testid="course-edit-tab-assessments"
             />
             <Tab
               icon={<SettingsIcon />}
               iconPosition="start"
-              label="Course Settings"
-              id="course-tab-1"
+              label="Settings"
+              id="course-tab-3"
               data-testid="course-edit-tab-settings"
             />
           </Tabs>
         </Box>
 
         <TabPanel value={tabValue} index={0}>
+          <CourseDetailsEditor 
+            course={course} 
+            onUpdate={handleCourseUpdate}
+          />
+        </TabPanel>
+
+        <TabPanel value={tabValue} index={1}>
           <CurriculumBuilder 
             courseId={courseId!} 
             onLessonCountChange={setLessonCount}
           />
         </TabPanel>
 
-        <TabPanel value={tabValue} index={1}>
+        <TabPanel value={tabValue} index={2}>
+          <Box sx={{ textAlign: 'center', py: 6 }}>
+            <AssignmentIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+            <Typography variant="h6" color="text.secondary" gutterBottom>
+              Course-Level Assessments
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 3, maxWidth: 600, mx: 'auto' }}>
+              Manage assessments across all lessons in this course. Create quizzes, assignments, and tests to evaluate student learning.
+            </Typography>
+            <Button
+              variant="contained"
+              startIcon={<AssignmentIcon />}
+              onClick={() => navigate(`/instructor/courses/${courseId}/assessments`)}
+              data-testid="course-edit-manage-assessments-button"
+            >
+              Manage Course Assessments
+            </Button>
+          </Box>
+        </TabPanel>
+
+        <TabPanel value={tabValue} index={3}>
           <Alert severity="info">
-            Course settings editor coming soon! This will include:
+            Advanced course settings coming soon! This will include:
             <ul>
-              <li>Edit course title, description, and thumbnail</li>
-              <li>Update pricing and category</li>
-              <li>Manage course prerequisites</li>
-              <li>Configure advanced settings</li>
+              <li>Course prerequisites and requirements</li>
+              <li>Certificate settings</li>
+              <li>Enrollment options and restrictions</li>
+              <li>Advanced visibility and access controls</li>
             </ul>
           </Alert>
         </TabPanel>

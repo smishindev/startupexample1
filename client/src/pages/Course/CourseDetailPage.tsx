@@ -99,7 +99,7 @@ interface CourseDetails {
   };
   thumbnail: string;
   duration: string;
-  level: 'Beginner' | 'Intermediate' | 'Advanced';
+  level: 'Beginner' | 'Intermediate' | 'Advanced' | 'Expert';
   rating: number;
   reviewCount: number;
   enrolledStudents: number;
@@ -219,7 +219,7 @@ export const CourseDetailPage: React.FC = () => {
           },
           thumbnail: courseData.Thumbnail || '',
           duration: `${Math.floor(courseData.Duration / 60)}h ${courseData.Duration % 60}m`,
-          level: courseData.Level as 'Beginner' | 'Intermediate' | 'Advanced',
+          level: courseData.Level as 'Beginner' | 'Intermediate' | 'Advanced' | 'Expert',
           rating: courseData.Rating || 0.0,
           reviewCount: Math.floor(courseData.EnrollmentCount * 0.3) || 0,
           enrolledStudents: courseData.EnrollmentCount || 0,

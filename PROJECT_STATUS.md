@@ -1,12 +1,82 @@
 # Mishin Learn Platform - Project Status & Memory
 
-**Last Updated**: January 14, 2026 - Notification System Architecture Refactored ✅  
+**Last Updated**: January 14, 2026 - Instructor Course Management Unification & Level Normalization ✅  
 **Developer**: Sergey Mishin (s.mishin.dev@gmail.com)  
 **AI Assistant Context**: This file serves as project memory for continuity across chat sessions
 
 ---
 
 ## 🔥 LATEST UPDATE - January 14, 2026
+
+### 🎓 Instructor Course Management Page Unification - COMPLETE
+
+**Major Refactoring: Merged Duplicate Pages into Single 4-Tab Interface**
+
+✅ **Page Consolidation**
+- **Problem**: CourseEditPage (`/instructor/edit/:id`) and LessonManagementPage (`/instructor/lessons/:id`) had duplicate functionality
+- **Solution**: Unified into single CourseEditPage with 4 tabs
+- **New Structure**:
+  - Tab 0: **Course Details** - Edit title, description, category, level, price, thumbnail
+  - Tab 1: **Lesson Details** - Manage course curriculum and lessons
+  - Tab 2: **Assessments** - Configure course assessments
+  - Tab 3: **Settings** - Course settings and preferences
+- **Implementation**: [CourseEditPage.tsx](client/src/pages/Instructor/CourseEditPage.tsx)
+- **Navigation**: URL parameter-based (`/instructor/edit/:id?tab=0`)
+- **Status**: ✅ Complete
+
+✅ **Backend API Completion**
+- **Problem**: Missing PUT endpoint for course updates
+- **Solution**: Added `PUT /api/instructor/courses/:id` with full validation
+- **Features**:
+  - Ownership verification (instructor can only edit own courses)
+  - Dynamic updates (only sends changed fields)
+  - Category mapping (user-friendly names → database values)
+  - Level validation (beginner, intermediate, advanced, expert)
+  - Price validation and sanitization
+- **Implementation**: [instructor.ts:344-450](server/src/routes/instructor.ts#L344-L450)
+- **Status**: ✅ Complete
+
+✅ **Level Field Normalization (Critical Bug Fix)**
+- **Problem**: Database stored mixed-case levels ('Advanced', 'Beginner'), frontend expected lowercase
+- **Symptoms**: 
+  - MUI Select error: "out-of-range value 'Advanced'"
+  - Course edit form not populating level field
+  - Toast error: Rendering error object instead of string
+- **Root Cause**: SQL Server spread operator preserving both `level` and `Level` properties
+- **Solution**: Comprehensive normalization across 8 files
+  - Backend GET endpoints: Normalize to lowercase and delete uppercase property
+  - Backend POST/PUT: Validate and lowercase before insert/update
+  - Frontend forms: Initialize with `course.level?.toLowerCase()`
+  - Error handling: Proper string extraction from error objects
+- **Files Modified**:
+  - Backend: instructor.ts, courses.ts, enrollment.ts (5 endpoints)
+  - Frontend: CourseDetailsEditor.tsx, courseHelpers.ts, ShareAnalyticsDialog.tsx
+- **Status**: ✅ Complete - All data flows verified
+
+✅ **Navigation Architecture Updates**
+- **Problem**: Analytics/Students buttons in dashboard caused full page navigation
+- **Solution**: Query parameter-based navigation (`?courseId=X`)
+- **Routes Updated**:
+  - `/instructor/analytics?courseId=X` - Course analytics dashboard
+  - `/instructor/students?courseId=X` - Student management with course filter
+- **Benefits**: Single-page experience, URL state persistence, browser back/forward works
+- **Implementation**: [InstructorDashboard.tsx](client/src/pages/Instructor/InstructorDashboard.tsx#L696-L784)
+- **Status**: ✅ Complete
+
+✅ **Legacy Route Compatibility**
+- **Old Route**: `/instructor/lessons/:courseId`
+- **New Behavior**: Redirects to `/instructor/edit/:courseId?tab=1`
+- **Implementation**: [LessonsRedirect.tsx](client/src/pages/Instructor/LessonsRedirect.tsx)
+- **Status**: ✅ Complete
+
+✅ **Data Consistency Improvements**
+- **Categories**: Fixed to 10 valid values (programming, data_science, design, business, marketing, language, mathematics, science, arts, other)
+- **Levels**: Added 'expert' level support (beginner, intermediate, advanced, expert)
+- **Validation**: Backend validates all inputs, falls back to safe defaults
+- **Type Safety**: All TypeScript interfaces updated and verified
+- **Status**: ✅ Complete
+
+---
 
 ### 🐛 Presence System & User Logout Bug Fixes - COMPLETE
 

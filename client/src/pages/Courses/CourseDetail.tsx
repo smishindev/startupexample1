@@ -353,7 +353,11 @@ const CourseDetail: React.FC = () => {
 
                 <Chip
                   label={course.Level.charAt(0).toUpperCase() + course.Level.slice(1)}
-                  color={course.Level === 'beginner' ? 'success' : course.Level === 'intermediate' ? 'warning' : 'error'}
+                  color={
+                    course.Level === 'beginner' ? 'success' 
+                    : course.Level === 'intermediate' ? 'warning' 
+                    : 'error'
+                  }
                   size="small"
                 />
               </Box>

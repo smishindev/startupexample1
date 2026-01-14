@@ -28,6 +28,20 @@
 - [ ] Identified all pages that use this component
 
 **Recent Additions to Check:**
+- [x] **Instructor Course Management Unification** - Page merge + Level normalization (Jan 14, 2026) ✅
+  - Merged CourseEditPage and LessonManagementPage into single 4-tab interface
+  - Tab system: Course Details | Lesson Details | Assessments | Settings
+  - Added PUT /api/instructor/courses/:id endpoint with validation
+  - Fixed level field normalization (8 files modified: 5 backend, 3 frontend)
+  - Backend normalizes level to lowercase in all GET responses
+  - Backend validates and lowercases level in POST/PUT operations
+  - Frontend initializes with course.level?.toLowerCase() for safety
+  - Updated navigation to use query parameters (?courseId=X)
+  - Legacy route /instructor/lessons/:id redirects to tab 1
+  - Fixed toast error rendering (proper string extraction from error objects)
+  - Added 'expert' level support (beginner, intermediate, advanced, expert)
+  - Fixed category validation (10 valid categories)
+  - Status: All data flows verified, zero TypeScript errors, backward compatible
 - [x] **Timestamp Auto-Update** - 6 components (Jan 12, 2026) ✅
   - Office Hours (QueueDisplay), Notifications (Page + Bell), Chat, AI Tutoring, My Learning
   - 60-second timer pattern: `useState(Date.now())` + `setInterval(60000)`

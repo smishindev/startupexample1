@@ -1,7 +1,93 @@
 # Mishin Learn Platform - Component Registry
 
-**Last Updated**: January 14, 2026 - Notification System Architecture Refactored  
+**Last Updated**: January 14, 2026 - Instructor Course Management Unification  
 **Purpose**: Quick reference for all major components, their dependencies, and relationships
+
+---
+
+## 🎓 Instructor Course Management
+
+### CourseEditPage
+**Path**: `client/src/pages/Instructor/CourseEditPage.tsx`  
+**Purpose**: Unified course management interface with 4-tab system
+
+**Navigation**: 
+- Primary: `/instructor/edit/:courseId`
+- With Tab: `/instructor/edit/:courseId?tab=1`
+- Legacy: `/instructor/lessons/:courseId` → Redirects to tab 1
+
+**Tabs**:
+1. **Course Details** (Tab 0) - CourseDetailsEditor component
+   - Edit title, description, category, level, price
+   - Upload/change thumbnail image
+   - Real-time validation with error messages
+   - Auto-saves to backend on form submit
+
+2. **Lesson Details** (Tab 1) - CurriculumBuilder component
+   - Manage course curriculum structure
+   - Add/edit/delete lessons
+   - Reorder lessons with drag & drop
+   - Set lesson duration and requirements
+
+3. **Assessments** (Tab 2) - Placeholder for future assessment management
+
+4. **Settings** (Tab 3) - Placeholder for course settings
+
+**Services Used**:
+- `instructorApi.getCourses()` - Fetch instructor's courses
+- `instructorApi.updateCourse(id, data)` - Save course changes
+
+**Features**:
+- URL state management (tab parameter persists in URL)
+- Breadcrumb navigation back to dashboard
+- Real-time lesson count display
+- Course status indicator (draft/published)
+- Toast notifications for save success/failure
+
+**Status**: ✅ Production-ready (January 14, 2026)
+
+---
+
+### CourseDetailsEditor
+**Path**: `client/src/pages/Instructor/CourseDetailsEditor.tsx`  
+**Purpose**: Form component for editing course metadata
+
+**Features**:
+- Category dropdown (10 options: Programming, Data Science, Design, etc.)
+- Level dropdown (4 options: beginner, intermediate, advanced, expert)
+- Price input with validation (min: 0)
+- Thumbnail upload with preview (max 5MB, image types only)
+- Real-time validation:
+  - Title: min 5 characters
+  - Description: min 20 characters
+  - Category: required selection
+- **Level Normalization**: Initializes with `course.level?.toLowerCase()` to handle backend data
+- **Error Handling**: Extracts string messages from error objects for toast display
+
+**API Endpoint**: `PUT /api/instructor/courses/:id`
+
+**Status**: ✅ Production-ready with level normalization fix
+
+---
+
+### InstructorDashboard
+**Path**: `client/src/pages/Instructor/InstructorDashboard.tsx`  
+**Purpose**: Main instructor dashboard with course cards
+
+**Navigation Updates** (January 14, 2026):
+- **Edit Course**: → `/instructor/edit/:courseId`
+- **Analytics**: → `/instructor/analytics?courseId=:id` (query param)
+- **Students**: → `/instructor/students?courseId=:id` (query param)
+
+**Features**:
+- Course filtering (All/Published/Draft)
+- Course search by title
+- Pagination (12 courses per page)
+- Real-time stats display (students, lessons, revenue, rating)
+- Level badges with color coding (beginner=green, intermediate=orange, advanced=red, expert=dark red)
+- Status indicators (draft/published)
+
+**Status**: ✅ Production-ready
 
 ---
 

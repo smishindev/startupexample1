@@ -1,6 +1,39 @@
 # 🚀 Quick Reference - Development Workflow
 
-**Last Updated**: January 14, 2026 - Notification System Architecture Refactored
+**Last Updated**: January 14, 2026 - Instructor Course Management Unification
+
+---
+
+## 🎓 Instructor Course Management
+
+**Unified Page Structure:**
+- **Route**: `/instructor/edit/:courseId?tab=0`
+- **4 Tabs**: Course Details | Lesson Details | Assessments | Settings
+- **Legacy Route**: `/instructor/lessons/:id` → Auto-redirects to Lesson Details tab
+
+**Course Form Fields:**
+- Title (min 5 chars)
+- Description (min 20 chars)  
+- Category (10 options: programming, data_science, design, business, marketing, language, mathematics, science, arts, other)
+- Level (4 options: beginner, intermediate, advanced, expert)
+- Price (min 0)
+- Thumbnail (max 5MB, images only)
+
+**API Endpoints:**
+- `GET /api/instructor/courses` - Returns courses with lowercase `level` field
+- `PUT /api/instructor/courses/:id` - Update course (validates & normalizes level)
+- `POST /api/instructor/courses` - Create course (validates & normalizes level)
+
+**Level Field Normalization:**
+- Database: Stores lowercase (beginner, intermediate, advanced, expert)
+- Backend: Normalizes all responses to lowercase
+- Frontend: Expects lowercase, initializes with `.toLowerCase()`
+- Validation: All inputs validated and lowercased before saving
+
+**Navigation:**
+- Dashboard → Edit: `/instructor/edit/:id`
+- Dashboard → Analytics: `/instructor/analytics?courseId=:id`
+- Dashboard → Students: `/instructor/students?courseId=:id`
 
 ---
 

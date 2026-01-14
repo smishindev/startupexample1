@@ -185,11 +185,11 @@ export const ShareAnalyticsDialog: React.FC<ShareAnalyticsDialogProps> = ({ open
                     <TableCell>
                       {event.courseLevel && (
                         <Chip
-                          label={event.courseLevel}
+                          label={event.courseLevel.charAt(0).toUpperCase() + event.courseLevel.slice(1).toLowerCase()}
                           size="small"
                           color={
-                            event.courseLevel === 'Beginner' ? 'success' :
-                            event.courseLevel === 'Intermediate' ? 'warning' :
+                            event.courseLevel.toLowerCase() === 'beginner' ? 'success' :
+                            event.courseLevel.toLowerCase() === 'intermediate' ? 'warning' :
                             'error'
                           }
                         />

@@ -89,6 +89,7 @@ router.get('/', async (req: any, res: any) => {
 
     const courses = coursesResult.map((course: any) => ({
       ...course,
+      Level: course.Level?.toLowerCase(), // Normalize level to lowercase
       Tags: course.Tags ? JSON.parse(course.Tags) : [],
       Instructor: {
         Id: course.InstructorId, // Added instructor ID to response
@@ -176,6 +177,7 @@ router.get('/:id', async (req: any, res: any) => {
     // Format response
     const courseData = {
       ...course,
+      Level: course.Level?.toLowerCase(), // Normalize level to lowercase
       EnrollmentCount: course.ActiveEnrollmentCount || 0, // Use computed count
       Prerequisites: course.Prerequisites ? JSON.parse(course.Prerequisites) : [],
       LearningOutcomes: course.LearningOutcomes ? JSON.parse(course.LearningOutcomes) : [],
@@ -299,9 +301,15 @@ router.get('/meta/levels', async (req: any, res: any) => {
 
     const result = await db.query(query);
     
-    console.log('Levels API response:', JSON.stringify(result, null, 2));
+    // Normalize level to lowercase
+    const normalizedResult = result.map((level: any) => ({
+      ...level,
+      Level: level.Level?.toLowerCase()
+    }));
+    
+    console.log('Levels API response:', JSON.stringify(normalizedResult, null, 2));
 
-    res.json(result);
+    res.json(normalizedResult);
 
   } catch (error) {
     console.error('Error fetching levels:', error);

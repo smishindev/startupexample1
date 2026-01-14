@@ -51,18 +51,21 @@ export const getCategoryGradient = (category?: string): string => {
 
 /**
  * Gets the color for a difficulty level badge
- * @param level - Course difficulty level
+ * @param level - Course difficulty level (case-insensitive)
  * @param theme - MUI theme object
  * @returns Color string from theme
  */
-export const getLevelColor = (level: 'Beginner' | 'Intermediate' | 'Advanced', theme: any): string => {
-  switch (level) {
-    case 'Beginner': 
+export const getLevelColor = (level: string, theme: any): string => {
+  const normalizedLevel = level?.toLowerCase();
+  switch (normalizedLevel) {
+    case 'beginner': 
       return theme.palette.success.main;
-    case 'Intermediate': 
+    case 'intermediate': 
       return theme.palette.warning.main;
-    case 'Advanced': 
+    case 'advanced': 
       return theme.palette.error.main;
+    case 'expert':
+      return theme.palette.error.dark; // Darker red for expert
     default: 
       return theme.palette.grey[500];
   }

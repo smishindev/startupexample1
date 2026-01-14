@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   Box,
   Container,
@@ -47,6 +48,7 @@ import { instructorApi, type InstructorCourse } from '../../services/instructorA
 const PERFORMANCE_COLORS = ['#f44336', '#ff9800', '#ffc107', '#4caf50', '#2196f3', '#9c27b0'];
 
 export const CourseAnalyticsDashboard: React.FC = () => {
+  const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedCourse, setSelectedCourse] = useState<string>('dashboard');
@@ -58,6 +60,18 @@ export const CourseAnalyticsDashboard: React.FC = () => {
   useEffect(() => {
     loadCourses();
   }, []);
+
+  // Set initial selected course from URL parameter
+  useEffect(() => {
+    const courseIdFromUrl = searchParams.get('courseId');
+    if (courseIdFromUrl && courses.length > 0) {
+      // Verify the course exists in the instructor's courses
+      const courseExists = courses.some(c => c.id === courseIdFromUrl);
+      if (courseExists) {
+        setSelectedCourse(courseIdFromUrl);
+      }
+    }
+  }, [searchParams, courses]);
 
   useEffect(() => {
     if (selectedCourse === 'dashboard') {

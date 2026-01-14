@@ -36,7 +36,7 @@ export interface Course {
   };
   thumbnail: string;
   duration: string;
-  level: 'Beginner' | 'Intermediate' | 'Advanced';
+  level: 'Beginner' | 'Intermediate' | 'Advanced' | 'Expert';
   rating: number;
   reviewCount: number;
   enrolledStudents: number;

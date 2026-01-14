@@ -57,7 +57,7 @@ const convertApiCourseToUiCourse = (apiCourse: ApiCourse, isBookmarked: boolean 
   },
   thumbnail: apiCourse.Thumbnail || '',
   duration: formatDuration(apiCourse.Duration),
-  level: apiCourse.Level as 'Beginner' | 'Intermediate' | 'Advanced',
+  level: apiCourse.Level as 'Beginner' | 'Intermediate' | 'Advanced' | 'Expert',
   rating: apiCourse.Rating,
   reviewCount: Math.floor(apiCourse.EnrollmentCount * 0.3), // Estimate reviews from enrollments
   enrolledStudents: apiCourse.EnrollmentCount,
@@ -348,7 +348,7 @@ export const CoursesPage: React.FC = () => {
         },
         thumbnail: bookmark.thumbnail,
         duration: formatDuration(bookmark.duration),
-        level: bookmark.level.charAt(0).toUpperCase() + bookmark.level.slice(1).toLowerCase() as 'Beginner' | 'Intermediate' | 'Advanced',
+        level: bookmark.level.charAt(0).toUpperCase() + bookmark.level.slice(1).toLowerCase() as 'Beginner' | 'Intermediate' | 'Advanced' | 'Expert',
         rating: bookmark.rating,
         reviewCount: Math.floor(bookmark.enrollmentCount * 0.3),
         enrolledStudents: bookmark.enrollmentCount,
@@ -394,7 +394,7 @@ export const CoursesPage: React.FC = () => {
         },
         thumbnail: enrollment.Thumbnail || '',
         duration: enrollment.Duration,
-        level: (enrollment.Level.charAt(0).toUpperCase() + enrollment.Level.slice(1).toLowerCase()) as 'Beginner' | 'Intermediate' | 'Advanced',
+        level: (enrollment.Level.charAt(0).toUpperCase() + enrollment.Level.slice(1).toLowerCase()) as 'Beginner' | 'Intermediate' | 'Advanced' | 'Expert',
         price: enrollment.Price,
         rating: 0, // Not available in enrollment data
         reviewCount: 0, // Not available in enrollment data

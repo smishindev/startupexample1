@@ -289,7 +289,7 @@ export const CourseAssessmentManagementPage: React.FC = () => {
               <Button
                 variant="contained"
                 startIcon={<AddIcon />}
-                onClick={() => navigate(`/instructor/courses/${courseId}/lessons`)}
+                onClick={() => navigate(`/instructor/courses/${courseId}/edit?tab=1`)}
                 data-testid="course-assessment-manage-lessons-button"
               >
                 Manage Lessons

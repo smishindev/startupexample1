@@ -323,12 +323,12 @@ export const DashboardLayout: React.FC = () => {
               label={course.level} 
               size="small" 
               sx={{ 
-                backgroundColor: alpha(getLevelColor(course.level as 'Beginner' | 'Intermediate' | 'Advanced', theme), 0.15),
-                color: getLevelColor(course.level as 'Beginner' | 'Intermediate' | 'Advanced', theme),
+                backgroundColor: alpha(getLevelColor(course.level as 'Beginner' | 'Intermediate' | 'Advanced' | 'Expert', theme), 0.15),
+                color: getLevelColor(course.level as 'Beginner' | 'Intermediate' | 'Advanced' | 'Expert', theme),
                 fontWeight: 600,
                 fontSize: '0.7rem',
                 height: 24,
-                border: `1.5px solid ${alpha(getLevelColor(course.level as 'Beginner' | 'Intermediate' | 'Advanced', theme), 0.4)}`,
+                border: `1.5px solid ${alpha(getLevelColor(course.level as 'Beginner' | 'Intermediate' | 'Advanced' | 'Expert', theme), 0.4)}`,
               }}
             />
           )}

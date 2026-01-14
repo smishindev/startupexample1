@@ -39,8 +39,8 @@ export interface AdaptiveLearningPath {
   id: string;
   studentId: string;
   courseId: string;
-  currentLevel: 'beginner' | 'intermediate' | 'advanced';
-  targetLevel: 'beginner' | 'intermediate' | 'advanced';
+  currentLevel: 'beginner' | 'intermediate' | 'advanced' | 'expert';
+  targetLevel: 'beginner' | 'intermediate' | 'advanced' | 'expert';
   estimatedCompletionWeeks: number;
   progress: number; // 0-100
   milestones: LearningMilestone[];
@@ -181,7 +181,7 @@ class StudentProgressIntegrationApi {
   // Generate learning path based on goals
   async generateLearningPath(request: {
     courseId: string;
-    targetLevel: 'beginner' | 'intermediate' | 'advanced';
+    targetLevel: 'beginner' | 'intermediate' | 'advanced' | 'expert';
     timeCommitment: number; // hours per week
     focusAreas?: string[];
     deadline?: string;

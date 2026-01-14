@@ -31,7 +31,7 @@ import { LessonDetailPage } from './pages/Course/LessonDetailPage';
 import { InstructorDashboard } from './pages/Instructor/InstructorDashboard';
 import { CourseCreationForm } from './pages/Instructor/CourseCreationForm';
 import { CourseEditPage } from './pages/Instructor/CourseEditPage';
-import { LessonManagementPage } from './pages/Instructor/LessonManagementPage';
+import { LessonsRedirect } from './pages/Instructor/LessonsRedirect';
 import { AssessmentManagementPage } from './pages/Instructor/AssessmentManagementPage';
 import { CourseAssessmentManagementPage } from './pages/Instructor/CourseAssessmentManagementPage';
 import { AssessmentCreationPage } from './pages/Instructor/AssessmentCreationPage';
@@ -478,11 +478,12 @@ function App() {
           }
         />
         
+        {/* Redirect old lessons route to edit page with curriculum tab */}
         <Route
           path="/instructor/courses/:courseId/lessons"
           element={
             <ProtectedRoute requireRole="instructor">
-              <LessonManagementPage />
+              <LessonsRedirect />
             </ProtectedRoute>
           }
         />

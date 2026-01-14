@@ -75,6 +75,75 @@ items = response.json()  # ← Returns array directly
 
 ---
 
+## Instructor Course Management
+
+### GET `/api/instructor/courses`
+**Pattern**: Object with courses array and pagination
+```json
+{
+  "courses": [
+    {
+      "id": "uuid",
+      "title": "Course Title",
+      "description": "Course description",
+      "thumbnail": "url",
+      "category": "programming",
+      "level": "beginner",
+      "status": "published",
+      "students": 10,
+      "lessons": 5,
+      "rating": 4.5,
+      "revenue": 1000,
+      "progress": 100,
+      "createdAt": "2026-01-14T00:00:00Z",
+      "lastUpdated": "2026-01-14T00:00:00Z",
+      "price": 49.99
+    }
+  ],
+  "pagination": {
+    "currentPage": 1,
+    "totalPages": 5,
+    "totalCourses": 50,
+    "hasMore": true
+  }
+}
+```
+
+**Important Notes**:
+- **level field**: Always lowercase ("beginner", "intermediate", "advanced", "expert")
+- **category field**: Database enum value ("programming", "data_science", etc.)
+- **status field**: Converted from boolean IsPublished ("published" or "draft")
+
+### PUT `/api/instructor/courses/:id`
+**Request Body**:
+```json
+{
+  "title": "Updated Title",
+  "description": "Updated description",
+  "category": "Mathematics",
+  "level": "intermediate",
+  "price": 59.99,
+  "thumbnail": "url"
+}
+```
+
+**Response**:
+```json
+{
+  "message": "Course updated successfully",
+  "courseId": "uuid"
+}
+```
+
+**Validation**:
+- Title: min 5 characters
+- Description: min 20 characters (trimmed)
+- Category: Mapped to database enum (case-insensitive)
+- Level: Validated against ["beginner", "intermediate", "advanced", "expert"], defaults to "beginner"
+- Price: Non-negative number
+
+---
+
 ## Endpoint-by-Endpoint Reference
 
 ### Authentication Endpoints

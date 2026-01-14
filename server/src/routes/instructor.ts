@@ -131,13 +131,21 @@ router.get('/courses', authenticateToken, authorize(['instructor', 'admin']), as
 
     console.log('[INSTRUCTOR API] First course from DB:', result[0]);
 
-    const courses = result.map((course: any) => ({
-      ...course,
-      category: course.category, // Explicitly include category
-      status: course.isPublished ? 'published' : 'draft', // Convert boolean to string for frontend
-      progress: !course.isPublished ? Math.floor(Math.random() * 100) : 100,
-      lastUpdated: course.updatedAt
-    }));
+    const courses = result.map((course: any) => {
+      // Normalize level to lowercase (must be done AFTER spreading to override capital Level)
+      const normalizedLevel = course.level?.toLowerCase() || course.Level?.toLowerCase() || 'beginner';
+      const mappedCourse = {
+        ...course,
+        category: course.category, // Explicitly include category
+        level: normalizedLevel, // Normalized level
+        status: course.isPublished ? 'published' : 'draft', // Convert boolean to string for frontend
+        progress: !course.isPublished ? Math.floor(Math.random() * 100) : 100,
+        lastUpdated: course.updatedAt
+      };
+      // Remove uppercase Level if it exists to prevent confusion
+      delete mappedCourse.Level;
+      return mappedCourse;
+    });
 
     const totalCourses = countResult[0]?.total || 0;
     const totalPages = Math.ceil(totalCourses / limitNum);
@@ -216,6 +224,10 @@ router.post('/courses', authenticateToken, authorize(['instructor', 'admin']), a
       ? category.toLowerCase() 
       : (categoryMap[category] || 'other');
     
+    // Validate level
+    const validLevels = ['beginner', 'intermediate', 'advanced', 'expert'];
+    const validatedLevel = validLevels.includes(level?.toLowerCase()) ? level.toLowerCase() : 'beginner';
+    
     // Generate proper UUID for course ID
     const courseId = uuidv4();
 
@@ -239,7 +251,7 @@ router.post('/courses', authenticateToken, authorize(['instructor', 'admin']), a
         description,
         thumbnail: thumbnail || null,
         category: mappedCategory,
-        level: level || 'beginner',
+        level: validatedLevel,
         price: price || 0,
         instructorId: userId,
         isPublished: 0, // Start as draft (unpublished)
@@ -331,6 +343,115 @@ router.post('/courses', authenticateToken, authorize(['instructor', 'admin']), a
     }
   } catch (error) {
     console.error('Failed to create course:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Update course details
+router.put('/courses/:id', authenticateToken, authorize(['instructor', 'admin']), async (req: AuthRequest, res) => {
+  try {
+    const userId = req.user!.userId;
+    const courseId = req.params.id;
+    const {
+      title,
+      description,
+      category,
+      level,
+      price,
+      thumbnail
+    } = req.body;
+
+    // Verify the course exists and belongs to this instructor
+    const course = await db.query(`
+      SELECT Id FROM Courses 
+      WHERE Id = @courseId AND InstructorId = @instructorId
+    `, { courseId, instructorId: userId });
+
+    if (!course || course.length === 0) {
+      return res.status(404).json({ error: 'Course not found or access denied' });
+    }
+
+    // Build update query dynamically based on provided fields
+    const updates: string[] = [];
+    const params: any = { courseId, instructorId: userId };
+
+    if (title !== undefined) {
+      updates.push('Title = @title');
+      params.title = title;
+    }
+    if (description !== undefined) {
+      updates.push('Description = @description');
+      params.description = description;
+    }
+    if (category !== undefined) {
+      // Map user-friendly category names to database values
+      const categoryMap: { [key: string]: string } = {
+        'Web Development': 'programming',
+        'Programming': 'programming',
+        'Data Science': 'data_science',
+        'Machine Learning': 'data_science',
+        'Design': 'design',
+        'UI/UX': 'design',
+        'Business': 'business',
+        'Language': 'language',
+        'English': 'language',
+        'Mathematics': 'mathematics',
+        'Math': 'mathematics',
+        'Science': 'science',
+        'Physics': 'science',
+        'Chemistry': 'science',
+        'Arts': 'arts',
+        'Music': 'arts',
+        'Drawing': 'arts',
+        'Other': 'other'
+      };
+
+      // Use provided category if it's a valid enum value, otherwise try mapping, fallback to 'other'
+      const validCategories = ['programming', 'data_science', 'design', 'business', 'marketing', 'language', 'mathematics', 'science', 'arts', 'other'];
+      const mappedCategory = validCategories.includes(category?.toLowerCase()) 
+        ? category.toLowerCase() 
+        : (categoryMap[category] || 'other');
+      
+      updates.push('Category = @category');
+      params.category = mappedCategory;
+    }
+    if (level !== undefined) {
+      // Validate level
+      const validLevels = ['beginner', 'intermediate', 'advanced', 'expert'];
+      const validatedLevel = validLevels.includes(level?.toLowerCase()) ? level.toLowerCase() : 'beginner';
+      updates.push('Level = @level');
+      params.level = validatedLevel;
+    }
+    if (price !== undefined) {
+      updates.push('Price = @price');
+      params.price = price;
+    }
+    if (thumbnail !== undefined) {
+      updates.push('Thumbnail = @thumbnail');
+      params.thumbnail = thumbnail;
+    }
+
+    // Always update the UpdatedAt timestamp
+    updates.push('UpdatedAt = GETDATE()');
+
+    if (updates.length === 1) {
+      // Only UpdatedAt, no actual changes
+      return res.json({ message: 'No changes to update' });
+    }
+
+    // Execute the update
+    await db.query(`
+      UPDATE Courses 
+      SET ${updates.join(', ')}
+      WHERE Id = @courseId AND InstructorId = @instructorId
+    `, params);
+
+    res.json({ 
+      message: 'Course updated successfully',
+      courseId 
+    });
+  } catch (error) {
+    console.error('Failed to update course:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

@@ -98,7 +98,12 @@ const categories = [
   { value: 'other', label: 'Other' }
 ];
 
-const levels = ['Beginner', 'Intermediate', 'Advanced', 'All Levels'];
+const levels = [
+  { value: 'beginner', label: 'Beginner' },
+  { value: 'intermediate', label: 'Intermediate' },
+  { value: 'advanced', label: 'Advanced' },
+  { value: 'expert', label: 'Expert' }
+];
 const languages = ['English', 'Spanish', 'French', 'German', 'Chinese', 'Japanese'];
 
 export const CourseCreationForm: React.FC = () => {
@@ -862,7 +867,7 @@ export const CourseCreationForm: React.FC = () => {
                         data-testid="course-creation-level-select"
                       >
                         {levels.map((level) => (
-                          <MenuItem key={level} value={level}>{level}</MenuItem>
+                          <MenuItem key={level.value} value={level.value}>{level.label}</MenuItem>
                         ))}
                       </Select>
                     </FormControl>

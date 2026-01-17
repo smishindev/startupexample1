@@ -265,9 +265,13 @@ CREATE TABLE dbo.ChatMessages (
 -- =============================================
 
 -- User Presence Table
+-- User Presence Table - Real-time user online/offline status tracking
+-- Used for: Online users page, presence indicators, activity tracking
+-- Status values: 'online' (active), 'offline' (disconnected), 'away' (idle), 'busy' (do not disturb)
+-- Default 'online' for better UX - new users ARE actively using platform (changed Jan 17, 2026)
 CREATE TABLE dbo.UserPresence (
     UserId UNIQUEIDENTIFIER PRIMARY KEY FOREIGN KEY REFERENCES dbo.Users(Id) ON DELETE CASCADE,
-    Status NVARCHAR(20) NOT NULL DEFAULT 'offline' CHECK (Status IN ('online', 'offline', 'away', 'busy')),
+    Status NVARCHAR(20) NOT NULL DEFAULT 'online' CHECK (Status IN ('online', 'offline', 'away', 'busy')),
     Activity NVARCHAR(100) NULL, -- "Viewing Course: JavaScript", "In Live Session", etc.
     LastSeenAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
     UpdatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE()
@@ -513,18 +517,19 @@ CREATE TABLE dbo.Notifications (
 --   ✅ Date handling: UTC storage, ISO format, formatDistanceToNow display
 
 -- NotificationPreferences Table - User preferences for notification delivery
--- IMPLEMENTATION STATUS (Dec 29, 2025):
---   ✅ Database table created with 64 columns (migration applied)
+-- IMPLEMENTATION STATUS (Jan 17, 2026):
+--   ✅ Database table created with 66 columns (CourseCompletion + PaymentReceipt added Jan 15)
 --   ✅ UI fully implemented (/settings/notifications dedicated page with 734 lines)
 --   ✅ API endpoints working (GET/PATCH /api/notifications/preferences)
 --   ✅ Preferences FULLY ENFORCED with quiet hours queueing and type filtering
 --   ✅ NotificationQueue table with cron job processing every 5 minutes
 --   ✅ Quiet hours: Notifications queued during specified time range
---   ✅ HYBRID CONTROL SYSTEM: Global + Category (5) + Subcategory (50) toggles
+--   ✅ HYBRID CONTROL SYSTEM: Global + Category (5) + Subcategory (52) toggles
 --   ✅ Separate In-App and Email controls for granular user experience
---   ✅ 64 columns total: 2 global, 5 categories, 50 subcategories, 5 metadata, 2 quiet hours
+--   ✅ 66 columns total: 2 global, 5 categories, 52 subcategories, 5 metadata, 2 quiet hours
 --   ✅ All interfaces aligned (backend/frontend/API) with PascalCase consistency
 --   ✅ Settings persist correctly across sessions (bug fixed Dec 29, 2025)
+--   ✅ SELECT query bugs fixed Jan 17 - all 3 queries now include new fields
 CREATE TABLE dbo.NotificationPreferences (
     Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
     UserId UNIQUEIDENTIFIER NOT NULL UNIQUE FOREIGN KEY REFERENCES dbo.Users(Id) ON DELETE CASCADE,
@@ -547,10 +552,12 @@ CREATE TABLE dbo.NotificationPreferences (
     EnableLessonCompletion BIT NULL,
     EnableVideoCompletion BIT NULL,
     EnableCourseMilestones BIT NULL,
+    EnableCourseCompletion BIT NULL,
     EnableProgressSummary BIT NULL,
     EmailLessonCompletion BIT NULL,
     EmailVideoCompletion BIT NULL,
     EmailCourseMilestones BIT NULL,
+    EmailCourseCompletion BIT NULL,
     EmailProgressSummary BIT NULL,
     
     -- Course Updates Subcategories
@@ -591,11 +598,13 @@ CREATE TABLE dbo.NotificationPreferences (
     
     -- System Alerts Subcategories
     EnablePaymentConfirmation BIT NULL,
+    EnablePaymentReceipt BIT NULL,
     EnableRefundConfirmation BIT NULL,
     EnableCertificates BIT NULL,
     EnableSecurityAlerts BIT NULL,
     EnableProfileUpdates BIT NULL,
     EmailPaymentConfirmation BIT NULL,
+    EmailPaymentReceipt BIT NULL,
     EmailRefundConfirmation BIT NULL,
     EmailCertificates BIT NULL,
     EmailSecurityAlerts BIT NULL,

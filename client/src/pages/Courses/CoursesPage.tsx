@@ -661,7 +661,7 @@ export const CoursesPage: React.FC = () => {
                       {overallStats.TotalStudents.toLocaleString()}
                     </Typography>
                     <Typography variant="body2">
-                      Students Enrolled
+                      {overallStats.TotalStudents === 1 ? 'Student' : 'Students'} Enrolled
                     </Typography>
                   </Box>
                 )}

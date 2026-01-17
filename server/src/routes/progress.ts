@@ -340,6 +340,26 @@ router.post('/lessons/:lessonId/complete', authenticateToken, async (req: AuthRe
             }
           );
           console.log(`✅ Milestone notification sent to instructor ${instructorId} (${milestone}%)`);
+
+          // Send course completion congratulations at 100%
+          if (milestone === 100) {
+            await notificationService.createNotificationWithControls(
+              {
+                userId: userId!,
+                type: 'progress',
+                priority: 'high',
+                title: '🎉 Congratulations! Course Completed!',
+                message: `You've completed "${courseTitle}"! Great achievement! You can now download your certificate.`,
+                actionUrl: `/courses/${courseId}/certificate`,
+                actionText: 'View Certificate'
+              },
+              {
+                category: 'progress',
+                subcategory: 'CourseCompletion'
+              }
+            );
+            console.log(`✅ Course completion congratulations sent to user ${userId}`);
+          }
         } catch (notifError) {
           console.error('⚠️ Failed to send milestone notification:', notifError);
         }
@@ -498,6 +518,12 @@ async function updateCourseProgress(userId: string, courseId: string) {
 
     // Check if course is completed and update enrollment status
     if (avgProgress >= 100) {
+      // Check if this is first time reaching 100%
+      const wasAlreadyCompleted = await db.query(`
+        SELECT CompletedAt FROM dbo.Enrollments
+        WHERE UserId = @userId AND CourseId = @courseId AND CompletedAt IS NOT NULL
+      `, { userId, courseId });
+
       await db.execute(`
         UPDATE dbo.Enrollments
         SET Status = 'completed', CompletedAt = @completedAt

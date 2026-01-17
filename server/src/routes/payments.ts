@@ -222,6 +222,12 @@ async function handlePaymentIntentSucceeded(paymentIntent: any): Promise<void> {
         console.error('⚠️ Failed to send purchase confirmation email:', emailError);
         // Email failure shouldn't fail the webhook
       });
+
+      // Send payment receipt notification (non-blocking)
+      sendPaymentReceiptNotification(userId, courseId, paymentIntent).catch(notifError => {
+        console.error('⚠️ Failed to send payment receipt notification:', notifError);
+        // Notification failure shouldn't fail the webhook
+      });
     }
   } catch (error) {
     console.error('❌ Error in handlePaymentIntentSucceeded:', error);
@@ -257,6 +263,51 @@ async function handleChargeRefunded(charge: any): Promise<void> {
   } catch (error) {
     console.error('❌ Error in handleChargeRefunded:', error);
     throw error;
+  }
+}
+
+/**
+ * Send payment receipt notification (async, non-blocking)
+ */
+async function sendPaymentReceiptNotification(
+  userId: string,
+  courseId: string,
+  paymentIntent: any
+): Promise<void> {
+  try {
+    const courses = await db.query(`SELECT Title FROM dbo.Courses WHERE Id = @courseId`, { courseId });
+    const transactions = await db.query(
+      `SELECT Id FROM dbo.Transactions WHERE StripePaymentIntentId = @paymentIntentId`,
+      { paymentIntentId: paymentIntent.id }
+    );
+
+    if (courses.length && transactions.length) {
+      // Get io instance from app (need to pass it or use global reference)
+      // For webhook routes, io is typically available via app.get('io')
+      // Since this is called from webhook handler, we'll need to access it
+      const NotificationService = require('../services/NotificationService').NotificationService;
+      const notificationService = new NotificationService(null); // Will use database-only mode if io not available
+
+      await notificationService.createNotificationWithControls(
+        {
+          userId,
+          type: 'course',
+          priority: 'normal',
+          title: 'Payment Receipt',
+          message: `Payment received for "${courses[0].Title}". Amount: $${(paymentIntent.amount / 100).toFixed(2)}. Transaction ID: ${transactions[0].Id}`,
+          actionUrl: `/transactions`,
+          actionText: 'View Receipt'
+        },
+        {
+          category: 'system',
+          subcategory: 'PaymentReceipt'
+        }
+      );
+      console.log(`✅ Payment receipt notification sent to user ${userId}`);
+    }
+  } catch (error) {
+    console.error('⚠️ Payment receipt notification failed:', error);
+    // Don't throw - notification failure shouldn't fail the webhook
   }
 }
 
@@ -604,6 +655,36 @@ router.post('/request-refund', authenticateToken, async (req: Request, res: Resp
       }
     } catch (emailError) {
       console.error('⚠️ Failed to send refund confirmation email:', emailError);
+    }
+
+    // Send refund confirmation notification
+    try {
+      const courses = await db.query(`SELECT Title FROM dbo.Courses WHERE Id = @courseId`, { courseId: transaction.CourseId });
+      
+      if (courses.length) {
+        const NotificationService = require('../services/NotificationService').NotificationService;
+        const io = (req as any).app?.get('io');
+        const notificationService = new NotificationService(io);
+
+        await notificationService.createNotificationWithControls(
+          {
+            userId,
+            type: 'course',
+            priority: 'high',
+            title: 'Refund Processed',
+            message: `Your refund for "${courses[0].Title}" has been processed. Amount: $${(refundAmount / 100).toFixed(2)}. It may take 5-10 business days to appear in your account.`,
+            actionUrl: `/transactions`,
+            actionText: 'View Transaction'
+          },
+          {
+            category: 'system',
+            subcategory: 'RefundConfirmation'
+          }
+        );
+        console.log(`✅ Refund confirmation notification sent to user ${userId}`);
+      }
+    } catch (notifError) {
+      console.error('⚠️ Failed to send refund confirmation notification:', notifError);
     }
 
     res.json({

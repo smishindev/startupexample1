@@ -437,8 +437,8 @@ export const AIEnhancedAssessmentResults: React.FC<AssessmentResultsProps> = ({
                           <Typography variant="body2">
                             <strong>Your answer:</strong> {
                               typeof question.userAnswer === 'object' 
-                                ? JSON.stringify(question.userAnswer)
-                                : question.userAnswer
+                                ? JSON.stringify(question.userAnswer) || 'No answer provided'
+                                : String(question.userAnswer || 'No answer provided')
                             }
                           </Typography>
                         </Alert>

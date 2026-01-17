@@ -56,10 +56,12 @@ export interface NotificationPreferences {
   EnableLessonCompletion: boolean | null;
   EnableVideoCompletion: boolean | null;
   EnableCourseMilestones: boolean | null;
+  EnableCourseCompletion: boolean | null;
   EnableProgressSummary: boolean | null;
   EmailLessonCompletion: boolean | null;
   EmailVideoCompletion: boolean | null;
   EmailCourseMilestones: boolean | null;
+  EmailCourseCompletion: boolean | null;
   EmailProgressSummary: boolean | null;
   
   // Course Updates subcategories
@@ -100,11 +102,13 @@ export interface NotificationPreferences {
   
   // System Alerts subcategories
   EnablePaymentConfirmation: boolean | null;
+  EnablePaymentReceipt: boolean | null;
   EnableRefundConfirmation: boolean | null;
   EnableCertificates: boolean | null;
   EnableSecurityAlerts: boolean | null;
   EnableProfileUpdates: boolean | null;
   EmailPaymentConfirmation: boolean | null;
+  EmailPaymentReceipt: boolean | null;
   EmailRefundConfirmation: boolean | null;
   EmailCertificates: boolean | null;
   EmailSecurityAlerts: boolean | null;
@@ -600,6 +604,7 @@ export class NotificationService {
             EnableLessonCompletion, EmailLessonCompletion,
             EnableVideoCompletion, EmailVideoCompletion,
             EnableCourseMilestones, EmailCourseMilestones,
+            EnableCourseCompletion, EmailCourseCompletion,
             EnableProgressSummary, EmailProgressSummary,
             EnableCourseEnrollment, EmailCourseEnrollment,
             EnableNewLessons, EmailNewLessons,
@@ -617,6 +622,7 @@ export class NotificationService {
             EnableGroupInvites, EmailGroupInvites,
             EnableOfficeHours, EmailOfficeHours,
             EnablePaymentConfirmation, EmailPaymentConfirmation,
+            EnablePaymentReceipt, EmailPaymentReceipt,
             EnableRefundConfirmation, EmailRefundConfirmation,
             EnableCertificates, EmailCertificates,
             EnableSecurityAlerts, EmailSecurityAlerts,
@@ -705,7 +711,8 @@ export class NotificationService {
       
       // Progress subcategories
       const progressFields = ['EnableLessonCompletion', 'EmailLessonCompletion', 'EnableVideoCompletion', 'EmailVideoCompletion',
-        'EnableCourseMilestones', 'EmailCourseMilestones', 'EnableProgressSummary', 'EmailProgressSummary'];
+        'EnableCourseMilestones', 'EmailCourseMilestones', 'EnableCourseCompletion', 'EmailCourseCompletion',
+        'EnableProgressSummary', 'EmailProgressSummary'];
       // Course subcategories
       const courseFields = ['EnableCourseEnrollment', 'EmailCourseEnrollment', 'EnableNewLessons', 'EmailNewLessons',
         'EnableLiveSessions', 'EmailLiveSessions', 'EnableCoursePublished', 'EmailCoursePublished',
@@ -719,7 +726,8 @@ export class NotificationService {
         'EnableMentions', 'EmailMentions', 'EnableGroupInvites', 'EmailGroupInvites',
         'EnableOfficeHours', 'EmailOfficeHours'];
       // System subcategories
-      const systemFields = ['EnablePaymentConfirmation', 'EmailPaymentConfirmation', 'EnableRefundConfirmation', 'EmailRefundConfirmation',
+      const systemFields = ['EnablePaymentConfirmation', 'EmailPaymentConfirmation', 'EnablePaymentReceipt', 'EmailPaymentReceipt',
+        'EnableRefundConfirmation', 'EmailRefundConfirmation',
         'EnableCertificates', 'EmailCertificates', 'EnableSecurityAlerts', 'EmailSecurityAlerts',
         'EnableProfileUpdates', 'EmailProfileUpdates'];
       
@@ -807,6 +815,7 @@ export class NotificationService {
             EnableLessonCompletion, EmailLessonCompletion,
             EnableVideoCompletion, EmailVideoCompletion,
             EnableCourseMilestones, EmailCourseMilestones,
+            EnableCourseCompletion, EmailCourseCompletion,
             EnableProgressSummary, EmailProgressSummary,
             EnableCourseEnrollment, EmailCourseEnrollment,
             EnableNewLessons, EmailNewLessons,
@@ -824,6 +833,7 @@ export class NotificationService {
             EnableGroupInvites, EmailGroupInvites,
             EnableOfficeHours, EmailOfficeHours,
             EnablePaymentConfirmation, EmailPaymentConfirmation,
+            EnablePaymentReceipt, EmailPaymentReceipt,
             EnableRefundConfirmation, EmailRefundConfirmation,
             EnableCertificates, EmailCertificates,
             EnableSecurityAlerts, EmailSecurityAlerts,
@@ -850,6 +860,7 @@ export class NotificationService {
               EnableLessonCompletion, EmailLessonCompletion,
               EnableVideoCompletion, EmailVideoCompletion,
               EnableCourseMilestones, EmailCourseMilestones,
+              EnableCourseCompletion, EmailCourseCompletion,
               EnableProgressSummary, EmailProgressSummary,
               EnableCourseEnrollment, EmailCourseEnrollment,
               EnableNewLessons, EmailNewLessons,
@@ -867,6 +878,7 @@ export class NotificationService {
               EnableGroupInvites, EmailGroupInvites,
               EnableOfficeHours, EmailOfficeHours,
               EnablePaymentConfirmation, EmailPaymentConfirmation,
+              EnablePaymentReceipt, EmailPaymentReceipt,
               EnableRefundConfirmation, EmailRefundConfirmation,
               EnableCertificates, EmailCertificates,
               EnableSecurityAlerts, EmailSecurityAlerts,
@@ -1186,6 +1198,8 @@ export class NotificationService {
           EmailVideoCompletion: null,
           EnableCourseMilestones: null,
           EmailCourseMilestones: null,
+          EnableCourseCompletion: null,
+          EmailCourseCompletion: null,
           EnableProgressSummary: null,
           EmailProgressSummary: null,
           EnableCourseEnrollment: null,
@@ -1220,6 +1234,8 @@ export class NotificationService {
           EmailOfficeHours: null,
           EnablePaymentConfirmation: null,
           EmailPaymentConfirmation: null,
+          EnablePaymentReceipt: null,
+          EmailPaymentReceipt: null,
           EnableRefundConfirmation: null,
           EmailRefundConfirmation: null,
           EnableCertificates: null,

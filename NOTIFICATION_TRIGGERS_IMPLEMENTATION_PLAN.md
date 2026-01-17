@@ -1,8 +1,8 @@
 # Notification Triggers - Full Implementation Plan
 
 **Created**: December 28, 2025  
-**Last Updated**: January 12, 2026  
-**Status**: In Progress (11/31 Complete + Hybrid Controls Design)  
+**Last Updated**: January 15, 2026  
+**Status**: In Progress (14/31 Complete + Hybrid Controls Design)  
 **Goal**: Integrate automatic notification creation throughout the application with granular user controls
 
 ---
@@ -97,7 +97,7 @@ When creating notification:
 
 Users receive email notifications (based on their preferences) when these events occur:
 
-#### ✅ **Currently Active (11 triggers)**
+#### ✅ **Currently Active (14 triggers)**
 1. **Lesson Completed** - Student completes any lesson → Email to student + instructor (at milestones)
 2. **Video Completed** - Student finishes watching video → Email to student (January 8, 2026)
 3. **Live Session Created** - Instructor schedules session → Email to all enrolled students
@@ -109,8 +109,11 @@ Users receive email notifications (based on their preferences) when these events
 9. **Assessment Created** - Instructor creates assessment → Email to all enrolled students (January 12, 2026) ⭐ NEW
 10. **Assessment Submitted** - Student submits assessment → Confirmation to student + instructor alert (January 12, 2026) ⭐ NEW
 11. **Assessment Graded** - Instructor grades submission → Email to student with score/feedback (January 12, 2026) ⭐ NEW
+12. **Course Completion** - Student reaches 100% progress → Congratulations with certificate link (January 15, 2026) 🎉 NEW
+13. **Payment Receipt** - Payment successfully processed → Notification with transaction details (January 15, 2026) 💳 NEW
+14. **Refund Confirmation** - Refund processed → Notification with refund amount and timeline (January 15, 2026) 💰 NEW
 
-#### 🔄 **Coming Soon (20 triggers)**
+#### 🔄 **Coming Soon (17 triggers)**
 - Due date reminders, payment receipts, refund confirmations
 - Payment receipts, refund confirmations
 - Study group invitations, office hours scheduling
@@ -129,13 +132,13 @@ Users receive email notifications (based on their preferences) when these events
 ## 📋 EXECUTIVE SUMMARY
 
 **Current State:**
-- ✅ Email delivery infrastructure complete (Phases 1-3)
-- ✅ Notification preferences UI complete
-- ✅ Email tracking and analytics complete
-- ✅ Eleven notification triggers implemented (Lesson, Video, Live Sessions x3, Course Management x3, Assessments x3)
-- ❌ 20 additional notification triggers NOT implemented
+- ✅ Fourteen notification triggers implemented (Lesson, Video, Live Sessions x3, Course Management x3, Assessments x3, Course Completion, Payment Receipt, Refund)
+- ❌ 17 additional notification triggers NOT implemented
 
 **What's Missing:**
+Event hooks for due dates, instructor announcements, community features, and system alerts
+
+**Estimated Effort:** 7-9
 Event hooks for due dates, payments, community features, and system alerts
 
 **Estimated Effort:** 10-12 hours (remaining triggers)

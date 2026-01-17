@@ -51,10 +51,12 @@ interface NotificationPreferences {
   EnableLessonCompletion: boolean | null;
   EnableVideoCompletion: boolean | null;
   EnableCourseMilestones: boolean | null;
+  EnableCourseCompletion: boolean | null;
   EnableProgressSummary: boolean | null;
   EmailLessonCompletion: boolean | null;
   EmailVideoCompletion: boolean | null;
   EmailCourseMilestones: boolean | null;
+  EmailCourseCompletion: boolean | null;
   EmailProgressSummary: boolean | null;
   
   // Course Updates subcategories
@@ -95,11 +97,13 @@ interface NotificationPreferences {
   
   // System Alerts subcategories
   EnablePaymentConfirmation: boolean | null;
+  EnablePaymentReceipt: boolean | null;
   EnableRefundConfirmation: boolean | null;
   EnableCertificates: boolean | null;
   EnableSecurityAlerts: boolean | null;
   EnableProfileUpdates: boolean | null;
   EmailPaymentConfirmation: boolean | null;
+  EmailPaymentReceipt: boolean | null;
   EmailRefundConfirmation: boolean | null;
   EmailCertificates: boolean | null;
   EmailSecurityAlerts: boolean | null;
@@ -138,7 +142,15 @@ const PROGRESS_SUBCATEGORIES: SubcategoryControl[] = [
     inAppKey: 'EnableCourseMilestones',
     emailKey: 'EmailCourseMilestones',
     canDisable: true,
-    description: 'Notified at 25%, 50%, 75%, 100% completion'
+    description: 'Notified at 25%, 50%, 75% completion'
+  },
+  {
+    name: 'course-completion',
+    label: 'Course Completion',
+    inAppKey: 'EnableCourseCompletion',
+    emailKey: 'EmailCourseCompletion',
+    canDisable: true,
+    description: 'Congratulations when you complete a course (100%)'
   },
   {
     name: 'progress-summary',
@@ -246,7 +258,15 @@ const SYSTEM_SUBCATEGORIES: SubcategoryControl[] = [
     inAppKey: 'EnablePaymentConfirmation',
     emailKey: 'EmailPaymentConfirmation',
     canDisable: true,
-    description: 'Course purchase and payment receipts'
+    description: 'Initial purchase confirmation notifications'
+  },
+  {
+    name: 'payment-receipt',
+    label: 'Payment Receipt',
+    inAppKey: 'EnablePaymentReceipt',
+    emailKey: 'EmailPaymentReceipt',
+    canDisable: true,
+    description: 'Payment processed receipts with transaction details'
   },
   {
     name: 'certificates',

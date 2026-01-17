@@ -1060,8 +1060,9 @@ socketService.connect() with JWT token
 Backend sockets.ts → 'connection' event
   ↓
 PresenceService.setUserOnline(userId):
-  ├─→ ensureUserPresence(userId) - Create record if doesn't exist
-  ├─→ Update Status = 'online', LastSeenAt = GETUTCDATE()
+  ├─→ ensureUserPresence(userId) - Create record if doesn't exist (default: 'online')
+  ├─→ Check existing status - if 'away', 'busy', or 'offline', preserve it
+  ├─→ Otherwise, set Status = 'online', LastSeenAt = GETUTCDATE()
   └─→ Socket.IO broadcast('presence-changed') to all users
   ↓
 All connected users update UI

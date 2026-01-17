@@ -515,22 +515,36 @@ export class OfficeHoursService {
     const instructor = instructorResult.recordset[0];
     const instructorName = `${instructor.FirstName} ${instructor.LastName}`;
 
-    // Create persistent notification for student
-    await this.notificationService.createNotificationWithControls(
-      {
-        userId: queueEntry.StudentId,
-        type: 'course',
-        priority: 'normal',
-        title: 'Office Hours - Session Complete',
-        message: `Your office hours session with ${instructorName} has been completed.`,
-        actionUrl: '/office-hours',
-        actionText: 'View Office Hours'
-      },
-      {
-        category: 'community',
-        subcategory: 'OfficeHours'
-      }
-    );
+    // Calculate session duration
+    let durationMessage = '';
+    if (queueEntry.AdmittedAt && queueEntry.CompletedAt) {
+      const admittedTime = new Date(queueEntry.AdmittedAt).getTime();
+      const completedTime = new Date(queueEntry.CompletedAt).getTime();
+      const durationMinutes = Math.round((completedTime - admittedTime) / (1000 * 60));
+      durationMessage = ` Duration: ${durationMinutes} minute${durationMinutes !== 1 ? 's' : ''}.`;
+    }
+
+    // Create persistent notification for student (non-blocking)
+    try {
+      await this.notificationService.createNotificationWithControls(
+        {
+          userId: queueEntry.StudentId,
+          type: 'course',
+          priority: 'normal',
+          title: 'Office Hours Session Completed',
+          message: `Your office hours session with ${instructorName} has ended.${durationMessage} Thank you for joining!`,
+          actionUrl: '/office-hours',
+          actionText: 'View Office Hours'
+        },
+        {
+          category: 'community',
+          subcategory: 'OfficeHours'
+        }
+      );
+    } catch (notificationError) {
+      // Log error but don't fail the completion
+      console.error('Failed to send office hours completion notification:', notificationError);
+    }
 
     // Notify student session is complete
     if (this.io) {

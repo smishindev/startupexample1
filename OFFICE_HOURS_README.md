@@ -150,6 +150,14 @@ npm run dev
 - Instructor notifications when students join queue
 - Student notifications for admit/complete/cancel actions
 
+✅ **Enhanced Session Completed Notification** (January 17, 2026)
+- Duration calculation: Calculates session time from AdmittedAt to CompletedAt
+- Formatted message: "Duration: X minute(s). Thank you for joining!"
+- User-friendly: Includes instructor name and friendly closing
+- Non-blocking: Error handling prevents notification failures from breaking sessions
+- Category: 'community', Subcategory: 'OfficeHours'
+- Respects user notification preferences (EnableCommunityUpdates, EnableOfficeHours)
+
 ### Timestamp Fixes
 ✅ **Fixed UTC timestamp formatting**
 - All timestamps now include 'Z' suffix for proper UTC handling
@@ -198,11 +206,12 @@ For detailed implementation info, see:
 ### Completed Tests
 ✅ **Student joins queue** → Toast notification + instructor bell notification  
 ✅ **Instructor admits student** → Student receives bell notification  
-✅ **Instructor completes session** → Student receives bell notification  
+✅ **Instructor completes session** → Student receives bell notification with duration (Jan 17, 2026)  
 ✅ **Real-time updates** → No page refresh required  
 ✅ **Timestamp accuracy** → Consistent across all views  
 ✅ **Duplicate prevention** → Cannot join same queue twice  
 ✅ **Rejoin after completion** → Students can rejoin after session ends  
+✅ **Duration tracking** → Session duration calculated and displayed in notification (Jan 17, 2026)  
 
 ### Test Results
 - No duplicate toast messages

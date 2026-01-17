@@ -67,7 +67,7 @@ An innovative EdTech startup providing personalized learning experiences through
 
 ## 📧 Email Notification System
 
-**Complete email delivery infrastructure with 31 notification triggers** (15 active, 16 planned)
+**Complete email delivery infrastructure with 31 notification triggers** (16 active, 15 planned)
 
 ### Active Email Triggers
 1. **Lesson Completion** - Student progress updates + instructor milestone alerts (25%, 50%, 75%, 100%)

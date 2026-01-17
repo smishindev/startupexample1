@@ -58,6 +58,61 @@ Subcategory: 'SecurityAlerts'
 
 ---
 
+## 🔥 LATEST UPDATE - January 17, 2026 (Part 3)
+
+### 🔔 ENHANCED NOTIFICATION: Office Hours Session Completed
+
+**Feature**: Session summary notification with duration calculation when office hours session ends
+
+**Implementation Details:**
+- **File Modified**: [OfficeHoursService.ts:506-543](server/src/services/OfficeHoursService.ts#L506-L543)
+- **Method**: `completeSession()` (Line ~478)
+- **Endpoint**: `POST /api/office-hours/queue/:queueId/complete`
+- **When**: After instructor completes an office hours session with a student
+- **Recipients**: The student who attended the session
+
+**Notification Specification:**
+```typescript
+{
+  type: 'course',  // Community/course-related event
+  priority: 'normal',
+  title: 'Office Hours Session Completed',
+  message: 'Your office hours session with {instructorName} has ended. Duration: {X} minutes. Thank you for joining!',
+  actionUrl: '/office-hours',
+  actionText: 'View Office Hours'
+}
+
+Category: 'community'
+Subcategory: 'OfficeHours'
+```
+
+**User Experience:**
+- Immediate notification after session completion
+- Shows actual session duration (calculated from AdmittedAt to CompletedAt)
+- Friendly closing message
+- Links back to office hours page for scheduling future sessions
+- Respects user's community update preferences
+
+**Technical Implementation:**
+1. Session status updated to 'completed' with CompletedAt timestamp
+2. Duration calculated: `Math.round((CompletedAt - AdmittedAt) / (1000 * 60))`
+3. Plural handling: "1 minute" vs "X minutes"
+4. NotificationService with granular controls (non-blocking try-catch)
+5. Existing Socket.IO events preserved (backward compatible)
+6. **Error handling**: Notification failures logged but don't break session completion
+
+**Edge Cases Handled:**
+- ✅ Missing timestamps → Empty duration message (graceful degradation)
+- ✅ Null safety → Checks `if (AdmittedAt && CompletedAt)` before calculation
+- ✅ Zero/negative duration → Shows calculated value (indicates data issues)
+- ✅ Notification service failure → Logged but doesn't prevent completion
+
+**Progress**: 16/31 notification triggers active (52% complete)
+
+**Status**: ✅ Production-ready with comprehensive error handling (January 17, 2026)
+
+---
+
 ## 🔥 PREVIOUS UPDATE - January 17, 2026 (Part 1)
 
 ### 🐛 CRITICAL FIX: Missing Fields in NotificationService Queries
@@ -221,15 +276,16 @@ Schema.sql now contains all required columns for fresh database creation. No mig
 ### 📊 Notification Triggers Summary
 
 **Total Triggers Identified**: 31  
-**Implemented**: 15 (48% complete)  
-**Remaining**: 16 (52%)
+**Implemented**: 16 (52% complete)  
+**Remaining**: 15 (48%)
 
 **Active Triggers by Category:**
 - **Progress Updates** (5): Lesson, Video, Course Milestones (25/50/75/100%), Course Completion
 - **Course Management** (3): Enrollment, New Lessons, Course Published
 - **Live Sessions** (3): Created, Updated, Deleted
 - **Assessments** (3): Created, Submitted, Graded
-- **System** (3): Payment Receipt, Refund Confirmation, Password Changed ⭐ NEW
+- **Community** (1): Office Hours Completed ⭐ NEW (Jan 17)
+- **System** (3): Payment Receipt, Refund Confirmation, Password Changed
 
 **High-Priority Remaining (4 triggers):**
 - Due date reminders (24hr, 1 week before)

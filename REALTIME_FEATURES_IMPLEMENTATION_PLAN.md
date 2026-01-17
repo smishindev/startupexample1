@@ -56,11 +56,12 @@
 
 **3. Real-time Notifications** ✅ **COMPLETED** - January 17, 2026
 - ✅ Email notification system (Phases 1-3)
-- ✅ Notification triggers (15/31 active)
+- ✅ Notification triggers (16/31 active)
 - ✅ Progress notifications: Lesson completion, Video completion, Course completion
 - ✅ Course management: Enrollment, New lessons, Course published
 - ✅ Live session notifications: Created, Updated, Deleted
 - ✅ Assessment notifications: Created, Submitted, Graded
+- ✅ Community notifications: Office Hours completed with duration (Jan 17)
 - ✅ System notifications: Payment receipt, Refund confirmation, Password changed (Jan 17)
 - ✅ Socket.io real-time bell updates working
 - ✅ NotificationService with io instance integration

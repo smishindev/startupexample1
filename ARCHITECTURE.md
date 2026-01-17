@@ -999,6 +999,22 @@ Instructor admits student:
 officeHoursApi.admitStudent(entryId)
   ↓ (PUT /api/office-hours/queue/:id/admit)
 Backend OfficeHoursService.admitStudent():
+  ├─→ Update status to 'admitted', set AdmittedAt timestamp
+  ├─→ Create notification for student
+  └─→ Socket.IO emit('office-hours-admitted') to student room
+  ↓
+Instructor completes session:
+  ↓
+officeHoursApi.completeSession(entryId)
+  ↓ (POST /api/office-hours/queue/:queueId/complete)
+Backend OfficeHoursService.completeSession():
+  ├─→ Update status to 'completed', set CompletedAt timestamp
+  ├─→ Calculate session duration (CompletedAt - AdmittedAt)
+  ├─→ Create notification with duration: "Duration: X minute(s)."
+  ├─→ Type: 'course', Category: 'community', Subcategory: 'OfficeHours'
+  ├─→ Socket.IO emit('office-hours-completed') to student room
+  └─→ Socket.IO emit('queue-updated') to instructor room
+Backend OfficeHoursService.admitStudent():
   ├─→ Update queue entry status to 'admitted'
   ├─→ Set AdmittedAt timestamp (UTC with 'Z')
   ├─→ Create notification for student

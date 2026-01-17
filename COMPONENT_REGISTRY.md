@@ -1,6 +1,6 @@
 # Mishin Learn Platform - Component Registry
 
-**Last Updated**: January 14, 2026 - Instructor Course Management Unification  
+**Last Updated**: January 17, 2026 - Office Hours Session Completed Notification  
 **Purpose**: Quick reference for all major components, their dependencies, and relationships
 
 ---
@@ -67,6 +67,47 @@
 **API Endpoint**: `PUT /api/instructor/courses/:id`
 
 **Status**: ✅ Production-ready with level normalization fix
+
+---
+
+## 🏢 Office Hours Services
+
+### OfficeHoursService
+**Path**: `server/src/services/OfficeHoursService.ts`  
+**Purpose**: Manages office hours schedules, queue, and session lifecycle with real-time notifications
+
+**Key Methods**:
+- `createSchedule()` - Create office hours schedule for instructor
+- `joinQueue()` - Student joins office hours queue
+- `admitStudent()` - Instructor admits student from queue
+- `completeSession()` - Complete session with duration tracking and notification
+- `cancelQueueEntry()` - Cancel a queue entry
+
+**Notification Integration** (January 17, 2026):
+- **Session Completed**: Enhanced with duration calculation
+  - Calculates session time from AdmittedAt to CompletedAt timestamps
+  - Sends notification with duration: "Duration: X minute(s)."
+  - Type: 'course', Category: 'community', Subcategory: 'OfficeHours'
+  - Non-blocking try-catch ensures session completion succeeds even if notification fails
+- **Queue Join**: Notifies instructor when student joins queue
+- **Student Admitted**: Notifies student when admitted to session
+
+**Socket.IO Events**:
+- `office-hours-completed` - Emitted to student when session ends
+- `queue-updated` - Emitted to instructor when queue changes
+- `office-hours-admitted` - Emitted to student when admitted
+
+**Dependencies**:
+- `DatabaseService` - SQL queries for schedules and queue
+- `NotificationService` - Persistent notifications with user preferences
+- `Socket.IO Server` - Real-time event broadcasting
+
+**Error Handling**:
+- Non-blocking notifications (session operations never fail due to notification errors)
+- Comprehensive logging for debugging
+- Graceful degradation (missing timestamps handled safely)
+
+**Status**: ✅ Production-ready with enhanced session completion notification
 
 ---
 

@@ -1,12 +1,64 @@
 # Mishin Learn Platform - Project Status & Memory
 
-**Last Updated**: January 17, 2026 - NotificationService Query Fixes + UX Improvements ✅  
+**Last Updated**: January 17, 2026 - Password Changed Notification Implemented ✅  
 **Developer**: Sergey Mishin (s.mishin.dev@gmail.com)  
 **AI Assistant Context**: This file serves as project memory for continuity across chat sessions
 
 ---
 
-## 🔥 LATEST UPDATE - January 17, 2026
+## 🔥 LATEST UPDATE - January 17, 2026 (Part 2)
+
+### 🔔 NEW NOTIFICATION TRIGGER: Password Changed
+
+**Feature**: Security notification when user changes their password
+
+**Implementation Details:**
+- **File Modified**: [profile.ts:330-360](server/src/routes/profile.ts#L330-L360)
+- **Trigger Location**: `PUT /api/profile/password` endpoint
+- **When**: After successful password hash update in database
+- **Recipients**: The user who changed their password
+
+**Notification Specification:**
+```typescript
+{
+  type: 'intervention',  // Correct type for security events
+  priority: 'high',
+  title: 'Password Changed',
+  message: 'Your account password was changed. If this wasn\'t you, contact support immediately.',
+  actionUrl: '/settings',
+  actionText: 'Review Security'
+}
+
+Category: 'system'
+Subcategory: 'SecurityAlerts'
+```
+
+**User Experience:**
+- Immediate in-app notification (bell icon)
+- Email notification based on user preferences
+- High priority ensures visibility
+- Security-focused messaging with clear action steps
+- Links to settings page for security review
+
+**Security Benefits:**
+- Alerts user of unauthorized password changes
+- Provides immediate action path (contact support)
+- Creates audit trail of security events
+- Enables quick response to compromised accounts
+
+**Technical Implementation:**
+1. Password successfully updated in database
+2. NotificationService instantiated with Socket.IO (in try-catch block)
+3. Notification created with granular controls
+4. Respects user's system alert preferences
+5. Email sent based on digest frequency settings
+6. **Error handling**: Notification failures logged but don't break password change
+
+**Status**: ✅ Production-ready (January 17, 2026)
+
+---
+
+## 🔥 PREVIOUS UPDATE - January 17, 2026 (Part 1)
 
 ### 🐛 CRITICAL FIX: Missing Fields in NotificationService Queries
 
@@ -169,15 +221,15 @@ Schema.sql now contains all required columns for fresh database creation. No mig
 ### 📊 Notification Triggers Summary
 
 **Total Triggers Identified**: 31  
-**Implemented**: 14 (45% complete)  
-**Remaining**: 17 (55%)
+**Implemented**: 15 (48% complete)  
+**Remaining**: 16 (52%)
 
 **Active Triggers by Category:**
 - **Progress Updates** (5): Lesson, Video, Course Milestones (25/50/75/100%), Course Completion
 - **Course Management** (3): Enrollment, New Lessons, Course Published
 - **Live Sessions** (3): Created, Updated, Deleted
 - **Assessments** (3): Created, Submitted, Graded
-- **System** (2): Payment Receipt, Refund Confirmation (NEW)
+- **System** (3): Payment Receipt, Refund Confirmation, Password Changed ⭐ NEW
 
 **High-Priority Remaining (4 triggers):**
 - Due date reminders (24hr, 1 week before)

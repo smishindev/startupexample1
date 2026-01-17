@@ -54,11 +54,14 @@
 - ✅ Presence badges in queue (Dec 6)
 - ✅ Database: OfficeHours, OfficeHoursQueue tables
 
-**3. Real-time Notifications** ✅ **COMPLETED** - December 29, 2025
+**3. Real-time Notifications** ✅ **COMPLETED** - January 17, 2026
 - ✅ Email notification system (Phases 1-3)
-- ✅ Notification triggers (2/31 active)
-- ✅ Lesson completion notifications (student + instructor milestones)
-- ✅ Live session creation notifications
+- ✅ Notification triggers (15/31 active)
+- ✅ Progress notifications: Lesson completion, Video completion, Course completion
+- ✅ Course management: Enrollment, New lessons, Course published
+- ✅ Live session notifications: Created, Updated, Deleted
+- ✅ Assessment notifications: Created, Submitted, Graded
+- ✅ System notifications: Payment receipt, Refund confirmation, Password changed (Jan 17)
 - ✅ Socket.io real-time bell updates working
 - ✅ NotificationService with io instance integration
 - ✅ User-specific socket rooms: `user-${userId}`

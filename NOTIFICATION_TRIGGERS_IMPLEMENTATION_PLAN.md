@@ -1,8 +1,8 @@
 # Notification Triggers - Full Implementation Plan
 
 **Created**: December 28, 2025  
-**Last Updated**: January 15, 2026  
-**Status**: In Progress (14/31 Complete + Hybrid Controls Design)  
+**Last Updated**: January 17, 2026  
+**Status**: In Progress (15/31 Complete + Hybrid Controls Design)  
 **Goal**: Integrate automatic notification creation throughout the application with granular user controls
 
 ---
@@ -97,7 +97,7 @@ When creating notification:
 
 Users receive email notifications (based on their preferences) when these events occur:
 
-#### ✅ **Currently Active (14 triggers)**
+#### ✅ **Currently Active (15 triggers)**
 1. **Lesson Completed** - Student completes any lesson → Email to student + instructor (at milestones)
 2. **Video Completed** - Student finishes watching video → Email to student (January 8, 2026)
 3. **Live Session Created** - Instructor schedules session → Email to all enrolled students
@@ -112,11 +112,11 @@ Users receive email notifications (based on their preferences) when these events
 12. **Course Completion** - Student reaches 100% progress → Congratulations with certificate link (January 15, 2026) 🎉 NEW
 13. **Payment Receipt** - Payment successfully processed → Notification with transaction details (January 15, 2026) 💳 NEW
 14. **Refund Confirmation** - Refund processed → Notification with refund amount and timeline (January 15, 2026) 💰 NEW
-
-#### 🔄 **Coming Soon (17 triggers)**
-- Due date reminders, payment receipts, refund confirmations
-- Payment receipts, refund confirmations
-- Study group invitations, office hours scheduling
+15. **Password Changed** - User changes password → Security alert notification (January 17, 2026) 🔒 NEW
+6 triggers)**
+- Due date reminders, office hours completion
+- Study group invitations, account deletion requests
+- Daily/weekly progress summaries, scheduled notificatione hours scheduling
 - Daily/weekly progress summaries
 
 **Email Delivery Options** (Profile → Preferences):
@@ -139,10 +139,7 @@ Users receive email notifications (based on their preferences) when these events
 Event hooks for due dates, instructor announcements, community features, and system alerts
 
 **Estimated Effort:** 7-9
-Event hooks for due dates, payments, community features, and system alerts
-
-**Estimated Effort:** 10-12 hours (remaining triggers)
-
+Event hooks for due da9-11
 ---
 
 ## 🎯 IMPLEMENTATION PHASES
@@ -171,19 +168,23 @@ Event hooks for due dates, payments, community features, and system alerts
   - Lesson Completion (Student + Instructor notifications) - December 29, 2025
   - Video Completion (Student notification) - January 8, 2026
   - Live Session Created (Student notifications) - Pre-existing
+  - Live Session Updated (Studen5 triggers
+  - Lesson Completion (Student + Instructor notifications) - December 29, 2025
+  - Video Completion (Student notification) - January 8, 2026
+  - Live Session Created (Student notifications) - Pre-existing
   - Live Session Updated (Student notifications) - January 6, 2026
   - Live Session Deleted (Student notifications) - January 6, 2026
   - Course Enrollment (Student + Instructor notifications) - January 11, 2026
   - New Lesson Created (All enrolled students) - January 11, 2026
   - Course Published (All enrolled students) - January 11, 2026
-  - **Assessment Created (All enrolled students) - January 12, 2026** ⭐ NEW
-  - **Assessment Submitted (Student confirmation + Instructor alert) - January 12, 2026** ⭐ NEW
-  - **Assessment Graded (Student with score/feedback) - January 12, 2026** ⭐ NEW
-- ⏳ **Pending**: 20 triggers
-
----
-
-## 📊 PHASE 1: STUDENT PROGRESS NOTIFICATIONS
+  - Assessment Created (All enrolled students) - January 12, 2026
+  - Assessment Submitted (Student confirmation + Instructor alert) - January 12, 2026
+  - Assessment Graded (Student with score/feedback) - January 12, 2026
+  - Course Completion (Student congratulations) - January 15, 2026
+  - Payment Receipt (Student confirmation) - January 15, 2026
+  - Refund Confirmation (Student notification) - January 15, 2026
+  - **Password Changed (Security alert) - January 17, 2026** 🔒 NEW
+- ⏳ **Pending**: 16ENT PROGRESS NOTIFICATIONS
 
 ### 1.1 Lesson Completion
 **File**: `server/src/routes/progress.ts`  
@@ -712,18 +713,52 @@ actionText: 'View Details'
 **File**: `server/src/routes/profile.ts`  
 **Endpoint**: `PUT /api/profile/password` (Line ~330)
 
+**Status**: ✅ **IMPLEMENTED** - January 17, 2026
+
 **Triggers:**
 - ✅ **User**: Security notification
 
 **Notification Details:**
 ```typescript
-type: 'course'
+type: 'intervention'  // Security-related event type
 priority: 'high'
 title: 'Password Changed'
 message: 'Your account password was changed. If this wasn\'t you, contact support immediately.'
 actionUrl: '/settings'
 actionText: 'Review Security'
+category: 'system'
+subcategory: 'SecurityAlerts'
 ```
+
+**Implementation:**
+```typescript
+// After password update (wrapped in try-catch to prevent failure)
+try {
+  const io = req.app.get('io');
+  const notificationService = new NotificationService(io);
+
+  await notificationService.createNotificationWithControls(
+    {
+      userId,
+      type: 'intervention',
+      priority: 'high',
+      title: 'Password Changed',
+      message: 'Your account password was changed. If this wasn\'t you, contact support immediately.',
+      actionUrl: '/settings',
+      actionText: 'Review Security'
+    },
+    {
+      category: 'system',
+      subcategory: 'SecurityAlerts'
+    }
+  );
+} catch (notificationError) {
+  // Log error but don't fail the password change
+  logger.error('Failed to send password change notification:', notificationError);
+}
+```
+
+**Error Handling**: Notification failures are caught and logged without breaking password change functionality.
 
 ---
 

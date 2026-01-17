@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { authenticateToken, AuthRequest } from '../middleware/auth';
 import { DatabaseService } from '../services/DatabaseService';
 import { SettingsService } from '../services/SettingsService';
+import { NotificationService } from '../services/NotificationService';
 import { logger } from '../utils/logger';
 import bcrypt from 'bcryptjs';
 import multer from 'multer';
@@ -379,6 +380,31 @@ router.put('/password', authenticateToken, async (req: AuthRequest, res) => {
           UpdatedAt = GETUTCDATE()
       WHERE Id = @userId
     `, { passwordHash: newPasswordHash, userId });
+
+    // Send security notification (non-blocking - shouldn't fail password change)
+    try {
+      const io = req.app.get('io');
+      const notificationService = new NotificationService(io);
+
+      await notificationService.createNotificationWithControls(
+        {
+          userId,
+          type: 'intervention',
+          priority: 'high',
+          title: 'Password Changed',
+          message: 'Your account password was changed. If this wasn\'t you, contact support immediately.',
+          actionUrl: '/settings',
+          actionText: 'Review Security'
+        },
+        {
+          category: 'system',
+          subcategory: 'SecurityAlerts'
+        }
+      );
+    } catch (notificationError) {
+      // Log error but don't fail the password change
+      logger.error('Failed to send password change notification:', notificationError);
+    }
 
     res.json({ 
       success: true, 

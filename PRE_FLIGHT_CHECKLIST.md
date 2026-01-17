@@ -50,12 +50,16 @@
   - Pattern: State variable triggers re-render → `formatDistanceToNow` recalculates
   - Date handling: UTC in DB, date-fns auto-converts to local time
   - No breaking changes: Purely additive (adds timer, no logic changes)
-- [x] **Notification Triggers** - 2/31 ACTIVE (Dec 29, 2025) ✅
-  - Lesson completion: Student progress + instructor milestones
-  - Live session created: All enrolled students notified
+- [x] **Notification Triggers** - 15/31 ACTIVE (Jan 17, 2026) ✅
+  - Progress: Lesson completion, Video completion, Course completion
+  - Course Management: Enrollment, New lessons, Course published
+  - Live Sessions: Created, Updated, Deleted
+  - Assessments: Created, Submitted, Graded
+  - System: Payment receipt, Refund confirmation, Password changed (Jan 17)
   - Socket.io real-time updates: Notification bell updates instantly
   - Implementation pattern: Get io from req.app.get('io'), create NotificationService(io)
-  - 29 triggers remaining: Video completion, enrollment, assessments, etc.
+  - Error handling: Non-blocking try-catch prevents feature failures
+  - 16 triggers remaining: Due dates, office hours completion, study groups, etc.
   - Reference: NOTIFICATION_TRIGGERS_IMPLEMENTATION_PLAN.md
 - [x] Email Notification System - PHASES 1-3 COMPLETE (Dec 28, 2025) ✅
   - Realtime email delivery with Gmail SMTP

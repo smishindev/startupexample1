@@ -66,7 +66,7 @@ GET    /api/instructor/courses/:id/students - Get students enrolled in course
 GET    /api/profile                    - Get user profile
 PUT    /api/profile/personal-info      - Update name, username, learning style
 PUT    /api/profile/billing-address    - Update billing address
-PUT    /api/profile/password           - Change password (requires current)
+PUT    /api/profile/password           - Change password (requires current) + sends security notification
 PUT    /api/profile/avatar             - Update avatar URL
 POST   /api/profile/avatar/upload      - Upload avatar (multer + sharp)
 PUT    /api/profile/preferences        - Update notification preferences

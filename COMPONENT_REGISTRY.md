@@ -616,7 +616,7 @@ useLiveSessionSocket({
 - `profileApi.getProfile()` - Fetch user profile data
 - `profileApi.updatePersonalInfo()` - Update name, username, learning style
 - `profileApi.updateBillingAddress()` - Update billing address
-- `profileApi.updatePassword()` - Change password with verification
+- `profileApi.updatePassword()` - Change password with verification + sends security notification (Jan 17, 2026)
 - `profileApi.updateAvatar()` - Update avatar URL
 - `profileApi.uploadAvatar(file)` - Upload avatar image with multer/sharp processing
 - `notificationPreferencesApi.getPreferences()` - Fetch notification settings
@@ -655,7 +655,7 @@ useLiveSessionSocket({
 ```typescript
 // 5 Tabs
 0: Personal Info - Name, username, learning style, avatar upload, email verification badge
-1: Password - Change password with current verification
+1: Password - Change password with current verification + security notification (Jan 17)
 2: Billing Address - Street, city, state, postal, country
 3: Preferences - Notification settings (5 toggles, email digest, quiet hours)
 4: Account Info - Read-only account details, role badge, dates

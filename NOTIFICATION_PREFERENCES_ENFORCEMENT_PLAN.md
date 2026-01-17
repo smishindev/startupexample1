@@ -7,12 +7,13 @@
 **Status**: ✅ PRODUCTION READY  
 **Implementation Time**: ~4 hours (preferences) + ~2 hours (triggers) + ~1 hour (bug fix)
 
-**Notification Triggers Status** (January 6, 2026):
-- ✅ 4/31 triggers active (Lesson Completion, Live Session Created/Updated/Deleted)
+**Notification Triggers Status** (January 17, 2026):
+- ✅ 15/31 triggers active (Progress, Course Management, Live Sessions, Assessments, System Alerts)
 - ✅ Email delivery working (realtime/daily/weekly based on user preference)
 - ✅ Socket.io real-time updates working (notification bell updates instantly)
 - ✅ **BUG FIX**: Notifications with disabled in-app toggles no longer created in database (Jan 6, 2026)
-- 🔜 27 remaining triggers (video completion, enrollment, assessments, etc.)
+- ✅ **NEW**: Password Changed security notification (Jan 17, 2026) - type: 'intervention', category: 'system'
+- 🔜 16 remaining triggers (due dates, office hours completion, study groups, etc.)
 - See [NOTIFICATION_TRIGGERS_IMPLEMENTATION_PLAN.md](NOTIFICATION_TRIGGERS_IMPLEMENTATION_PLAN.md) for details
 
 ---

@@ -95,10 +95,12 @@ export const requestDataExport = async (): Promise<{ success: boolean; message: 
 /**
  * Delete account
  */
-export const deleteAccount = async (confirmPassword: string): Promise<{ success: boolean; message: string }> => {
-  const response = await axios.post(`${API_BASE}/settings/delete-account`, {
-    confirmPassword
-  });
+export const deleteAccount = async (params: {
+  confirmPassword: string;
+  instructorAction?: 'archive' | 'transfer' | 'force';
+  transferToInstructorId?: string;
+}): Promise<{ success: boolean; message: string }> => {
+  const response = await axios.post(`${API_BASE}/settings/delete-account`, params);
   return response.data;
 };
 

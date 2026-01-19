@@ -1,6 +1,6 @@
 # Mishin Learn Platform - System Architecture
 
-**Last Updated**: January 14, 2026 - Notification System Architecture Refactored  
+**Last Updated**: January 19, 2026 - Instructor Account Deletion & Bug Fixes Complete ✅  
 **Purpose**: Understanding system components, data flows, and dependencies
 
 ---
@@ -77,7 +77,28 @@ PATCH  /api/notifications/preferences  - Update notification preferences
 GET    /api/settings                   - Get user settings
 PATCH  /api/settings                   - Update settings (privacy + appearance)
 POST   /api/settings/export-data       - Request data export (TODO)
-POST   /api/settings/delete-account    - Delete account (TODO)
+DELETE /api/account-deletion/delete    - Delete account with course management (Jan 19, 2026)
+```
+
+**Account Deletion Flow (Added Jan 18-19, 2026):**
+```
+Settings Page → Privacy & Security → Delete Account Button
+  ↓
+InstructorDeletionDialog (if instructor role)
+  ├─ Select course action: Archive / Transfer / Force Delete
+  ├─ If Transfer: Select target instructor from dropdown
+  └─ Password confirmation required
+  ↓
+accountDeletionApi.deleteAccount({ instructorAction, transferToInstructorId, password })
+  ↓
+Backend AccountDeletionService:
+  ├─ Verify password
+  ├─ Execute course action (archive/transfer/force)
+  ├─ Soft-delete user (Status='deleted')
+  ├─ Log in AccountDeletionLog
+  └─ Commit transaction or rollback on error
+  ↓
+Frontend: Logout, navigate to login, show success message
 ```
 
 **Settings Implementation Status (Verified Jan 10, 2026):**
@@ -858,8 +879,24 @@ Frontend: Update states
 
 **Key Files**:
 - `client/src/services/enrollmentApi.ts` - Enrollment API
-- `server/src/routes/enrollment.ts` - Enrollment endpoints
+- `server/src/routes/enrollment.ts` - Enrollment endpoints (UNION ALL for instructors - Jan 19, 2026)
 - Database: `Enrollments` table
+
+**Instructor Enrollment Special Handling (Jan 19, 2026):**
+- Instructors can both teach courses AND enroll as students
+- GET `/api/enrollment/my-enrollments` returns UNION ALL:
+  ```sql
+  -- Part 1: Teaching courses (Status='teaching', TimeSpent=0)
+  SELECT FROM Courses WHERE InstructorId = @userId
+  
+  UNION ALL
+  
+  -- Part 2: Student enrollments (Status='active'/'completed', TimeSpent=seconds)
+  SELECT FROM Enrollments WHERE UserId = @userId
+  ```
+- Frontend filters: "Enrolled" badge excludes Status='teaching'
+- Course cards show "Continue Learning" for enrolled, "Manage" for teaching
+- Files: `server/src/routes/enrollment.ts` lines 23-100
 
 **Important**: Enrollment creates **ONLY** Enrollment record, **NOT** UserProgress. UserProgress is created per-lesson when student accesses lesson.
 
@@ -1317,6 +1354,57 @@ export const myApi = new MyApi();
 | **chatApi** | `chatApi.ts` | AI tutoring | createSession, sendMessage, getSessions |
 | **analyticsApi** | `analyticsApi.ts` | Analytics | getCourseAnalytics, getStudentAnalytics |
 | **instructorApi** | `instructorApi.ts` | Instructor features | createCourse, updateCourse, getStudents |
+| **accountDeletionApi** | `accountDeletionApi.ts` | Account deletion | deleteAccount (Jan 19, 2026) |
+
+### Backend Service Layer
+
+| Service | File | Purpose | Key Methods |
+|---------|------|---------|-------------|
+| **AccountDeletionService** | `AccountDeletionService.ts` | Account deletion orchestration | deleteAccount, archiveAllCourses, transferCourses, softDeleteCourses |
+| **NotificationService** | `NotificationService.ts` | Notification creation/delivery | createNotificationWithControls, shouldSendNotification |
+| **EmailService** | `EmailService.ts` | Email sending | sendVerificationEmail, sendWelcomeEmail, sendPasswordChangeNotification |
+| **StripeService** | `StripeService.ts` | Payment processing | createPaymentIntent, createCheckoutSession |
+| **OfficeHoursService** | `OfficeHoursService.ts` | Office hours management | createSession, joinQueue, completeSession |
+| **PresenceService** | `PresenceService.ts` | Real-time user presence | trackUserActivity, getUserPresence |
+
+**Account Deletion Architecture (Jan 18-19, 2026):**
+```
+Frontend (SettingsPage.tsx)
+  ↓
+InstructorDeletionDialog → User selects course action
+  ├─ Archive All Courses
+  ├─ Transfer All Courses (select instructor)
+  └─ Force Delete All Courses
+  ↓
+Password Confirmation Required
+  ↓
+accountDeletionApi.deleteAccount({ instructorAction, transferToInstructorId, password })
+  ↓
+POST /api/account-deletion/delete
+  ├─ authenticateToken (verify user)
+  ├─ Verify password with bcrypt.compare()
+  ├─ Begin SQL transaction
+  ├─ AccountDeletionService.deleteAccount()
+  │   ├─ If instructorAction === 'archive'
+  │   │   └─ UPDATE Courses SET Status='archived' WHERE InstructorId=@userId
+  │   ├─ If instructorAction === 'transfer'
+  │   │   ├─ UPDATE Courses SET InstructorId=@newInstructorId
+  │   │   └─ INSERT INTO CourseOwnershipHistory (logs transfer)
+  │   ├─ If instructorAction === 'forceDelete'
+  │   │   └─ UPDATE Courses SET Status='deleted', InstructorId=NULL
+  │   ├─ UPDATE Users SET Status='deleted', DeletedAt=GETUTCDATE()
+  │   └─ INSERT INTO AccountDeletionLog (audit trail)
+  ├─ COMMIT transaction
+  └─ Return success
+  ↓
+Frontend: Navigate to login, show success message
+```
+
+**Orphaned Course Handling:**
+- Orphaned courses: InstructorId=NULL with Status='deleted'
+- All 6 public catalog endpoints filter with `INNER JOIN Users u ON c.InstructorId = u.Id`
+- Prevents deleted instructor courses from appearing in search/stats
+- Files: `server/src/routes/courses.ts` lines 71, 82, 149, 255, 291, 333
 
 ---
 
@@ -1376,12 +1464,12 @@ if (isInstructorPreview) {
 **Users**
 - Id, FirstName, LastName, Email, PasswordHash
 - Role ('student' | 'instructor' | 'admin')
-- EmailVerified, IsActive, CreatedAt
+- EmailVerified, IsActive, Status ('active' | 'deleted' - Jan 19, 2026), CreatedAt, DeletedAt
 
 **Courses**
-- Id, Title, Description, InstructorId (FK → Users)
+- Id, Title, Description, InstructorId (FK → Users, nullable for orphaned - Jan 19, 2026)
 - Category, Level, Duration, Price, Rating
-- Thumbnail, IsPublished, EnrollmentCount
+- Thumbnail, IsPublished, Status ('draft' | 'published' | 'archived' | 'deleted' - Jan 19, 2026), EnrollmentCount
 
 **Lessons**
 - Id, CourseId (FK → Courses)
@@ -1390,7 +1478,7 @@ if (isInstructorPreview) {
 
 **Enrollments**
 - Id, UserId (FK → Users), CourseId (FK → Courses)
-- Status ('active' | 'completed' | 'suspended')
+- Status ('active' | 'completed' | 'suspended' | 'teaching' - virtual in UNION query Jan 19, 2026)
 - EnrolledAt, CompletedAt
 
 **UserProgress** (per-lesson)
@@ -1418,6 +1506,20 @@ if (isInstructorPreview) {
 - Id, UserId, VideoLessonId (FK → VideoLessons)
 - CurrentTime, Duration, CompletedAt
 - PlaybackSpeed, LastWatchedAt
+
+**CourseOwnershipHistory** (Added Jan 18, 2026)
+- Id, CourseId (FK → Courses), PreviousInstructorId, NewInstructorId (FK → Users)
+- TransferredAt, Reason ('account_deletion' | 'manual_transfer')
+
+**AccountDeletionLog** (Added Jan 18, 2026)
+- Id, UserId (FK → Users), InstructorAction ('archive' | 'transfer' | 'forceDelete' | NULL)
+- TransferredToInstructorId (FK → Users, nullable), DeletedAt
+
+**Orphaned Course Pattern (Jan 19, 2026):**
+- Courses with InstructorId=NULL and Status='deleted' are "orphaned"
+- Public catalog endpoints filter with `INNER JOIN Users u ON c.InstructorId = u.Id`
+- Ensures deleted instructor courses don't appear in search/stats
+- Student enrollments preserved for historical access
 
 ---
 

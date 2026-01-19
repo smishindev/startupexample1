@@ -90,7 +90,7 @@ CREATE TABLE dbo.Courses (
     Title NVARCHAR(200) NOT NULL,
     Description NVARCHAR(MAX) NOT NULL,
     Thumbnail NVARCHAR(500) NULL,
-    InstructorId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id),
+    InstructorId UNIQUEIDENTIFIER NULL FOREIGN KEY REFERENCES dbo.Users(Id),
     Category NVARCHAR(30) NOT NULL CHECK (Category IN ('programming', 'data_science', 'design', 'business', 'marketing', 'language', 'mathematics', 'science', 'arts', 'other')),
     Level NVARCHAR(20) NOT NULL CHECK (Level IN ('beginner', 'intermediate', 'advanced', 'expert')),
     Duration INT NOT NULL DEFAULT 0, -- in minutes
@@ -100,7 +100,8 @@ CREATE TABLE dbo.Courses (
     Prerequisites NVARCHAR(MAX) NULL, -- JSON array
     LearningOutcomes NVARCHAR(MAX) NULL, -- JSON array
     Tags NVARCHAR(MAX) NULL, -- JSON array
-    IsPublished BIT NOT NULL DEFAULT 0,
+    IsPublished BIT NOT NULL DEFAULT 0, -- Kept for backward compatibility
+    Status NVARCHAR(20) NOT NULL DEFAULT 'draft' CHECK (Status IN ('draft', 'published', 'archived', 'deleted')),
     CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
     UpdatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE()
 );
@@ -123,7 +124,7 @@ CREATE TABLE dbo.Lessons (
 -- Enrollments Table
 CREATE TABLE dbo.Enrollments (
     Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
-    UserId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id),
+    UserId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id) ON DELETE CASCADE,
     CourseId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Courses(Id) ON DELETE CASCADE,
     EnrolledAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
     CompletedAt DATETIME2 NULL,
@@ -134,7 +135,7 @@ CREATE TABLE dbo.Enrollments (
 -- User Progress Table
 CREATE TABLE dbo.UserProgress (
     Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
-    UserId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id),
+    UserId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id) ON DELETE CASCADE,
     LessonId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Lessons(Id) ON DELETE NO ACTION,
     CourseId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Courses(Id) ON DELETE CASCADE,
     Status NVARCHAR(20) NOT NULL DEFAULT 'in_progress' CHECK (Status IN ('not_started', 'in_progress', 'completed')),
@@ -191,7 +192,7 @@ CREATE TABLE dbo.Questions (
 -- Assessment Submissions Table
 CREATE TABLE dbo.AssessmentSubmissions (
     Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
-    UserId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id),
+    UserId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id) ON DELETE CASCADE,
     AssessmentId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Assessments(Id) ON DELETE CASCADE,
     Answers NVARCHAR(MAX) NOT NULL, -- JSON object with question IDs and answers
     Score INT NOT NULL DEFAULT 0,
@@ -210,7 +211,7 @@ CREATE TABLE dbo.LiveSessions (
     Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
     Title NVARCHAR(200) NOT NULL,
     Description NVARCHAR(MAX) NOT NULL,
-    InstructorId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id),
+    InstructorId UNIQUEIDENTIFIER NULL FOREIGN KEY REFERENCES dbo.Users(Id),
     CourseId UNIQUEIDENTIFIER NULL FOREIGN KEY REFERENCES dbo.Courses(Id) ON DELETE SET NULL,
     ScheduledAt DATETIME2 NOT NULL,
     StartedAt DATETIME2 NULL,
@@ -229,7 +230,7 @@ CREATE TABLE dbo.LiveSessions (
 CREATE TABLE dbo.LiveSessionAttendees (
     Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
     SessionId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.LiveSessions(Id) ON DELETE CASCADE,
-    UserId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id),
+    UserId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id) ON DELETE CASCADE,
     JoinedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
     LeftAt DATETIME2 NULL,
     AttendanceMinutes INT NOT NULL DEFAULT 0,
@@ -242,7 +243,7 @@ CREATE TABLE dbo.ChatRooms (
     CourseId UNIQUEIDENTIFIER NULL FOREIGN KEY REFERENCES dbo.Courses(Id) ON DELETE CASCADE,
     Name NVARCHAR(100) NOT NULL,
     Type NVARCHAR(20) NOT NULL CHECK (Type IN ('course_general', 'course_qa', 'study_group', 'direct_message', 'ai_tutoring')),
-    CreatedBy UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id),
+    CreatedBy UNIQUEIDENTIFIER NULL FOREIGN KEY REFERENCES dbo.Users(Id),
     CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE()
 );
 
@@ -250,7 +251,7 @@ CREATE TABLE dbo.ChatRooms (
 CREATE TABLE dbo.ChatMessages (
     Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
     RoomId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.ChatRooms(Id) ON DELETE CASCADE,
-    UserId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id),
+    UserId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id) ON DELETE CASCADE,
     Content NVARCHAR(MAX) NOT NULL,
     Type NVARCHAR(20) NOT NULL DEFAULT 'text' CHECK (Type IN ('text', 'image', 'file', 'code', 'system', 'announcement')),
     ReplyTo UNIQUEIDENTIFIER NULL FOREIGN KEY REFERENCES dbo.ChatMessages(Id),
@@ -283,7 +284,7 @@ CREATE TABLE dbo.StudyGroups (
     Name NVARCHAR(100) NOT NULL,
     Description NVARCHAR(MAX) NULL,
     CourseId UNIQUEIDENTIFIER NULL FOREIGN KEY REFERENCES dbo.Courses(Id) ON DELETE SET NULL,
-    CreatedBy UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id),
+    CreatedBy UNIQUEIDENTIFIER NULL FOREIGN KEY REFERENCES dbo.Users(Id),
     IsActive BIT NOT NULL DEFAULT 1,
     MaxMembers INT NULL,
     CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE()
@@ -313,7 +314,7 @@ CREATE TABLE dbo.OfficeHours (
 -- Office Hours Queue Table
 CREATE TABLE dbo.OfficeHoursQueue (
     Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
-    InstructorId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id),
+    InstructorId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id) ON DELETE NO ACTION,
     StudentId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id) ON DELETE CASCADE,
     ScheduleId UNIQUEIDENTIFIER NULL FOREIGN KEY REFERENCES dbo.OfficeHours(Id),
     Status NVARCHAR(20) NOT NULL DEFAULT 'waiting' CHECK (Status IN ('waiting', 'admitted', 'completed', 'cancelled')),
@@ -326,7 +327,7 @@ CREATE TABLE dbo.OfficeHoursQueue (
 -- Tutoring Sessions Table
 CREATE TABLE dbo.TutoringSessions (
     Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
-    UserId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id),
+    UserId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id) ON DELETE CASCADE,
     CourseId UNIQUEIDENTIFIER NULL FOREIGN KEY REFERENCES dbo.Courses(Id) ON DELETE SET NULL,
     LessonId UNIQUEIDENTIFIER NULL FOREIGN KEY REFERENCES dbo.Lessons(Id) ON DELETE NO ACTION,
     Title NVARCHAR(255) NOT NULL,
@@ -349,7 +350,7 @@ CREATE TABLE dbo.TutoringMessages (
 -- File Uploads Table
 CREATE TABLE dbo.FileUploads (
     Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
-    UploadedBy UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id),
+    UploadedBy UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id) ON DELETE CASCADE,
     FileName NVARCHAR(255) NOT NULL,
     FilePath NVARCHAR(500) NOT NULL,
     FileType NVARCHAR(20) NOT NULL CHECK (FileType IN ('video', 'image', 'document')),
@@ -416,7 +417,7 @@ CREATE TABLE dbo.CourseProgress (
 -- LearningActivities Table - Track user learning patterns for AI analysis
 CREATE TABLE dbo.LearningActivities (
     Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
-    UserId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id),
+    UserId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id) ON DELETE CASCADE,
     CourseId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Courses(Id) ON DELETE CASCADE,
     ActivityType NVARCHAR(50) NOT NULL CHECK (ActivityType IN ('assessment', 'lesson_view', 'video_watch', 'resource_download', 'discussion_post', 'quiz_attempt', 'assignment_submit')),
     ResourceId UNIQUEIDENTIFIER NULL, -- Can reference Lessons, Assessments, etc.
@@ -432,7 +433,7 @@ CREATE TABLE dbo.LearningActivities (
 -- StudentRecommendations Table - AI-powered personalized learning recommendations
 CREATE TABLE dbo.StudentRecommendations (
     Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
-    UserId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id),
+    UserId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id) ON DELETE CASCADE,
     CourseId UNIQUEIDENTIFIER NULL FOREIGN KEY REFERENCES dbo.Courses(Id) ON DELETE CASCADE,
     RecommendationType NVARCHAR(50) NOT NULL CHECK (RecommendationType IN ('content', 'skill', 'pace', 'intervention', 'path')),
     Priority NVARCHAR(20) NOT NULL CHECK (Priority IN ('low', 'medium', 'high', 'critical')) DEFAULT 'medium',
@@ -452,7 +453,7 @@ CREATE TABLE dbo.StudentRecommendations (
 -- StudentRiskAssessment Table - Early intervention system for at-risk students
 CREATE TABLE dbo.StudentRiskAssessment (
     Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
-    UserId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id),
+    UserId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id) ON DELETE CASCADE,
     CourseId UNIQUEIDENTIFIER NULL FOREIGN KEY REFERENCES dbo.Courses(Id) ON DELETE CASCADE,
     RiskLevel NVARCHAR(20) NOT NULL CHECK (RiskLevel IN ('low', 'medium', 'high', 'critical')) DEFAULT 'low',
     RiskScore DECIMAL(5,2) NOT NULL DEFAULT 0, -- 0-100 scale
@@ -466,7 +467,7 @@ CREATE TABLE dbo.StudentRiskAssessment (
 -- PeerComparison Table - Student performance benchmarking for motivation
 CREATE TABLE dbo.PeerComparison (
     Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
-    UserId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id),
+    UserId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id) ON DELETE CASCADE,
     CourseId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Courses(Id) ON DELETE CASCADE,
     MetricType NVARCHAR(50) NOT NULL CHECK (MetricType IN ('score', 'completion_rate', 'time_spent', 'engagement')),
     UserValue DECIMAL(10,2) NOT NULL,
@@ -789,7 +790,7 @@ CREATE NONCLUSTERED INDEX IX_EmailUnsubscribeTokens_UserId ON dbo.EmailUnsubscri
 -- Transactions Table
 CREATE TABLE dbo.Transactions (
     Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
-    UserId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id),
+    UserId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id) ON DELETE CASCADE,
     CourseId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Courses(Id),
     Amount DECIMAL(10,2) NOT NULL,
     Currency NVARCHAR(3) NOT NULL DEFAULT 'USD',
@@ -872,6 +873,47 @@ CREATE NONCLUSTERED INDEX IX_Invoices_TransactionId ON dbo.Invoices(TransactionI
 CREATE NONCLUSTERED INDEX IX_Invoices_InvoiceNumber ON dbo.Invoices(InvoiceNumber);
 CREATE NONCLUSTERED INDEX IX_Invoices_CreatedAt ON dbo.Invoices(CreatedAt DESC);
 CREATE NONCLUSTERED INDEX IX_Users_StripeCustomerId ON dbo.Users(StripeCustomerId);
+
+-- ========================================
+-- ACCOUNT DELETION & COURSE MANAGEMENT TABLES
+-- ========================================
+
+-- Course Ownership History Table - Track course transfers and ownership changes
+CREATE TABLE dbo.CourseOwnershipHistory (
+    Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    CourseId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Courses(Id) ON DELETE CASCADE,
+    FromInstructorId UNIQUEIDENTIFIER NULL, -- NULL if original creation or deletion
+    ToInstructorId UNIQUEIDENTIFIER NULL, -- NULL if account deletion
+    TransferReason NVARCHAR(100) NOT NULL CHECK (TransferReason IN ('manual_transfer', 'account_deletion', 'admin_action', 'ownership_change')),
+    Notes NVARCHAR(500) NULL,
+    TransferredAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    TransferredBy UNIQUEIDENTIFIER NULL -- Admin who approved (NULL if self-service)
+);
+
+CREATE NONCLUSTERED INDEX IX_CourseOwnershipHistory_CourseId ON dbo.CourseOwnershipHistory(CourseId);
+CREATE NONCLUSTERED INDEX IX_CourseOwnershipHistory_FromInstructor ON dbo.CourseOwnershipHistory(FromInstructorId) WHERE FromInstructorId IS NOT NULL;
+CREATE NONCLUSTERED INDEX IX_CourseOwnershipHistory_ToInstructor ON dbo.CourseOwnershipHistory(ToInstructorId) WHERE ToInstructorId IS NOT NULL;
+CREATE NONCLUSTERED INDEX IX_CourseOwnershipHistory_TransferredAt ON dbo.CourseOwnershipHistory(TransferredAt DESC);
+
+-- Account Deletion Log Table - GDPR compliance and audit trail
+CREATE TABLE dbo.AccountDeletionLog (
+    Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    UserId UNIQUEIDENTIFIER NOT NULL, -- Don't FK - user is deleted
+    UserEmail NVARCHAR(255) NOT NULL,
+    UserRole NVARCHAR(20) NOT NULL,
+    TotalCourses INT NOT NULL DEFAULT 0,
+    PublishedCourses INT NOT NULL DEFAULT 0,
+    ArchivedCourses INT NOT NULL DEFAULT 0,
+    TotalStudents INT NOT NULL DEFAULT 0,
+    DeletionMethod NVARCHAR(50) NOT NULL CHECK (DeletionMethod IN ('direct', 'after_archive', 'after_transfer', 'force_delete')),
+    DeletionReason NVARCHAR(500) NULL,
+    DeletedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    DeletedBy NVARCHAR(20) NOT NULL CHECK (DeletedBy IN ('user', 'admin', 'system'))
+);
+
+CREATE NONCLUSTERED INDEX IX_AccountDeletionLog_DeletedAt ON dbo.AccountDeletionLog(DeletedAt DESC);
+CREATE NONCLUSTERED INDEX IX_AccountDeletionLog_UserEmail ON dbo.AccountDeletionLog(UserEmail);
+CREATE NONCLUSTERED INDEX IX_AccountDeletionLog_UserId ON dbo.AccountDeletionLog(UserId);
 
 -- ========================================
 -- ========================================

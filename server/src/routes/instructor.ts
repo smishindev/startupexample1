@@ -14,15 +14,17 @@ router.get('/stats', authenticateToken, authorize(['instructor', 'admin']), asyn
   try {
     const userId = req.user!.userId;
     
-    // Get instructor courses stats
+    // Get instructor courses stats (exclude deleted courses)
     const courseStats = await db.query(`
       SELECT 
         COUNT(*) as totalCourses,
-        SUM(CASE WHEN IsPublished = 1 THEN 1 ELSE 0 END) as publishedCourses,
-        SUM(CASE WHEN IsPublished = 0 THEN 1 ELSE 0 END) as draftCourses,
+        SUM(CASE WHEN Status = 'published' OR (Status IS NULL AND IsPublished = 1) THEN 1 ELSE 0 END) as publishedCourses,
+        SUM(CASE WHEN Status = 'draft' OR (Status IS NULL AND IsPublished = 0) THEN 1 ELSE 0 END) as draftCourses,
+        SUM(CASE WHEN Status = 'archived' THEN 1 ELSE 0 END) as archivedCourses,
         AVG(CAST(Rating as FLOAT)) as avgRating
       FROM Courses 
       WHERE InstructorId = @instructorId
+        AND (Status IS NULL OR Status != 'deleted')
     `, { instructorId: userId });
 
     // Calculate revenue from completed transactions
@@ -83,6 +85,7 @@ router.get('/courses', authenticateToken, authorize(['instructor', 'admin']), as
         c.Thumbnail as thumbnail,
         c.Category as category,
         c.Level as level,
+        c.Status as status,
         c.IsPublished as isPublished,
         c.Price as price,
         c.Rating as rating,
@@ -94,19 +97,24 @@ router.get('/courses', authenticateToken, authorize(['instructor', 'admin']), as
       FROM Courses c
       LEFT JOIN Lessons l ON c.Id = l.CourseId
       WHERE c.InstructorId = @instructorId
+        AND (c.Status IS NULL OR c.Status != 'deleted')
     `;
 
     const params: any = { instructorId: userId, limit: limitNum, offset };
 
     if (status) {
-      // Convert string status to boolean for IsPublished  
-      const isPublished = status === 'published' ? 1 : 0;
-      query += ` AND c.IsPublished = @isPublished`;
-      params.isPublished = isPublished;
+      // Support both old IsPublished and new Status field
+      if (status === 'published' || status === 'draft') {
+        query += ` AND (c.Status = @status OR (c.Status IS NULL AND c.IsPublished = @isPublished))`;
+        params.status = status;
+        params.isPublished = status === 'published' ? 1 : 0;
+      } else if (status === 'archived') {
+        query += ` AND c.Status = 'archived'`;
+      }
     }
 
     query += `
-      GROUP BY c.Id, c.Title, c.Description, c.Thumbnail, c.Category, c.Level, c.IsPublished, c.Price, 
+      GROUP BY c.Id, c.Title, c.Description, c.Thumbnail, c.Category, c.Level, c.Status, c.IsPublished, c.Price, 
                c.Rating, c.EnrollmentCount, c.CreatedAt, c.UpdatedAt
       ORDER BY c.UpdatedAt DESC
       OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY
@@ -120,13 +128,16 @@ router.get('/courses', authenticateToken, authorize(['instructor', 'admin']), as
     `;
     
     if (status) {
-      const isPublished = status === 'published' ? 1 : 0;
-      countQuery += ` AND c.IsPublished = @isPublished`;
+      if (status === 'published' || status === 'draft') {
+        countQuery += ` AND (c.Status = @status OR (c.Status IS NULL AND c.IsPublished = @isPublished))`;
+      } else if (status === 'archived') {
+        countQuery += ` AND c.Status = 'archived'`;
+      }
     }
 
     const [result, countResult] = await Promise.all([
       db.query(query, params),
-      db.query(countQuery, { instructorId: userId, isPublished: params.isPublished })
+      db.query(countQuery, { instructorId: userId, ...params })
     ]);
 
     console.log('[INSTRUCTOR API] First course from DB:', result[0]);
@@ -134,12 +145,19 @@ router.get('/courses', authenticateToken, authorize(['instructor', 'admin']), as
     const courses = result.map((course: any) => {
       // Normalize level to lowercase (must be done AFTER spreading to override capital Level)
       const normalizedLevel = course.level?.toLowerCase() || course.Level?.toLowerCase() || 'beginner';
+      
+      // Use Status field if available, otherwise convert IsPublished to status
+      let courseStatus = course.status;
+      if (!courseStatus) {
+        courseStatus = course.isPublished ? 'published' : 'draft';
+      }
+      
       const mappedCourse = {
         ...course,
         category: course.category, // Explicitly include category
         level: normalizedLevel, // Normalized level
-        status: course.isPublished ? 'published' : 'draft', // Convert boolean to string for frontend
-        progress: !course.isPublished ? Math.floor(Math.random() * 100) : 100,
+        status: courseStatus, // Use Status field or convert from IsPublished
+        progress: courseStatus === 'draft' ? Math.floor(Math.random() * 100) : 100,
         lastUpdated: course.updatedAt
       };
       // Remove uppercase Level if it exists to prevent confusion
@@ -478,7 +496,7 @@ router.post('/courses/:id/publish', authenticateToken, authorize(['instructor', 
     // Update the course status to published
     await db.query(`
       UPDATE Courses 
-      SET IsPublished = 1, UpdatedAt = GETDATE()
+      SET IsPublished = 1, Status = 'published', UpdatedAt = GETDATE()
       WHERE Id = @courseId AND InstructorId = @instructorId
     `, { courseId, instructorId: userId });
 

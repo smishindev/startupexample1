@@ -54,7 +54,8 @@ router.get('/', authenticateToken, async (req: any, res: any) => {
       FROM dbo.Bookmarks b
       INNER JOIN dbo.Courses c ON b.CourseId = c.Id
       INNER JOIN dbo.Users u ON c.InstructorId = u.Id
-      WHERE b.UserId = @userId AND c.IsPublished = 1
+      WHERE b.UserId = @userId 
+        AND (c.Status IN ('published', 'archived') OR (c.Status IS NULL AND c.IsPublished = 1))
       ORDER BY b.BookmarkedAt DESC
       OFFSET @offset ROWS
       FETCH NEXT @limit ROWS ONLY
@@ -118,7 +119,8 @@ router.post('/:courseId', authenticateToken, async (req: any, res: any) => {
     // Validate course exists and is published
     const courseQuery = `
       SELECT Id FROM dbo.Courses 
-      WHERE Id = @courseId AND IsPublished = 1
+      WHERE Id = @courseId 
+        AND (Status IN ('published', 'archived') OR (Status IS NULL AND IsPublished = 1))
     `;
     
     const courseResult = await db.query(courseQuery, { courseId });

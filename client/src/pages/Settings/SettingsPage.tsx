@@ -21,6 +21,7 @@ import {
   DialogActions,
   DialogContentText,
   CircularProgress,
+  TextField,
 } from '@mui/material';
 import {
   Settings as SettingsIcon,
@@ -33,6 +34,10 @@ import {
 import { HeaderV4 } from '../../components/Navigation/HeaderV4';
 import { toast } from 'react-hot-toast';
 import * as settingsApi from '../../services/settingsApi';
+import AccountDeletionOptionsDialog from '../../components/AccountDeletionOptionsDialog';
+import CourseTransferDialog from '../../components/CourseTransferDialog';
+import ArchiveCoursesDialog from '../../components/ArchiveCoursesDialog';
+import axiosInstance from '../../utils/axiosConfig';
 
 const SettingsPage: React.FC = () => {
   // Loading state
@@ -52,6 +57,16 @@ const SettingsPage: React.FC = () => {
 
   // Data Management
   const [deleteDialog, setDeleteDialog] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleting, setDeleting] = useState(false);
+  
+  // Instructor deletion flow states
+  const [deletionOptions, setDeletionOptions] = useState<any>(null);
+  const [showOptionsDialog, setShowOptionsDialog] = useState(false);
+  const [showTransferDialog, setShowTransferDialog] = useState(false);
+  const [showArchiveDialog, setShowArchiveDialog] = useState(false);
+  const [selectedAction, setSelectedAction] = useState<'archive' | 'transfer' | 'force' | null>(null);
+  const [transferToInstructorId, setTransferToInstructorId] = useState<string | null>(null);
 
   // Load settings on mount
   useEffect(() => {
@@ -127,14 +142,107 @@ const SettingsPage: React.FC = () => {
     }
   };
 
+  /**
+   * Start the account deletion flow - check if instructor needs special handling
+   */
   const handleDeleteAccount = async () => {
-    setDeleteDialog(false);
+    setDeleting(true);
     try {
-      const result = await settingsApi.deleteAccount('');
-      toast.error(result.message);
-    } catch (error) {
+      // Check if user needs to handle instructor content first
+      const response = await axiosInstance.get('/api/settings/deletion-check');
+
+      const options = response.data;
+      setDeletionOptions(options);
+
+      if (options.canDeleteDirectly) {
+        // No special handling needed - go straight to password confirmation
+        setDeleteDialog(true);
+      } else {
+        // Show options dialog for instructor
+        setShowOptionsDialog(true);
+      }
+    } catch (error: any) {
+      console.error('Error checking deletion eligibility:', error);
+      toast.error('Failed to check deletion eligibility');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  /**
+   * Handle instructor's choice of action (archive/transfer/force)
+   */
+  const handleActionSelected = (action: 'archive' | 'transfer' | 'force') => {
+    setSelectedAction(action);
+    setShowOptionsDialog(false);
+
+    if (action === 'archive') {
+      setShowArchiveDialog(true);
+    } else if (action === 'transfer') {
+      setShowTransferDialog(true);
+    } else if (action === 'force') {
+      // Force delete - go to password confirmation
+      setDeleteDialog(true);
+    }
+  };
+
+  /**
+   * Handle archive selection (stores choice, doesn't execute yet)
+   */
+  const handleArchiveComplete = () => {
+    setSelectedAction('archive');
+    setShowArchiveDialog(false);
+    // Show password confirmation dialog
+    setDeleteDialog(true);
+  };
+
+  /**
+   * Handle transfer selection (stores choice, doesn't execute yet)
+   */
+  const handleTransferComplete = (instructorId: string) => {
+    setTransferToInstructorId(instructorId);
+    setSelectedAction('transfer');
+    setShowTransferDialog(false);
+    // Show password confirmation dialog
+    setDeleteDialog(true);
+  };
+
+  /**
+   * Final deletion with password confirmation
+   */
+  const handleFinalDeletion = async () => {
+    if (!deletePassword.trim()) {
+      toast.error('Please enter your password to confirm deletion');
+      return;
+    }
+
+    setDeleting(true);
+    try {
+      const result = await settingsApi.deleteAccount({
+        confirmPassword: deletePassword,
+        instructorAction: selectedAction || undefined,
+        transferToInstructorId: transferToInstructorId || undefined
+      });
+      
+      if (result.success) {
+        toast.success(result.message);
+        setDeleteDialog(false);
+        setDeletePassword('');
+        
+        // Logout and redirect after 2 seconds
+        setTimeout(() => {
+          localStorage.removeItem('token');
+          window.location.href = '/';
+        }, 2000);
+      } else {
+        toast.error(result.message || 'Failed to delete account');
+      }
+    } catch (error: any) {
       console.error('Error deleting account:', error);
-      toast.error('Failed to delete account');
+      const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message || 'Failed to delete account';
+      toast.error(errorMessage);
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -426,12 +534,13 @@ const SettingsPage: React.FC = () => {
                   <Button
                     variant="outlined"
                     color="error"
-                    startIcon={<DeleteIcon />}
-                    onClick={() => setDeleteDialog(true)}
+                    startIcon={deleting ? <CircularProgress size={16} /> : <DeleteIcon />}
+                    onClick={handleDeleteAccount}
+                    disabled={deleting}
                     fullWidth
                     data-testid="settings-delete-account-button"
                   >
-                    Delete My Account
+                    {deleting ? 'Checking eligibility...' : 'Delete My Account'}
                   </Button>
                 </Box>
               </Stack>
@@ -442,7 +551,7 @@ const SettingsPage: React.FC = () => {
         {/* Delete Account Confirmation Dialog */}
         <Dialog
           open={deleteDialog}
-          onClose={() => setDeleteDialog(false)}
+          onClose={() => !deleting && setDeleteDialog(false)}
           maxWidth="sm"
           fullWidth
           data-testid="settings-delete-dialog"
@@ -461,24 +570,90 @@ const SettingsPage: React.FC = () => {
               <li>Transaction history</li>
               <li>Personal profile and settings</li>
             </Box>
-            <Alert severity="error" sx={{ mt: 2 }}>
+            <Alert severity="error" sx={{ mt: 2, mb: 3 }}>
               <strong>This action is permanent and cannot be reversed.</strong>
             </Alert>
+            
+            <TextField
+              fullWidth
+              type="password"
+              label="Enter your password to confirm"
+              value={deletePassword}
+              onChange={(e) => setDeletePassword(e.target.value)}
+              disabled={deleting}
+              autoFocus
+              placeholder="Password"
+              helperText="You must enter your current password to delete your account"
+              data-testid="settings-delete-password-input"
+            />
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setDeleteDialog(false)} data-testid="settings-delete-dialog-cancel">
+            <Button 
+              onClick={() => {
+                setDeleteDialog(false);
+                setDeletePassword('');
+                setSelectedAction(null);
+                setTransferToInstructorId(null);
+                setDeletionOptions(null);
+              }} 
+              disabled={deleting}
+              data-testid="settings-delete-dialog-cancel"
+            >
               Cancel
             </Button>
             <Button
-              onClick={handleDeleteAccount}
+              onClick={handleFinalDeletion}
               color="error"
               variant="contained"
+              disabled={deleting || !deletePassword.trim()}
               data-testid="settings-delete-dialog-confirm"
             >
-              Yes, Delete My Account
+              {deleting ? <CircularProgress size={20} /> : 'Yes, Delete My Account'}
             </Button>
           </DialogActions>
         </Dialog>
+
+        {/* Instructor Deletion Options Dialog */}
+        {deletionOptions && (
+          <AccountDeletionOptionsDialog
+            open={showOptionsDialog}
+            onClose={() => {
+              setShowOptionsDialog(false);
+              setDeletionOptions(null);
+              setSelectedAction(null);
+            }}
+            onSelectOption={handleActionSelected}
+            stats={deletionOptions.content}
+            blockedReason={deletionOptions.blockedReason}
+          />
+        )}
+
+        {/* Archive Courses Dialog */}
+        {deletionOptions && (
+          <ArchiveCoursesDialog
+            open={showArchiveDialog}
+            onClose={() => {
+              setShowArchiveDialog(false);
+              setSelectedAction(null);
+            }}
+            onArchiveComplete={handleArchiveComplete}
+            publishedCoursesCount={deletionOptions.content.publishedCourses}
+            totalStudents={deletionOptions.content.totalStudents}
+          />
+        )}
+
+        {/* Course Transfer Dialog */}
+        {deletionOptions && (
+          <CourseTransferDialog
+            open={showTransferDialog}
+            onClose={() => {
+              setShowTransferDialog(false);
+              setSelectedAction(null);
+            }}
+            onTransfer={handleTransferComplete}
+            courseCount={deletionOptions.content.totalCourses}
+          />
+        )}
       </Container>
     </>
   );

@@ -28,6 +28,20 @@
 - [ ] Identified all pages that use this component
 
 **Recent Additions to Check:**
+- [x] **Instructor Account Deletion with Course Management** - PRODUCTION READY (Jan 18-19, 2026) ✅
+  - Complete account deletion system with instructor-specific flow
+  - 3 course management options: Archive All / Transfer All / Force Delete
+  - Password confirmation required before execution (security fix)
+  - Transaction-safe operations with rollback on error
+  - Audit logging in AccountDeletionLog and CourseOwnershipHistory tables
+  - **Bug #34 Fixed**: Archive/transfer delayed until password confirmation (not immediate)
+  - **Bug #35 Fixed**: Instructors see teaching + enrolled courses via UNION ALL query
+  - **Bug #36 Fixed**: TimeSpent mismatch (teaching=0, enrolled=seconds)
+  - **Bug #37 Fixed**: Pagination stability with proper timestamps (not GETUTCDATE())
+  - **Bug #38 Fixed**: Missing GROUP BY columns (c.CreatedAt, c.UpdatedAt)
+  - Orphaned courses (InstructorId=NULL) filtered from public catalog (INNER JOIN Users)
+  - Files: AccountDeletionService.ts, SettingsPage.tsx, enrollment.ts, courses.ts
+  - Status: 38 total bugs fixed, 0 TypeScript errors, comprehensive verification complete
 - [x] **Instructor Course Management Unification** - Page merge + Level normalization (Jan 14, 2026) ✅
   - Merged CourseEditPage and LessonManagementPage into single 4-tab interface
   - Tab system: Course Details | Lesson Details | Assessments | Settings

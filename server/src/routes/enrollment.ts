@@ -21,12 +21,14 @@ router.get('/my-enrollments', authenticateToken, async (req: AuthRequest, res: R
     const offset = (pageNum - 1) * limitNum;
 
     if (userRole === 'instructor') {
-      // For instructors, return the courses they teach with student enrollment stats
-      const instructorCourses = await db.query(`
+      // For instructors, return BOTH courses they teach AND courses they're enrolled in
+      // Use UNION to combine teaching courses with student enrollments
+      const instructorEnrollments = await db.query(`
+        -- Courses the instructor is teaching
         SELECT 
-          c.Id as courseId,
           c.Id as enrollmentId,
-          GETUTCDATE() as EnrolledAt,
+          c.Id as courseId,
+          COALESCE(c.CreatedAt, GETUTCDATE()) as EnrolledAt,
           'teaching' as Status,
           NULL as CompletedAt,
           c.Title,
@@ -39,35 +41,75 @@ router.get('/my-enrollments', authenticateToken, async (req: AuthRequest, res: R
           'You' as instructorFirstName,
           'are teaching' as instructorLastName,
           COALESCE(AVG(CAST(up.ProgressPercentage as FLOAT)), 0) as OverallProgress,
-          COUNT(DISTINCT e.UserId) as TimeSpent,
-          MAX(COALESCE(up.LastAccessedAt, GETUTCDATE())) as LastAccessedAt
+          0 as TimeSpent,
+          MAX(COALESCE(up.LastAccessedAt, c.UpdatedAt, GETUTCDATE())) as LastAccessedAt
         FROM dbo.Courses c
         LEFT JOIN dbo.Enrollments e ON c.Id = e.CourseId AND e.Status IN ('active', 'completed')
         LEFT JOIN dbo.UserProgress up ON e.UserId = up.UserId AND e.CourseId = up.CourseId
-        WHERE c.InstructorId = @userId AND c.IsPublished = 1
-        GROUP BY c.Id, c.Title, c.Description, c.Thumbnail, c.Duration, c.Level, c.Price, c.Category
-        ORDER BY c.Id DESC
+        WHERE c.InstructorId = @userId 
+          AND (c.Status IN ('published', 'archived') OR (c.Status IS NULL AND c.IsPublished = 1))
+        GROUP BY c.Id, c.Title, c.Description, c.Thumbnail, c.Duration, c.Level, c.Price, c.Category, c.CreatedAt, c.UpdatedAt
+        
+        UNION ALL
+        
+        -- Courses the instructor is enrolled in as a student
+        SELECT DISTINCT
+          e.Id as enrollmentId,
+          c.Id as courseId,
+          e.EnrolledAt,
+          e.Status,
+          e.CompletedAt,
+          c.Title,
+          c.Description,
+          c.Thumbnail,
+          c.Duration,
+          c.Level,
+          c.Price,
+          c.Category,
+          u.FirstName as instructorFirstName,
+          u.LastName as instructorLastName,
+          COALESCE(up.ProgressPercentage, 0) as OverallProgress,
+          COALESCE(up.TimeSpent, 0) as TimeSpent,
+          up.LastAccessedAt
+        FROM dbo.Enrollments e
+        INNER JOIN dbo.Courses c ON e.CourseId = c.Id
+        INNER JOIN dbo.Users u ON c.InstructorId = u.Id
+        LEFT JOIN (
+          SELECT UserId, CourseId, ProgressPercentage, TimeSpent, LastAccessedAt,
+                 ROW_NUMBER() OVER (PARTITION BY UserId, CourseId ORDER BY LastAccessedAt DESC) as rn
+          FROM dbo.UserProgress
+        ) up ON e.UserId = up.UserId AND e.CourseId = up.CourseId AND up.rn = 1
+        WHERE e.UserId = @userId
+        
+        ORDER BY EnrolledAt DESC
         OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY
       `, { userId, offset, limit: limitNum });
       
-      // Get total count
+      // Get total count (teaching courses + enrolled courses)
       const countResult = await db.query(`
-        SELECT COUNT(DISTINCT c.Id) as total
-        FROM dbo.Courses c
-        WHERE c.InstructorId = @userId AND c.IsPublished = 1
+        SELECT 
+          (SELECT COUNT(DISTINCT c.Id) 
+           FROM dbo.Courses c
+           WHERE c.InstructorId = @userId 
+             AND (c.Status IN ('published', 'archived') OR (c.Status IS NULL AND c.IsPublished = 1)))
+          +
+          (SELECT COUNT(DISTINCT e.Id)
+           FROM dbo.Enrollments e
+           WHERE e.UserId = @userId)
+        as total
       `, { userId });
 
       const totalEnrollments = countResult[0]?.total || 0;
       const totalPages = Math.ceil(totalEnrollments / limitNum);
 
       // Normalize level to lowercase
-      const normalizedCourses = instructorCourses.map((course: any) => ({
-        ...course,
-        Level: course.Level?.toLowerCase()
+      const normalizedEnrollments = instructorEnrollments.map((enrollment: any) => ({
+        ...enrollment,
+        Level: enrollment.Level?.toLowerCase()
       }));
 
       res.json({
-        enrollments: normalizedCourses,
+        enrollments: normalizedEnrollments,
         pagination: {
           currentPage: pageNum,
           totalPages,
@@ -327,24 +369,18 @@ router.post('/courses/:courseId/enroll', authenticateToken, async (req: AuthRequ
       }
     }
 
-    // Verify course exists and is published
+    // Verify course exists and is published (not archived or deleted)
     const course = await db.query(`
-      SELECT Id, Title, InstructorId, Price, IsPublished, EnrollmentCount
+      SELECT Id, Title, InstructorId, Price, IsPublished, Status, EnrollmentCount
       FROM dbo.Courses
       WHERE Id = @courseId
+        AND (Status = 'published' OR (Status IS NULL AND IsPublished = 1))
     `, { courseId });
 
     if (course.length === 0) {
       return res.status(404).json({ 
-        error: 'Course not found',
+        error: 'Course not found or not available for enrollment',
         code: 'COURSE_NOT_FOUND'
-      });
-    }
-
-    if (!course[0].IsPublished) {
-      return res.status(403).json({ 
-        error: 'Course is not available for enrollment',
-        code: 'COURSE_NOT_PUBLISHED'
       });
     }
 

@@ -1,6 +1,6 @@
 # Mishin Learn Platform - Component Registry
 
-**Last Updated**: January 17, 2026 - Office Hours Session Completed Notification  
+**Last Updated**: January 19, 2026 - Account Deletion Components & Bug Fixes ✅  
 **Purpose**: Quick reference for all major components, their dependencies, and relationships
 
 ---
@@ -686,7 +686,7 @@ useLiveSessionSocket({
 
 **Related Components**:
 - Header - Profile menu navigates here
-- SettingsPage - Placeholder for future settings
+- SettingsPage - Privacy settings, account deletion (Jan 19, 2026)
 
 **Used By**:
 - App.tsx route (`/profile`)
@@ -2243,3 +2243,196 @@ tooltip={!student.Email ? "Student's email is hidden" : ""}
 
 ---
 
+## 🗑️ Account Deletion Components (Added Jan 18-19, 2026)
+
+### SettingsPage (Updated)
+**Path**: `client/src/pages/Settings/SettingsPage.tsx` (664 lines)  
+**Purpose**: User settings with account deletion functionality
+
+**New Features**:
+- Privacy & Security tab with red "Delete My Account" button
+- Instructor-specific deletion flow with course management
+- Password confirmation before deletion execution
+- Transaction-safe deletion with rollback
+
+**Account Deletion Flow**:
+1. User clicks "Delete My Account" → Opens InstructorDeletionDialog (if instructor) or ConfirmationDialog (if student)
+2. Instructor selects course action: Archive All / Transfer All / Force Delete
+3. If Transfer: Opens CourseTransferDialog to select target instructor
+4. Password confirmation dialog (always required)
+5. Backend executes: Course action → Soft delete user → Audit log
+6. Success: Logout, navigate to login, show toast
+
+**State Management**:
+```typescript
+const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+const [instructorAction, setInstructorAction] = useState<'archive' | 'transfer' | 'forceDelete' | null>(null);
+const [transferToInstructorId, setTransferToInstructorId] = useState<number | null>(null);
+const [password, setPassword] = useState('');
+```
+
+**Key Methods**:
+- `handleFinalDeletion()` - Calls accountDeletionApi.deleteAccount() with all parameters
+- `handleArchiveComplete()` - Sets instructorAction='archive'
+- `handleTransferComplete(instructorId)` - Sets instructorAction='transfer' and stores instructorId
+- **Bug Fix (Jan 19)**: Archive/transfer no longer execute immediately, delayed until password confirmation
+
+**Services Used**:
+- `accountDeletionApi.deleteAccount({ instructorAction, transferToInstructorId, password })`
+
+**Status**: ✅ Production-ready with transaction safety
+
+---
+
+### InstructorDeletionDialog
+**Path**: `client/src/components/Settings/InstructorDeletionDialog.tsx` (155 lines)  
+**Purpose**: Present course management options to instructors before account deletion
+
+**Features**:
+- 3 radio button options with clear descriptions:
+  - **Archive All Courses**: "Students maintain access, you can restore later"
+  - **Transfer All Courses**: "Select new instructor, maintains continuity"
+  - **Force Delete All Courses**: "Permanent removal, students lose access"
+- Disabled "Continue" button until selection made
+- Opens CourseTransferDialog when Transfer option selected
+- Clean Material-UI design with warning icons
+
+**Props**:
+```typescript
+interface Props {
+  open: boolean;
+  onClose: () => void;
+  onArchive: () => void;
+  onTransfer: () => void;
+  onForceDelete: () => void;
+}
+```
+
+**Status**: ✅ Production-ready
+
+---
+
+### CourseTransferDialog
+**Path**: `client/src/components/Settings/CourseTransferDialog.tsx` (221 lines)  
+**Purpose**: Select target instructor for course transfer
+
+**Features**:
+- Fetches all instructors except current user
+- Searchable list with instructor names, emails, course counts
+- Radio button selection (single instructor only)
+- Displays: Name, Email (plain string - fixed DOM nesting Jan 19), Course count
+- Disabled "Confirm Transfer" until instructor selected
+- **Bug Fix (Jan 19)**: No longer calls API immediately, only stores selection
+
+**API Used**:
+- `GET /api/instructor/all` - Fetch all instructors with course counts
+
+**Props**:
+```typescript
+interface Props {
+  open: boolean;
+  onClose: () => void;
+  onTransferComplete: (instructorId: number) => void;
+}
+```
+
+**Common Issues Fixed**:
+- ~~DOM nesting warning (`<p>` inside `<p>`)~~ ✅ FIXED - ListItemText secondary now plain string
+- ~~Immediate API call on selection~~ ✅ FIXED - Delayed until password confirmation
+
+**Status**: ✅ Production-ready
+
+---
+
+### ArchiveCoursesDialog
+**Path**: `client/src/components/Settings/ArchiveCoursesDialog.tsx` (156 lines)  
+**Purpose**: Confirm course archiving with explanation
+
+**Features**:
+- Warning dialog with clear explanation of archiving
+- Info box: "Archiving will be executed when you confirm with password"
+- "Archive Courses" button (confirmation only, no API call)
+- Canceled state management
+
+**Props**:
+```typescript
+interface Props {
+  open: boolean;
+  onClose: () => void;
+  onArchiveComplete: () => void;
+}
+```
+
+**Bug Fix (Jan 19)**:
+- Removed immediate `axios.put('/api/instructor/courses/archive-all')` call
+- Now only calls `onArchiveComplete()` to set state in parent
+- Actual archiving happens in SettingsPage.handleFinalDeletion() after password
+
+**Status**: ✅ Production-ready
+
+---
+
+### AccountDeletionService (Backend)
+**Path**: `server/src/services/AccountDeletionService.ts` (547 lines)  
+**Purpose**: Orchestrate account deletion with course management
+
+**Key Methods**:
+
+1. **deleteAccount(userId, instructorAction, transferToInstructorId, password)**
+   - Validates password with bcrypt
+   - Begins SQL transaction
+   - Routes to appropriate course action handler
+   - Soft-deletes user (Status='deleted', DeletedAt=NOW())
+   - Logs deletion in AccountDeletionLog
+   - Commits transaction or rolls back on error
+
+2. **archiveAllCourses(userId, transaction)**
+   - Updates all instructor's courses to Status='archived'
+   - Preserves InstructorId for potential restoration
+   - Students maintain access to archived courses
+
+3. **transferCourses(userId, newInstructorId, transaction)**
+   - Validates target instructor exists and is active
+   - Updates InstructorId on all courses
+   - Inserts transfer records in CourseOwnershipHistory
+   - Reason='account_deletion'
+
+4. **softDeleteCourses(userId, transaction)**
+   - Updates courses to Status='deleted', InstructorId=NULL
+   - Creates "orphaned" courses (no longer appear in public catalog)
+   - Students can still access via direct enrollment links
+
+**Database Tables Used**:
+- `Users` - Soft delete (Status='deleted')
+- `Courses` - Update Status or InstructorId
+- `CourseOwnershipHistory` - Track transfers
+- `AccountDeletionLog` - Audit trail
+
+**Security**:
+- Password verification before any action
+- All operations in transaction (atomicity)
+- SQL injection protection (parameterized queries)
+- Authentication middleware required
+
+**Status**: ✅ Production-ready with comprehensive error handling
+
+---
+
+### accountDeletionApi.ts (Frontend Service)
+**Path**: `client/src/services/accountDeletionApi.ts`  
+**Purpose**: API calls for account deletion
+
+**Methods**:
+```typescript
+deleteAccount(data: {
+  instructorAction?: 'archive' | 'transfer' | 'forceDelete';
+  transferToInstructorId?: number;
+  password: string;
+}): Promise<{ message: string }>
+```
+
+**Endpoint**: `DELETE /api/account-deletion/delete`
+
+**Status**: ✅ Production-ready
+
+---

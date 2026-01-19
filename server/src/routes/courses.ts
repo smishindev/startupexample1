@@ -19,7 +19,8 @@ router.get('/', async (req: any, res: any) => {
 
     const offset = (parseInt(page) - 1) * parseInt(limit);
 
-    let whereClause = 'WHERE c.IsPublished = 1';
+    // Use Status field if it exists, fallback to IsPublished
+    let whereClause = "WHERE (c.Status = 'published' OR (c.Status IS NULL AND c.IsPublished = 1))";
     const params: any = {};
 
     // Add search filter
@@ -146,7 +147,7 @@ router.get('/:id', async (req: any, res: any) => {
          WHERE c2.InstructorId = c.InstructorId AND e2.Status IN ('active', 'completed')) as InstructorStudentCount
       FROM Courses c
       INNER JOIN Users u ON c.InstructorId = u.Id
-      WHERE c.Id = @id AND c.IsPublished = 1
+      WHERE c.Id = @id AND (c.Status = 'published' OR (c.Status IS NULL AND c.IsPublished = 1))
     `;
 
     const result = await db.query(query, { id });
@@ -251,6 +252,7 @@ router.get('/meta/categories', async (req: any, res: any) => {
         ISNULL(AVG(CAST(c.Rating as FLOAT)), 0) as AverageRating,
         ISNULL(AVG(CAST(e.EnrollmentCount as FLOAT)), 0) as AverageEnrollments
       FROM Courses c
+      INNER JOIN Users u ON c.InstructorId = u.Id
       LEFT JOIN (
         SELECT 
           CourseId,
@@ -259,7 +261,7 @@ router.get('/meta/categories', async (req: any, res: any) => {
         WHERE Status IN ('active', 'completed')
         GROUP BY CourseId
       ) e ON c.Id = e.CourseId
-      WHERE c.IsPublished = 1
+      WHERE (c.Status = 'published' OR (c.Status IS NULL AND c.IsPublished = 1))
       GROUP BY c.Category
       ORDER BY Count DESC
     `;
@@ -286,6 +288,7 @@ router.get('/meta/levels', async (req: any, res: any) => {
         ISNULL(AVG(CAST(c.Rating as FLOAT)), 0) as AverageRating,
         ISNULL(AVG(CAST(e.EnrollmentCount as FLOAT)), 0) as AverageEnrollments
       FROM Courses c
+      INNER JOIN Users u ON c.InstructorId = u.Id
       LEFT JOIN (
         SELECT 
           CourseId,
@@ -294,7 +297,7 @@ router.get('/meta/levels', async (req: any, res: any) => {
         WHERE Status IN ('active', 'completed')
         GROUP BY CourseId
       ) e ON c.Id = e.CourseId
-      WHERE c.IsPublished = 1
+      WHERE (c.Status = 'published' OR (c.Status IS NULL AND c.IsPublished = 1))
       GROUP BY c.Level
       ORDER BY Count DESC
     `;
@@ -327,7 +330,8 @@ router.get('/meta/stats', async (req: any, res: any) => {
         ISNULL((SELECT COUNT(DISTINCT UserId) FROM Enrollments WHERE Status IN ('active', 'completed')), 0) as TotalStudents,
         COUNT(DISTINCT c.Category) as TotalCategories
       FROM Courses c
-      WHERE c.IsPublished = 1
+      INNER JOIN Users u ON c.InstructorId = u.Id
+      WHERE (c.Status = 'published' OR (c.Status IS NULL AND c.IsPublished = 1))
     `;
 
     const result = await db.query(query);

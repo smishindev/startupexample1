@@ -571,15 +571,21 @@ router.post('/', authenticateToken, checkRole(['instructor']), async (req: AuthR
 
     // Get course and lesson details for notifications
     const lessonCourseInfo = await db.query(`
-      SELECT l.CourseId, l.Title as LessonTitle, c.Title as CourseTitle, c.IsPublished
+      SELECT l.CourseId, l.Title as LessonTitle, c.Title as CourseTitle, c.Status, c.IsPublished
       FROM dbo.Lessons l
       JOIN dbo.Courses c ON l.CourseId = c.Id
       WHERE l.Id = @lessonId
     `, { lessonId });
 
-    // Only send notifications if course is published
-    if (lessonCourseInfo.length > 0 && lessonCourseInfo[0].IsPublished) {
-      const courseInfo = lessonCourseInfo[0];
+    // Only send notifications if course is published or archived
+    const courseInfo = lessonCourseInfo[0];
+    const isAccessible = courseInfo && (
+      courseInfo.Status === 'published' || 
+      courseInfo.Status === 'archived' || 
+      (courseInfo.Status === null && courseInfo.IsPublished)
+    );
+    
+    if (isAccessible) {
       
       // Get all enrolled students (active + completed)
       const enrolledStudents = await db.query(`

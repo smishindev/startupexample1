@@ -28,7 +28,8 @@ router.get('/my-progress', authenticateToken, async (req: AuthRequest, res: Resp
         FROM dbo.Courses c
         LEFT JOIN dbo.Enrollments e ON c.Id = e.CourseId AND e.Status IN ('active', 'completed')
         LEFT JOIN dbo.CourseProgress cp ON e.UserId = cp.UserId AND e.CourseId = cp.CourseId
-        WHERE c.InstructorId = @userId AND c.IsPublished = 1
+        WHERE c.InstructorId = @userId 
+          AND (c.Status IN ('published', 'archived') OR (c.Status IS NULL AND c.IsPublished = 1))
       `, { userId });
 
       const recentActivity = await db.query(`
@@ -44,7 +45,8 @@ router.get('/my-progress', authenticateToken, async (req: AuthRequest, res: Resp
         FROM dbo.Courses c
         LEFT JOIN dbo.Enrollments e ON c.Id = e.CourseId AND e.Status IN ('active', 'completed')
         LEFT JOIN dbo.CourseProgress cp ON e.UserId = cp.UserId AND e.CourseId = cp.CourseId
-        WHERE c.InstructorId = @userId AND c.IsPublished = 1
+        WHERE c.InstructorId = @userId 
+          AND (c.Status IN ('published', 'archived') OR (c.Status IS NULL AND c.IsPublished = 1))
         GROUP BY c.Id, c.Title, c.UpdatedAt
         ORDER BY c.UpdatedAt DESC
       `, { userId });
@@ -554,7 +556,8 @@ router.get('/achievements', authenticateToken, async (req: AuthRequest, res: Res
         FROM dbo.Courses c
         LEFT JOIN dbo.Enrollments e ON c.Id = e.CourseId AND e.Status IN ('active', 'completed')
         LEFT JOIN dbo.CourseProgress cp ON e.UserId = cp.UserId AND e.CourseId = cp.CourseId
-        WHERE c.InstructorId = @userId AND c.IsPublished = 1
+        WHERE c.InstructorId = @userId 
+          AND (c.Status IN ('published', 'archived') OR (c.Status IS NULL AND c.IsPublished = 1))
       `, { userId });
 
       const stats = instructorStats[0] || {};

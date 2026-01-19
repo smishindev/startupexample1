@@ -12,7 +12,9 @@ router.get('/instructor/overview', authenticateToken, authorize(['instructor']),
 
     // Get instructor's courses to filter assessments
     const instructorCourses = await db.query(`
-      SELECT Id FROM dbo.Courses WHERE InstructorId = @instructorId AND IsPublished = 1
+      SELECT Id FROM dbo.Courses 
+      WHERE InstructorId = @instructorId 
+        AND (Status IN ('published', 'archived') OR (Status IS NULL AND IsPublished = 1))
     `, { instructorId });
 
     if (instructorCourses.length === 0) {

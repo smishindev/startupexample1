@@ -1,6 +1,6 @@
 # 🚀 Quick Reference - Development Workflow
 
-**Last Updated**: January 17, 2026 - Office Hours Session Completed Notification (16/31 triggers active)
+**Last Updated**: January 19, 2026 - Instructor Account Deletion & Bug Fixes Complete ✅
 
 ---
 
@@ -23,6 +23,22 @@
 - `GET /api/instructor/courses` - Returns courses with lowercase `level` field
 - `PUT /api/instructor/courses/:id` - Update course (validates & normalizes level)
 - `POST /api/instructor/courses` - Create course (validates & normalizes level)
+- `GET /api/enrollment/my-enrollments` - **Instructor-aware**: Returns UNION ALL of teaching + enrolled courses
+- `GET /api/courses/*` - All public catalog endpoints filter orphaned courses with `INNER JOIN Users`
+
+**Instructor Enrollment Behavior (Fixed Jan 19, 2026):**
+- Instructors can both teach courses AND enroll as students in other courses
+- `/api/enrollment/my-enrollments` returns:
+  - **Teaching courses**: Status='teaching', TimeSpent=0
+  - **Student enrollments**: Status='active'/'completed', TimeSpent=seconds
+- Frontend filters: "Enrolled" badge excludes Status='teaching'
+- Course cards show "Continue Learning" for enrolled, "Manage" for teaching
+
+**Orphaned Course Filtering (Fixed Jan 19, 2026):**
+- Orphaned courses: InstructorId=NULL with Status='deleted'
+- All 6 public course endpoints use `INNER JOIN Users u ON c.InstructorId = u.Id`
+- Ensures category stats, level stats, and search results exclude deleted instructor courses
+- Files: `server/src/routes/courses.ts` lines 71, 82, 149, 255, 291, 333
 
 **Level Field Normalization:**
 - Database: Stores lowercase (beginner, intermediate, advanced, expert)
@@ -132,6 +148,45 @@ Role: Student
 - **Office Hours**: Student joins queue → Wait 2 minutes → Timestamp updates from "less than a minute ago" to "2 minutes ago" ✅
 - **Notifications**: Open notifications page → Wait 1 minute → All timestamps auto-update ✅
 - **Notification Bell**: Open header dropdown → Wait 1 minute → Timestamps update without closing/reopening ✅
+
+---
+
+## 🗑️ Account Deletion System (Jan 18-19, 2026)
+
+**Feature**: Instructors can delete their accounts with 3 options for managing courses
+
+**Access**: Settings → Privacy & Security → Delete Account (red danger zone)
+
+**Flow**:
+1. Click "Delete My Account" → Shows instructor decision dialog
+2. Select course action: Archive All / Transfer All / Force Delete
+3. If transfer: Select target instructor from dropdown
+4. Password confirmation required before execution
+5. Backend executes chosen action + soft-deletes user account
+
+**Course Management Options:**
+- **Archive All**: Changes course status to 'archived' (can be restored)
+- **Transfer All**: Changes InstructorId to new instructor + logs in CourseOwnershipHistory
+- **Force Delete**: Soft-deletes courses (Status='deleted', InstructorId=NULL)
+
+**Security**:
+- Password verification required before any action
+- All operations in transaction (rollback on error)
+- Audit logging in AccountDeletionLog table
+- JWT token invalidated immediately
+
+**Files**: 
+- Backend: `AccountDeletionService.ts`, `account-deletion.ts` (routes)
+- Frontend: `SettingsPage.tsx`, `InstructorDeletionDialog.tsx`, `CourseTransferDialog.tsx`, `ArchiveCoursesDialog.tsx`
+- Database: `CourseOwnershipHistory`, `AccountDeletionLog` tables
+
+**Testing Checklist**:
+- [ ] Archive flow: Verify courses become Status='archived'
+- [ ] Transfer flow: Verify ownership changes + history logged
+- [ ] Force delete: Verify courses become orphaned (InstructorId=NULL)
+- [ ] Password validation: Wrong password rejected
+- [ ] Transaction safety: Error mid-process rolls back
+- [ ] Student enrollments: Preserved after instructor deletion
 - **Chat**: Send message → Wait 1 minute → Message time updates automatically ✅
 - **AI Tutoring**: View session list → Wait 1 minute → "Updated X ago" changes ✅
 - **My Learning**: View enrolled courses → Wait 1 minute → "Last accessed X ago" updates ✅

@@ -1,6 +1,8 @@
 import express, { Response } from 'express';
 import { authenticateToken, AuthRequest } from '../middleware/auth';
 import { SettingsService, UpdateSettingsParams } from '../services/SettingsService';
+import { AccountDeletionService } from '../services/AccountDeletionService';
+import { CourseManagementService } from '../services/CourseManagementService';
 
 const router = express.Router();
 
@@ -117,6 +119,112 @@ router.post('/export-data', authenticateToken, async (req: AuthRequest, res: Res
 });
 
 /**
+ * GET /api/settings/deletion-check
+ * Check if instructor can delete their account and get options
+ */
+router.get('/deletion-check', authenticateToken, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const io = req.app.get('io');
+    const accountDeletionService = new AccountDeletionService(io);
+
+    const options = await accountDeletionService.getInstructorDeletionOptions(userId);
+
+    res.json(options);
+  } catch (error) {
+    console.error('Error checking deletion eligibility:', error);
+    res.status(500).json({ error: 'Failed to check deletion eligibility' });
+  }
+});
+
+/**
+ * POST /api/settings/archive-courses
+ * Archive all instructor's published courses
+ */
+router.post('/archive-courses', authenticateToken, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const { reason } = req.body;
+
+    const io = req.app.get('io');
+    const courseManagementService = new CourseManagementService(io);
+
+    const result = await courseManagementService.archiveAllCourses(userId, reason);
+
+    res.json(result);
+  } catch (error) {
+    console.error('Error archiving courses:', error);
+    res.status(500).json({ error: 'Failed to archive courses' });
+  }
+});
+
+/**
+ * GET /api/settings/eligible-instructors
+ * Get list of instructors eligible for course transfer
+ */
+router.get('/eligible-instructors', authenticateToken, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const io = req.app.get('io');
+    const courseManagementService = new CourseManagementService(io);
+
+    const instructors = await courseManagementService.getEligibleInstructors(userId);
+
+    res.json(instructors);
+  } catch (error) {
+    console.error('Error fetching eligible instructors:', error);
+    res.status(500).json({ error: 'Failed to fetch eligible instructors' });
+  }
+});
+
+/**
+ * POST /api/settings/transfer-courses
+ * Transfer courses to another instructor
+ */
+router.post('/transfer-courses', authenticateToken, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const { toInstructorId, courseIds, reason } = req.body;
+
+    if (!toInstructorId) {
+      return res.status(400).json({ error: 'Target instructor ID required' });
+    }
+
+    const io = req.app.get('io');
+    const courseManagementService = new CourseManagementService(io);
+
+    const result = await courseManagementService.transferCourses({
+      fromInstructorId: userId,
+      toInstructorId,
+      courseIds,
+      reason: reason || 'manual_transfer',
+      transferredBy: userId
+    });
+
+    res.json(result);
+  } catch (error) {
+    console.error('Error transferring courses:', error);
+    res.status(500).json({ error: 'Failed to transfer courses' });
+  }
+});
+
+/**
  * POST /api/settings/delete-account
  * Delete user account
  */
@@ -127,27 +235,35 @@ router.post('/delete-account', authenticateToken, async (req: AuthRequest, res: 
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    const { confirmPassword } = req.body;
+    const { confirmPassword, reason, instructorAction, transferToInstructorId } = req.body;
 
     if (!confirmPassword) {
       return res.status(400).json({ error: 'Password confirmation required' });
     }
 
-    // TODO: Implement account deletion workflow
-    // This should:
-    // 1. Verify password
-    // 2. Cancel active subscriptions
-    // 3. Delete all user data (cascading deletes)
-    // 4. Send confirmation email
-    // 5. Revoke all sessions/tokens
-    // 6. Log deletion for compliance
+    console.log(`🗑️ Account deletion requested for user ${userId}`, 
+      instructorAction ? `with action: ${instructorAction}` : '');
 
-    console.log(`🗑️ Account deletion requested for user ${userId}`);
+    // Get Socket.IO instance for notifications
+    const io = req.app.get('io');
+    const accountDeletionService = new AccountDeletionService(io);
 
-    res.json({
-      success: true,
-      message: 'Account deletion functionality is not yet implemented. Please contact support.'
+    const result = await accountDeletionService.deleteAccount({
+      userId,
+      confirmPassword,
+      reason,
+      instructorAction,
+      transferToInstructorId
     });
+
+    if (!result.success) {
+      return res.status(400).json({ 
+        success: false, 
+        error: result.message 
+      });
+    }
+
+    res.json(result);
   } catch (error) {
     console.error('Error deleting account:', error);
     res.status(500).json({ error: 'Failed to process account deletion' });

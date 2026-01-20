@@ -94,11 +94,19 @@ accountDeletionApi.deleteAccount({ instructorAction, transferToInstructorId, pas
 Backend AccountDeletionService:
   ├─ Verify password
   ├─ Execute course action (archive/transfer/force)
+  ├─ Send critical emails (always, bypass preferences):
+  │   ├─ Account deletion confirmation to user
+  │   ├─ Course transfer notification to students
+  │   ├─ Course archive notification to students
+  │   └─ Course deletion warning to students
   ├─ Soft-delete user (Status='deleted')
   ├─ Log in AccountDeletionLog
   └─ Commit transaction or rollback on error
   ↓
 Frontend: Logout, navigate to login, show success message
+
+Note: Account deletion emails are security-critical and always sent,
+regardless of user notification preferences.
 ```
 
 **Settings Implementation Status (Verified Jan 10, 2026):**

@@ -180,6 +180,14 @@ Role: Student
 - Frontend: `SettingsPage.tsx`, `InstructorDeletionDialog.tsx`, `CourseTransferDialog.tsx`, `ArchiveCoursesDialog.tsx`
 - Database: `CourseOwnershipHistory`, `AccountDeletionLog` tables
 
+**Email Notifications**:
+- Account deletion confirmation (to deleted user)
+- Course archive notification (to enrolled students)
+- Course transfer notification (to students + new instructor)
+- Course deletion warning (to students losing access)
+- **Note**: These emails are **always sent** (bypass notification settings)
+- Security/critical emails, not part of user-controllable notification triggers
+
 **Testing Checklist**:
 - [ ] Archive flow: Verify courses become Status='archived'
 - [ ] Transfer flow: Verify ownership changes + history logged
@@ -187,6 +195,7 @@ Role: Student
 - [ ] Password validation: Wrong password rejected
 - [ ] Transaction safety: Error mid-process rolls back
 - [ ] Student enrollments: Preserved after instructor deletion
+- [ ] Email delivery: All 4 notification types sent successfully
 - **Chat**: Send message → Wait 1 minute → Message time updates automatically ✅
 - **AI Tutoring**: View session list → Wait 1 minute → "Updated X ago" changes ✅
 - **My Learning**: View enrolled courses → Wait 1 minute → "Last accessed X ago" updates ✅

@@ -113,6 +113,11 @@ Instructor Account (Has Students):
 - `client/src/components/ArchiveCoursesDialog.tsx` - Removed immediate execution
 - `client/src/components/CourseTransferDialog.tsx` - Fixed DOM nesting
 
+**Email Notifications:**
+- Account deletion emails (confirmation, course transfer/archive/deletion) are **always sent**
+- These are security/critical emails that **bypass notification settings**
+- Not part of the 31 notification triggers system (user cannot disable)
+
 **Verification Complete:**
 - ✅ All TypeScript errors resolved (0 errors)
 - ✅ SQL queries validated (proper GROUP BY, parameterization, transactions)

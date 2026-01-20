@@ -2408,6 +2408,15 @@ interface Props {
 - `CourseOwnershipHistory` - Track transfers
 - `AccountDeletionLog` - Audit trail
 
+**Email Notifications**:
+- Sends 4 types of emails during deletion process:
+  1. Account deletion confirmation (to deleted user)
+  2. Course archive notification (to enrolled students)
+  3. Course transfer notification (to students + new instructor)
+  4. Course deletion warning (to students losing access)
+- **Always sent** - Bypass notification preferences (security/critical emails)
+- Not part of 31 notification triggers system (non-optional)
+
 **Security**:
 - Password verification before any action
 - All operations in transaction (atomicity)

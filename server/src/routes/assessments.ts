@@ -66,13 +66,14 @@ router.get('/lesson/:lessonId', authenticateToken, async (req: AuthRequest, res:
         a.MaxAttempts,
         a.TimeLimit,
         a.IsAdaptive,
+        a.DueDate,
         a.CreatedAt,
         a.UpdatedAt,
         COUNT(q.Id) as QuestionCount
       FROM dbo.Assessments a
       LEFT JOIN dbo.Questions q ON a.Id = q.AssessmentId
       WHERE a.LessonId = @lessonId
-      GROUP BY a.Id, a.LessonId, a.Title, a.Type, a.PassingScore, a.MaxAttempts, a.TimeLimit, a.IsAdaptive, a.CreatedAt, a.UpdatedAt
+      GROUP BY a.Id, a.LessonId, a.Title, a.Type, a.PassingScore, a.MaxAttempts, a.TimeLimit, a.IsAdaptive, a.DueDate, a.CreatedAt, a.UpdatedAt
       ORDER BY a.CreatedAt
     `, { lessonId });
 
@@ -87,6 +88,7 @@ router.get('/lesson/:lessonId', authenticateToken, async (req: AuthRequest, res:
         maxAttempts: assessment.MaxAttempts,
         timeLimit: assessment.TimeLimit,
         isAdaptive: assessment.IsAdaptive,
+        dueDate: assessment.DueDate,
         createdAt: assessment.CreatedAt,
         updatedAt: assessment.UpdatedAt,
         questionCount: assessment.QuestionCount
@@ -255,7 +257,7 @@ router.get('/:assessmentId/analytics', authenticateToken, checkRole(['instructor
 
     // Get assessment details
     const assessment = await db.query(`
-      SELECT Id, LessonId, Title, Type, PassingScore, MaxAttempts, TimeLimit, IsAdaptive, CreatedAt, UpdatedAt
+      SELECT Id, LessonId, Title, Type, PassingScore, MaxAttempts, TimeLimit, IsAdaptive, DueDate, CreatedAt, UpdatedAt
       FROM dbo.Assessments WHERE Id = @assessmentId
     `, { assessmentId });
 
@@ -410,7 +412,7 @@ router.get('/:assessmentId', authenticateToken, async (req: AuthRequest, res: Re
 
     // Get assessment details with lesson info
     const assessment = await db.query(`
-      SELECT a.Id, a.LessonId, a.Title, a.Type, a.PassingScore, a.MaxAttempts, a.TimeLimit, a.IsAdaptive, a.CreatedAt, a.UpdatedAt, l.CourseId 
+      SELECT a.Id, a.LessonId, a.Title, a.Type, a.PassingScore, a.MaxAttempts, a.TimeLimit, a.IsAdaptive, a.DueDate, a.CreatedAt, a.UpdatedAt, l.CourseId 
       FROM dbo.Assessments a
       JOIN dbo.Lessons l ON a.LessonId = l.Id
       WHERE a.Id = @assessmentId
@@ -491,6 +493,7 @@ router.get('/:assessmentId', authenticateToken, async (req: AuthRequest, res: Re
       maxAttempts: assessment[0].MaxAttempts,
       timeLimit: assessment[0].TimeLimit,
       isAdaptive: assessment[0].IsAdaptive,
+      dueDate: assessment[0].DueDate,
       createdAt: assessment[0].CreatedAt,
       updatedAt: assessment[0].UpdatedAt,
       questions: parsedQuestions,
@@ -507,7 +510,7 @@ router.get('/:assessmentId', authenticateToken, async (req: AuthRequest, res: Re
 // POST /api/assessments - Create new assessment (Instructors only)
 router.post('/', authenticateToken, checkRole(['instructor']), async (req: AuthRequest, res: Response) => {
   try {
-    const { lessonId, title, type, passingScore, maxAttempts, timeLimit, isAdaptive, questions } = req.body;
+    const { lessonId, title, type, passingScore, maxAttempts, timeLimit, isAdaptive, dueDate, questions } = req.body;
     const db = DatabaseService.getInstance();
 
     // Validate required fields
@@ -519,8 +522,8 @@ router.post('/', authenticateToken, checkRole(['instructor']), async (req: AuthR
 
     // Create assessment
     await db.query(`
-      INSERT INTO dbo.Assessments (Id, LessonId, Title, Type, PassingScore, MaxAttempts, TimeLimit, IsAdaptive)
-      VALUES (@id, @lessonId, @title, @type, @passingScore, @maxAttempts, @timeLimit, @isAdaptive)
+      INSERT INTO dbo.Assessments (Id, LessonId, Title, Type, PassingScore, MaxAttempts, TimeLimit, IsAdaptive, DueDate)
+      VALUES (@id, @lessonId, @title, @type, @passingScore, @maxAttempts, @timeLimit, @isAdaptive, @dueDate)
     `, {
       id: assessmentId,
       lessonId,
@@ -529,7 +532,8 @@ router.post('/', authenticateToken, checkRole(['instructor']), async (req: AuthR
       passingScore: passingScore || 70,
       maxAttempts: maxAttempts || 3,
       timeLimit: timeLimit || null,
-      isAdaptive: isAdaptive || false
+      isAdaptive: isAdaptive || false,
+      dueDate: dueDate || null
     });
 
     // Create questions if provided
@@ -565,7 +569,7 @@ router.post('/', authenticateToken, checkRole(['instructor']), async (req: AuthR
 
     // Fetch the created assessment with questions
     const createdAssessment = await db.query(`
-      SELECT Id, LessonId, Title, Type, PassingScore, MaxAttempts, TimeLimit, IsAdaptive, CreatedAt, UpdatedAt
+      SELECT Id, LessonId, Title, Type, PassingScore, MaxAttempts, TimeLimit, IsAdaptive, DueDate, CreatedAt, UpdatedAt
       FROM dbo.Assessments WHERE Id = @assessmentId
     `, { assessmentId });
 
@@ -1141,7 +1145,7 @@ router.get('/submissions/:submissionId/results', authenticateToken, async (req: 
 router.put('/:assessmentId', authenticateToken, checkRole(['instructor']), async (req: AuthRequest, res: Response) => {
   try {
     const { assessmentId } = req.params;
-    const { title, type, passingScore, maxAttempts, timeLimit, isAdaptive, questions } = req.body;
+    const { title, type, passingScore, maxAttempts, timeLimit, isAdaptive, dueDate, questions } = req.body;
     const db = DatabaseService.getInstance();
 
     // Update assessment properties
@@ -1154,6 +1158,7 @@ router.put('/:assessmentId', authenticateToken, checkRole(['instructor']), async
         MaxAttempts = @maxAttempts,
         TimeLimit = @timeLimit,
         IsAdaptive = @isAdaptive,
+        DueDate = @dueDate,
         UpdatedAt = GETUTCDATE()
       WHERE Id = @assessmentId
     `, {
@@ -1163,7 +1168,8 @@ router.put('/:assessmentId', authenticateToken, checkRole(['instructor']), async
       passingScore,
       maxAttempts,
       timeLimit,
-      isAdaptive
+      isAdaptive,
+      dueDate: dueDate || null
     });
 
     // Update questions if provided
@@ -1542,6 +1548,27 @@ router.post('/submissions/:submissionId/request-ai-insights', authenticateToken,
     console.error('Error generating AI insights:', error);
     res.status(500).json({ 
       error: 'Failed to generate AI insights',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// POST /api/assessments/test-due-reminders - Test assessment due reminders (Admins/Instructors only)
+router.post('/test-due-reminders', authenticateToken, checkRole(['instructor', 'admin']), async (req: AuthRequest, res: Response) => {
+  try {
+    const { triggerAssessmentDueReminders } = await import('../services/NotificationScheduler');
+    
+    const result = await triggerAssessmentDueReminders();
+    
+    res.json({
+      success: result.success,
+      message: result.message,
+      remindersSent: result.count
+    });
+  } catch (error) {
+    console.error('Error testing assessment due reminders:', error);
+    res.status(500).json({ 
+      error: 'Failed to test assessment due reminders',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
   }

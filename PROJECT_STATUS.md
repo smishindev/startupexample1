@@ -1,8 +1,107 @@
 # Mishin Learn Platform - Project Status & Memory
 
-**Last Updated**: January 19, 2026 - Bug Fixes & System Verification Complete ✅  
+**Last Updated**: January 20, 2026 - Assessment Due Date Reminders Complete ✅  
 **Developer**: Sergey Mishin (s.mishin.dev@gmail.com)  
 **AI Assistant Context**: This file serves as project memory for continuity across chat sessions
+
+---
+
+## 🚀 MAJOR FEATURE - January 20, 2026
+
+### ⏰ ASSESSMENT DUE DATE REMINDERS - CRON SCHEDULER
+
+**Feature**: Automated notification system that sends reminders to students for assessments due in 2 days
+
+**Implementation Time**: ~4 hours (Jan 20)  
+**Status**: ✅ **PRODUCTION READY** - Full E2E test passing, comprehensive verification complete  
+**Comprehensive Documentation**: See [ASSESSMENT_DUE_REMINDERS_IMPLEMENTATION.md](ASSESSMENT_DUE_REMINDERS_IMPLEMENTATION.md)
+
+#### **What Was Built:**
+
+**1. Cron Scheduler System** ✅
+- **NotificationScheduler.ts** (130 lines) - Central cron job management
+  - Daily job at 9:00 AM UTC: `'0 9 * * *'`
+  - Double initialization protection
+  - Manual trigger export for testing: `triggerAssessmentDueReminders()`
+  - Non-blocking error handling per notification
+  - Success/failure counters with detailed logging
+
+**2. Database Query Helpers** ✅
+- **NotificationHelpers.ts** (320 lines) - Reusable SQL query functions
+  - `getUpcomingAssessmentsDue(daysAhead)` - Complex JOIN query
+  - Finds assessments due in N days without completed submissions
+  - Returns: AssessmentId, Title, DueDate, CourseId, UserId, StudentName, Email
+  - SQL injection protected with parameterized queries
+  - Additional helpers: getInstructorId, getUserName, getCourseProgress, etc.
+
+**3. Database Schema Update** ✅
+- Added `DueDate DATETIME2 NULL` to Assessments table (Line 172)
+- Backward compatible: Existing assessments unaffected
+- Applied to database via schema.sql
+
+**4. API Enhancements** ✅
+- **POST /api/assessments** - Added dueDate parameter support
+- **PUT /api/assessments/:id** - Added dueDate update support
+- **GET /api/assessments** - Returns DueDate in responses
+- **POST /api/assessments/test-due-reminders** - Manual trigger for testing (instructor/admin only)
+
+**5. Server Integration** ✅
+- Added `initializeScheduler(io)` call in server/src/index.ts
+- Scheduler initializes after Socket.io setup
+- Server logs: "🕐 NotificationScheduler initializing..." → "✅ NotificationScheduler started successfully"
+- Console shows: "Assessment Due Reminders: Daily at 9:00 AM UTC"
+
+**6. Comprehensive E2E Test** ✅
+- **test_assessment_due_reminders.py** (345 lines) - Playwright + pytest
+- 10-step verification:
+  1. Create course as instructor
+  2. Publish course
+  3. Create lesson
+  4. Create assessment with dueDate (2 days from now)
+  5. Enroll student
+  6. Get initial notification count
+  7. Trigger reminders via API
+  8. Verify notification created with correct properties
+  9. Login to UI, check notification bell icon
+  10. Navigate to notifications page, verify display
+- **Test Result**: ✅ ALL PASSED in 11.04s
+- Fixed 9 bugs during test development (API endpoints, formats, selectors)
+
+#### **Notification Properties:**
+- **Type**: `assignment`
+- **Category**: `assessment`
+- **Subcategory**: `AssessmentDue`
+- **Priority**: `urgent`
+- **Title**: "Assignment Due Soon!"
+- **Message**: "[Assessment Title]" is due in 2 days ([Formatted Date])
+- **Action URL**: `/courses/{courseId}/lessons/{lessonId}`
+
+#### **Key Features:**
+- ✅ **Automated Reminders**: Daily cron job checks at 9 AM UTC
+- ✅ **Smart Filtering**: Only sends to students without completed submissions
+- ✅ **Manual Testing**: API endpoint for immediate trigger
+- ✅ **Non-Blocking**: Failures don't crash scheduler
+- ✅ **Real-time Updates**: Socket.io broadcasts to connected clients
+- ✅ **Date Handling**: Follows DATE_HANDLING_GUIDE.md (uses `new Date()`, not `Date.now()`)
+- ✅ **Transaction Safe**: Uses parameterized queries
+- ✅ **Preference Aware**: Respects notification settings
+
+#### **Files Created/Modified:**
+- **New:** 4 files (NotificationScheduler.ts, NotificationHelpers.ts, test_assessment_due_reminders.py, documentation) - ~900 lines
+- **Modified:** 4 files (schema.sql, index.ts, assessments.ts, NotificationsPage.tsx)
+
+#### **Bug Fixes:**
+1. ✅ Missing UPDATE support for DueDate in PUT endpoint
+2. ✅ Date calculation inconsistency (Date.now() → new Date())
+3. ✅ NotificationsPage `items` undefined bug (changed to `filtered`)
+4. ✅ Test API path wrong (POST /api/courses → /api/instructor/courses)
+5. ✅ Question format mismatch (questionText → question)
+6. ✅ ID extraction case sensitivity (id vs Id from SQL Server)
+7. ✅ Enrollment endpoint wrong (POST /api/enrollments → /api/enrollment/courses/:id/enroll)
+8. ✅ Course not published (added publish step)
+9. ✅ Login form selectors wrong (name attributes → data-testid)
+
+**Status**: Production-ready, 0 TypeScript errors, comprehensive E2E test passing
 
 ---
 

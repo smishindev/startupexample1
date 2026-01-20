@@ -1,7 +1,72 @@
 # Mishin Learn Platform - Component Registry
 
-**Last Updated**: January 19, 2026 - Account Deletion Components & Bug Fixes ✅  
+**Last Updated**: January 20, 2026 - Assessment Due Date Reminders ✅  
 **Purpose**: Quick reference for all major components, their dependencies, and relationships
+
+---
+
+## ⏰ Notification Scheduler Services
+
+### NotificationScheduler
+**Path**: `server/src/services/NotificationScheduler.ts`  
+**Purpose**: Manages cron jobs for scheduled notification triggers with centralized job registration
+
+**Key Methods**:
+- `initializeScheduler(io: Server)` - Initialize all cron jobs on server startup
+- `sendAssessmentDueReminders()` - Daily cron job handler (9 AM UTC)
+- `triggerAssessmentDueReminders()` - Manual trigger for testing (exported)
+
+**Cron Jobs Registered**:
+- **Assessment Due Reminders**: `'0 9 * * *'` (Daily at 9:00 AM UTC)
+  - Checks for assessments due in 2 days
+  - Sends notifications to students without completed submissions
+  - Non-blocking error handling per notification
+  - Returns: `{ success: boolean, message: string, count: number }`
+
+**Features**:
+- Double initialization protection (returns early if already initialized)
+- Console logging for cron registration: "Assessment Due Reminders: Daily at 9:00 AM UTC"
+- Error handling with success/failure counters
+- Socket.io integration for real-time notifications
+
+**Dependencies**:
+- `node-cron` - Cron job scheduling
+- `NotificationService` - Create and send notifications
+- `NotificationHelpers` - SQL query helpers
+- `date-fns` - Date formatting
+- `Socket.io` - Real-time updates
+
+**Status**: ✅ Production-ready (January 20, 2026)
+
+---
+
+### NotificationHelpers
+**Path**: `server/src/services/NotificationHelpers.ts`  
+**Purpose**: Reusable SQL query helpers for notification trigger logic
+
+**Key Methods**:
+- `getUpcomingAssessmentsDue(daysAhead: number)` - Find assessments due in N days
+  - Complex JOIN query: Assessments → Lessons → Courses → Enrollments → Users
+  - Filters: `DueDate IS NOT NULL`, `DATEDIFF(day, GETUTCDATE(), a.DueDate) = @daysAhead`
+  - Excludes students with completed submissions (LEFT JOIN AssessmentSubmissions)
+  - Returns: AssessmentId, Title, DueDate, Type, LessonId, CourseId, CourseTitle, UserId, StudentName, Email
+- `getInstructorId(courseId: string)` - Get course instructor
+- `getUserName(userId: string)` - Get user display name
+- `getCourseProgress(userId: string, courseId: string)` - Get student progress
+- `getEnrolledStudents(courseId: string)` - Get all enrolled students
+- And 3 more helper functions...
+
+**Features**:
+- SQL injection protection (parameterized queries)
+- Proper error handling with try-catch
+- TypeScript interfaces for return types
+- Reusable across multiple notification triggers
+
+**Dependencies**:
+- `mssql` - SQL Server database access
+- `db` - Database connection pool
+
+**Status**: ✅ Production-ready with 8 helper functions (January 20, 2026)
 
 ---
 

@@ -64,17 +64,27 @@
   - Pattern: State variable triggers re-render → `formatDistanceToNow` recalculates
   - Date handling: UTC in DB, date-fns auto-converts to local time
   - No breaking changes: Purely additive (adds timer, no logic changes)
-- [x] **Notification Triggers** - 16/31 ACTIVE (Jan 17, 2026) ✅
+- [x] **Assessment Due Date Reminders** - PRODUCTION READY (Jan 20, 2026) ⏰
+  - Cron scheduler: Daily at 9:00 AM UTC (`'0 9 * * *'`)
+  - NotificationScheduler.ts (130 lines) - Central cron job management
+  - NotificationHelpers.ts (320 lines) - Reusable SQL query helpers
+  - Database: Added DueDate DATETIME2 NULL to Assessments table
+  - API: POST/PUT/GET support for dueDate, manual test trigger endpoint
+  - E2E Test: test_assessment_due_reminders.py (345 lines) - ALL PASSING
+  - Notification: Type=assignment, Priority=urgent, "due in 2 days" message
+  - Files: NotificationScheduler.ts, NotificationHelpers.ts, schema.sql, index.ts, assessments.ts
+  - Status: 9 bugs fixed, 0 TypeScript errors, comprehensive verification complete
+- [x] **Notification Triggers** - 17/31 ACTIVE (Jan 20, 2026) ✅
   - Progress: Lesson completion, Video completion, Course completion
   - Course Management: Enrollment, New lessons, Course published
   - Live Sessions: Created, Updated, Deleted
-  - Assessments: Created, Submitted, Graded
+  - Assessments: Created, Submitted, Graded, Due Date Reminders (cron)
   - Community: Office Hours completed with duration (Jan 17)
   - System: Payment receipt, Refund confirmation, Password changed (Jan 17)
   - Socket.io real-time updates: Notification bell updates instantly
   - Implementation pattern: Get io from req.app.get('io'), create NotificationService(io)
   - Error handling: Non-blocking try-catch prevents feature failures
-  - 15 triggers remaining: Due dates, study groups, direct messages, etc.
+  - 14 triggers remaining: Weekly progress, study groups, direct messages, certificates, etc.
   - Reference: NOTIFICATION_TRIGGERS_IMPLEMENTATION_PLAN.md
 - [x] Email Notification System - PHASES 1-3 COMPLETE (Dec 28, 2025) ✅
   - Realtime email delivery with Gmail SMTP

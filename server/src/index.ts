@@ -48,6 +48,7 @@ const studentProgressRoutes = require('./routes/student-progress');
 import { DatabaseService } from './services/DatabaseService';
 import { setupSocketHandlers } from './sockets';
 import { logger } from './utils/logger';
+import { initializeScheduler } from './services/NotificationScheduler';
 
 const app = express();
 const server = createServer(app);
@@ -172,6 +173,9 @@ OfficeHoursService.setSocketIO(io);
 StudyGroupService.setSocketIO(io);
 
 app.set('notificationService', notificationService);
+
+// Initialize NotificationScheduler with cron jobs
+initializeScheduler(io);
 
 // Health check endpoint
 app.get('/health', async (req, res) => {

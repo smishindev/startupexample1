@@ -169,6 +169,7 @@ CREATE TABLE dbo.Assessments (
     MaxAttempts INT NOT NULL DEFAULT 3,
     TimeLimit INT NULL, -- in minutes
     IsAdaptive BIT NOT NULL DEFAULT 0,
+    DueDate DATETIME2 NULL, -- Optional due date for assignments
     CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
     UpdatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE()
 );

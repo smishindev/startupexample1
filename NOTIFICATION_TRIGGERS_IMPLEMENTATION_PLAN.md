@@ -1,8 +1,8 @@
 # Notification Triggers - Full Implementation Plan
 
 **Created**: December 28, 2025  
-**Last Updated**: January 17, 2026  
-**Status**: In Progress (16/31 Complete + Hybrid Controls Design)  
+**Last Updated**: January 20, 2026  
+**Status**: In Progress (17/31 Complete + Hybrid Controls Design)  
 **Goal**: Integrate automatic notification creation throughout the application with granular user controls
 
 ---
@@ -97,7 +97,7 @@ When creating notification:
 
 Users receive email notifications (based on their preferences) when these events occur:
 
-#### ✅ **Currently Active (16 triggers)**
+#### ✅ **Currently Active (17 triggers)**
 1. **Lesson Completed** - Student completes any lesson → Email to student + instructor (at milestones)
 2. **Video Completed** - Student finishes watching video → Email to student (January 8, 2026)
 3. **Live Session Created** - Instructor schedules session → Email to all enrolled students
@@ -114,10 +114,12 @@ Users receive email notifications (based on their preferences) when these events
 14. **Refund Confirmation** - Refund processed → Notification with refund amount and timeline (January 15, 2026) 💰 NEW
 15. **Password Changed** - User changes password → Security alert notification (January 17, 2026) 🔒 NEW
 16. **Office Hours Completed** - Session ends → Summary notification with duration (January 17, 2026) 🕒 NEW
+17. **Assessment Due Date Reminders** - Cron job checks daily for assessments due in 2 days → Email to students without submissions (January 20, 2026) ⏰ NEW
 
-#### 🔄 **Coming Soon (15 triggers)**
-- Due date reminders, study group invitations
-- Account deletion requests, direct messages
+#### 🔄 **Coming Soon (14 triggers)**
+- Weekly progress summary, study group invitations
+- Study group member joined, direct messages
+- Certificate earned, instructor announcements
 - Daily/weekly progress summaries, scheduled notifications
 
 **Email Delivery Options** (Profile → Preferences):
@@ -165,7 +167,7 @@ Event hooks for due da9-11
 - Infrastructure: 5 scheduled jobs
 
 **Implementation Status:**
-- ✅ **Implemented & Working**: 16 triggers
+- ✅ **Implemented & Working**: 17 triggers
   - Lesson Completion (Student + Instructor notifications) - December 29, 2025
   - Video Completion (Student notification) - January 8, 2026
   - Live Session Created (Student notifications) - Pre-existing
@@ -181,8 +183,9 @@ Event hooks for due da9-11
   - Payment Receipt (Student confirmation) - January 15, 2026
   - Refund Confirmation (Student notification) - January 15, 2026
   - Password Changed (Security alert) - January 17, 2026
-  - **Office Hours Completed (Session summary with duration) - January 17, 2026** 🕒 NEW
-- ⏳ **Pending**: 15 triggers
+  - Office Hours Completed (Session summary with duration) - January 17, 2026
+  - **Assessment Due Date Reminders (Cron job - daily at 9 AM UTC) - January 20, 2026** ⏰ NEW
+- ⏳ **Pending**: 14 triggers
 
 ---
 

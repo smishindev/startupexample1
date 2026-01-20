@@ -238,7 +238,7 @@ export const NotificationsPage: React.FC = () => {
             >
               Preferences
             </Button>
-            <Button startIcon={<DoneAllIcon />} onClick={markAll} disabled={items.every(i => i.IsRead)} data-testid="notifications-mark-all-read-button">
+            <Button startIcon={<DoneAllIcon />} onClick={markAll} disabled={filtered.every(i => i.IsRead)} data-testid="notifications-mark-all-read-button">
               Mark all read
             </Button>
             <Button onClick={fetchAll} data-testid="notifications-refresh-button">Refresh</Button>

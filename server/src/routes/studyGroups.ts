@@ -2,6 +2,8 @@ import { Router } from 'express';
 import { Server } from 'socket.io';
 import { StudyGroupService } from '../services/StudyGroupService';
 import { SettingsService } from '../services/SettingsService';
+import { NotificationService } from '../services/NotificationService';
+import { DatabaseService } from '../services/DatabaseService';
 import { authenticateToken, AuthRequest } from '../middleware/auth';
 
 const router = Router();
@@ -94,25 +96,30 @@ router.get('/', authenticateToken, async (req: AuthRequest, res) => {
 });
 
 /**
- * @route   GET /api/study-groups/:groupId
- * @desc    Get study group details
+ * @route   GET /api/study-groups/search
+ * @desc    Search study groups by name
  * @access  Private
+ * @note    Must come before /:groupId to avoid treating "search" as a groupId
  */
-router.get('/:groupId', authenticateToken, async (req: AuthRequest, res) => {
+router.get('/search', authenticateToken, async (req: AuthRequest, res) => {
   try {
-    const { groupId } = req.params;
+    const { q, courseId } = req.query;
 
-    const group = await StudyGroupService.getGroupById(groupId);
-
-    if (!group) {
-      return res.status(404).json({ message: 'Study group not found' });
+    if (!q) {
+      return res.status(400).json({ message: 'Search query is required' });
     }
 
-    res.json({ group });
+    const groups = await StudyGroupService.searchGroups(
+      q as string,
+      courseId as string | undefined
+    );
+    const enrichedGroups = await StudyGroupService.enrichGroupsWithMembership(groups, req.user!.userId);
+
+    res.json({ groups: enrichedGroups, count: enrichedGroups.length });
   } catch (error) {
-    console.error('Error fetching study group:', error);
+    console.error('Error searching study groups:', error);
     res.status(500).json({ 
-      message: 'Failed to fetch study group', 
+      message: 'Failed to search study groups', 
       error: error instanceof Error ? error.message : 'Unknown error' 
     });
   }
@@ -122,6 +129,7 @@ router.get('/:groupId', authenticateToken, async (req: AuthRequest, res) => {
  * @route   GET /api/study-groups/course/:courseId
  * @desc    Get all study groups for a course
  * @access  Private
+ * @note    Must come before /:groupId to avoid treating "course" as a groupId
  */
 router.get('/course/:courseId', authenticateToken, async (req: AuthRequest, res) => {
   try {
@@ -144,6 +152,7 @@ router.get('/course/:courseId', authenticateToken, async (req: AuthRequest, res)
  * @route   GET /api/study-groups/my/groups
  * @desc    Get user's study groups
  * @access  Private
+ * @note    Must come before /:groupId to avoid treating "my" as a groupId
  */
 router.get('/my/groups', authenticateToken, async (req: AuthRequest, res) => {
   try {
@@ -166,6 +175,136 @@ router.get('/my/groups', authenticateToken, async (req: AuthRequest, res) => {
 });
 
 /**
+ * @route   GET /api/study-groups/:groupId
+ * @desc    Get study group details
+ * @access  Private
+ * @note    Generic route - must come AFTER specific routes (search, course, my)
+ */
+router.get('/:groupId', authenticateToken, async (req: AuthRequest, res) => {
+  try {
+    const { groupId } = req.params;
+
+    const group = await StudyGroupService.getGroupById(groupId);
+
+    if (!group) {
+      return res.status(404).json({ message: 'Study group not found' });
+    }
+
+    res.json({ group });
+  } catch (error) {
+    console.error('Error fetching study group:', error);
+    res.status(500).json({ 
+      message: 'Failed to fetch study group', 
+      error: error instanceof Error ? error.message : 'Unknown error' 
+    });
+  }
+});
+
+/**
+ * @route   POST /api/study-groups/:groupId/invite
+ * @desc    Invite a user to join a study group
+ * @access  Private (member only)
+ */
+router.post('/:groupId/invite', authenticateToken, async (req: AuthRequest, res) => {
+  try {
+    const { groupId } = req.params;
+    const { userId } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({ message: 'User ID is required' });
+    }
+
+    // Prevent users from inviting themselves
+    if (userId === req.user!.userId) {
+      return res.status(400).json({ message: 'You cannot invite yourself' });
+    }
+
+    // Check if requester is a member of the group
+    const isMember = await StudyGroupService.isMember(groupId, req.user!.userId);
+    if (!isMember) {
+      return res.status(403).json({ message: 'Only group members can invite others' });
+    }
+
+    // Check if invited user exists
+    const db = DatabaseService.getInstance();
+    const userResult = await db.query<{ Id: string; FirstName: string; LastName: string; Username: string }>(
+      `SELECT Id, FirstName, LastName, Username FROM dbo.Users WHERE Id = @userId AND IsActive = 1`,
+      { userId }
+    );
+
+    if (userResult.length === 0) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Check if user is already a member
+    const alreadyMember = await StudyGroupService.isMember(groupId, userId);
+    if (alreadyMember) {
+      return res.status(400).json({ message: 'User is already a member of this group' });
+    }
+
+    // Get group details for notification
+    const group = await StudyGroupService.getGroupById(groupId);
+    if (!group) {
+      return res.status(404).json({ message: 'Study group not found' });
+    }
+
+    // Get inviter name
+    const inviterResult = await db.query<{ FirstName: string; LastName: string; Username: string }>(
+      `SELECT FirstName, LastName, Username FROM dbo.Users WHERE Id = @inviterId`,
+      { inviterId: req.user!.userId }
+    );
+    const inviterName = inviterResult[0]?.FirstName && inviterResult[0]?.LastName 
+      ? `${inviterResult[0].FirstName} ${inviterResult[0].LastName}`
+      : inviterResult[0]?.Username || 'A group member';
+
+    // Send notification to invited user
+    const io: Server = req.app.get('io');
+    if (io) {
+      try {
+        const notificationService = new NotificationService(io);
+        await notificationService.createNotificationWithControls(
+          {
+            userId: userId,
+            type: 'course',
+            priority: 'normal',
+            title: 'Study Group Invitation',
+            message: `${inviterName} invited you to join "${group.Name}"`,
+            actionUrl: `/study-groups`,
+            actionText: 'View Group',
+            relatedEntityId: groupId,
+            relatedEntityType: 'course'
+          },
+          {
+            category: 'community',
+            subcategory: 'GroupInvites'
+          }
+        );
+        console.log(`✅ Invitation notification sent to user ${userId} for group ${groupId}`);
+      } catch (notifError) {
+        console.error('❌ Error creating invitation notification:', notifError);
+        // Don't fail the request if notification fails
+      }
+    }
+
+    res.json({ 
+      message: 'Invitation sent successfully',
+      invitedUser: {
+        id: userResult[0].Id,
+        name: userResult[0].FirstName && userResult[0].LastName 
+          ? `${userResult[0].FirstName} ${userResult[0].LastName}`
+          : userResult[0].Username
+      }
+    });
+  } catch (error) {
+    console.error('Error inviting user to study group:', error);
+    res.status(500).json({ 
+      message: 'Failed to send invitation', 
+      error: error instanceof Error ? error.message : 'Unknown error' 
+    });
+  }
+});
+
+/**
  * @route   POST /api/study-groups/:groupId/join
  * @desc    Join a study group
  * @access  Private
@@ -176,7 +315,7 @@ router.post('/:groupId/join', authenticateToken, async (req: AuthRequest, res) =
 
     const member = await StudyGroupService.addMember(groupId, req.user!.userId);
 
-    // Emit Socket.IO event
+    // Emit Socket.IO event (always)
     const io: Server = req.app.get('io');
     if (io) {
       console.log('Emitting study-group-member-joined event:', { groupId, userId: req.user!.userId });
@@ -185,6 +324,58 @@ router.post('/:groupId/join', authenticateToken, async (req: AuthRequest, res) =
         userId: req.user!.userId,
         userName: req.user!.email
       });
+    }
+
+    // Get group details and new member info for notifications
+    const group = await StudyGroupService.getGroupById(groupId);
+    
+    // Only send notifications if group exists and has other members
+    if (group && io) {
+      const db = DatabaseService.getInstance();
+      const newMemberResult = await db.query<{ FirstName: string; LastName: string; Username: string }>(
+        `SELECT FirstName, LastName, Username FROM dbo.Users WHERE Id = @userId`,
+        { userId: req.user!.userId }
+      );
+      const newMemberName = newMemberResult[0]?.FirstName && newMemberResult[0]?.LastName 
+        ? `${newMemberResult[0].FirstName} ${newMemberResult[0].LastName}`
+        : newMemberResult[0]?.Username || 'A new member';
+
+      // Get all existing members (excluding the new joiner) for notifications
+      const existingMembers = await db.query<{ UserId: string }>(
+        `SELECT UserId FROM dbo.StudyGroupMembers WHERE GroupId = @groupId AND UserId != @newUserId`,
+        { groupId, newUserId: req.user!.userId }
+      );
+
+      // Send notifications to existing members about the new joiner
+      if (existingMembers.length > 0) {
+        try {
+          const notificationService = new NotificationService(io);
+          
+          for (const existingMember of existingMembers) {
+            await notificationService.createNotificationWithControls(
+              {
+                userId: existingMember.UserId,
+                type: 'course',
+                priority: 'normal',
+                title: 'New Study Group Member',
+                message: `${newMemberName} joined "${group.Name}"`,
+                actionUrl: `/study-groups`,
+                actionText: 'View Group',
+                relatedEntityId: groupId,
+                relatedEntityType: 'course'
+              },
+              {
+                category: 'community',
+                subcategory: 'GroupActivity'
+              }
+            );
+          }
+          console.log(`✅ Sent ${existingMembers.length} member-joined notifications for group ${groupId}`);
+        } catch (notifError) {
+          console.error('❌ Error creating member-joined notifications:', notifError);
+          // Don't fail the request if notifications fail
+        }
+      }
     }
 
     res.json({ 
@@ -394,35 +585,6 @@ router.delete('/:groupId', authenticateToken, async (req: AuthRequest, res) => {
     console.error('Error deleting study group:', error);
     res.status(500).json({ 
       message: 'Failed to delete study group', 
-      error: error instanceof Error ? error.message : 'Unknown error' 
-    });
-  }
-});
-
-/**
- * @route   GET /api/study-groups/search
- * @desc    Search study groups by name
- * @access  Private
- */
-router.get('/search', authenticateToken, async (req: AuthRequest, res) => {
-  try {
-    const { q, courseId } = req.query;
-
-    if (!q) {
-      return res.status(400).json({ message: 'Search query is required' });
-    }
-
-    const groups = await StudyGroupService.searchGroups(
-      q as string,
-      courseId as string | undefined
-    );
-    const enrichedGroups = await StudyGroupService.enrichGroupsWithMembership(groups, req.user!.userId);
-
-    res.json({ groups: enrichedGroups, count: enrichedGroups.length });
-  } catch (error) {
-    console.error('Error searching study groups:', error);
-    res.status(500).json({ 
-      message: 'Failed to search study groups', 
       error: error instanceof Error ? error.message : 'Unknown error' 
     });
   }

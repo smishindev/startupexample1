@@ -2,7 +2,7 @@
 
 **Created**: December 28, 2025  
 **Last Updated**: January 21, 2026  
-**Status**: In Progress (18/31 Complete + Hybrid Controls Design)  
+**Status**: In Progress (20/31 Complete + Hybrid Controls Design)  
 **Goal**: Integrate automatic notification creation throughout the application with granular user controls
 
 ---
@@ -97,7 +97,7 @@ When creating notification:
 
 Users receive email notifications (based on their preferences) when these events occur:
 
-#### ✅ **Currently Active (18 triggers)**
+#### ✅ **Currently Active (20 triggers)**
 1. **Lesson Completed** - Student completes any lesson → Email to student + instructor (at milestones)
 2. **Video Completed** - Student finishes watching video → Email to student (January 8, 2026)
 3. **Live Session Created** - Instructor schedules session → Email to all enrolled students
@@ -116,10 +116,11 @@ Users receive email notifications (based on their preferences) when these events
 16. **Office Hours Completed** - Session ends → Summary notification with duration (January 17, 2026) 🕒 NEW
 17. **Assessment Due Date Reminders** - Cron job checks daily for assessments due in 2 days → Email to students without submissions (January 20, 2026) ⏰ NEW
 18. **Weekly Progress Summary** - Cron job sends weekly activity summary every Monday → Email to all active students with activity in past 7 days (January 21, 2026) 📊 NEW
+19. **Study Group Invitation** - Member invites user to join group → Notification to invited user (January 21, 2026) 👥 NEW
+20. **Study Group Member Joined** - User joins study group → Notification to all existing members (January 21, 2026) 👥 NEW
 
-#### 🔄 **Coming Soon (13 triggers)**
-- Study group invitations, study group member joined
-- Direct messages, certificates earned
+#### 🔄 **Coming Soon (11 triggers)**
+- Study group promotion, direct messages, certificates earned
 - Instructor announcements, scheduled notifications, etc.
 
 **Email Delivery Options** (Profile → Preferences):
@@ -862,43 +863,81 @@ try {
 
 ---
 
-### 3.3 Study Group Created/Joined
+### 3.3 Study Group Invitation
 **File**: `server/src/routes/studyGroups.ts`  
-**Endpoints**: 
-- `POST /api/study-groups/` (create, Line ~15)
-- `POST /api/study-groups/:groupId/join` (join, Line ~173)
+**Endpoint**: `POST /api/study-groups/:groupId/invite` (Line ~170)
+
+**Status**: ✅ **IMPLEMENTED** (January 21, 2026)
 
 **Triggers:**
-- ✅ **Group members**: New member joined notification
-- ✅ **New member**: Welcome to group notification
+- ✅ **Invited user**: Receives notification when invited to join a study group
+
+**Implementation Details:**
+- Validates requester is group member
+- Checks target user exists and is not already a member
+- Creates notification for invited user with inviter's name
+- Non-blocking error handling (doesn't fail request if notification fails)
 
 **Notification Details:**
 ```typescript
-// When member joins
 type: 'course'
+category: 'community'
+subcategory: 'GroupInvites'
 priority: 'normal'
-title: 'New Study Group Member'
-message: '{memberName} joined "{groupName}"'
-actionUrl: '/study-groups/{groupId}'
+title: 'Study Group Invitation'
+message: '{inviterName} invited you to join "{groupName}"'
+actionUrl: '/study-groups'
 actionText: 'View Group'
-
-// To new member
-type: 'course'
-priority: 'normal'
-title: 'Welcome to Study Group'
-message: 'You joined "{groupName}". {memberCount} members'
-actionUrl: '/study-groups/{groupId}'
-actionText: 'View Group'
+relatedEntityId: groupId
+relatedEntityType: 'course'
 ```
 
 ---
 
-### 3.4 Study Group Role Promotion
+### 3.4 Study Group Member Joined
+**File**: `server/src/routes/studyGroups.ts`  
+**Endpoint**: `POST /api/study-groups/:groupId/join` (Line ~262)
+
+**Status**: ✅ **IMPLEMENTED** (January 21, 2026)
+
+**Triggers:**
+- ✅ **Existing members**: All existing members notified when new member joins
+
+**Implementation Details:**
+- After successful join, queries all existing members (excluding new joiner)
+- Creates notification for each existing member
+- Includes new member's display name in notification message
+- Non-blocking error handling (doesn't fail join if notifications fail)
+- Logs success count: "Sent N member-joined notifications for group X"
+
+**Notification Details:**
+```typescript
+type: 'course'
+category: 'community'
+subcategory: 'GroupActivity'
+priority: 'normal'
+title: 'New Study Group Member'
+message: '{newMemberName} joined "{groupName}"'
+actionUrl: '/study-groups'
+actionText: 'View Group'
+relatedEntityId: groupId
+relatedEntityType: 'course'
+```
+
+**Socket.IO Events:**
+- Emits: `study-group-member-joined` to all connected clients
+- Real-time notification bell updates via NotificationService
+
+---
+
+### 3.5 Study Group Role Promotion
 **File**: `server/src/routes/studyGroups.ts`  
 **Endpoint**: `POST /api/study-groups/:groupId/members/:userId/promote` (Line ~281)
 
+**Status**: ⏳ **NOT YET IMPLEMENTED**
+
 **Triggers:**
-- ✅ **Promoted member**: Role change notification
+- ⏳ **Promoted member**: Role change notification
 
 **Notification Details:**
 ```typescript
@@ -1117,18 +1156,19 @@ export async function getStudentCourses(userId: string): Promise<CourseInfo[]>
 - [ ] 3.1 Office hours queue join
   - [ ] Add instructor notification
   - [ ] Test queue join
-- [ ] 3.2 Office hours completed
-  - [ ] Student summary notification
-  - [ ] Test session completion
-- [ ] 3.3 Study group joined
-  - [ ] Notify existing members
-  - [ ] Welcome notification to new member
-  - [ ] Test join flow
+- [x] 3.2 Office hours completed ✅ **COMPLETED** (January 17, 2026)
+  - [x] Student summary notification
+  - [x] Test session completion
+- [x] 3.3 Study group invitation & member joined ✅ **COMPLETED** (January 21, 2026)
+  - [x] Study group invitation endpoint (POST /api/study-groups/:groupId/invite)
+  - [x] Notify invited user with inviter's name
+  - [x] Notify existing members when new member joins
+  - [x] Test join flow with notifications
 - [ ] 3.4 Study group promotion
   - [ ] Notify promoted member
   - [ ] Test promotion
-- [ ] 3.5 Live session created
-  - [ ] ✅ ALREADY IMPLEMENTED
+- [x] 3.5 Live session created ✅ **COMPLETED**
+  - [x] ALREADY IMPLEMENTED
 - [ ] 3.6 Live session starting soon
   - [ ] Add cron job (every 15 min)
   - [ ] Check sessions starting in 30 min
@@ -1318,6 +1358,7 @@ MAX_NOTIFICATIONS_PER_HOUR: 10  // Rate limiting
 | Reply to Your Comment | `EnableReplies` | ✅ ON | ✅ ON | normal |
 | Mentioned in Comment | `EnableMentions` | ✅ ON | ✅ ON | normal |
 | Study Group Invitation | `EnableGroupInvites` | ✅ ON | ✅ ON | normal |
+| Study Group Member Joined | `EnableGroupActivity` | ✅ ON | ✅ ON | normal |
 | Office Hours Available | `EnableOfficeHours` | ✅ ON | ✅ ON | normal |
 
 ### **Category 5: System Alerts**
@@ -1407,12 +1448,14 @@ ADD EnableComments BIT NULL,
     EnableReplies BIT NULL,
     EnableMentions BIT NULL,
     EnableGroupInvites BIT NULL,
+    EnableGroupActivity BIT NULL,
     EnableOfficeHours BIT NULL,
     -- Email-specific toggles
     EmailComments BIT NULL,
     EmailReplies BIT NULL,
     EmailMentions BIT NULL,
     EmailGroupInvites BIT NULL,
+    EmailGroupActivity BIT NULL,
     EmailOfficeHours BIT NULL;
 
 -- System Alerts Subcategories

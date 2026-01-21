@@ -93,11 +93,13 @@ export interface NotificationPreferences {
   EnableReplies: boolean | null;
   EnableMentions: boolean | null;
   EnableGroupInvites: boolean | null;
+  EnableGroupActivity: boolean | null;
   EnableOfficeHours: boolean | null;
   EmailComments: boolean | null;
   EmailReplies: boolean | null;
   EmailMentions: boolean | null;
   EmailGroupInvites: boolean | null;
+  EmailGroupActivity: boolean | null;
   EmailOfficeHours: boolean | null;
   
   // System Alerts subcategories
@@ -620,6 +622,7 @@ export class NotificationService {
             EnableReplies, EmailReplies,
             EnableMentions, EmailMentions,
             EnableGroupInvites, EmailGroupInvites,
+            EnableGroupActivity, EmailGroupActivity,
             EnableOfficeHours, EmailOfficeHours,
             EnablePaymentConfirmation, EmailPaymentConfirmation,
             EnablePaymentReceipt, EmailPaymentReceipt,
@@ -724,6 +727,7 @@ export class NotificationService {
       // Community subcategories
       const communityFields = ['EnableComments', 'EmailComments', 'EnableReplies', 'EmailReplies',
         'EnableMentions', 'EmailMentions', 'EnableGroupInvites', 'EmailGroupInvites',
+        'EnableGroupActivity', 'EmailGroupActivity',
         'EnableOfficeHours', 'EmailOfficeHours'];
       // System subcategories
       const systemFields = ['EnablePaymentConfirmation', 'EmailPaymentConfirmation', 'EnablePaymentReceipt', 'EmailPaymentReceipt',
@@ -831,6 +835,7 @@ export class NotificationService {
             EnableReplies, EmailReplies,
             EnableMentions, EmailMentions,
             EnableGroupInvites, EmailGroupInvites,
+            EnableGroupActivity, EmailGroupActivity,
             EnableOfficeHours, EmailOfficeHours,
             EnablePaymentConfirmation, EmailPaymentConfirmation,
             EnablePaymentReceipt, EmailPaymentReceipt,
@@ -876,6 +881,7 @@ export class NotificationService {
               EnableReplies, EmailReplies,
               EnableMentions, EmailMentions,
               EnableGroupInvites, EmailGroupInvites,
+              EnableGroupActivity, EmailGroupActivity,
               EnableOfficeHours, EmailOfficeHours,
               EnablePaymentConfirmation, EmailPaymentConfirmation,
               EnablePaymentReceipt, EmailPaymentReceipt,
@@ -1230,6 +1236,8 @@ export class NotificationService {
           EmailMentions: null,
           EnableGroupInvites: null,
           EmailGroupInvites: null,
+          EnableGroupActivity: null,
+          EmailGroupActivity: null,
           EnableOfficeHours: null,
           EmailOfficeHours: null,
           EnablePaymentConfirmation: null,

@@ -177,3 +177,14 @@ export const searchGroups = async (params: SearchGroupsParams): Promise<StudyGro
     throw new Error(error.response?.data?.message || 'Failed to search study groups');
   }
 };
+
+/**
+ * Invite a user to join a study group
+ */
+export const inviteUser = async (groupId: string, userId: string): Promise<void> => {
+  try {
+    await api.post(`${API_URL}/${groupId}/invite`, { userId });
+  } catch (error: any) {
+    throw new Error(error.response?.data?.message || 'Failed to send invitation');
+  }
+};

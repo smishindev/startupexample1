@@ -84,6 +84,190 @@
 
 ---
 
+## 👥 Study Group Notification Features
+
+### User Search Endpoint
+**Path**: `server/src/routes/users.ts`  
+**Endpoint**: `GET /api/users/search`  
+**Status**: ✅ Production-ready (January 21, 2026)
+
+**Purpose**: Search for users by name, username, or email to invite to study groups
+
+**Query Parameters**:
+- `q` (required): Search query, min 2 characters
+- `limit` (optional): Max results, default 10
+
+**Features**:
+- Excludes current user from results (prevents self-invite)
+- Filters active users only (`IsActive = 1`)
+- SQL injection protected (parameterized queries)
+- LIKE search on: FirstName, LastName, Username, Email
+- Returns: Id, FirstName, LastName, Username, Email
+
+**Security**:
+- Authentication required
+- Cannot see inactive users
+- Cannot see self in results
+
+---
+
+### Study Group Invitation
+**Path**: `server/src/routes/studyGroups.ts`  
+**Endpoint**: `POST /api/study-groups/:groupId/invite`  
+**Status**: ✅ Production-ready (January 21, 2026)
+
+**Purpose**: Sends invitation notification to a user to join a study group
+
+**Request Body**:
+```typescript
+{
+  userId: string  // ID of user to invite
+}
+```
+
+**Validation**:
+- Requester must be a member of the group
+- Target user must exist and be active
+- Target user must not already be a member
+- Group must exist and be active
+
+**Notification Details**:
+- **Type**: `course`
+- **Category**: `community`
+- **Subcategory**: `GroupInvites`
+- **Priority**: `normal`
+- **Title**: "Study Group Invitation"
+- **Message**: "{inviterName} invited you to join \"{groupName}\""
+- **Action URL**: `/study-groups`
+- **Action Text**: "View Group"
+
+**Implementation Features**:
+- Fetches inviter's display name (FirstName LastName or Username)
+- Non-blocking error handling (doesn't fail request if notification fails)
+- Uses `NotificationService.createNotificationWithControls()` for preference checking
+- Real-time Socket.IO updates via NotificationService
+
+**Response**:
+```typescript
+{
+  message: "Invitation sent successfully",
+  invitedUser: {
+    id: string,
+    name: string
+  }
+}
+```
+
+---
+
+### InviteUserModal
+**Path**: `client/src/components/StudyGroups/InviteUserModal.tsx`  
+**Status**: ✅ Production-ready (January 21, 2026)
+
+**Purpose**: Modal component for inviting users to study groups with debounced search
+
+**Implementation Details**:
+- 500ms debounced search with minimum 2 characters
+- Excludes current user from search results (backend filtering)
+- Filters active users only (IsActive = 1)
+- Individual invite buttons per user
+- Loading states with circular progress indicators
+- Toast notifications for success/error feedback
+- Cleans state on modal close via handleClose()
+
+**State Management**:
+```typescript
+interface State {
+  searchQuery: string;           // Current search input
+  users: SearchedUser[];         // Search results array
+  loading: boolean;              // API loading state
+  error: string | null;          // Error message
+  inviting: Record<string, boolean>; // Per-user invite states
+  selectedUser: string | null;   // Currently selected user ID
+}
+```
+
+**API Integration**:
+- Endpoint: `GET /api/users/search?query={searchQuery}`
+- Returns: Array of { Id, FirstName, LastName, Username, Email }
+- Invite Endpoint: `POST /api/study-groups/:groupId/invite` with { userId }
+
+**UI Components**:
+- **Dialog**: MUI Dialog with 600px max width
+- **Search Field**: TextField with debounced onChange, search icon, loading indicator
+- **User List**: Scrollable list with avatars, names, usernames
+- **Invite Button**: Per-user button with loading state during invite
+- **Empty States**: "Type at least 2 characters" or "No users found"
+
+**Test IDs**:
+- `invite-user-modal` - Main dialog container
+- `invite-user-search-input` - Search text field
+- `invite-button-{userId}` - Individual invite buttons
+
+**Security Features**:
+- Backend prevents self-invite (server-side validation)
+- Backend excludes inactive users from search
+- Authentication required via authenticateToken middleware
+
+**Edge Cases Handled**:
+- Empty search query (min 2 chars enforced)
+- No results found (helpful message)
+- API errors (toast notification + error state)
+- Duplicate invites prevented (button disabled during invite)
+- Modal state cleanup on close
+
+---
+
+### Study Group Member Joined Notifications
+**Path**: `server/src/routes/studyGroups.ts`  
+**Endpoint**: `POST /api/study-groups/:groupId/join`  
+**Status**: ✅ Production-ready (January 21, 2026)
+
+**Purpose**: Notifies all existing group members when a new member joins
+
+**Implementation Details**:
+- After successful join, queries all existing members (excluding new joiner)
+- Creates notification for each existing member
+- Fetches new member's display name for personalized messages
+- Non-blocking error handling (doesn't fail join if notifications fail)
+- Logs success count: "✅ Sent N member-joined notifications for group X"
+
+**Notification Details**:
+- **Type**: `course`
+- **Category**: `community`
+- **Subcategory**: `GroupActivity`
+- **Priority**: `normal`
+- **Title**: "New Study Group Member"
+- **Message**: "{newMemberName} joined \"{groupName}\""
+- **Action URL**: `/study-groups`
+- **Action Text**: "View Group"
+
+**Socket.IO Events**:
+- Emits: `study-group-member-joined` to all connected clients
+- Payload: `{ groupId, userId, userName }`
+- Real-time notification bell updates via NotificationService
+
+**Database Queries**:
+```sql
+-- Get group details
+SELECT Id, Name FROM StudyGroups WHERE Id = @groupId
+
+-- Get new member name
+SELECT FirstName, LastName, Username FROM Users WHERE Id = @userId
+
+-- Get all existing members (excluding new joiner)
+SELECT UserId FROM StudyGroupMembers 
+WHERE GroupId = @groupId AND UserId != @newUserId
+```
+
+**Features**:
+- Respects user notification preferences (hybrid control system)
+- Supports email delivery (realtime/daily/weekly digest)
+- Quiet hours aware (via NotificationService)
+- Privacy-aware (uses display name from user profile)
+
+---
+
 ## 🎓 Instructor Course Management
 
 ### CourseEditPage

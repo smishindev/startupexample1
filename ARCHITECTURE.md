@@ -1,6 +1,6 @@
 # Mishin Learn Platform - System Architecture
 
-**Last Updated**: January 21, 2026 - Weekly Progress Summary Complete ✅  
+**Last Updated**: January 21, 2026 - Study Group Invitations Complete ✅  
 **Purpose**: Understanding system components, data flows, and dependencies
 
 ---
@@ -204,7 +204,7 @@ POST   /api/email-unsubscribe/resubscribe - Resubscribe to emails
 - **Unsubscribe**: One-click token-based unsubscribe with database tracking
 - **Templates**: Beautiful HTML emails with type-specific styling (progress, course, system, social, assessment)
 
-**Notification Triggers (18/31 Active - January 21, 2026):**
+**Notification Triggers (20/31 Active - January 21, 2026):**
 - ✅ **Lesson Completion**: Student progress update + instructor milestones (25%, 50%, 75%, 100%) - Dec 29, 2025
 - ✅ **Video Completion**: Student completion notification - Jan 8, 2026
 - ✅ **Course Completion**: Student achievement celebration - Jan 15, 2026
@@ -223,7 +223,9 @@ POST   /api/email-unsubscribe/resubscribe - Resubscribe to emails
 - ✅ **Password Changed**: Security alert sent to user - Jan 17, 2026
 - ✅ **Assessment Due Reminders**: Daily cron job (9 AM UTC) checks for assessments due in 2 days - Jan 20, 2026
 - ✅ **Weekly Progress Summary**: Weekly cron job (Monday 8 AM UTC) sends activity summaries - Jan 21, 2026
-- 🔜 **13 Remaining**: Study groups, direct messages, certificates, badges, interventions, etc.
+- ✅ **Study Group Invitation**: Member invites user to join group - Jan 21, 2026
+- ✅ **Study Group Member Joined**: All existing members notified when someone joins - Jan 21, 2026
+- 🔜 **11 Remaining**: Direct messages, certificates, badges, interventions, etc.
 
 **Implementation Pattern:**
 ```typescript
@@ -1153,7 +1155,115 @@ Student receives completion notification (real-time)
 
 ---
 
-### 9. **Presence System Flow** (Real-time)
+### 9. **Study Groups Flow** (Real-time with Invitations - January 21, 2026)
+```
+User creates study group → StudyGroupsPage
+  ↓
+studyGroupsApi.createGroup({ name, courseId, description })
+  ↓ (POST /api/study-groups)
+Backend studyGroups.ts:
+  ├─→ Create StudyGroup record
+  ├─→ Auto-add creator as member
+  └─→ Return group details
+  ↓
+User searches for users to invite:
+  ↓
+usersApi.searchUsers(query)
+  ↓ (GET /api/users/search?query={searchQuery})
+Backend users.ts:
+  ├─→ Query Users table (FirstName, LastName, Username, Email)
+  ├─→ Filter: IsActive = 1 AND Id != currentUserId
+  ├─→ Min 2 chars required, prevents self-invite
+  └─→ Return user array (Id, FirstName, LastName, Username, Email)
+  ↓
+User sends invitation via InviteUserModal:
+  ↓
+studyGroupsApi.inviteUser(groupId, userId)
+  ↓ (POST /api/study-groups/:groupId/invite)
+Backend studyGroups.ts:
+  ├─→ Validate membership (only members can invite)
+  ├─→ Prevent self-invite (backend check)
+  ├─→ Create notification for invitee
+  │   ├─ Type: 'course', Category: 'community'
+  │   ├─ Subcategory: 'GroupInvites'
+  │   ├─ Priority: 'normal'
+  │   ├─ Title: "Study Group Invitation"
+  │   ├─ Message: "You've been invited to join \"{groupName}\""
+  │   ├─ ActionUrl: '/study-groups'
+  │   └─ ActionText: 'View Invitation'
+  ├─→ Socket.IO emit('study-group-invitation') to invitee
+  └─→ Return success message with invitee name
+  ↓
+Invitee receives notification (real-time):
+  ↓
+Notification bell updates → Navigate to /study-groups
+  ↓
+User joins study group:
+  ↓
+studyGroupsApi.joinGroup(groupId)
+  ↓ (POST /api/study-groups/:groupId/join)
+Backend StudyGroupsService.joinGroup():
+  ├─→ Add user to StudyGroupMembers
+  ├─→ Query all existing members (excluding new joiner)
+  ├─→ Get new member's display name
+  ├─→ For each existing member:
+  │   ├─ Create notification
+  │   │   ├─ Type: 'course', Category: 'community'
+  │   │   ├─ Subcategory: 'GroupActivity'
+  │   │   ├─ Priority: 'normal'
+  │   │   ├─ Title: "New Study Group Member"
+  │   │   ├─ Message: "{newMemberName} joined \"{groupName}\""
+  │   │   ├─ ActionUrl: '/study-groups'
+  │   │   └─ ActionText: 'View Group'
+  │   └─ Socket.IO emit('study-group-member-joined')
+  └─→ Log: "✅ Sent N member-joined notifications for group X"
+  ↓
+All existing members receive notification (real-time)
+```
+
+**Key Files**:
+- `client/src/pages/StudyGroups/StudyGroupsPage.tsx` - Main study groups page with search
+- `client/src/components/StudyGroups/InviteUserModal.tsx` - User invitation modal (268 lines)
+- `client/src/components/StudyGroups/StudyGroupCard.tsx` - Group card with invite button
+- `client/src/services/studyGroupsApi.ts` - Study Groups API
+- `client/src/services/usersApi.ts` - User search API
+- `server/src/routes/studyGroups.ts` - Study group endpoints (invite + member-joined)
+- `server/src/routes/users.ts` - User search endpoint
+- `server/src/services/NotificationService.ts` - Notification integration
+- Database: `StudyGroups`, `StudyGroupMembers`, `NotificationPreferences`
+
+**Socket.IO Events**:
+- `study-group-invitation` - Sent to invitee when invited
+- `study-group-member-joined` - Sent to all members when someone joins
+
+**Notification Subcategories** (NotificationPreferences):
+- **GroupInvites** (EnableGroupInvites, EmailGroupInvites) - Receiving study group invitations
+- **GroupActivity** (EnableGroupActivity, EmailGroupActivity) - Member join/leave notifications
+
+**Search Features**:
+- 300ms debounced search on StudyGroupsPage (auto-search like courses page)
+- 500ms debounced user search in InviteUserModal
+- Minimum 2 characters required for user search
+- Context-aware empty states (search vs tab view)
+- Loading indicators during API calls
+
+**Security Features**:
+- Self-invite prevention (backend + frontend filtering)
+- IsActive = 1 user filtering (excludes deleted accounts)
+- Authentication required (authenticateToken middleware)
+- Membership validation (only members can invite)
+- SQL injection prevention (parameterized queries)
+
+**Edge Cases Handled**:
+- Empty search results
+- API errors with toast notifications
+- Duplicate invite attempts
+- Modal state cleanup on close
+- Non-blocking notification failures (join operation succeeds even if notifications fail)
+
+---
+
+### 10. **Presence System Flow** (Real-time)
 ```
 User logs in → Socket connects
   ↓

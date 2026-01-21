@@ -519,16 +519,16 @@ CREATE TABLE dbo.Notifications (
 --   ✅ Date handling: UTC storage, ISO format, formatDistanceToNow display
 
 -- NotificationPreferences Table - User preferences for notification delivery
--- IMPLEMENTATION STATUS (Jan 17, 2026):
---   ✅ Database table created with 66 columns (CourseCompletion + PaymentReceipt added Jan 15)
+-- IMPLEMENTATION STATUS (Jan 21, 2026):
+--   ✅ Database table created with 70 columns (GroupActivity added Jan 21)
 --   ✅ UI fully implemented (/settings/notifications dedicated page with 734 lines)
 --   ✅ API endpoints working (GET/PATCH /api/notifications/preferences)
 --   ✅ Preferences FULLY ENFORCED with quiet hours queueing and type filtering
 --   ✅ NotificationQueue table with cron job processing every 5 minutes
 --   ✅ Quiet hours: Notifications queued during specified time range
---   ✅ HYBRID CONTROL SYSTEM: Global + Category (5) + Subcategory (52) toggles
+--   ✅ HYBRID CONTROL SYSTEM: Global + Category (5) + Subcategory (54) toggles
 --   ✅ Separate In-App and Email controls for granular user experience
---   ✅ 66 columns total: 2 global, 5 categories, 52 subcategories, 5 metadata, 2 quiet hours
+--   ✅ 70 columns total: 2 identity, 5 global, 5 categories, 54 subcategories, 4 metadata
 --   ✅ All interfaces aligned (backend/frontend/API) with PascalCase consistency
 --   ✅ Settings persist correctly across sessions (bug fixed Dec 29, 2025)
 --   ✅ SELECT query bugs fixed Jan 17 - all 3 queries now include new fields
@@ -591,11 +591,13 @@ CREATE TABLE dbo.NotificationPreferences (
     EnableReplies BIT NULL,
     EnableMentions BIT NULL,
     EnableGroupInvites BIT NULL,
+    EnableGroupActivity BIT NULL,
     EnableOfficeHours BIT NULL,
     EmailComments BIT NULL,
     EmailReplies BIT NULL,
     EmailMentions BIT NULL,
     EmailGroupInvites BIT NULL,
+    EmailGroupActivity BIT NULL,
     EmailOfficeHours BIT NULL,
     
     -- System Alerts Subcategories

@@ -84,17 +84,17 @@
   - Notification: Type=progress, Priority=normal, multi-line summary with emojis
   - Files: NotificationScheduler.ts, NotificationHelpers.ts, notifications.ts
   - Status: 2 bugs fixed, 0 TypeScript errors, production-ready for Monday Jan 27
-- [x] **Notification Triggers** - 18/31 ACTIVE (Jan 21, 2026) ✅
+- [x] **Notification Triggers** - 20/31 ACTIVE (Jan 21, 2026) ✅
   - Progress: Lesson completion, Video completion, Course completion
   - Course Management: Enrollment, New lessons, Course published
   - Live Sessions: Created, Updated, Deleted
   - Assessments: Created, Submitted, Graded, Due Date Reminders (cron)
-  - Community: Office Hours completed with duration (Jan 17)
+  - Community: Office Hours completed with duration (Jan 17), Study Group Invitations, Study Group Member Joined (Jan 21)
   - System: Payment receipt, Refund confirmation, Password changed (Jan 17)
   - Socket.io real-time updates: Notification bell updates instantly
   - Implementation pattern: Get io from req.app.get('io'), create NotificationService(io)
   - Error handling: Non-blocking try-catch prevents feature failures
-  - 13 triggers remaining: Study groups, direct messages, certificates, badges, etc.
+  - 11 triggers remaining: Direct messages, certificates, badges, etc.
   - Reference: NOTIFICATION_TRIGGERS_IMPLEMENTATION_PLAN.md
 - [x] Email Notification System - PHASES 1-3 COMPLETE (Dec 28, 2025) ✅
   - Realtime email delivery with Gmail SMTP

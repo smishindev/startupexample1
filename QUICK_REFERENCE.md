@@ -1,6 +1,6 @@
 # 🚀 Quick Reference - Development Workflow
 
-**Last Updated**: January 21, 2026 - Weekly Progress Summary Complete ✅
+**Last Updated**: January 21, 2026 - Study Group Invitations Complete ✅
 
 ---
 
@@ -237,6 +237,14 @@ Invoke-WebRequest -Uri "http://localhost:3001/api/notifications/test-weekly-summ
   - Test validation: Try capacity=0, duration=0, reducing capacity below attendee count
   - Test real-time: Join/leave updates, session state changes (start/end/cancel/delete)
 - Study Groups (both can create/join)
+  - **Invite Users** (January 21, 2026): Members can invite others via search modal
+    - Click Invite button (PersonAdd icon) on any group where you're a member
+    - Search users by name/username/email (min 2 chars, 500ms debounce)
+    - Self-invite prevented (you won't see yourself in results)
+    - Invited users receive GroupInvites notification
+    - All members notified when someone joins (GroupActivity notification)
+  - **Test Invites**: ser@ser.com → Search for admin → Invite → Check admin's bell icon
+  - **Test Member Joined**: Join group → All existing members get notification
 - Presence System (test multi-user scenarios)
 - Chat/messaging features
 - **Privacy Features** (test instructor override, student-to-student blocking)

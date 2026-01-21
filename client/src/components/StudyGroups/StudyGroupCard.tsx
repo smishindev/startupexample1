@@ -22,7 +22,8 @@ import {
   School as SchoolIcon,
   AdminPanelSettings as AdminIcon,
   ExitToApp as LeaveIcon,
-  Login as JoinIcon
+  Login as JoinIcon,
+  PersonAdd as InviteIcon
 } from '@mui/icons-material';
 import type { StudyGroup } from '../../types/studyGroup';
 
@@ -34,6 +35,7 @@ interface StudyGroupCardProps {
   onViewDetails?: (groupId: string) => void;
   onEdit?: (groupId: string) => void;
   onDelete?: (groupId: string) => void;
+  onInvite?: (groupId: string) => void;
 }
 
 export const StudyGroupCard: React.FC<StudyGroupCardProps> = ({
@@ -43,7 +45,8 @@ export const StudyGroupCard: React.FC<StudyGroupCardProps> = ({
   onLeave,
   onViewDetails,
   onEdit,
-  onDelete
+  onDelete,
+  onInvite
 }) => {
   const navigate = useNavigate();
   const isFull = group.MaxMembers !== null && (group.MemberCount || 0) >= group.MaxMembers;
@@ -196,6 +199,22 @@ export const StudyGroupCard: React.FC<StudyGroupCardProps> = ({
                 </Tooltip>
               )}
             </>
+          )}
+
+          {/* Invite button - shown for all members */}
+          {group.IsMember && onInvite && (
+            <Tooltip title="Invite users to this group">
+              <Button
+                size="small"
+                variant="outlined"
+                color="primary"
+                startIcon={<InviteIcon />}
+                onClick={() => onInvite(group.Id)}
+                data-testid="study-group-invite-button"
+              >
+                Invite
+              </Button>
+            </Tooltip>
           )}
         </Box>
 

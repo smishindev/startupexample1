@@ -88,11 +88,13 @@ interface NotificationPreferences {
   EnableReplies: boolean | null;
   EnableMentions: boolean | null;
   EnableGroupInvites: boolean | null;
+  EnableGroupActivity: boolean | null;
   EnableOfficeHours: boolean | null;
   EmailComments: boolean | null;
   EmailReplies: boolean | null;
   EmailMentions: boolean | null;
   EmailGroupInvites: boolean | null;
+  EmailGroupActivity: boolean | null;
   EmailOfficeHours: boolean | null;
   
   // System Alerts subcategories
@@ -248,6 +250,14 @@ const COMMUNITY_SUBCATEGORIES: SubcategoryControl[] = [
     emailKey: 'EmailGroupInvites',
     canDisable: true,
     description: 'Invited to join a study group'
+  },
+  {
+    name: 'group-activity',
+    label: 'Study Group Activity',
+    inAppKey: 'EnableGroupActivity',
+    emailKey: 'EmailGroupActivity',
+    canDisable: true,
+    description: 'New members join your study groups'
   },
 ];
 

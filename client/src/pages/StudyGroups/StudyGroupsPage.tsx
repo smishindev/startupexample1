@@ -30,6 +30,7 @@ import {
 import { toast } from 'sonner';
 import { StudyGroupCard } from '../../components/StudyGroups/StudyGroupCard';
 import { CreateGroupModal } from '../../components/StudyGroups/CreateGroupModal';
+import { InviteUserModal } from '../../components/StudyGroups/InviteUserModal';
 import { 
   getAllGroups,
   getMyGroups, 
@@ -62,9 +63,12 @@ export const StudyGroupsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [inviteModalOpen, setInviteModalOpen] = useState(false);
+  const [selectedGroupForInvite, setSelectedGroupForInvite] = useState<{ id: string; name: string } | null>(null);
   const [courses, setCourses] = useState<Course[]>([]);
   const [selectedCourse, setSelectedCourse] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
 
   // Fetch courses on mount
@@ -93,6 +97,15 @@ export const StudyGroupsPage: React.FC = () => {
     fetchCourses();
   }, [user]);
 
+  // Debounce search query to prevent excessive API calls
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 300); // 300ms delay for debouncing
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
   // Fetch groups based on active tab
   const fetchGroups = useCallback(async () => {
     try {
@@ -100,13 +113,21 @@ export const StudyGroupsPage: React.FC = () => {
       setError(null);
       let data: StudyGroup[] = [];
 
-      if (activeTab === 'my-groups') {
-        data = await getMyGroups();
-      } else if (activeTab === 'course' && selectedCourse) {
-        data = await getGroupsByCourse(selectedCourse);
-      } else if (activeTab === 'all') {
-        // Get all groups (including course-linked and general groups)
-        data = await getAllGroups();
+      // If there's a search query, use search API regardless of tab
+      if (debouncedSearchQuery.trim()) {
+        data = await searchGroups({
+          q: debouncedSearchQuery,
+          courseId: activeTab === 'course' ? selectedCourse || undefined : undefined
+        });
+      } else {
+        // No search query - fetch by tab
+        if (activeTab === 'my-groups') {
+          data = await getMyGroups();
+        } else if (activeTab === 'course' && selectedCourse) {
+          data = await getGroupsByCourse(selectedCourse);
+        } else if (activeTab === 'all') {
+          data = await getAllGroups();
+        }
       }
 
       setGroups(data);
@@ -116,7 +137,7 @@ export const StudyGroupsPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [activeTab, selectedCourse]);
+  }, [activeTab, selectedCourse, debouncedSearchQuery]);
 
   useEffect(() => {
     fetchGroups();
@@ -265,24 +286,11 @@ export const StudyGroupsPage: React.FC = () => {
     }
   };
 
-  const handleSearch = async () => {
-    if (!searchQuery.trim()) {
-      fetchGroups();
-      return;
-    }
-
-    try {
-      setLoading(true);
-      const data = await searchGroups({
-        q: searchQuery,
-        courseId: selectedCourse || undefined
-      });
-      setGroups(data);
-    } catch (error: any) {
-      console.error('Error searching groups:', error);
-      toast.error(error.message || 'Search failed');
-    } finally {
-      setLoading(false);
+  const handleInvite = (groupId: string) => {
+    const group = groups.find(g => g.Id === groupId);
+    if (group) {
+      setSelectedGroupForInvite({ id: group.Id, name: group.Name });
+      setInviteModalOpen(true);
     }
   };
 
@@ -325,14 +333,18 @@ export const StudyGroupsPage: React.FC = () => {
             placeholder="Search groups..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
             data-testid="study-groups-search-input"
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
                   <SearchIcon />
                 </InputAdornment>
-              )
+              ),
+              endAdornment: loading && debouncedSearchQuery ? (
+                <InputAdornment position="end">
+                  <CircularProgress size={20} />
+                </InputAdornment>
+              ) : undefined
             }}
             sx={{ flexGrow: 1, minWidth: 250 }}
           />
@@ -358,10 +370,6 @@ export const StudyGroupsPage: React.FC = () => {
               </Select>
             </FormControl>
           )}
-
-          <Button variant="contained" onClick={handleSearch} data-testid="study-groups-search-button">
-            Search
-          </Button>
         </Box>
       </Paper>
 
@@ -374,7 +382,9 @@ export const StudyGroupsPage: React.FC = () => {
         <Alert severity="error">{error}</Alert>
       ) : filteredGroups.length === 0 ? (
         <Alert severity="info">
-          {activeTab === 'my-groups'
+          {debouncedSearchQuery.trim()
+            ? `No study groups found matching "${debouncedSearchQuery}". Try a different search term.`
+            : activeTab === 'my-groups'
             ? "You haven't joined any study groups yet. Browse available groups or create a new one!"
             : 'No study groups found. Try creating one!'}
         </Alert>
@@ -388,6 +398,7 @@ export const StudyGroupsPage: React.FC = () => {
                 onJoin={handleJoin}
                 onLeave={handleLeave}
                 onDelete={group.IsAdmin ? handleDelete : undefined}
+                onInvite={handleInvite}
               />
             </Grid>
           ))}
@@ -403,6 +414,14 @@ export const StudyGroupsPage: React.FC = () => {
           fetchGroups();
         }}
         courses={courses}
+      />
+
+      {/* Invite User Modal */}
+      <InviteUserModal
+        open={inviteModalOpen}
+        onClose={() => setInviteModalOpen(false)}
+        groupId={selectedGroupForInvite?.id || ''}
+        groupName={selectedGroupForInvite?.name || ''}
       />
     </Container>
     </>

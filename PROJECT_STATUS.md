@@ -1,12 +1,168 @@
 # Mishin Learn Platform - Project Status & Memory
 
-**Last Updated**: January 21, 2026 - Weekly Progress Summary Complete ✅  
+**Last Updated**: January 21, 2026 - Study Group Invites + Search Optimization Complete ✅  
 **Developer**: Sergey Mishin (s.mishin.dev@gmail.com)  
 **AI Assistant Context**: This file serves as project memory for continuity across chat sessions
 
 ---
 
 ## 🚀 MAJOR FEATURE - January 21, 2026
+
+### 👥 STUDY GROUP INVITES + MEMBER NOTIFICATIONS
+
+**Feature**: Complete invite system allowing group members to invite others with search, plus automated member-joined notifications
+
+**Implementation Time**: ~3 hours (Jan 21)  
+**Status**: ✅ **PRODUCTION READY** - Fully tested with optimized search
+
+#### **What Was Built:**
+
+**1. User Search Endpoint** ✅
+- **GET /api/users/search** - Search users by name, username, or email
+  - Min 2 characters validation
+  - Excludes current user from results (prevents self-invite)
+  - Filters active users only (`IsActive = 1`)
+  - SQL injection protected with parameterized queries
+  - Returns: Id, FirstName, LastName, Username, Email
+  - Limit configurable (default 10 results)
+
+**2. Study Group Invite Endpoint** ✅
+- **POST /api/study-groups/:groupId/invite** - Send invitation to user
+  - Validates requester is group member
+  - Prevents self-invites (backend check)
+  - Checks if target user already a member
+  - Verifies user exists and is active
+  - Sends **GroupInvites** notification
+  - Non-blocking error handling (doesn't fail if notification fails)
+
+**3. Member Joined Notifications** ✅
+- **Enhanced POST /api/study-groups/:groupId/join** endpoint
+  - Queries all existing members (excluding new joiner)
+  - Sends **GroupActivity** notifications to each member
+  - Personalized with new member's name
+  - Non-blocking batch notifications
+
+**4. Database Schema Updates** ✅
+- **NotificationPreferences table** - Added 2 new columns:
+  - `EnableGroupActivity BIT NULL` (line 594)
+  - `EmailGroupActivity BIT NULL` (line 600)
+  - Total: **70 columns** (2 identity + 5 global + 5 categories + 54 subcategories + 4 metadata)
+- **Notification Subcategories** (Community category):
+  - `GroupInvites` - Invitations to join study groups
+  - `GroupActivity` - New members joining your groups
+
+**5. Frontend Components** ✅
+- **InviteUserModal.tsx** (268 lines) - Complete invite UI
+  - User search with 500ms debounce
+  - Real-time search as you type
+  - Loading states and error handling
+  - Individual invite buttons per user
+  - State cleanup on modal close
+  - Toast notifications for success/error
+- **StudyGroupCard.tsx** - Added Invite button
+  - Visible only for group members (`IsMember && onInvite`)
+  - PersonAdd icon with tooltip
+  - Test ID: `study-group-invite-button`
+- **StudyGroupsPage.tsx** - Modal integration
+  - State management (inviteModalOpen, selectedGroupForInvite)
+  - handleInvite function opens modal with group context
+  - Modal renders with group ID and name
+
+**6. Search Optimization** ✅
+- **Debounced search** (300ms delay) - Same as courses page
+- **Automatic search** - No button needed, searches as you type
+- **Smart loading indicators** - Spinner in search field
+- **Context-aware empty states**:
+  - Searching: "No study groups found matching '[query]'. Try a different search term."
+  - My Groups tab: "You haven't joined any study groups yet..."
+  - Other tabs: "No study groups found. Try creating one!"
+
+**7. NotificationService Updates** ✅
+- Interface updated with GroupActivity fields
+- All 3 SELECT queries include both new columns
+- communityFields array includes both subcategories
+- Queue processor handles both preferences
+
+**8. Notification Settings UI** ✅
+- **NotificationSettingsPage.tsx** - Separate controls:
+  - "Study Group Invites" - "Invited to join a study group"
+  - "Study Group Activity" - "New members join your study groups"
+
+#### **Notification Details:**
+
+**Study Group Invitation:**
+- **Type**: `course`
+- **Category**: `community`
+- **Subcategory**: `GroupInvites`
+- **Priority**: `normal`
+- **Title**: "Study Group Invitation"
+- **Message**: "{inviterName} invited you to join '{groupName}'"
+- **Action URL**: `/study-groups`
+- **Action Text**: "View Group"
+
+**New Member Joined:**
+- **Type**: `course`
+- **Category**: `community`
+- **Subcategory**: `GroupActivity`
+- **Priority**: `normal`
+- **Title**: "New Study Group Member"
+- **Message**: "{newMemberName} joined '{groupName}'"
+- **Action URL**: `/study-groups`
+- **Action Text**: "View Group"
+
+#### **Security Features:**
+- ✅ Authentication required on all endpoints
+- ✅ Authorization checks (membership validation)
+- ✅ Self-invite prevention (backend + UI exclusion)
+- ✅ Already-member checks
+- ✅ Active user verification
+- ✅ SQL injection prevention (parameterized queries)
+- ✅ Proper dbo. schema prefixes
+
+#### **Edge Cases Handled:**
+- ✅ Self-invite attempt → Backend blocks + UI excludes from search
+- ✅ Already a member → Error message displayed
+- ✅ User not found → 404 error
+- ✅ Group not found → 404 error
+- ✅ Not a member → 403 error
+- ✅ Max capacity reached → Service error
+- ✅ Empty search → Returns to tab-based view
+- ✅ Search while on course tab → Searches within course
+
+#### **Files Modified:**
+- **Created:** 1 file (InviteUserModal.tsx) - 268 lines
+- **Modified:** 5 files:
+  - `server/src/routes/users.ts` - Added search endpoint
+  - `server/src/routes/studyGroups.ts` - Added invite endpoint + enhanced join
+  - `client/src/components/StudyGroups/StudyGroupCard.tsx` - Added invite button
+  - `client/src/pages/StudyGroups/StudyGroupsPage.tsx` - Optimized search + modal integration
+  - `client/src/services/studyGroupsApi.ts` - Added inviteUser function
+- **Database:** schema.sql already had 70 columns (no migration needed for fresh installs)
+- **NotificationService:** Updated with GroupActivity fields
+
+#### **Testing Results:**
+- ✅ User search works with debouncing (300ms)
+- ✅ Self excluded from search results
+- ✅ Invite sends GroupInvites notification
+- ✅ Join sends GroupActivity notifications to existing members
+- ✅ Modal state cleanup verified
+- ✅ All TypeScript compilation clean (0 errors)
+- ✅ Search optimization matches courses page behavior
+- ✅ Context-aware empty state messages
+
+#### **User Flow:**
+1. Member clicks "Invite" button on study group card
+2. Modal opens showing group name
+3. User types 2+ characters → Search results appear after 300ms
+4. User clicks "Invite" on a search result
+5. Backend validates and sends notification
+6. Toast shows success, modal closes
+7. Invited user receives notification with "View Group" button
+8. When user joins, all existing members receive "New Member Joined" notification
+
+---
+
+## 🚀 MAJOR FEATURE - January 21, 2026 (Earlier Today)
 
 ### 📊 WEEKLY PROGRESS SUMMARY - CRON SCHEDULER
 
@@ -475,7 +631,7 @@ When adding 4 new columns to schema on Jan 15, updated 6 locations in Notificati
 **Comprehensive Audit Results:**
 - ✅ All 3 SELECT queries in NotificationService identical
 - ✅ Database has all 4 columns (verified via sqlcmd)
-- ✅ Schema comment accurate (66 columns, 52 subcategories)
+- ✅ Schema comment accurate (70 columns, 54 subcategories) - Updated Jan 21, 2026
 - ✅ TypeScript interfaces match schema (backend + frontend)
 - ✅ UI controls defined for both new subcategories
 - ✅ Zero TypeScript compilation errors
@@ -519,7 +675,7 @@ EmailPaymentReceipt BIT NULL,
 - ✅ All 36 active notification triggers properly mapped
 - ✅ Users can now control CourseCompletion and PaymentReceipt notifications
 - ✅ Zero TypeScript compilation errors
-- ✅ Total columns: 66 (2 global + 5 categories + 52 subcategories + 7 metadata)
+- ✅ Total columns: 70 (2 identity + 5 global + 5 categories + 54 subcategories + 4 metadata) - Updated Jan 21, 2026
 
 **Database Recreation:**
 Schema.sql now contains all required columns for fresh database creation. No migration script needed.

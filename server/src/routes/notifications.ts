@@ -408,4 +408,48 @@ router.post('/test-all-types', authenticateToken, async (req: AuthRequest, res: 
   }
 });
 
+/**
+ * POST /api/notifications/test-weekly-summary
+ * Test weekly progress summary notification (Development/Admin only)
+ */
+router.post('/test-weekly-summary', authenticateToken, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    const userRole = req.user?.role;
+    
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    // Only allow instructors and admins to trigger test
+    if (userRole !== 'instructor' && userRole !== 'admin') {
+      return res.status(403).json({ 
+        error: 'Only instructors and admins can trigger test notifications' 
+      });
+    }
+
+    // Import the trigger function
+    const { triggerWeeklyProgressSummaries } = await import('../services/NotificationScheduler');
+    
+    const result = await triggerWeeklyProgressSummaries();
+
+    if (result.success) {
+      res.json({
+        success: true,
+        count: result.count,
+        message: result.message,
+        info: 'Weekly progress summaries sent to all active students with activity in the past 7 days'
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        error: result.message
+      });
+    }
+  } catch (error) {
+    console.error('Error triggering weekly progress summaries:', error);
+    res.status(500).json({ error: 'Failed to trigger weekly progress summaries' });
+  }
+});
+
 export default router;

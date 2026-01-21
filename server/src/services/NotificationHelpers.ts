@@ -214,7 +214,7 @@ export async function getWeeklyActivitySummaries(): Promise<WeeklyActivitySummar
         (SELECT COUNT(*) 
          FROM dbo.VideoProgress vp 
          WHERE vp.UserId = u.Id 
-           AND vp.IsComplete = 1
+           AND vp.IsCompleted = 1
            AND vp.CompletedAt >= @startDate 
            AND vp.CompletedAt < @endDate
         ) as VideosWatched,

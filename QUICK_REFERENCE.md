@@ -1,6 +1,6 @@
 # 🚀 Quick Reference - Development Workflow
 
-**Last Updated**: January 20, 2026 - Assessment Due Date Reminders Complete ✅
+**Last Updated**: January 21, 2026 - Weekly Progress Summary Complete ✅
 
 ---
 
@@ -99,7 +99,7 @@ Role: Student
 
 ---
 
-## 🔔 Notification System Quick Ref (Jan 14, 2026)
+## 🔔 Notification System Quick Ref (Jan 21, 2026)
 
 **Architecture**: Backend → Socket.IO → App.tsx → Zustand Store → Components
 
@@ -108,6 +108,29 @@ Role: Student
 **Usage**: `const { notifications, unreadCount, markAsRead } = useNotificationStore();`
 
 **Rules**: ❌ No socket listeners in components | ✅ Use store only
+
+**Manual Test Endpoints (Added Jan 20-21, 2026):**
+```powershell
+# Assessment Due Reminders (requires instructor/admin JWT token)
+$token = "your-jwt-token"
+$headers = @{ "Authorization" = "Bearer $token" }
+Invoke-WebRequest -Uri "http://localhost:3001/api/notifications/test-assessment-reminders" `
+  -Method POST -Headers $headers
+
+# Weekly Progress Summary (requires instructor/admin JWT token)
+Invoke-WebRequest -Uri "http://localhost:3001/api/notifications/test-weekly-summary" `
+  -Method POST -Headers $headers
+
+# Response format:
+# { "success": true, "count": 5, "message": "Sent 5 notifications" }
+```
+
+**Cron Schedules:**
+- **Assessment Due Reminders**: Daily at 9:00 AM UTC (`'0 9 * * *'`)
+- **Weekly Progress Summary**: Monday at 8:00 AM UTC (`'0 8 * * 1'`)
+- **Email Digest**: Daily at 8:00 AM UTC (existing)
+- **Email Weekly Digest**: Monday at 8:00 AM UTC (existing)
+- **Notification Queue**: Every 5 minutes (quiet hours processing)
 
 ---
 

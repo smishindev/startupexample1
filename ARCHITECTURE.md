@@ -1,6 +1,6 @@
 # Mishin Learn Platform - System Architecture
 
-**Last Updated**: January 20, 2026 - Assessment Due Date Reminders Complete ✅  
+**Last Updated**: January 21, 2026 - Weekly Progress Summary Complete ✅  
 **Purpose**: Understanding system components, data flows, and dependencies
 
 ---
@@ -204,16 +204,26 @@ POST   /api/email-unsubscribe/resubscribe - Resubscribe to emails
 - **Unsubscribe**: One-click token-based unsubscribe with database tracking
 - **Templates**: Beautiful HTML emails with type-specific styling (progress, course, system, social, assessment)
 
-**Notification Triggers (8/31 Active - January 11, 2026):**
+**Notification Triggers (18/31 Active - January 21, 2026):**
 - ✅ **Lesson Completion**: Student progress update + instructor milestones (25%, 50%, 75%, 100%) - Dec 29, 2025
 - ✅ **Video Completion**: Student completion notification - Jan 8, 2026
+- ✅ **Course Completion**: Student achievement celebration - Jan 15, 2026
 - ✅ **Live Session Created**: All enrolled students notified with session details - Pre-existing
 - ✅ **Live Session Updated**: Students notified of changes - Jan 6, 2026
 - ✅ **Live Session Deleted**: Students notified of cancellation - Jan 6, 2026
 - ✅ **Course Enrollment**: Welcome message to student + enrollment alert to instructor - Jan 11, 2026
 - ✅ **New Lesson Created**: All enrolled students (active + completed) notified - Jan 11, 2026
 - ✅ **Course Published**: All enrolled students (active + completed) notified - Jan 11, 2026
-- 🔜 **23 Remaining**: Assessment submissions/grading, due dates, payments, community features, etc.
+- ✅ **Assessment Created**: Students notified of new assessment - Jan 11, 2026
+- ✅ **Assessment Submitted**: Instructor notified of student submission - Jan 11, 2026
+- ✅ **Assessment Graded**: Student notified of grade - Jan 11, 2026
+- ✅ **Office Hours Completed**: Student notified with session duration - Jan 17, 2026
+- ✅ **Payment Receipt**: Instant confirmation after successful payment - Jan 17, 2026
+- ✅ **Refund Confirmation**: Notification when refund is processed - Jan 17, 2026
+- ✅ **Password Changed**: Security alert sent to user - Jan 17, 2026
+- ✅ **Assessment Due Reminders**: Daily cron job (9 AM UTC) checks for assessments due in 2 days - Jan 20, 2026
+- ✅ **Weekly Progress Summary**: Weekly cron job (Monday 8 AM UTC) sends activity summaries - Jan 21, 2026
+- 🔜 **13 Remaining**: Study groups, direct messages, certificates, badges, interventions, etc.
 
 **Implementation Pattern:**
 ```typescript
@@ -236,6 +246,37 @@ await notificationService.createNotificationWithControls(
     subcategory: 'NewLessons'
   }
 );
+```
+
+**Automated Cron Schedulers (Added Jan 20-21, 2026):**
+```typescript
+// server/src/services/NotificationScheduler.ts
+// Initialized in server/src/index.ts after Socket.io setup
+
+1. Assessment Due Date Reminders - Daily at 9:00 AM UTC
+   - Cron: '0 9 * * *'
+   - Query: getUpcomingAssessmentsDue(2) from NotificationHelpers
+   - Finds: Assessments due in 2 days without completed submissions
+   - Creates: Type='assignment', Priority='urgent', Category='assessment'
+   - Message: "\u23f0 Assessment Due Soon: [title] is due in 2 days"
+   - Non-blocking: Continues on per-user errors
+   - Manual Test: POST /api/notifications/test-assessment-reminders (instructor/admin)
+
+2. Weekly Progress Summary - Monday at 8:00 AM UTC
+   - Cron: '0 8 * * 1'
+   - Query: getWeeklyActivitySummaries() from NotificationHelpers
+   - Aggregates: Past 7 days activity (lessons, videos, assessments, time, courses)
+   - Creates: Type='progress', Priority='normal', Category='progress'
+   - Message: Multi-line with emojis (\u2705 lessons, \ud83c\udfac videos, \ud83d\udcdd assessments, \u23f1\ufe0f time, \ud83d\udcda courses)
+   - Only sends: To students with activity in past 7 days
+   - Manual Test: POST /api/notifications/test-weekly-summary (instructor/admin)
+
+Scheduler Features:
+- Double initialization protection (returns early if already running)
+- Console logging for job registration and execution
+- Success/failure counters for monitoring
+- Socket.io integration for real-time delivery
+- Exported trigger functions for API testing
 ```
 
 **Real-time Updates:**

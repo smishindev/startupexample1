@@ -74,7 +74,17 @@
   - Notification: Type=assignment, Priority=urgent, "due in 2 days" message
   - Files: NotificationScheduler.ts, NotificationHelpers.ts, schema.sql, index.ts, assessments.ts
   - Status: 9 bugs fixed, 0 TypeScript errors, comprehensive verification complete
-- [x] **Notification Triggers** - 17/31 ACTIVE (Jan 20, 2026) ✅
+- [x] **Weekly Progress Summary** - PRODUCTION READY (Jan 21, 2026) 📊
+  - Cron scheduler: Weekly on Mondays at 8:00 AM UTC (`'0 8 * * 1'`)
+  - Aggregates past 7 days activity: lessons, videos, assessments, time spent, active courses
+  - NotificationScheduler.ts (240 lines) - Added second cron job
+  - NotificationHelpers.ts (217 bug fix) - Fixed IsComplete → IsCompleted
+  - API: POST /api/notifications/test-weekly-summary (instructor/admin only)
+  - E2E Test: test_weekly_progress_summary.py (554 lines) - ALL PASSING
+  - Notification: Type=progress, Priority=normal, multi-line summary with emojis
+  - Files: NotificationScheduler.ts, NotificationHelpers.ts, notifications.ts
+  - Status: 2 bugs fixed, 0 TypeScript errors, production-ready for Monday Jan 27
+- [x] **Notification Triggers** - 18/31 ACTIVE (Jan 21, 2026) ✅
   - Progress: Lesson completion, Video completion, Course completion
   - Course Management: Enrollment, New lessons, Course published
   - Live Sessions: Created, Updated, Deleted
@@ -84,7 +94,7 @@
   - Socket.io real-time updates: Notification bell updates instantly
   - Implementation pattern: Get io from req.app.get('io'), create NotificationService(io)
   - Error handling: Non-blocking try-catch prevents feature failures
-  - 14 triggers remaining: Weekly progress, study groups, direct messages, certificates, etc.
+  - 13 triggers remaining: Study groups, direct messages, certificates, badges, etc.
   - Reference: NOTIFICATION_TRIGGERS_IMPLEMENTATION_PLAN.md
 - [x] Email Notification System - PHASES 1-3 COMPLETE (Dec 28, 2025) ✅
   - Realtime email delivery with Gmail SMTP

@@ -1,6 +1,6 @@
 # Mishin Learn Platform - Component Registry
 
-**Last Updated**: January 20, 2026 - Assessment Due Date Reminders ✅  
+**Last Updated**: January 21, 2026 - Weekly Progress Summary ✅  
 **Purpose**: Quick reference for all major components, their dependencies, and relationships
 
 ---
@@ -15,12 +15,20 @@
 - `initializeScheduler(io: Server)` - Initialize all cron jobs on server startup
 - `sendAssessmentDueReminders()` - Daily cron job handler (9 AM UTC)
 - `triggerAssessmentDueReminders()` - Manual trigger for testing (exported)
+- `sendWeeklyProgressSummaries()` - Weekly cron job handler (Monday 8 AM UTC)
+- `triggerWeeklyProgressSummaries()` - Manual trigger for testing (exported)
 
 **Cron Jobs Registered**:
 - **Assessment Due Reminders**: `'0 9 * * *'` (Daily at 9:00 AM UTC)
   - Checks for assessments due in 2 days
   - Sends notifications to students without completed submissions
   - Non-blocking error handling per notification
+  - Returns: `{ success: boolean, message: string, count: number }`
+- **Weekly Progress Summary**: `'0 8 * * 1'` (Monday at 8:00 AM UTC)
+  - Aggregates past 7 days activity for all students
+  - Metrics: lessons completed, videos watched, assessments submitted, time spent, active courses
+  - Sends notification only to students with activity
+  - Multi-line message format with emojis (✅📚🎥📝⏱️)
   - Returns: `{ success: boolean, message: string, count: number }`
 
 **Features**:
@@ -50,6 +58,12 @@
   - Filters: `DueDate IS NOT NULL`, `DATEDIFF(day, GETUTCDATE(), a.DueDate) = @daysAhead`
   - Excludes students with completed submissions (LEFT JOIN AssessmentSubmissions)
   - Returns: AssessmentId, Title, DueDate, Type, LessonId, CourseId, CourseTitle, UserId, StudentName, Email
+- `getWeeklyActivitySummaries()` - Aggregate 7-day activity for all users
+  - Complex multi-subquery: UserProgress (lessons), VideoProgress (videos), AssessmentSubmissions
+  - Calculates: LessonsCompleted, VideosWatched, AssessmentsSubmitted, TotalTimeSpent, ActiveCourses
+  - Filters: Only users with activity in past 7 days (HAVING clause)
+  - Bug Fix (line 217): `vp.IsCompleted = 1` (was IsComplete)
+  - Returns: UserId, UserName, Email, plus 5 activity metrics
 - `getInstructorId(courseId: string)` - Get course instructor
 - `getUserName(userId: string)` - Get user display name
 - `getCourseProgress(userId: string, courseId: string)` - Get student progress
@@ -66,7 +80,7 @@
 - `mssql` - SQL Server database access
 - `db` - Database connection pool
 
-**Status**: ✅ Production-ready with 8 helper functions (January 20, 2026)
+**Status**: ✅ Production-ready with 9 helper functions (January 21, 2026)
 
 ---
 

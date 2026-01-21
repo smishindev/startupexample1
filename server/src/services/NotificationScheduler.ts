@@ -1,7 +1,7 @@
 import cron from 'node-cron';
 import { Server } from 'socket.io';
 import { NotificationService } from './NotificationService';
-import { getUpcomingAssessmentsDue } from './NotificationHelpers';
+import { getUpcomingAssessmentsDue, getWeeklyActivitySummaries } from './NotificationHelpers';
 import { logger } from '../utils/logger';
 import { format } from 'date-fns';
 
@@ -33,8 +33,15 @@ export function initializeScheduler(socketIoInstance: Server): void {
     await sendAssessmentDueReminders();
   });
 
+  // Schedule: Weekly on Monday at 8 AM UTC - Weekly Progress Summary
+  cron.schedule('0 8 * * 1', async () => {
+    logger.info('⏰ Running scheduled job: Weekly Progress Summary');
+    await sendWeeklyProgressSummaries();
+  });
+
   logger.info('✅ NotificationScheduler started successfully');
   logger.info('   - Assessment Due Reminders: Daily at 9:00 AM UTC');
+  logger.info('   - Weekly Progress Summary: Monday at 8:00 AM UTC');
 }
 
 /**
@@ -121,6 +128,104 @@ export async function triggerAssessmentDueReminders(): Promise<{ success: boolea
     };
   } catch (error) {
     logger.error('Error triggering assessment due reminders:', error);
+    return {
+      success: false,
+      count: 0,
+      message: error instanceof Error ? error.message : 'Unknown error'
+    };
+  }
+}
+
+/**
+ * Send weekly progress summaries to all active students
+ */
+async function sendWeeklyProgressSummaries(): Promise<void> {
+  try {
+    if (!io) {
+      logger.error('Socket.io not initialized in NotificationScheduler');
+      return;
+    }
+
+    // Get weekly activity for all active students
+    const summaries = await getWeeklyActivitySummaries();
+    
+    if (summaries.length === 0) {
+      logger.info('No active students with activity in the past week');
+      return;
+    }
+
+    logger.info(`Found ${summaries.length} student(s) with activity in the past week`);
+
+    const notificationService = new NotificationService(io);
+    let successCount = 0;
+    let failureCount = 0;
+
+    // Send notification to each active student
+    for (const summary of summaries) {
+      try {
+        // Format message with activity summary
+        const messageLines = [
+          'Great work this week! Here\'s your learning summary:',
+          '',
+          `✅ ${summary.lessonsCompleted} lesson${summary.lessonsCompleted !== 1 ? 's' : ''} completed`,
+          `🎥 ${summary.videosWatched} video${summary.videosWatched !== 1 ? 's' : ''} watched`,
+          `📝 ${summary.assessmentsSubmitted} assessment${summary.assessmentsSubmitted !== 1 ? 's' : ''} submitted`,
+          `⏱️ ${summary.totalTimeSpent} minutes of focused learning`,
+          `📚 Active in ${summary.coursesActive} course${summary.coursesActive !== 1 ? 's' : ''}`
+        ];
+
+        await notificationService.createNotificationWithControls(
+          {
+            userId: summary.userId,
+            type: 'progress',
+            priority: 'normal',
+            title: '📊 Your Weekly Progress Summary',
+            message: messageLines.join('\n'),
+            actionUrl: '/my-learning',
+            actionText: 'View My Progress',
+            relatedEntityId: summary.userId,
+            relatedEntityType: 'student'
+          },
+          {
+            category: 'progress',
+            subcategory: 'ProgressSummary'
+          }
+        );
+
+        successCount++;
+        
+        logger.debug(`Sent weekly summary to ${summary.userName}: ${summary.lessonsCompleted} lessons, ${summary.totalTimeSpent} min`);
+      } catch (error) {
+        failureCount++;
+        logger.error(`Failed to send weekly summary to ${summary.userName}:`, error);
+      }
+    }
+
+    logger.info(`Weekly progress summaries completed: ${successCount} sent, ${failureCount} failed`);
+  } catch (error) {
+    logger.error('Error in sendWeeklyProgressSummaries:', error);
+  }
+}
+
+/**
+ * Manual trigger for testing (can be called from API endpoint)
+ */
+export async function triggerWeeklyProgressSummaries(): Promise<{ success: boolean; count: number; message: string }> {
+  try {
+    if (!io) {
+      return { success: false, count: 0, message: 'Scheduler not initialized' };
+    }
+
+    const summaries = await getWeeklyActivitySummaries();
+    await sendWeeklyProgressSummaries();
+
+    return {
+      success: true,
+      count: summaries.length,
+      message: `Sent ${summaries.length} weekly progress summar${summaries.length !== 1 ? 'ies' : 'y'}`
+    };
+  } catch (error) {
+    logger.error('Error triggering weekly progress summaries:', error);
     return {
       success: false,
       count: 0,

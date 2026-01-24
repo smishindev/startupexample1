@@ -887,7 +887,10 @@ Render page with role-specific buttons:
 
 **Key Files**:
 - `client/src/pages/Course/CourseDetailPage.tsx` - Main detail page
-- `client/src/components/Course/ShareDialog.tsx` - Social sharing
+- `client/src/components/Shared/ShareDialog.tsx` - Unified sharing (courses + certificates)
+- `client/src/hooks/useShare.ts` - Share dialog state management hook
+- `client/src/services/shareService.ts` - Platform sharing + URL generation
+- `client/src/services/shareAnalytics.ts` - Share event tracking
 - `server/src/routes/courses.ts` - getCourse endpoint
 - `server/src/routes/enrollment.ts` - getEnrollmentStatus endpoint
 
@@ -1716,8 +1719,9 @@ pages/
 ```
 components/
 ├── Course/
-│   ├── CourseCard.tsx - Course preview card (SHARED by all pages)
-│   └── ShareDialog.tsx - Social media sharing
+│   └── CourseCard.tsx - Course preview card (SHARED by all pages)
+├── Shared/
+│   └── ShareDialog.tsx - Unified social media sharing (courses + certificates)
 ├── Navigation/
 │   ├── Header.tsx - Top navigation bar
 │   └── Breadcrumbs.tsx - Breadcrumb trail
@@ -1729,6 +1733,19 @@ components/
 └── Auth/
     ├── ProtectedRoute.tsx - Auth guard
     └── TokenExpirationWarning.tsx - Session warning
+```
+
+**Hooks**:
+```
+hooks/
+└── useShare.ts - Share dialog state management (unified for courses + certificates)
+```
+
+**Services**:
+```
+services/
+├── shareService.ts - Platform sharing + URL generation
+└── shareAnalytics.ts - Share event tracking and analytics
 ```
 
 ---

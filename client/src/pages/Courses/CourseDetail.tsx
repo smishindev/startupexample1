@@ -56,6 +56,8 @@ import { coursesApi, CourseDetail as CourseDetailType, EnrollmentStatus } from '
 import { enrollmentApi } from '../../services/enrollmentApi';
 import { BookmarkApi } from '../../services/bookmarkApi';
 import { useAuthStore } from '../../stores/authStore';
+import { useShare } from '../../hooks/useShare';
+import { ShareService } from '../../services/shareService';
 
 const CourseDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -75,6 +77,72 @@ const CourseDetail: React.FC = () => {
     message: string;
     severity: 'success' | 'error' | 'warning' | 'info';
   }>({ open: false, message: '', severity: 'info' });
+
+  const formatDuration = (minutes: number): string => {
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    
+    if (hours > 0 && mins > 0) {
+      return `${hours}h ${mins}m`;
+    } else if (hours > 0) {
+      return `${hours}h`;
+    } else {
+      return `${mins}m`;
+    }
+  };
+
+  const { openShareDialog, ShareDialogComponent } = useShare({
+    contentType: 'course',
+    contentId: course?.Id || '',
+    generateShareData: () => course ? ShareService.generateCourseShareData({
+      id: course.Id,
+      title: course.Title,
+      description: course.Description,
+      instructor: { name: course.InstructorName },
+      thumbnail: course.ThumbnailUrl || '',
+      category: course.Category,
+      level: course.Level,
+      duration: formatDuration(course.DurationMinutes),
+      price: course.Price,
+    } as any) : { url: '', title: '', text: '' },
+    preview: course ? (
+      <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
+        <Box sx={{ display: 'flex', gap: 2 }}>
+          {course.ThumbnailUrl && (
+            <Box
+              component="img"
+              src={course.ThumbnailUrl}
+              alt={course.Title}
+              sx={{
+                width: 80,
+                height: 60,
+                borderRadius: 1,
+                objectFit: 'cover',
+                flexShrink: 0,
+              }}
+            />
+          )}
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 0.5 }}>
+              {course.Title}
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+              by {course.InstructorName}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              {course.Level} • {formatDuration(course.DurationMinutes)} • ${course.Price === 0 ? 'Free' : course.Price}
+            </Typography>
+          </Box>
+        </Box>
+      </Box>
+    ) : undefined,
+    metadata: course ? {
+      title: course.Title,
+      category: course.Category,
+      level: course.Level,
+      price: course.Price,
+    } : undefined,
+  });
 
   useEffect(() => {
     if (id) {
@@ -226,29 +294,7 @@ const CourseDetail: React.FC = () => {
   };
 
   const handleShare = () => {
-    if (navigator.share && course) {
-      navigator.share({
-        title: course.Title,
-        text: course.Description,
-        url: window.location.href,
-      });
-    } else {
-      // Fallback: copy to clipboard
-      navigator.clipboard.writeText(window.location.href);
-    }
-  };
-
-  const formatDuration = (minutes: number): string => {
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    
-    if (hours > 0 && mins > 0) {
-      return `${hours}h ${mins}m`;
-    } else if (hours > 0) {
-      return `${hours}h`;
-    } else {
-      return `${mins}m`;
-    }
+    openShareDialog();
   };
 
   const formatCategory = (category: string): string => {
@@ -699,6 +745,9 @@ const CourseDetail: React.FC = () => {
           {snackbar.message}
         </Alert>
       </Snackbar>
+
+      {/* Share Dialog */}
+      <ShareDialogComponent />
     </Box>
   );
 };

@@ -24,6 +24,13 @@ export class ShareService {
   }
 
   /**
+   * Generate shareable URL for a certificate
+   */
+  static generateCertificateUrl(verificationCode: string): string {
+    return `${this.baseUrl}/certificate/${verificationCode}`;
+  }
+
+  /**
    * Generate share data for a course
    */
   static generateCourseShareData(course: Course): ShareData {
@@ -40,6 +47,31 @@ export class ShareService {
   }
 
   /**
+   * Generate share data for a certificate
+   */
+  static generateCertificateShareData(certificate: {
+    StudentName: string;
+    CourseTitle: string;
+    CompletionDate: string;
+    VerificationCode: string;
+  }): ShareData {
+    const url = this.generateCertificateUrl(certificate.VerificationCode);
+    const title = `${certificate.StudentName} - ${certificate.CourseTitle} Certificate`;
+    const completionDate = new Date(certificate.CompletionDate).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+    const text = `I successfully completed "${certificate.CourseTitle}" on ${completionDate}. View my verified certificate at Mishin Learn!`;
+    
+    return {
+      url,
+      title,
+      text
+    };
+  }
+
+  /**
    * Check if native web share API is available
    */
   static isNativeShareSupported(): boolean {
@@ -51,7 +83,16 @@ export class ShareService {
    */
   static async shareNative(data: ShareData): Promise<boolean> {
     try {
+      console.log('🔍 [Native Share] Attempting share with data:', data);
+      
       if (!this.isNativeShareSupported()) {
+        console.warn('❌ [Native Share] API not supported');
+        return false;
+      }
+
+      // Don't attempt to share empty data
+      if (!data.url || !data.title) {
+        console.warn('❌ [Native Share] Missing required data (url or title)', { url: data.url, title: data.title });
         return false;
       }
 
@@ -61,14 +102,37 @@ export class ShareService {
         url: data.url
       };
 
-      if (navigator.canShare && navigator.canShare(shareData)) {
-        await navigator.share(shareData);
-        return true;
+      console.log('📤 [Native Share] Share data prepared:', shareData);
+
+      if (navigator.canShare) {
+        const canShareResult = navigator.canShare(shareData);
+        console.log('🔍 [Native Share] canShare result:', canShareResult);
+        
+        if (canShareResult) {
+          console.log('✅ [Native Share] Calling navigator.share()...');
+          await navigator.share(shareData);
+          console.log('✅ [Native Share] Share completed successfully');
+          return true;
+        } else {
+          console.warn('❌ [Native Share] canShare returned false - data format invalid');
+          return false;
+        }
       }
       
+      console.warn('❌ [Native Share] canShare not available');
       return false;
-    } catch (error) {
-      console.error('Native share failed:', error);
+    } catch (error: any) {
+      // User cancelled the share - this is not an error
+      if (error.name === 'AbortError') {
+        console.log('ℹ️ [Native Share] Share cancelled by user');
+        return false;
+      }
+      
+      console.error('❌ [Native Share] Share failed with error:', {
+        name: error.name,
+        message: error.message,
+        error: error
+      });
       return false;
     }
   }
@@ -211,14 +275,31 @@ export class ShareService {
   /**
    * Track sharing events for analytics
    */
-  static trackShare(courseId: string, platform: string, course?: Course): void {
+  static trackShare(
+    contentId: string,
+    platform: string,
+    contentType: 'course' | 'certificate',
+    metadata?: {
+      title?: string;
+      category?: string;
+      level?: string;
+      price?: number;
+      studentName?: string;
+      completionDate?: string;
+      verificationCode?: string;
+    }
+  ): void {
     ShareAnalytics.trackShare({
-      courseId,
+      contentType,
+      contentId,
       platform,
-      courseTitle: course?.title,
-      courseCategory: course?.category,
-      courseLevel: course?.level,
-      coursePrice: course?.price,
+      title: metadata?.title,
+      courseCategory: metadata?.category,
+      courseLevel: metadata?.level,
+      coursePrice: metadata?.price,
+      studentName: metadata?.studentName,
+      completionDate: metadata?.completionDate,
+      verificationCode: metadata?.verificationCode,
     });
   }
 

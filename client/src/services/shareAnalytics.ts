@@ -1,13 +1,19 @@
 // Simple analytics service for tracking share events
 export interface ShareEvent {
-  courseId: string;
+  contentType: 'course' | 'certificate';
+  contentId: string;
   platform: string;
   userId?: string;
   timestamp: string;
-  courseTitle?: string;
+  title?: string;
+  // Course-specific fields
   courseCategory?: string;
   courseLevel?: string;
   coursePrice?: number;
+  // Certificate-specific fields
+  studentName?: string;
+  completionDate?: string;
+  verificationCode?: string;
 }
 
 export class ShareAnalytics {
@@ -46,7 +52,14 @@ export class ShareAnalytics {
    * Get share events for a specific course
    */
   static getCourseShareEvents(courseId: string): ShareEvent[] {
-    return this.events.filter(event => event.courseId === courseId);
+    return this.events.filter(event => event.contentType === 'course' && event.contentId === courseId);
+  }
+
+  /**
+   * Get share events for a specific certificate
+   */
+  static getCertificateShareEvents(certificateId: string): ShareEvent[] {
+    return this.events.filter(event => event.contentType === 'certificate' && event.contentId === certificateId);
   }
 
   /**

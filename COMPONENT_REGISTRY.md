@@ -1356,40 +1356,69 @@ interface CourseCardProps {
 
 ---
 
-### ShareDialog
-**Path**: `client/src/components/Course/ShareDialog.tsx`  
-**Purpose**: Social media sharing modal with copy link and social buttons
+### ShareDialog (UNIFIED)
+**Path**: `client/src/components/Shared/ShareDialog.tsx`  
+**Purpose**: Generic reusable sharing modal for both courses and certificates
+**Status**: ✅ Production-ready (January 24, 2026)
 
 **Props**:
 ```typescript
 interface ShareDialogProps {
   open: boolean;
   onClose: () => void;
-  course: Course; // Needs id, title, description, thumbnail, instructor, etc.
+  shareData: { url: string; title: string; text: string };
+  contentType: 'course' | 'certificate';
+  contentId: string;
+  preview?: React.ReactNode; // Optional visual preview
+  metadata?: { // For analytics tracking
+    title?: string;
+    category?: string;
+    level?: string;
+    price?: number;
+    studentName?: string;
+    completionDate?: string;
+    verificationCode?: string;
+  };
 }
 ```
 
 **Services Used**:
-- `ShareService` - Social media URL generation
+- `ShareService` - Social media URL generation, native share, analytics tracking
+- `ShareAnalytics` - Event tracking for courses and certificates
 - Clipboard API - Copy link functionality
+- Navigator.share() - Native share on supported platforms
 
 **Used By**:
-- `CourseDetailPage` - Share button
-- `CoursesPage` - Share from course cards
-- Any component with share functionality
+- `CourseDetailPage.tsx` - Course detail share (via useShare hook)
+- `CourseDetail.tsx` - Course preview share (via useShare hook)
+- `CoursesPage.tsx` - Course catalog share (direct)
+- `CertificatePage.tsx` - Student certificate share (via useShare hook)
+- `PublicCertificatePage.tsx` - Public certificate share (via useShare hook)
+- `MyCertificatesPage.tsx` - Certificate list share (via useShare hook)
 
 **Social Platforms**:
-- Copy Link (works on localhost)
+- Native Share (if supported by browser - Windows/mobile)
+- Copy Link (works everywhere)
 - Twitter/X
 - Facebook
 - LinkedIn
 - WhatsApp
 - Email
 
+**Features**:
+- **Unified System**: Single component for all content types
+- **Native Share**: Uses browser's native share UI when available
+- **Success Feedback**: "Shared successfully!" snackbar for native share
+- **Analytics Tracking**: Separate tracking for courses vs certificates
+- **Visual Previews**: Optional preview component (course thumbnail, certificate details)
+- **Smart Validation**: Only shows native share if data.url and data.title exist
+- **Error Handling**: Silent failure for user cancellation, error messages for failures
+
 **Common Issues**:
-- **Web Share API error on localhost**: Use ShareDialog instead of `navigator.share()`
+- **Browser message "couldn't show all ways to share"**: This is normal - share still worked, just limited targets available
 - **Social links not opening**: Check ShareService URL generation
-- **Course data missing**: Ensure all required props passed (id, title, instructor.name)
+- **Analytics showing undefined**: Ensure metadata passed correctly (see useShare hook usage)
+- **Native share not available**: Browser doesn't support it - other platforms still work
 
 ---
 
@@ -2635,6 +2664,127 @@ interface Props {
 
 ---
 
+### ShareService
+**Path**: `client/src/services/shareService.ts`  
+**Purpose**: Central service for all sharing operations across platforms  
+**Status**: ✅ Production-ready (January 24, 2026)
+
+**Key Methods**:
+
+**URL Generation**:
+```typescript
+ShareService.generateCourseUrl(courseId: string): string
+// Returns: http://localhost:5173/courses/${courseId}/preview
+
+ShareService.generateCertificateUrl(verificationCode: string): string
+// Returns: http://localhost:5173/certificate/${verificationCode}
+```
+
+**Platform Sharing**:
+```typescript
+ShareService.share({
+  platform: 'twitter' | 'facebook' | 'linkedin' | 'whatsapp' | 'email' | 'copy' | 'native',
+  data: { url: string; title: string; text: string }
+}): Promise<boolean>
+```
+
+**Analytics Tracking**:
+```typescript
+ShareService.trackShare(
+  contentId: string,
+  platform: string,
+  contentType: 'course' | 'certificate',
+  metadata?: {
+    title?: string;
+    category?: string; // Course only
+    level?: string; // Course only
+    price?: number; // Course only
+    studentName?: string; // Certificate only
+    completionDate?: string; // Certificate only
+    verificationCode?: string; // Certificate only
+  }
+): void
+```
+
+**Platform Support**:
+- `shareTwitter()` - Opens Twitter share dialog
+- `shareFacebook()` - Opens Facebook share dialog
+- `shareLinkedIn()` - Opens LinkedIn share dialog
+- `shareWhatsApp()` - Opens WhatsApp share (mobile-optimized)
+- `shareEmail()` - Opens email client with pre-filled content
+- `shareCopy()` - Copies URL to clipboard
+- `shareNative()` - Uses browser's native share UI (Windows/mobile)
+
+**Features**:
+- **Native Share Support**: Automatic detection with Navigator.canShare()
+- **Validation**: Checks for required fields (url, title) before sharing
+- **Error Handling**: Distinguishes between user cancellation and failures
+- **Extensive Logging**: Debug logs with emoji prefixes for easy debugging
+- **Analytics Integration**: Automatic event tracking via ShareAnalytics
+- **Platform Info**: getPlatformInfo() returns name and icon for each platform
+
+**Native Share Validation**:
+1. Checks `navigator.share` exists
+2. Validates `data.url` and `data.title` are present
+3. Calls `navigator.canShare(shareData)` to verify browser support
+4. Handles AbortError (user cancellation) silently
+5. Logs all errors with detailed context
+
+**Status**: ✅ 328 lines, fully implemented with certificate support
+
+---
+
+### ShareAnalytics
+**Path**: `client/src/services/shareAnalytics.ts`  
+**Purpose**: Analytics tracking for share events (courses and certificates)  
+**Status**: ✅ Production-ready (January 24, 2026)
+
+**Interface**:
+```typescript
+interface ShareEvent {
+  contentType: 'course' | 'certificate';
+  contentId: string;
+  platform: string;
+  userId?: string;
+  timestamp: string;
+  title?: string;
+  // Course-specific
+  courseCategory?: string;
+  courseLevel?: string;
+  coursePrice?: number;
+  // Certificate-specific
+  studentName?: string;
+  completionDate?: string;
+  verificationCode?: string;
+}
+```
+
+**Methods**:
+```typescript
+trackShare(event: Omit<ShareEvent, 'timestamp'>): void
+getShareEvents(): ShareEvent[]
+getCourseShareEvents(courseId: string): ShareEvent[]
+getCertificateShareEvents(certificateId: string): ShareEvent[]
+getShareEventsByPlatform(platform: string): ShareEvent[]
+getShareStatistics(): { totalShares, platformBreakdown, avgSharesPerCourse }
+```
+
+**Features**:
+- **Content Type Tracking**: Separate tracking for courses vs certificates
+- **Local Storage**: Persists events across sessions
+- **Statistics**: Aggregate analytics (total shares, platform breakdown)
+- **Query Methods**: Filter by course, certificate, or platform
+- **Timestamp**: ISO format timestamps for all events
+
+**Storage**:
+- In-memory array for current session
+- localStorage for persistence
+- Console logging for debugging
+
+**TODO**: Integration with Google Analytics / Mixpanel
+
+---
+
 ### AccountDeletionService (Backend)
 **Path**: `server/src/services/AccountDeletionService.ts` (547 lines)  
 **Purpose**: Orchestrate account deletion with course management
@@ -2687,6 +2837,127 @@ interface Props {
 - Authentication middleware required
 
 **Status**: ✅ Production-ready with comprehensive error handling
+
+---
+
+### ShareService
+**Path**: `client/src/services/shareService.ts`  
+**Purpose**: Central service for all sharing operations across platforms  
+**Status**: ✅ Production-ready (January 24, 2026)
+
+**Key Methods**:
+
+**URL Generation**:
+```typescript
+ShareService.generateCourseUrl(courseId: string): string
+// Returns: http://localhost:5173/courses/${courseId}/preview
+
+ShareService.generateCertificateUrl(verificationCode: string): string
+// Returns: http://localhost:5173/certificate/${verificationCode}
+```
+
+**Platform Sharing**:
+```typescript
+ShareService.share({
+  platform: 'twitter' | 'facebook' | 'linkedin' | 'whatsapp' | 'email' | 'copy' | 'native',
+  data: { url: string; title: string; text: string }
+}): Promise<boolean>
+```
+
+**Analytics Tracking**:
+```typescript
+ShareService.trackShare(
+  contentId: string,
+  platform: string,
+  contentType: 'course' | 'certificate',
+  metadata?: {
+    title?: string;
+    category?: string; // Course only
+    level?: string; // Course only
+    price?: number; // Course only
+    studentName?: string; // Certificate only
+    completionDate?: string; // Certificate only
+    verificationCode?: string; // Certificate only
+  }
+): void
+```
+
+**Platform Support**:
+- `shareTwitter()` - Opens Twitter share dialog
+- `shareFacebook()` - Opens Facebook share dialog
+- `shareLinkedIn()` - Opens LinkedIn share dialog
+- `shareWhatsApp()` - Opens WhatsApp share (mobile-optimized)
+- `shareEmail()` - Opens email client with pre-filled content
+- `shareCopy()` - Copies URL to clipboard
+- `shareNative()` - Uses browser's native share UI (Windows/mobile)
+
+**Features**:
+- **Native Share Support**: Automatic detection with Navigator.canShare()
+- **Validation**: Checks for required fields (url, title) before sharing
+- **Error Handling**: Distinguishes between user cancellation and failures
+- **Extensive Logging**: Debug logs with emoji prefixes for easy debugging
+- **Analytics Integration**: Automatic event tracking via ShareAnalytics
+- **Platform Info**: getPlatformInfo() returns name and icon for each platform
+
+**Native Share Validation**:
+1. Checks `navigator.share` exists
+2. Validates `data.url` and `data.title` are present
+3. Calls `navigator.canShare(shareData)` to verify browser support
+4. Handles AbortError (user cancellation) silently
+5. Logs all errors with detailed context
+
+**Status**: ✅ 328 lines, fully implemented with certificate support
+
+---
+
+### ShareAnalytics
+**Path**: `client/src/services/shareAnalytics.ts`  
+**Purpose**: Analytics tracking for share events (courses and certificates)  
+**Status**: ✅ Production-ready (January 24, 2026)
+
+**Interface**:
+```typescript
+interface ShareEvent {
+  contentType: 'course' | 'certificate';
+  contentId: string;
+  platform: string;
+  userId?: string;
+  timestamp: string;
+  title?: string;
+  // Course-specific
+  courseCategory?: string;
+  courseLevel?: string;
+  coursePrice?: number;
+  // Certificate-specific
+  studentName?: string;
+  completionDate?: string;
+  verificationCode?: string;
+}
+```
+
+**Methods**:
+```typescript
+trackShare(event: Omit<ShareEvent, 'timestamp'>): void
+getShareEvents(): ShareEvent[]
+getCourseShareEvents(courseId: string): ShareEvent[]
+getCertificateShareEvents(certificateId: string): ShareEvent[]
+getShareEventsByPlatform(platform: string): ShareEvent[]
+getShareStatistics(): { totalShares, platformBreakdown, avgSharesPerCourse }
+```
+
+**Features**:
+- **Content Type Tracking**: Separate tracking for courses vs certificates
+- **Local Storage**: Persists events across sessions
+- **Statistics**: Aggregate analytics (total shares, platform breakdown)
+- **Query Methods**: Filter by course, certificate, or platform
+- **Timestamp**: ISO format timestamps for all events
+
+**Storage**:
+- In-memory array for current session
+- localStorage for persistence
+- Console logging for debugging
+
+**TODO**: Integration with Google Analytics / Mixpanel
 
 ---
 

@@ -418,8 +418,9 @@ get_errors(filePaths=["path/to/modified/file.tsx"])
 - [ ] Checked `isInstructorPreview` or `enrollmentStatus.isInstructor` flag
 
 ### Rule 3: Shared Components
-- [ ] If modifying `CourseCard`, `Header`, or other shared components, **VERIFIED** all usages
+- [ ] If modifying `CourseCard`, `ShareDialog`, `Header`, or other shared components, **VERIFIED** all usages
 - [ ] Tested or listed all pages that use the component
+- [ ] ShareDialog used by: 6 pages (3 course pages, 3 certificate pages)
 
 ### Rule 4: Database Columns
 - [ ] **NEVER** removed column references without checking ALL usages first

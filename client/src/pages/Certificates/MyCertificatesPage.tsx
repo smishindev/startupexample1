@@ -20,11 +20,14 @@ import {
   Download,
   Visibility,
   EmojiEvents,
-  School
+  School,
+  Share
 } from '@mui/icons-material';
 import { certificatesApi } from '../../services/certificatesApi';
 import { format } from 'date-fns';
 import { HeaderV4 as Header } from '../../components/Navigation/HeaderV4';
+import { useShare } from '../../hooks/useShare';
+import { ShareService } from '../../services/shareService';
 
 interface Certificate {
   Id: string;
@@ -47,6 +50,37 @@ export default function MyCertificatesPage() {
   const [error, setError] = useState('');
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: '' });
+  const [selectedCertificate, setSelectedCertificate] = useState<Certificate | null>(null);
+
+  const { openShareDialog, ShareDialogComponent } = useShare({
+    contentType: 'certificate',
+    contentId: selectedCertificate?.Id || '',
+    generateShareData: () => selectedCertificate ? ShareService.generateCertificateShareData({
+      StudentName: selectedCertificate.StudentName,
+      CourseTitle: selectedCertificate.CourseTitle,
+      CompletionDate: selectedCertificate.CompletionDate,
+      VerificationCode: selectedCertificate.VerificationCode,
+    }) : { url: '', title: '', text: '' },
+    preview: selectedCertificate ? (
+      <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
+        <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
+          {selectedCertificate.CourseTitle}
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+          Awarded to: {selectedCertificate.StudentName}
+        </Typography>
+        <Typography variant="caption" color="text.secondary">
+          Completed: {format(new Date(selectedCertificate.CompletionDate), 'MMMM dd, yyyy')}
+        </Typography>
+      </Box>
+    ) : undefined,
+    metadata: selectedCertificate ? {
+      title: selectedCertificate.CourseTitle,
+      studentName: selectedCertificate.StudentName,
+      completionDate: selectedCertificate.CompletionDate,
+      verificationCode: selectedCertificate.VerificationCode,
+    } : undefined,
+  });
 
   useEffect(() => {
     loadCertificates();
@@ -76,6 +110,12 @@ export default function MyCertificatesPage() {
 
   const handleViewCertificate = (verificationCode: string) => {
     navigate(`/certificate/${verificationCode}`);
+  };
+
+  const handleShare = (certificate: Certificate) => {
+    setSelectedCertificate(certificate);
+    // State will be updated before dialog reads it due to React batching
+    openShareDialog();
   };
 
   const handleDownloadPdf = async (verificationCode: string) => {
@@ -331,6 +371,13 @@ export default function MyCertificatesPage() {
                   </Button>
                   <Button
                     variant="outlined"
+                    startIcon={<Share />}
+                    onClick={() => handleShare(cert)}
+                  >
+                    Share
+                  </Button>
+                  <Button
+                    variant="outlined"
                     startIcon={downloadingId === cert.VerificationCode ? <CircularProgress size={16} /> : <Download />}
                     onClick={() => handleDownloadPdf(cert.VerificationCode)}
                     disabled={downloadingId === cert.VerificationCode}
@@ -352,6 +399,9 @@ export default function MyCertificatesPage() {
         message={snackbar.message}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       />
+
+      {/* Share Dialog */}
+      <ShareDialogComponent />
     </Container>
     </Box>
   );

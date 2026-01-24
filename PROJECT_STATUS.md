@@ -1,12 +1,177 @@
 # Mishin Learn Platform - Project Status & Memory
 
-**Last Updated**: January 21, 2026 - Study Group Invites + Search Optimization Complete ✅  
+**Last Updated**: January 24, 2026 - Unified Share System Complete ✅  
 **Developer**: Sergey Mishin (s.mishin.dev@gmail.com)  
 **AI Assistant Context**: This file serves as project memory for continuity across chat sessions
 
 ---
 
-## 🚀 MAJOR FEATURE - January 21, 2026
+## 🚀 MAJOR FEATURE - January 24, 2026
+
+### 🔗 UNIFIED SHARE SYSTEM (COURSES + CERTIFICATES)
+
+**Feature**: Consistent sharing functionality across all course and certificate pages with native share support, analytics tracking, and visual previews
+
+**Implementation Time**: ~4 hours (Jan 24)  
+**Status**: ✅ **PRODUCTION READY** - Fully tested across 6 pages
+
+#### **What Was Built:**
+
+**1. Generic ShareDialog Component** ✅
+- **Path**: `client/src/components/Shared/ShareDialog.tsx` (moved from Course/ to Shared/)
+- **Props**: Accepts shareData, contentType ('course' | 'certificate'), contentId, preview, metadata
+- **Platforms**: Native share, Copy, Twitter, Facebook, LinkedIn, WhatsApp, Email
+- **Features**:
+  - Native share with canShare() validation
+  - Success snackbar: "Shared successfully!" for native share
+  - Silent failure for user cancellation (no error message)
+  - Visual preview support (course thumbnails, certificate details)
+  - Analytics tracking with content-specific metadata
+
+**2. useShare Hook** ✅
+- **Path**: `client/src/hooks/useShare.ts`
+- **Purpose**: React hook for unified share dialog state management
+- **Features**:
+  - Automatic state management (open/close)
+  - Dynamic share data generation (useMemo for fresh data)
+  - Type-safe for courses and certificates
+  - Returns: openShareDialog(), closeShareDialog(), ShareDialogComponent, isDialogOpen
+- **Bug Fix**: Removed stale closure - always generates current shareData
+
+**3. ShareService Extensions** ✅
+- **Path**: `client/src/services/shareService.ts` (328 lines)
+- **New Methods**:
+  - `generateCertificateUrl(verificationCode)` - Returns `/certificate/${code}`
+  - `shareNative(data)` - Browser native share with extensive logging
+- **Bug Fixes**:
+  - Fixed certificate URL from `/verify-certificate/` to `/certificate/`
+  - Added 8 debug log statements with emoji prefixes
+  - Enhanced error handling (distinguishes cancellation vs failure)
+- **Features**:
+  - Native share validation with canShare()
+  - AbortError handling for user cancellation
+  - Detailed logging: share data, API support, validation, success/failure
+
+**4. ShareAnalytics Updates** ✅
+- **Path**: `client/src/services/shareAnalytics.ts` (195 lines)
+- **Interface Changes**:
+  - Added `contentType: 'course' | 'certificate'`
+  - Changed `courseId` → `contentId` (generic)
+  - Changed `courseTitle` → `title` (generic)
+  - Added certificate fields: `studentName`, `completionDate`, `verificationCode`
+- **New Methods**:
+  - `getCertificateShareEvents(certificateId)` - Query certificate shares
+- **Bug Fix**: Analytics now correctly distinguish course vs certificate shares
+
+**5. 6 Pages Updated to Use Unified System** ✅
+
+**Course Pages** (3):
+- `client/src/pages/Courses/CourseDetail.tsx` (755 lines)
+  - **Bug Fixed**: Removed duplicate useShare hook call at line 296
+  - Uses: useShare hook with course data and preview JSX
+  - Loading guard: Share button only visible after course loads
+
+- `client/src/pages/Course/CourseDetailPage.tsx` (1241 lines)
+  - **Bug Fixed**: Added missing useShare implementation (was imported but never called)
+  - **Bug Fixed**: Removed unused shareDialogOpen state variable
+  - Uses: useShare hook with enrolled course data
+
+- `client/src/pages/Courses/CoursesPage.tsx` (1168 lines)
+  - Uses: ShareDialog directly with inline props (different pattern but valid)
+  - Preview: Course thumbnail, title, instructor, level, duration, price
+
+**Certificate Pages** (3):
+- `client/src/pages/Certificates/CertificatePage.tsx` (368 lines)
+  - Uses: useShare hook with certificate data and formatted preview
+  - Preview: CourseTitle, StudentName, CompletionDate
+
+- `client/src/pages/Certificates/PublicCertificatePage.tsx` (356 lines)
+  - Uses: useShare hook, same pattern as CertificatePage
+
+- `client/src/pages/Certificates/MyCertificatesPage.tsx` (406 lines)
+  - **Bug Fixed**: Removed setTimeout workaround
+  - **Bug Fixed**: Added missing certificate metadata (studentName, completionDate, verificationCode)
+  - Added: Share button on each certificate card
+  - Uses: useShare hook with selected certificate state
+
+**6. Bug Fixes** ✅
+1. ✅ Duplicate useShare hook in CourseDetail.tsx (lines 94 and 296)
+2. ✅ Missing useShare implementation in CourseDetailPage.tsx
+3. ✅ Stale closure in useShare useMemo dependency
+4. ✅ Unnecessary setTimeout in MyCertificatesPage
+5. ✅ Unused shareDialogOpen state variable
+6. ✅ Wrong certificate URL `/verify-certificate/` → `/certificate/`
+7. ✅ Certificate analytics tracked with course field names
+8. ✅ Missing certificate metadata in MyCertificatesPage analytics
+
+**7. File Cleanup** ✅
+- Deleted: `client/src/components/Course/ShareDialog.tsx` (obsolete, replaced by Shared version)
+
+#### **Technical Details:**
+
+**Native Share Flow**:
+1. User clicks native share button (first platform)
+2. ShareService.shareNative() validates data (url, title)
+3. Checks navigator.share exists and navigator.canShare(data) returns true
+4. Calls navigator.share(data)
+5. Handles success/cancellation/error
+6. Returns true/false to ShareDialog
+7. ShareDialog shows "Shared successfully!" snackbar on success
+8. ShareService.trackShare() logs event to analytics
+
+**URL Routes**:
+- Courses: `/courses/${courseId}/preview`
+- Certificates: `/certificate/${verificationCode}` (not `/verify-certificate/`)
+
+**Analytics Tracking**:
+- Course shares: contentType='course', includes category, level, price
+- Certificate shares: contentType='certificate', includes studentName, completionDate, verificationCode
+
+**Browser Behavior**:
+- Windows message "couldn't show all ways to share" is NORMAL - share still worked
+- Shows when browser can't display all share targets (limited apps installed)
+- Success snackbar confirms share worked
+
+#### **Files Modified:**
+
+**New Files**:
+- `client/src/hooks/useShare.ts` (62 lines) - NEW
+- `client/src/components/Shared/ShareDialog.tsx` (moved from Course/)
+
+**Modified Files**:
+- `client/src/services/shareService.ts` (328 lines) - Extended
+- `client/src/services/shareAnalytics.ts` (195 lines) - Updated interface
+- `client/src/pages/Courses/CourseDetail.tsx` - Fixed duplicate hook
+- `client/src/pages/Course/CourseDetailPage.tsx` - Added missing hook
+- `client/src/pages/Courses/CoursesPage.tsx` - Already using ShareDialog
+- `client/src/pages/Certificates/CertificatePage.tsx` - Updated to useShare
+- `client/src/pages/Certificates/PublicCertificatePage.tsx` - Updated to useShare
+- `client/src/pages/Certificates/MyCertificatesPage.tsx` - Updated to useShare + bug fixes
+
+**Deleted Files**:
+- `client/src/components/Course/ShareDialog.tsx` - Replaced by Shared version
+
+#### **User Experience:**
+
+**Before**:
+- Different share implementations per page
+- No native share support
+- Confusing browser messages with no confirmation
+- Analytics didn't distinguish courses from certificates
+- Multiple bugs causing issues
+
+**After**:
+- ✅ Consistent share UI everywhere
+- ✅ Native share on Windows/mobile when supported
+- ✅ Clear "Shared successfully!" confirmation
+- ✅ Separate analytics for courses vs certificates
+- ✅ All bugs fixed
+- ✅ Visual previews in share dialog
+- ✅ Single source of truth (one component, one hook, one service)
+
+---
+
+## 🚀 PREVIOUS FEATURE - January 21, 2026
 
 ### 👥 STUDY GROUP INVITES + MEMBER NOTIFICATIONS
 

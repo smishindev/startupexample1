@@ -24,13 +24,21 @@ import {
   WhatsApp as WhatsAppIcon,
   Email as EmailIcon,
 } from '@mui/icons-material';
-import { Course } from '../Course/CourseCard';
-import { ShareService } from '../../services/shareService';
+import { ShareService, ShareData } from '../../services/shareService';
 
 interface ShareDialogProps {
   open: boolean;
   onClose: () => void;
-  course: Course;
+  shareData: ShareData;
+  contentType: 'course' | 'certificate';
+  contentId: string;
+  preview?: React.ReactNode;
+  metadata?: {
+    title?: string;
+    category?: string;
+    level?: string;
+    price?: number;
+  };
 }
 
 interface SharePlatform {
@@ -41,7 +49,15 @@ interface SharePlatform {
   action: () => Promise<void> | void;
 }
 
-export const ShareDialog: React.FC<ShareDialogProps> = ({ open, onClose, course }) => {
+export const ShareDialog: React.FC<ShareDialogProps> = ({
+  open,
+  onClose,
+  shareData,
+  contentType,
+  contentId,
+  preview,
+  metadata,
+}) => {
   const [snackbar, setSnackbar] = useState<{
     open: boolean;
     message: string;
@@ -51,8 +67,6 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({ open, onClose, course 
     message: '',
     severity: 'success',
   });
-
-  const shareData = ShareService.generateCourseShareData(course);
 
   const showSnackbar = (message: string, severity: 'success' | 'error' | 'info' = 'success') => {
     setSnackbar({ open: true, message, severity });
@@ -66,17 +80,20 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({ open, onClose, course 
       });
 
       if (success) {
-        ShareService.trackShare(course.id, platform, course);
+        ShareService.trackShare(contentId, platform, contentType, metadata);
         
         if (platform === 'copy') {
           showSnackbar('Link copied to clipboard!');
         } else if (platform === 'native') {
-          showSnackbar('Shared successfully!');
+          showSnackbar('Shared successfully!', 'success');
         } else {
           showSnackbar(`Shared on ${ShareService.getPlatformInfo(platform).name}!`);
         }
       } else {
-        showSnackbar(`Failed to share on ${platform}`, 'error');
+        // Don't show error for native share (browser handles errors/cancellation)
+        if (platform !== 'native') {
+          showSnackbar(`Failed to share on ${platform}`, 'error');
+        }
       }
     } catch (error) {
       console.error('Share failed:', error);
@@ -129,8 +146,8 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({ open, onClose, course 
     },
   ];
 
-  // Add native share if supported (typically on mobile)
-  if (ShareService.isNativeShareSupported()) {
+  // Add native share if supported (typically on mobile) and we have data to share
+  if (ShareService.isNativeShareSupported() && shareData.url && shareData.title) {
     platforms.unshift({
       id: 'native',
       name: 'Share',
@@ -143,6 +160,8 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({ open, onClose, course 
   const handleCloseSnackbar = () => {
     setSnackbar(prev => ({ ...prev, open: false }));
   };
+
+  const dialogTitle = contentType === 'course' ? 'Share Course' : 'Share Certificate';
 
   return (
     <>
@@ -162,7 +181,7 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({ open, onClose, course 
         <DialogTitle>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <Typography variant="h6" component="div" sx={{ fontWeight: 'bold' }}>
-              Share Course
+              {dialogTitle}
             </Typography>
             <IconButton onClick={onClose} size="small" data-testid="share-dialog-close-button">
               <CloseIcon />
@@ -171,38 +190,15 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({ open, onClose, course 
         </DialogTitle>
 
         <DialogContent>
-          {/* Course Preview */}
-          <Box sx={{ mb: 3, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
-            <Box sx={{ display: 'flex', gap: 2 }}>
-              {course.thumbnail && (
-                <Box
-                  component="img"
-                  src={course.thumbnail}
-                  alt={course.title}
-                  sx={{
-                    width: 80,
-                    height: 60,
-                    borderRadius: 1,
-                    objectFit: 'cover',
-                    flexShrink: 0,
-                  }}
-                />
-              )}
-              <Box sx={{ flex: 1, minWidth: 0 }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 0.5 }}>
-                  {course.title}
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
-                  by {course.instructor.name}
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  {course.level} • {course.duration} • ${course.price === 0 ? 'Free' : course.price}
-                </Typography>
+          {/* Content Preview */}
+          {preview && (
+            <>
+              <Box sx={{ mb: 3 }}>
+                {preview}
               </Box>
-            </Box>
-          </Box>
-
-          <Divider sx={{ mb: 3 }} />
+              <Divider sx={{ mb: 3 }} />
+            </>
+          )}
 
           {/* Sharing Options */}
           <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 'bold' }}>
@@ -243,7 +239,7 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({ open, onClose, course 
           {/* Share URL Display */}
           <Box sx={{ mt: 3 }}>
             <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
-              Course URL:
+              {contentType === 'course' ? 'Course URL:' : 'Certificate URL:'}
             </Typography>
             <Box
               data-testid="share-dialog-url-box"

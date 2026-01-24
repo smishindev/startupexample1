@@ -31,7 +31,8 @@ import { enrollmentApi } from '../../services/enrollmentApi';
 import { coursesApi, Course as ApiCourse, CourseFilters, CourseCategory, CourseLevel } from '../../services/coursesApi';
 import { BookmarkApi } from '../../services/bookmarkApi';
 import { useAuthStore } from '../../stores/authStore';
-import { ShareDialog } from '../../components/Course/ShareDialog';
+import { ShareDialog } from '../../components/Shared/ShareDialog';
+import { ShareService } from '../../services/shareService';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -1102,7 +1103,46 @@ export const CoursesPage: React.FC = () => {
         <ShareDialog
           open={shareDialog.open}
           onClose={handleCloseShareDialog}
-          course={shareDialog.course}
+          shareData={ShareService.generateCourseShareData(shareDialog.course)}
+          contentType="course"
+          contentId={shareDialog.course.id}
+          metadata={{
+            title: shareDialog.course.title,
+            category: shareDialog.course.category,
+            level: shareDialog.course.level,
+            price: shareDialog.course.price,
+          }}
+          preview={
+            <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
+              <Box sx={{ display: 'flex', gap: 2 }}>
+                {shareDialog.course.thumbnail && (
+                  <Box
+                    component="img"
+                    src={shareDialog.course.thumbnail}
+                    alt={shareDialog.course.title}
+                    sx={{
+                      width: 80,
+                      height: 60,
+                      borderRadius: 1,
+                      objectFit: 'cover',
+                      flexShrink: 0,
+                    }}
+                  />
+                )}
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 0.5 }}>
+                    {shareDialog.course.title}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                    by {shareDialog.course.instructor.name}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {shareDialog.course.level} • {shareDialog.course.duration} • ${shareDialog.course.price === 0 ? 'Free' : shareDialog.course.price}
+                  </Typography>
+                </Box>
+              </Box>
+            </Box>
+          }
         />
       )}
 

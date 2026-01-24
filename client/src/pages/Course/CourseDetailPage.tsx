@@ -58,8 +58,9 @@ import { enrollmentApi } from '../../services/enrollmentApi';
 import { formatCurrency, roundToDecimals } from '../../utils/formatUtils';
 import { coursesApi } from '../../services/coursesApi';
 import { useAuthStore } from '../../stores/authStore';
-import { ShareDialog } from '../../components/Course/ShareDialog';
 import { BookmarkApi } from '../../services/bookmarkApi';
+import { useShare } from '../../hooks/useShare';
+import { ShareService } from '../../services/shareService';
 
 interface Lesson {
   id: string;
@@ -133,12 +134,64 @@ export const CourseDetailPage: React.FC = () => {
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [enrollmentDialog, setEnrollmentDialog] = useState(false);
   const [enrollmentResult, setEnrollmentResult] = useState<any>(null);
-  const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [snackbar, setSnackbar] = useState<{
     open: boolean;
     message: string;
     severity: 'success' | 'error' | 'warning' | 'info';
   }>({ open: false, message: '', severity: 'info' });
+
+  const { openShareDialog, ShareDialogComponent } = useShare({
+    contentType: 'course',
+    contentId: course?.id || '',
+    generateShareData: () => course ? ShareService.generateCourseShareData({
+      id: course.id,
+      title: course.title,
+      description: course.description,
+      instructor: { name: course.instructor.name },
+      thumbnail: course.thumbnail,
+      category: course.category,
+      level: course.level,
+      duration: course.duration,
+      price: course.price,
+    } as any) : { url: '', title: '', text: '' },
+    preview: course ? (
+      <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
+        <Box sx={{ display: 'flex', gap: 2 }}>
+          {course.thumbnail && (
+            <Box
+              component="img"
+              src={course.thumbnail}
+              alt={course.title}
+              sx={{
+                width: 80,
+                height: 60,
+                borderRadius: 1,
+                objectFit: 'cover',
+                flexShrink: 0,
+              }}
+            />
+          )}
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 0.5 }}>
+              {course.title}
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+              by {course.instructor.name}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              {course.level} • {course.duration} • ${course.price === 0 ? 'Free' : course.price}
+            </Typography>
+          </Box>
+        </Box>
+      </Box>
+    ) : undefined,
+    metadata: course ? {
+      title: course.title,
+      category: course.category,
+      level: course.level,
+      price: course.price,
+    } : undefined,
+  });
 
   // Fetch real course data from API
   // Refresh enrollment status when returning from payment
@@ -378,7 +431,7 @@ export const CourseDetailPage: React.FC = () => {
   };
 
   const handleShare = () => {
-    setShareDialogOpen(true);
+    openShareDialog();
   };
 
   const handleLessonSelect = (lesson: Lesson) => {
@@ -1185,31 +1238,7 @@ export const CourseDetailPage: React.FC = () => {
       </Dialog>
 
       {/* Share Dialog */}
-      {course && (
-        <ShareDialog
-          open={shareDialogOpen}
-          onClose={() => setShareDialogOpen(false)}
-          course={{
-            id: course.id,
-            title: course.title,
-            description: course.description,
-            thumbnail: course.thumbnail,
-            price: course.price,
-            rating: course.rating,
-            level: course.level,
-            duration: course.duration,
-            instructor: {
-              id: course.instructor.id,
-              name: course.instructor.name,
-              avatar: course.instructor.avatar,
-            },
-            enrolledStudents: course.enrolledStudents,
-            reviewCount: course.reviewCount,
-            category: course.category,
-            tags: course.tags,
-          }}
-        />
-      )}
+      <ShareDialogComponent />
 
       {/* Snackbar for user feedback */}
       <Snackbar

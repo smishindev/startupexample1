@@ -1,6 +1,45 @@
 # 🚀 Quick Reference - Development Workflow
 
-**Last Updated**: January 21, 2026 - Study Group Invitations Complete ✅
+**Last Updated**: January 24, 2026 - Unified Share System Complete ✅
+
+---
+
+## 🔗 Share Functionality (NEW - Jan 24, 2026)
+
+**Unified System**: Single component + hook for all content types
+
+**Quick Usage**:
+```typescript
+// In any component
+import { useShare } from '@/hooks/useShare';
+import ShareService from '@/services/shareService';
+
+const { openShareDialog, ShareDialogComponent } = useShare({
+  generateShareData: () => ({
+    url: ShareService.generateCourseUrl(courseId),
+    title: course.Title,
+    text: `Check out ${course.Title} on Mishin Learn!`
+  }),
+  preview: <CoursePreview course={course} />,
+  metadata: { title, category, level, price } // For analytics
+});
+
+// In JSX
+<Button onClick={openShareDialog}>Share</Button>
+{ShareDialogComponent}
+```
+
+**Files**:
+- `client/src/components/Shared/ShareDialog.tsx` - Generic dialog
+- `client/src/hooks/useShare.ts` - State management hook
+- `client/src/services/shareService.ts` - Platform sharing + URLs
+- `client/src/services/shareAnalytics.ts` - Event tracking
+
+**Platforms**: Native (Windows/mobile), Copy, Twitter, Facebook, LinkedIn, WhatsApp, Email
+
+**URLs**:
+- Courses: `/courses/${courseId}/preview`
+- Certificates: `/certificate/${verificationCode}`
 
 ---
 

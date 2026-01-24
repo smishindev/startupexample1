@@ -16,6 +16,8 @@ import { Download, Verified, ArrowBack, Share } from '@mui/icons-material';
 import { certificatesApi } from '../../services/certificatesApi';
 import { format } from 'date-fns';
 import { HeaderV4 as Header } from '../../components/Navigation/HeaderV4';
+import { useShare } from '../../hooks/useShare';
+import { ShareService } from '../../services/shareService';
 
 interface Certificate {
   Id: string;
@@ -38,6 +40,33 @@ export default function CertificatePage() {
   const [error, setError] = useState('');
   const [downloading, setDownloading] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '' });
+
+  const { openShareDialog, ShareDialogComponent } = useShare({
+    contentType: 'certificate',
+    contentId: certificate?.Id || '',
+    generateShareData: () => certificate ? ShareService.generateCertificateShareData({
+      StudentName: certificate.StudentName,
+      CourseTitle: certificate.CourseTitle,
+      CompletionDate: certificate.CompletionDate,
+      VerificationCode: certificate.VerificationCode,
+    }) : { url: '', title: '', text: '' },
+    preview: certificate ? (
+      <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
+        <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
+          {certificate.CourseTitle}
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+          Awarded to: {certificate.StudentName}
+        </Typography>
+        <Typography variant="caption" color="text.secondary">
+          Completed: {format(new Date(certificate.CompletionDate), 'MMMM dd, yyyy')}
+        </Typography>
+      </Box>
+    ) : undefined,
+    metadata: certificate ? {
+      title: certificate.CourseTitle,
+    } : undefined,
+  });
 
   useEffect(() => {
     if (courseId) {
@@ -106,15 +135,6 @@ export default function CertificatePage() {
       setDownloading(false);
       const errorMsg = error.message || error.response?.data?.message || error.response?.data?.error || 'Failed to download PDF';
       setSnackbar({ open: true, message: errorMsg });
-    }
-  };
-
-  const handleShare = () => {
-    // Copy public shareable URL to clipboard
-    if (certificate) {
-      const shareUrl = `${window.location.origin}/certificate/${certificate.VerificationCode}`;
-      navigator.clipboard.writeText(shareUrl);
-      setSnackbar({ open: true, message: 'Certificate link copied to clipboard!' });
     }
   };
 
@@ -197,7 +217,7 @@ export default function CertificatePage() {
         </Button>
         <Button
           startIcon={<Share />}
-          onClick={handleShare}
+          onClick={openShareDialog}
           variant="outlined"
         >
           Share
@@ -343,6 +363,9 @@ export default function CertificatePage() {
       message={snackbar.message}
       anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
     />
+
+    {/* Share Dialog */}
+    <ShareDialogComponent />
     </Box>
   );
 }

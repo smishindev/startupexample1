@@ -3,7 +3,7 @@ import { create } from 'zustand';
 export interface Notification {
   Id: string;
   UserId: string;
-  Type: string;
+  Type: 'progress' | 'risk' | 'achievement' | 'intervention' | 'assignment' | 'course' | 'assessment' | 'system';
   Priority: 'low' | 'normal' | 'high' | 'urgent';
   Title: string;
   Message: string;

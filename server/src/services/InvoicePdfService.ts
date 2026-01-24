@@ -1,9 +1,10 @@
 /**
  * InvoicePdfService - Generate professional PDF invoices
+ * Extends PdfGenerationService for common PDF utilities
  */
 
+import { PdfGenerationService } from './PdfGenerationService';
 import PDFDocument from 'pdfkit';
-import fs from 'fs';
 import path from 'path';
 
 interface InvoiceItem {
@@ -24,15 +25,9 @@ interface InvoiceData {
   paymentMethod?: string;
 }
 
-export class InvoicePdfService {
-  private uploadsDir: string;
-
+export class InvoicePdfService extends PdfGenerationService {
   constructor() {
-    this.uploadsDir = path.join(__dirname, '../../uploads/invoices');
-    // Ensure directory exists
-    if (!fs.existsSync(this.uploadsDir)) {
-      fs.mkdirSync(this.uploadsDir, { recursive: true });
-    }
+    super('invoices'); // PDFs will be stored in uploads/invoices/
   }
 
   /**
@@ -40,24 +35,13 @@ export class InvoicePdfService {
    */
   async generateInvoicePdf(invoiceData: InvoiceData): Promise<string> {
     const filename = `invoice_${invoiceData.invoiceNumber}.pdf`;
-    const filepath = path.join(this.uploadsDir, filename);
 
     return new Promise((resolve, reject) => {
       try {
-        const doc = new PDFDocument({ margin: 50 });
-        const stream = fs.createWriteStream(filepath);
+        const doc = this.createDocument({ margin: 50 });
 
-        doc.pipe(stream);
-
-        // Header with company branding
-        doc
-          .fontSize(28)
-          .fillColor('#667eea')
-          .text('Mishin Learn', { align: 'left' })
-          .fontSize(10)
-          .fillColor('#666666')
-          .text('Smart Learning Platform', { align: 'left' })
-          .moveDown();
+        // Header with company branding (using base class method)
+        this.addBranding(doc, { title: 'Mishin Learn', subtitle: 'Smart Learning Platform', align: 'left' });
 
         // Invoice title
         doc
@@ -163,27 +147,14 @@ export class InvoicePdfService {
           currentY += 20;
         }
 
-        // Footer
-        doc
-          .moveDown(3)
-          .fontSize(10)
-          .fillColor('#999999')
-          .text('Thank you for your purchase!', { align: 'center' })
-          .moveDown(0.5)
-          .fontSize(9)
-          .text('For support, contact us at support@mishinlearn.com', { align: 'center' })
-          .text('https://mishinlearn.com', { align: 'center', link: 'https://mishinlearn.com' });
+        // Footer (using base class method)
+        doc.moveDown(3);
+        this.addFooter(doc, 'Thank you for your purchase!');
 
-        // Finalize PDF
-        doc.end();
-
-        stream.on('finish', () => {
-          resolve(`/uploads/invoices/${filename}`);
-        });
-
-        stream.on('error', (error) => {
-          reject(error);
-        });
+        // Save PDF using base class method
+        this.savePdf(doc, filename)
+          .then(filepath => resolve(`/uploads/invoices/${filename}`))
+          .catch(error => reject(error));
       } catch (error) {
         reject(error);
       }
@@ -192,18 +163,18 @@ export class InvoicePdfService {
 
   /**
    * Get absolute file path for an invoice
+   * (Overrides base class method for backward compatibility)
    */
   getInvoiceFilePath(relativeUrl: string): string {
-    const filename = path.basename(relativeUrl);
-    return path.join(this.uploadsDir, filename);
+    return this.getFilePath(relativeUrl);
   }
 
   /**
    * Check if invoice PDF exists
+   * (Overrides base class method for backward compatibility)
    */
   invoiceExists(relativeUrl: string): boolean {
-    const filepath = this.getInvoiceFilePath(relativeUrl);
-    return fs.existsSync(filepath);
+    return this.fileExists(relativeUrl);
   }
 }
 

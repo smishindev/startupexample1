@@ -42,6 +42,7 @@ import {
   ExpandLess,
   ExpandMore,
   Notifications as NotificationsIcon,
+  EmojiEvents as CertificatesIcon,
 } from '@mui/icons-material';
 import { styled, alpha } from '@mui/material/styles';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
@@ -165,6 +166,7 @@ export const HeaderV4 = () => {
   // Profile menu items with notifications
   const profileMenuItems = [
     { text: 'Profile', icon: <AccountCircle />, action: () => navigate('/profile'), testId: 'header-profile-menu-item-profile' },
+    { text: 'My Certificates', icon: <CertificatesIcon />, action: () => navigate('/my-certificates'), testId: 'header-profile-menu-item-certificates' },
     { text: 'Notifications', icon: <NotificationsIcon />, action: () => navigate('/notifications'), testId: 'header-profile-menu-item-notifications' },
     { text: 'Settings', icon: <SettingsIcon />, action: () => navigate('/settings'), testId: 'header-profile-menu-item-settings' },
     { text: 'Logout', icon: <ExitToAppIcon />, action: handleLogout, testId: 'header-profile-menu-item-logout' },
@@ -413,8 +415,12 @@ export const HeaderV4 = () => {
           )}
 
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <PresenceStatusSelector />
-            <NotificationBell />
+            {user && (
+              <>
+                <PresenceStatusSelector />
+                <NotificationBell />
+              </>
+            )}
 
             <IconButton
               size="large"

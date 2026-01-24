@@ -304,7 +304,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
               margin="normal"
               required
               disabled={isLoading}
-              SelectProps={{ 'data-testid': 'register-role-select' }}
+              SelectProps={{ 'data-testid': 'register-role-select' } as any}
             >
               {userRoles.map((option) => (
                 <MenuItem key={option.value} value={option.value} data-testid={`register-role-${option.value}-option`}>
@@ -457,7 +457,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
               onChange={handleChange('learningStyle')}              onKeyDown={handleKeyDown}              margin="normal"
               disabled={isLoading}
               helperText="We'll use this to recommend the best content for you"
-              SelectProps={{ 'data-testid': 'register-learning-style-select' }}
+              SelectProps={{ 'data-testid': 'register-learning-style-select' } as any}
             >
               <MenuItem value="">
                 <em>I'm not sure / Skip this step</em>

@@ -63,6 +63,9 @@ import TransactionsPage from './pages/Profile/TransactionsPage';
 import ProfilePage from './pages/Profile/ProfilePage';
 import SettingsPage from './pages/Settings/SettingsPage';
 import NotificationSettingsPage from './pages/Settings/NotificationSettingsPage';
+import CertificatePage from './pages/Certificates/CertificatePage';
+import MyCertificatesPage from './pages/Certificates/MyCertificatesPage';
+import PublicCertificatePage from './pages/Certificates/PublicCertificatePage';
 
 import { StudentProgressPage } from './pages/Progress/StudentProgressPage';
 import Chat from './pages/Chat/Chat';
@@ -113,7 +116,7 @@ function App() {
       const newNotification = {
         Id: notification.id,
         UserId: '',
-        Type: notification.type,
+        Type: notification.type as 'progress' | 'risk' | 'achievement' | 'intervention' | 'assignment' | 'course' | 'assessment' | 'system',
         Priority: notification.priority as any,
         Title: notification.title,
         Message: notification.message,
@@ -247,6 +250,29 @@ function App() {
         {/* Unified Course Detail Route - public, works for everyone */}
         <Route path="/courses/:courseId" element={<CourseDetailPage />} />
         <Route path="/courses/:courseId/preview" element={<CourseDetailPage />} />
+        
+        {/* Public Certificate Route - shareable, no authentication required */}
+        <Route path="/certificate/:verificationCode" element={<PublicCertificatePage />} />
+        
+        {/* Certificate Route (authenticated - for backward compatibility) */}
+        <Route
+          path="/courses/:courseId/certificate"
+          element={
+            <ProtectedRoute>
+              <CertificatePage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* My Certificates Dashboard */}
+        <Route
+          path="/my-certificates"
+          element={
+            <ProtectedRoute>
+              <MyCertificatesPage />
+            </ProtectedRoute>
+          }
+        />
 
         {/* Payment Routes */}
         <Route

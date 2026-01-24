@@ -20,7 +20,7 @@ api.interceptors.request.use((config) => {
 export interface Notification {
   Id: string;
   UserId: string;
-  Type: 'progress' | 'risk' | 'achievement' | 'intervention' | 'assignment' | 'course' | 'assessment';
+  Type: 'progress' | 'risk' | 'achievement' | 'intervention' | 'assignment' | 'course' | 'assessment' | 'system';
   Priority: 'low' | 'normal' | 'high' | 'urgent';
   Title: string;
   Message: string;

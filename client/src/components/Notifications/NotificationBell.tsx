@@ -33,7 +33,7 @@ export const NotificationBell: React.FC = () => {
   const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // Error handling moved to individual operations
   const [, setCurrentTime] = useState(Date.now()); // Force re-render for relative time updates
   
   // Get full notification list and counts from centralized store

@@ -39,6 +39,8 @@ IF OBJECT_ID('dbo.CourseProgress', 'U') IS NOT NULL DROP TABLE dbo.CourseProgres
 IF OBJECT_ID('dbo.NotificationPreferences', 'U') IS NOT NULL DROP TABLE dbo.NotificationPreferences;
 IF OBJECT_ID('dbo.Notifications', 'U') IS NOT NULL DROP TABLE dbo.Notifications;
 IF OBJECT_ID('dbo.Bookmarks', 'U') IS NOT NULL DROP TABLE dbo.Bookmarks;
+-- Certificate Tables
+IF OBJECT_ID('dbo.Certificates', 'U') IS NOT NULL DROP TABLE dbo.Certificates;
 -- Payment System Tables
 IF OBJECT_ID('dbo.Invoices', 'U') IS NOT NULL DROP TABLE dbo.Invoices;
 IF OBJECT_ID('dbo.Transactions', 'U') IS NOT NULL DROP TABLE dbo.Transactions;
@@ -878,6 +880,58 @@ CREATE NONCLUSTERED INDEX IX_Invoices_CreatedAt ON dbo.Invoices(CreatedAt DESC);
 CREATE NONCLUSTERED INDEX IX_Users_StripeCustomerId ON dbo.Users(StripeCustomerId);
 
 -- ========================================
+-- CERTIFICATES TABLE - Course Completion
+-- ========================================
+
+-- Certificates Table - Track issued certificates when students complete courses
+CREATE TABLE dbo.Certificates (
+    Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    UserId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id) ON DELETE CASCADE,
+    CourseId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Courses(Id) ON DELETE CASCADE,
+    
+    -- Certificate Details
+    CertificateNumber NVARCHAR(50) NOT NULL UNIQUE, -- e.g., "CERT-2026-ABC123"
+    
+    -- Student Information (snapshot at completion time)
+    StudentName NVARCHAR(200) NOT NULL,
+    StudentEmail NVARCHAR(255) NOT NULL,
+    
+    -- Course Information (snapshot at completion time)
+    CourseTitle NVARCHAR(200) NOT NULL,
+    InstructorName NVARCHAR(200) NOT NULL,
+    
+    -- Completion Details
+    CompletionDate DATETIME2 NOT NULL,
+    FinalScore DECIMAL(5,2) NULL, -- Average assessment score if applicable
+    TotalHoursSpent INT NOT NULL DEFAULT 0, -- in minutes
+    
+    -- Certificate Status
+    Status NVARCHAR(20) NOT NULL DEFAULT 'issued' CHECK (Status IN ('issued', 'revoked')),
+    RevokedAt DATETIME2 NULL,
+    RevokeReason NVARCHAR(500) NULL,
+    
+    -- PDF Generation (future feature)
+    PdfPath NVARCHAR(500) NULL,
+    PdfGeneratedAt DATETIME2 NULL,
+    
+    -- Verification
+    VerificationCode NVARCHAR(100) NOT NULL UNIQUE, -- For external verification
+    
+    -- Timestamps
+    IssuedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    
+    UNIQUE(UserId, CourseId) -- One certificate per user per course
+);
+
+-- Certificate Indexes
+CREATE NONCLUSTERED INDEX IX_Certificates_UserId ON dbo.Certificates(UserId);
+CREATE NONCLUSTERED INDEX IX_Certificates_CourseId ON dbo.Certificates(CourseId);
+CREATE NONCLUSTERED INDEX IX_Certificates_CertificateNumber ON dbo.Certificates(CertificateNumber);
+CREATE NONCLUSTERED INDEX IX_Certificates_VerificationCode ON dbo.Certificates(VerificationCode);
+CREATE NONCLUSTERED INDEX IX_Certificates_IssuedAt ON dbo.Certificates(IssuedAt DESC);
+
+-- ========================================
 -- ACCOUNT DELETION & COURSE MANAGEMENT TABLES
 -- ========================================
 
@@ -927,9 +981,10 @@ PRINT '✅ Mishin Learn Database Schema created successfully!';
 PRINT '📊 Core Tables: Users, Courses, Lessons, Enrollments, UserProgress, Resources, Assessments, Questions, AssessmentSubmissions';
 PRINT '📊 Communication: LiveSessions, LiveSessionAttendees, ChatRooms, ChatMessages, TutoringSessions, TutoringMessages';
 PRINT '🧠 AI Progress Integration: CourseProgress, LearningActivities, StudentRecommendations, StudentRiskAssessment, PeerComparison';
-PRINT '📚 User Features: Bookmarks, FileUploads';
+PRINT '📚 User Features: Bookmarks, FileUploads, Certificates';
 PRINT '🔔 Real-time Notifications: Notifications, NotificationPreferences';
 PRINT '🎥 Multi-Content Progress: VideoProgress (tracks videos, text, quizzes via ContentItemId)';
 PRINT '⚙️ User Settings: UserSettings (Privacy, Appearance)';
 PRINT '💳 Payment System: Transactions, Invoices, Stripe Integration';
+PRINT '🎓 Certificates: Track course completion certificates with verification';
 PRINT '🚀 Database is ready for Mishin Learn Platform!';

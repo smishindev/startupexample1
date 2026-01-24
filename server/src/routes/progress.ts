@@ -5,6 +5,7 @@ import bcrypt from 'bcryptjs';
 import { authenticateToken, AuthRequest } from '../middleware/auth';
 import { DatabaseService } from '../services/DatabaseService';
 import { NotificationService } from '../services/NotificationService';
+import { CertificateService } from '../services/CertificateService';
 
 const router = Router();
 const db = DatabaseService.getInstance();
@@ -343,17 +344,50 @@ router.post('/lessons/:lessonId/complete', authenticateToken, async (req: AuthRe
           );
           console.log(`✅ Milestone notification sent to instructor ${instructorId} (${milestone}%)`);
 
-          // Send course completion congratulations at 100%
+          // Issue certificate and send notification at 100% completion
           if (milestone === 100) {
+            // ISSUE CERTIFICATE FIRST
+            const certificateService = new CertificateService();
+            
+            try {
+              const certificate = await certificateService.issueCertificate(userId!, courseId);
+              console.log(`✅ Certificate issued: ${certificate.CertificateNumber} for user ${userId} course ${courseId}`);
+              
+              // Send certificate earned notification (HIGH PRIORITY, separate from course completion)
+              // Use public shareable link so it works regardless of who's logged in
+              await notificationService.createNotificationWithControls(
+                {
+                  userId: userId!,
+                  type: 'achievement',
+                  priority: 'high',
+                  title: '🎓 Certificate Earned!',
+                  message: `Congratulations! Your certificate for "${courseTitle}" is ready. Download it now!`,
+                  actionUrl: `/certificate/${certificate.VerificationCode}`,
+                  actionText: 'Download Certificate'
+                },
+                {
+                  category: 'system',
+                  subcategory: 'Certificates'
+                }
+              );
+              console.log(`✅ Certificate earned notification sent to user ${userId}`);
+              console.log(`📧 Public certificate link: /certificate/${certificate.VerificationCode}`);
+              
+            } catch (certError) {
+              console.error('⚠️ Failed to issue certificate or send notification:', certError);
+              // Non-blocking - course completion still succeeds
+            }
+            
+            // Send course completion congratulations
             await notificationService.createNotificationWithControls(
               {
                 userId: userId!,
                 type: 'progress',
                 priority: 'high',
                 title: '🎉 Congratulations! Course Completed!',
-                message: `You've completed "${courseTitle}"! Great achievement! You can now download your certificate.`,
-                actionUrl: `/courses/${courseId}/certificate`,
-                actionText: 'View Certificate'
+                message: `You've completed "${courseTitle}"! Great achievement!`,
+                actionUrl: `/courses/${courseId}`,
+                actionText: 'View Course'
               },
               {
                 category: 'progress',

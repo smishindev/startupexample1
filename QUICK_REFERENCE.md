@@ -1,6 +1,71 @@
 # 🚀 Quick Reference - Development Workflow
 
-**Last Updated**: January 24, 2026 - Unified Share System Complete ✅
+**Last Updated**: January 29, 2026 - Comments System Bug Fixes ✅
+
+---
+
+## 💬 Comments System (Updated Jan 29, 2026)
+
+**Real-time threaded comments with likes, replies, and notifications**
+
+**Quick Usage**:
+```typescript
+// In any page component
+import CommentsSection from '@/components/Shared/CommentsSection';
+
+<CommentsSection
+  entityType="lesson"       // or "course", "assignment", etc.
+  entityId={lessonId}       // ID of the entity
+  allowComments={true}      // Permission flag
+  title="Discussion"        // Optional section title (no count display)
+/>
+```
+
+**API Endpoints**:
+- `GET /api/comments/:entityType/:entityId` - Get all comments
+- `POST /api/comments` - Create comment/reply
+- `PUT /api/comments/:commentId` - Update comment (5-min window)
+- `DELETE /api/comments/:commentId` - Delete comment (soft delete)
+- `POST /api/comments/:commentId/like` - Toggle like
+
+**Socket.IO Events**:
+- Subscribe: `comment:subscribe` → Join room `comments:entityType:entityId`
+- Unsubscribe: `comment:unsubscribe` → Leave room
+- Real-time: `comment:created`, `comment:updated`, `comment:deleted`, `comment:liked`
+
+**Features**:
+- One-level threading (comment → reply)
+- Like/unlike with optimistic updates
+- Edit within 5 minutes of posting
+- Soft delete (owner) + moderator override (instructor)
+- Real-time sync across all connected clients
+- Enrollment-based access control
+- Reply notifications (EnableReplies/EmailReplies preferences)
+- Character limit: 5000 chars
+- Keyboard shortcut: Ctrl/Cmd+Enter to submit
+- **React StrictMode compatible** (handlersRef pattern prevents duplicate subscriptions)
+- **No count display** (removed Jan 29, 2026 to eliminate synchronization complexity)
+
+**Components**:
+- `CommentsSection.tsx` - Container with refresh, loading, empty states (no count display)
+- `CommentItem.tsx` - Single comment with actions (recursive for replies)
+- `CommentInput.tsx` - Reusable input with char counter
+
+**Bug Fixes (Jan 29, 2026)**:
+- Fixed React StrictMode double-subscription issue using handlersRef
+- Implemented atomic state updates to prevent race conditions
+- Removed totalCount tracking to simplify synchronization
+
+**Database Tables**:
+- `Comments` - Main comments table with EntityType/EntityId pattern
+- `CommentLikes` - Many-to-many likes relationship
+- 6 indexes for performance
+
+**Notifications**:
+- Type: 'course' (community category)
+- Subcategory: 'Replies'
+- ActionUrl: `/{entityType}s/{entityId}#comment-{parentId}`
+- Respects EnableReplies/EmailReplies preferences
 
 ---
 

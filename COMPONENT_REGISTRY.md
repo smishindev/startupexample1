@@ -1,7 +1,223 @@
 # Mishin Learn Platform - Component Registry
 
-**Last Updated**: January 21, 2026 - Weekly Progress Summary ✅  
+**Last Updated**: January 29, 2026 - Comments System Bug Fixes ✅  
 **Purpose**: Quick reference for all major components, their dependencies, and relationships
+
+---
+
+## 💬 Comments System Components (Added Jan 25, Updated Jan 29, 2026)
+
+### CommentsSection
+**Path**: `client/src/components/Shared/CommentsSection.tsx`  
+**Purpose**: Container component for displaying and managing comments on any entity
+
+**Props**:
+- `entityType: string` - Type of entity ('lesson', 'course', 'assignment', etc.)
+- `entityId: string` - ID of the entity
+- `allowComments: boolean` - Whether comments are enabled for this entity
+- `title?: string` - Optional section title (default: "Discussion")
+
+**Features**:
+- Uses useComments hook for state management
+- Loading spinner while fetching
+- Error message display
+- Empty state: "No comments yet. Be the first to comment!"
+- Disabled state: "Comments are disabled for this item."
+- Refresh button in header
+- **No count badge** (removed Jan 29, 2026 for simplicity)
+- New comment input at top
+- Flat list of comments with nested replies
+- React StrictMode compatible
+
+**Dependencies**:
+- `useComments` hook - State + Socket.IO integration (handlersRef pattern)
+- `CommentInput` - New comment form
+- `CommentItem` - Individual comment display
+- Material-UI components
+
+**Bug Fixes (Jan 29, 2026)**:
+- Fixed React StrictMode double-subscription via handlersRef
+- Removed totalCount display to eliminate synchronization issues
+- Atomic state updates prevent race conditions
+
+**Status**: ✅ Production-ready
+
+---
+
+### CommentItem
+**Path**: `client/src/components/Shared/CommentItem.tsx`  
+**Purpose**: Display single comment with actions (edit, delete, like, reply)
+
+**Props**:
+- `comment: Comment` - Comment data with user info
+- `onEdit: (commentId, content) => void` - Edit handler
+- `onDelete: (commentId) => void` - Delete handler
+- `onLike: (commentId) => void` - Like handler
+- `onReply: (parentId, content) => void` - Reply handler
+- `currentUserId: string` - Current user ID for permissions
+- `depth?: number` - Threading depth (default 0, max 1)
+
+**Features**:
+- User avatar with firstName + lastName
+- Instructor badge (graduation cap icon)
+- Edit button (5-min window, owner only)
+- Delete button (owner or moderator)
+- Like button with count (heart icon)
+- Reply button (shows input below)
+- Relative timestamp (e.g., "2 hours ago")
+- Edit mode: Shows CommentInput pre-filled
+- Reply mode: Shows CommentInput indented
+- Recursive rendering for one level of replies
+- "Edited" indicator if IsEdited=true
+- Test IDs on all interactive elements
+
+**Dependencies**:
+- `CommentInput` - Edit/reply form
+- `useAuthStore` - Current user role
+- `date-fns` - formatDistanceToNow
+- Material-UI components
+
+**Status**: ✅ Production-ready
+
+---
+
+### CommentInput
+**Path**: `client/src/components/Shared/CommentInput.tsx`  
+**Purpose**: Reusable text input for creating/editing comments
+
+**Props**:
+- `value: string` - Controlled input value
+- `onChange: (value: string) => void` - Change handler
+- `onSubmit: () => void` - Submit handler
+- `onCancel?: () => void` - Cancel handler (optional)
+- `placeholder?: string` - Input placeholder
+- `disabled?: boolean` - Disabled state
+- `maxLength?: number` - Character limit (default 5000)
+
+**Features**:
+- Multiline TextField (4 rows)
+- Character counter: "{current} / {max}"
+- Keyboard shortcut: Ctrl/Cmd+Enter to submit
+- Cancel button (if onCancel provided)
+- Submit button (disabled when empty/over limit)
+- Loading state during submission
+- Character limit visual warning (red counter)
+
+**Dependencies**:
+- Material-UI components (TextField, Stack, Button, Typography)
+
+**Status**: ✅ Production-ready
+
+---
+
+### useComments Hook
+**Path**: `client/src/hooks/useComments.ts`  
+**Purpose**: React hook for comments state management and real-time updates
+
+**Parameters**:
+- `entityType: string` - Type of entity
+- `entityId: string` - ID of entity
+- `initialPage?: number` - Starting page (default 1)
+- `initialLimit?: number` - Page size (default 20)
+
+**Returns**:
+- `comments: Comment[]` - Array of comments (top-level + nested replies)
+- `loading: boolean` - Loading state
+- `error: string | null` - Error message
+- `hasMore: boolean` - More pages available
+- `totalCount: number` - Total comment count
+- `createComment: (content, parentId?) => Promise<void>` - Create comment/reply
+- `updateComment: (commentId, content) => Promise<void>` - Edit comment
+- `deleteComment: (commentId) => Promise<void>` - Delete comment
+- `toggleLike: (commentId) => Promise<void>` - Like/unlike
+- `loadMore: () => Promise<void>` - Load next page
+- `refresh: () => Promise<void>` - Reload all comments
+
+**Features**:
+- Auto-fetches on mount
+- Auto-subscribes to Socket.IO room on mount
+- Auto-unsubscribes on unmount
+- Real-time event handlers:
+  - `comment:created` - Adds new comment to list
+  - `comment:updated` - Updates existing comment
+  - `comment:deleted` - Marks comment as deleted
+  - `comment:liked` - Updates like count
+- Optimistic updates (UI updates before server confirms)
+- Pagination support
+- Error handling with user-friendly messages
+- Automatic cleanup of Socket.IO listeners
+
+**Dependencies**:
+- `commentApi` - API client
+- `socketService` - Socket.IO connection
+- `Comment` type - TypeScript interface
+
+**Status**: ✅ Production-ready
+
+---
+
+### CommentService (Backend)
+**Path**: `server/src/services/CommentService.ts`  
+**Purpose**: Business logic for comments CRUD operations
+
+**Key Methods**:
+- `createComment(params)` - Create comment with validation
+- `getComments(entityType, entityId, userId, options)` - Fetch with threading
+- `updateComment(commentId, userId, content)` - Edit (5-min window)
+- `deleteComment(commentId, userId, userRole)` - Soft delete
+- `toggleLike(commentId, userId)` - Add/remove like
+- `canAccessComments(userId, entityType, entityId)` - Enrollment check
+- `areCommentsAllowed(entityType, entityId)` - Permission check
+- `getModeratorId(entityType, entityId)` - Get instructor ID
+
+**Features**:
+- Enrollment-based access control
+- Soft delete with IsDeleted flag
+- Denormalized counters (LikesCount, RepliesCount)
+- One-level reply threading
+- 5-minute edit window enforcement
+- Moderator override for delete
+- Socket.IO event emission
+- Notification trigger for replies
+- Character limit validation (5000)
+- Trim whitespace from content
+
+**Dependencies**:
+- `DatabaseService` - SQL Server queries
+- `NotificationService` - Reply notifications
+- `Socket.IO Server` - Real-time updates
+
+**Status**: ✅ Production-ready
+
+---
+
+### Comment API Routes
+**Path**: `server/src/routes/comments.ts`  
+**Endpoints**: 5 RESTful routes with authentication
+
+**Routes**:
+1. `GET /api/comments/:entityType/:entityId` - Get all comments
+   - Query params: page, limit, sort
+   - Returns: { comments, totalCount, pagination }
+2. `POST /api/comments` - Create comment
+   - Body: { entityType, entityId, content, parentCommentId? }
+   - Returns: Comment object
+3. `PUT /api/comments/:commentId` - Update comment
+   - Body: { content }
+   - Returns: Updated Comment object
+4. `DELETE /api/comments/:commentId` - Delete comment
+   - Returns: { success: true }
+5. `POST /api/comments/:commentId/like` - Toggle like
+   - Returns: { liked: boolean, likesCount: number }
+
+**Validation**:
+- Entity type must be: lesson, course, assignment, study_group, announcement
+- Content required and non-empty
+- Content max 5000 characters
+- Owner or moderator required for delete
+- Owner only for edit (within 5 minutes)
+
+**Status**: ✅ Production-ready
 
 ---
 

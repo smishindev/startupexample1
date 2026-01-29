@@ -472,5 +472,26 @@ export const setupSocketHandlers = (io: Server) => {
       
       console.log(`User ${socket.userId} left office hours queue for instructor ${data.instructorId}`);
     });
+
+    // ========================================
+    // Comments System Events
+    // ========================================
+
+    // Subscribe to comments for an entity (lesson, course, etc.)
+    socket.on('comment:subscribe', (data: { entityType: string; entityId: string }) => {
+      const room = `comments:${data.entityType}:${data.entityId}`;
+      socket.join(room);
+      console.log(`📝 [Socket.IO] User ${socket.userId} subscribed to comments: ${room}`);
+    });
+
+    // Unsubscribe from comments for an entity
+    socket.on('comment:unsubscribe', (data: { entityType: string; entityId: string }) => {
+      const room = `comments:${data.entityType}:${data.entityId}`;
+      socket.leave(room);
+      console.log(`📝 [Socket.IO] User ${socket.userId} unsubscribed from comments: ${room}`);
+    });
+
+    // Note: comment:created, comment:updated, comment:deleted, comment:liked
+    // are emitted by CommentService, not handled as incoming events
   });
 };

@@ -1,6 +1,6 @@
 # Mishin Learn Platform - System Architecture
 
-**Last Updated**: January 21, 2026 - Study Group Invitations Complete ✅  
+**Last Updated**: January 29, 2026 - Comments System Bug Fixes ✅  
 **Purpose**: Understanding system components, data flows, and dependencies
 
 ---
@@ -108,6 +108,38 @@ Frontend: Logout, navigate to login, show success message
 Note: Account deletion emails are security-critical and always sent,
 regardless of user notification preferences.
 ```
+
+### Comments & Discussion (added Jan 25, updated Jan 29, 2026)
+```
+GET    /api/comments/:entityType/:entityId  - Get comments with pagination
+POST   /api/comments                        - Create comment or reply
+PUT    /api/comments/:commentId             - Update comment (5-min window)
+DELETE /api/comments/:commentId             - Delete comment (soft delete)
+POST   /api/comments/:commentId/like        - Toggle like on comment
+
+Socket.IO Events:
+  Client → Server: comment:subscribe, comment:unsubscribe
+  Server → Client: comment:created, comment:updated, comment:deleted, comment:liked
+```
+
+**Comments System Architecture:**
+- **Entity-Agnostic Design**: Works with lessons, courses, assignments, announcements
+- **Threading**: One-level replies (comment → reply, no nested replies)
+- **Real-time Updates**: Socket.IO rooms per entity (`comments:entityType:entityId`)
+- **Access Control**: Enrollment-based (must be enrolled to view/post)
+- **Optimistic Updates**: UI updates immediately, confirmed by Socket.IO
+- **React StrictMode Fix** (Jan 29): handlersRef pattern prevents duplicate subscriptions
+- **No Count Display** (Jan 29): Removed totalCount to eliminate synchronization complexity
+- **Tables**: Comments (main), CommentLikes (many-to-many)
+- **Indexes**: 6 total (entity lookup, parent lookup, user comments, likes, active filter)
+- **Denormalization**: LikesCount, RepliesCount for performance
+- **Security**: Enrollment check, owner verification, moderator override (instructors)
+- **Notifications**: Integrated with reply notifications (EnableReplies preference)
+
+**Bug Fixes (Jan 29, 2026):**
+- Fixed React StrictMode double-mount causing duplicate Socket.IO subscriptions
+- Implemented atomic state updates to prevent race conditions
+- Removed totalCount display and all increment/decrement logic
 
 **Settings Implementation Status (Verified Jan 10, 2026):**
 - **Privacy Settings**: ✅ Fully enforced across 8+ endpoints

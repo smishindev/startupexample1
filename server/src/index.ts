@@ -45,6 +45,7 @@ import { videoAnalyticsRoutes } from './routes/videoAnalytics';
 import dashboardRoutes from './routes/dashboard';
 import settingsRoutes from './routes/settings';
 import emailRoutes from './routes/email';
+import { createCommentsRouter } from './routes/comments';
 const studentProgressRoutes = require('./routes/student-progress');
 import { DatabaseService } from './services/DatabaseService';
 import { setupSocketHandlers } from './sockets';
@@ -166,12 +167,15 @@ import { LiveSessionService } from './services/LiveSessionService';
 import { PresenceService } from './services/PresenceService';
 import { OfficeHoursService } from './services/OfficeHoursService';
 import { StudyGroupService } from './services/StudyGroupService';
+import { CommentService } from './services/CommentService';
 
 const notificationService = new NotificationService(io);
+const commentService = new CommentService();
 LiveSessionService.setSocketIO(io);
 PresenceService.setSocketIO(io);
 OfficeHoursService.setSocketIO(io);
 StudyGroupService.setSocketIO(io);
+commentService.setSocketIO(io);
 
 app.set('notificationService', notificationService);
 
@@ -224,6 +228,7 @@ app.use('/api/certificates', certificateRoutes);
 app.use('/api/student-progress', studentProgressRoutes);
 app.use('/api/video-progress', videoProgressRoutes);
 app.use('/api/video-analytics', videoAnalyticsRoutes);
+app.use('/api/comments', createCommentsRouter(commentService));
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/email', emailRoutes);

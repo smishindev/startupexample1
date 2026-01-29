@@ -14,8 +14,6 @@ import {
   ListItemIcon,
   ListItemText,
   ListItemButton,
-  TextField,
-  Avatar,
   Drawer,
   Divider,
   Switch,
@@ -33,7 +31,6 @@ import {
   BookmarkBorder,
   Bookmark,
   Share,
-  ThumbUp,
   Check,
   Menu as MenuIcon,
   PlayArrow,
@@ -50,6 +47,7 @@ import { getLessonContentProgress, markContentComplete, ContentProgressItem } fr
 import { ContentItem } from '../../components/Lesson/ContentItem';
 import { coursesApi } from '../../services/coursesApi';
 import { BookmarkApi } from '../../services/bookmarkApi';
+import { CommentsSection } from '../../components/Shared/CommentsSection';
 
 interface ExtendedLessonContent {
   id: string;
@@ -66,18 +64,6 @@ interface ExtendedLessonContent {
   }>;
 }
 
-interface Comment {
-  id: string;
-  user: {
-    name: string;
-    avatar?: string;
-  };
-  content: string;
-  timestamp: string;
-  likes: number;
-  replies?: Comment[];
-}
-
 interface ExtendedLesson extends Lesson {
   courseTitle?: string;
   instructorName?: string;
@@ -85,7 +71,6 @@ interface ExtendedLesson extends Lesson {
   progress?: number;
   nextLessonId?: string;
   previousLessonId?: string;
-  comments?: Comment[];
   extendedContent?: ExtendedLessonContent[];
   resources?: Array<{
     id: string;
@@ -136,7 +121,6 @@ export const LessonDetailPage: React.FC = () => {
   const [assessments, setAssessments] = useState<AssessmentWithProgress[]>([]);
   const [progress, setProgress] = useState<any>(null);
   const [contentProgress, setContentProgress] = useState<{[key: string]: ContentProgressItem}>({});
-  const [newComment, setNewComment] = useState('');
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -203,7 +187,6 @@ export const LessonDetailPage: React.FC = () => {
           progress: lessonProgressPercentage,
           nextLessonId,
           previousLessonId,
-          comments: [], // TODO: Implement comments API
           extendedContent: transformLessonContent(lessonData.content || []),
           resources: [], // TODO: Implement resources API
           savedPosition // Add saved position for video resumption
@@ -405,23 +388,6 @@ export const LessonDetailPage: React.FC = () => {
         console.error('Failed to mark lesson as complete:', error);
         // You could show an error message to the user here
       }
-    }
-  };
-
-  const handleAddComment = () => {
-    if (newComment.trim() && lesson) {
-      const comment: Comment = {
-        id: Date.now().toString(),
-        user: { name: 'Current User', avatar: '' },
-        content: newComment,
-        timestamp: 'Just now',
-        likes: 0,
-      };
-      setLesson({
-        ...lesson,
-        comments: [comment, ...(lesson.comments || [])],
-      });
-      setNewComment('');
     }
   };
 
@@ -1083,82 +1049,13 @@ export const LessonDetailPage: React.FC = () => {
             )}
 
             {/* Comments Section */}
-            <Paper sx={{ p: 3 }}>
-              <Typography variant="h6" sx={{ mb: 3 }}>
-                Discussion ({lesson.comments?.length || 0})
-              </Typography>
-
-              {/* Add Comment */}
-              <Box sx={{ mb: 3 }}>
-                <TextField
-                  fullWidth
-                  multiline
-                  rows={3}
-                  placeholder="Ask a question or share your thoughts..."
-                  value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
-                  sx={{ mb: 1 }}
-                />
-                <Button variant="contained" onClick={handleAddComment} disabled={!newComment.trim()} data-testid="lesson-add-comment-button">
-                  Post Comment
-                </Button>
-              </Box>
-
-              {/* Comments List */}
-              <List>
-                {lesson.comments?.map((comment) => (
-                  <Box key={comment.id}>
-                    <ListItem alignItems="flex-start" sx={{ px: 0 }}>
-                      <Avatar sx={{ mr: 2 }}>{comment.user.name.charAt(0)}</Avatar>
-                      <Box sx={{ flex: 1 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                          <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
-                            {comment.user.name}
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary" sx={{ ml: 1 }}>
-                            {comment.timestamp}
-                          </Typography>
-                        </Box>
-                        <Typography variant="body1" sx={{ mb: 1 }}>
-                          {comment.content}
-                        </Typography>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <IconButton size="small" data-testid="lesson-detail-comment-like-button">
-                            <ThumbUp fontSize="small" />
-                          </IconButton>
-                          <Typography variant="body2">{comment.likes}</Typography>
-                          <Button size="small" data-testid="lesson-detail-comment-reply-button">Reply</Button>
-                        </Box>
-
-                        {/* Replies */}
-                        {comment.replies && comment.replies.length > 0 && (
-                          <Box sx={{ ml: 4, mt: 2 }}>
-                            {comment.replies.map((reply) => (
-                              <Box key={reply.id} sx={{ display: 'flex', mb: 2 }}>
-                                <Avatar sx={{ mr: 2, width: 32, height: 32 }}>
-                                  {reply.user.name.charAt(0)}
-                                </Avatar>
-                                <Box>
-                                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                                    <Typography variant="subtitle2" sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>
-                                      {reply.user.name}
-                                    </Typography>
-                                    <Typography variant="body2" color="text.secondary" sx={{ ml: 1, fontSize: '0.75rem' }}>
-                                      {reply.timestamp}
-                                    </Typography>
-                                  </Box>
-                                  <Typography variant="body2">{reply.content}</Typography>
-                                </Box>
-                              </Box>
-                            ))}
-                          </Box>
-                        )}
-                      </Box>
-                    </ListItem>
-                  </Box>
-                ))}
-              </List>
-            </Paper>
+            <CommentsSection
+              entityType="lesson"
+              entityId={lessonId!}
+              allowComments={true}
+              moderatorUserId={courseInfo?.instructorId}
+              title="Discussion"
+            />
           </Box>
 
           {/* Sidebar */}

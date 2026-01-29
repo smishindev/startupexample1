@@ -1344,4 +1344,125 @@ export class NotificationService {
       throw error;
     }
   }
+
+  /**
+   * Send notification when someone replies to a user's comment
+   * 
+   * @param replyId - ID of the reply comment
+   * @param parentCommentId - ID of the parent comment being replied to
+   * @returns Notification ID or empty string if skipped
+   */
+  async sendCommentReplyNotification(replyId: string, parentCommentId: string): Promise<string> {
+    try {
+      // Get reply and parent comment details
+      const request = await this.dbService.getRequest();
+      const result = await request
+        .input('ReplyId', sql.UniqueIdentifier, replyId)
+        .input('ParentCommentId', sql.UniqueIdentifier, parentCommentId)
+        .query(`
+          SELECT 
+            parent.UserId as ParentAuthorId,
+            parentAuthor.FirstName + ' ' + parentAuthor.LastName as ParentAuthorName,
+            reply.UserId as ReplyAuthorId,
+            replyAuthor.FirstName + ' ' + replyAuthor.LastName as ReplyAuthorName,
+            parent.EntityType,
+            parent.EntityId,
+            parent.Content as ParentContent,
+            reply.Content as ReplyContent,
+            -- Get entity title based on type
+            CASE parent.EntityType
+              WHEN 'lesson' THEN (SELECT Title FROM dbo.Lessons WHERE Id = parent.EntityId)
+              WHEN 'course' THEN (SELECT Title FROM dbo.Courses WHERE Id = parent.EntityId)
+              WHEN 'assignment' THEN (SELECT Title FROM dbo.Assessments WHERE Id = parent.EntityId)
+              ELSE 'Item'
+            END as EntityTitle,
+            -- Get course ID for lesson/assignment context
+            CASE parent.EntityType
+              WHEN 'lesson' THEN (SELECT CourseId FROM dbo.Lessons WHERE Id = parent.EntityId)
+              WHEN 'assignment' THEN (SELECT l.CourseId FROM dbo.Assessments a JOIN dbo.Lessons l ON a.LessonId = l.Id WHERE a.Id = parent.EntityId)
+              ELSE NULL
+            END as CourseId,
+            -- Get lesson ID for assignment context
+            CASE parent.EntityType
+              WHEN 'assignment' THEN (SELECT LessonId FROM dbo.Assessments WHERE Id = parent.EntityId)
+              ELSE NULL
+            END as LessonId
+          FROM dbo.Comments reply
+          JOIN dbo.Comments parent ON reply.ParentCommentId = parent.Id
+          JOIN dbo.Users parentAuthor ON parent.UserId = parentAuthor.Id
+          JOIN dbo.Users replyAuthor ON reply.UserId = replyAuthor.Id
+          WHERE reply.Id = @ReplyId
+            AND parent.Id = @ParentCommentId
+            AND parent.IsDeleted = 0
+            AND reply.IsDeleted = 0
+        `);
+
+      if (result.recordset.length === 0) {
+        console.log(`⚠️ Comment or reply not found or deleted: ${replyId}, ${parentCommentId}`);
+        return '';
+      }
+
+      const data = result.recordset[0];
+
+      // Don't notify if replying to own comment
+      if (data.ParentAuthorId === data.ReplyAuthorId) {
+        console.log(`📵 Skipping self-reply notification for user ${data.ParentAuthorId}`);
+        return '';
+      }
+
+      // Truncate comment content for notification
+      const truncateText = (text: string, maxLength: number = 100): string => {
+        if (text.length <= maxLength) return text;
+        return text.substring(0, maxLength - 3) + '...';
+      };
+
+      // Build action URL based on entity type
+      let actionUrl = '';
+      if (data.EntityType === 'lesson') {
+        actionUrl = `/courses/${data.CourseId}/lessons/${data.EntityId}#comment-${parentCommentId}`;
+      } else if (data.EntityType === 'course') {
+        actionUrl = `/courses/${data.EntityId}#comment-${parentCommentId}`;
+      } else if (data.EntityType === 'assignment') {
+        actionUrl = `/courses/${data.CourseId}/lessons/${data.LessonId}#comment-${parentCommentId}`;
+      } else {
+        actionUrl = `/${data.EntityType}s/${data.EntityId}#comment-${parentCommentId}`;
+      }
+
+      // Create notification
+      const notificationId = await this.createNotificationWithControls(
+        {
+          userId: data.ParentAuthorId,
+          type: 'course', // Use 'course' type as community type
+          priority: 'normal',
+          title: `${data.ReplyAuthorName} replied to your comment`,
+          message: `On "${data.EntityTitle}": "${truncateText(data.ReplyContent)}"`,
+          data: {
+            replyId: replyId,
+            parentCommentId: parentCommentId,
+            entityType: data.EntityType,
+            entityId: data.EntityId,
+            replyAuthorName: data.ReplyAuthorName
+          },
+          actionUrl: actionUrl,
+          actionText: 'View Reply',
+          relatedEntityId: data.EntityId,
+          relatedEntityType: data.EntityType as any
+        },
+        {
+          category: 'community',
+          subcategory: 'Replies'
+        }
+      );
+
+      if (notificationId) {
+        console.log(`✅ Comment reply notification sent to ${data.ParentAuthorName} (${data.ParentAuthorId})`);
+      }
+
+      return notificationId;
+    } catch (error: any) {
+      console.error('❌ Error sending comment reply notification:', error);
+      // Don't throw - notification failures shouldn't break comment creation
+      return '';
+    }
+  }
 }

@@ -39,6 +39,9 @@ IF OBJECT_ID('dbo.CourseProgress', 'U') IS NOT NULL DROP TABLE dbo.CourseProgres
 IF OBJECT_ID('dbo.NotificationPreferences', 'U') IS NOT NULL DROP TABLE dbo.NotificationPreferences;
 IF OBJECT_ID('dbo.Notifications', 'U') IS NOT NULL DROP TABLE dbo.Notifications;
 IF OBJECT_ID('dbo.Bookmarks', 'U') IS NOT NULL DROP TABLE dbo.Bookmarks;
+-- Comments System Tables
+IF OBJECT_ID('dbo.CommentLikes', 'U') IS NOT NULL DROP TABLE dbo.CommentLikes;
+IF OBJECT_ID('dbo.Comments', 'U') IS NOT NULL DROP TABLE dbo.Comments;
 -- Certificate Tables
 IF OBJECT_ID('dbo.Certificates', 'U') IS NOT NULL DROP TABLE dbo.Certificates;
 -- Payment System Tables
@@ -659,6 +662,81 @@ CREATE NONCLUSTERED INDEX IX_PeerComparison_UserId_CourseId ON dbo.PeerCompariso
 CREATE NONCLUSTERED INDEX IX_Bookmarks_UserId ON dbo.Bookmarks(UserId);
 CREATE NONCLUSTERED INDEX IX_Bookmarks_CourseId ON dbo.Bookmarks(CourseId);
 CREATE NONCLUSTERED INDEX IX_Bookmarks_BookmarkedAt ON dbo.Bookmarks(BookmarkedAt);
+
+-- ========================================
+-- Comments System Tables (Generic for any entity)
+-- ========================================
+-- Comments Table (entity-agnostic: lessons, courses, assignments, study_groups, announcements)
+CREATE TABLE dbo.Comments (
+    Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    UserId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id) ON DELETE CASCADE,
+    
+    -- Entity linking (flexible for lessons, courses, assignments, study groups, etc.)
+    EntityType NVARCHAR(50) NOT NULL CHECK (EntityType IN ('lesson', 'course', 'assignment', 'study_group', 'announcement')),
+    EntityId UNIQUEIDENTIFIER NOT NULL,
+    
+    -- Content
+    Content NVARCHAR(MAX) NOT NULL,
+    
+    -- Threading support (NULL = top-level comment, non-NULL = reply)
+    ParentCommentId UNIQUEIDENTIFIER NULL FOREIGN KEY REFERENCES dbo.Comments(Id) ON DELETE NO ACTION,
+    
+    -- Metrics (denormalized for performance)
+    LikesCount INT NOT NULL DEFAULT 0,
+    RepliesCount INT NOT NULL DEFAULT 0,
+    
+    -- Status flags
+    IsEdited BIT NOT NULL DEFAULT 0,
+    IsDeleted BIT NOT NULL DEFAULT 0, -- Soft delete to preserve thread integrity
+    DeletedAt DATETIME2 NULL,
+    DeletedBy UNIQUEIDENTIFIER NULL, -- Who deleted (user/instructor/admin)
+    
+    -- Timestamps
+    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    UpdatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    EditedAt DATETIME2 NULL
+);
+
+-- Comment Likes Table (who liked what)
+CREATE TABLE dbo.CommentLikes (
+    Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    CommentId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Comments(Id) ON DELETE CASCADE,
+    UserId UNIQUEIDENTIFIER NOT NULL, -- No FK to avoid cascade path conflicts (Comments already cascades from Users)
+    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    
+    -- Prevent duplicate likes
+    CONSTRAINT UQ_CommentLikes_CommentUser UNIQUE (CommentId, UserId)
+);
+
+-- Comments System Performance Indexes
+-- Primary query: Get all comments for an entity
+CREATE NONCLUSTERED INDEX IX_Comments_EntityType_EntityId_CreatedAt 
+ON dbo.Comments (EntityType, EntityId, CreatedAt DESC)
+WHERE IsDeleted = 0;
+
+-- Query: Get comments by user
+CREATE NONCLUSTERED INDEX IX_Comments_UserId 
+ON dbo.Comments (UserId)
+INCLUDE (EntityType, EntityId, CreatedAt);
+
+-- Query: Get replies for a comment
+CREATE NONCLUSTERED INDEX IX_Comments_ParentCommentId 
+ON dbo.Comments (ParentCommentId, CreatedAt DESC)
+WHERE ParentCommentId IS NOT NULL AND IsDeleted = 0;
+
+-- Query: Find soft-deleted comments (for moderation/recovery)
+CREATE NONCLUSTERED INDEX IX_Comments_IsDeleted_DeletedAt 
+ON dbo.Comments (IsDeleted, DeletedAt DESC)
+WHERE IsDeleted = 1;
+
+-- Query: Get likes by user (to check if user liked a comment)
+CREATE NONCLUSTERED INDEX IX_CommentLikes_UserId 
+ON dbo.CommentLikes (UserId, CommentId);
+
+-- Query: Get likes for a comment
+CREATE NONCLUSTERED INDEX IX_CommentLikes_CommentId 
+ON dbo.CommentLikes (CommentId, CreatedAt DESC);
+
 CREATE NONCLUSTERED INDEX IX_Notifications_UserId ON dbo.Notifications(UserId);
 CREATE NONCLUSTERED INDEX IX_Notifications_IsRead ON dbo.Notifications(IsRead);
 CREATE NONCLUSTERED INDEX IX_Notifications_CreatedAt ON dbo.Notifications(CreatedAt DESC);
@@ -983,6 +1061,7 @@ PRINT '📊 Communication: LiveSessions, LiveSessionAttendees, ChatRooms, ChatMe
 PRINT '🧠 AI Progress Integration: CourseProgress, LearningActivities, StudentRecommendations, StudentRiskAssessment, PeerComparison';
 PRINT '📚 User Features: Bookmarks, FileUploads, Certificates';
 PRINT '🔔 Real-time Notifications: Notifications, NotificationPreferences';
+PRINT '💬 Comments System: Comments, CommentLikes (6 performance indexes)';
 PRINT '🎥 Multi-Content Progress: VideoProgress (tracks videos, text, quizzes via ContentItemId)';
 PRINT '⚙️ User Settings: UserSettings (Privacy, Appearance)';
 PRINT '💳 Payment System: Transactions, Invoices, Stripe Integration';

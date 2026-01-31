@@ -40,7 +40,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { instructorApi } from '../../services/instructorApi';
-import { HeaderV4 as Header } from '../../components/Navigation/HeaderV4';
+import { HeaderV5 as Header } from '../../components/Navigation/HeaderV5';
 
 interface AtRiskStudent {
   UserId: string;

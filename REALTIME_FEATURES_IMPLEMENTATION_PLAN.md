@@ -93,9 +93,9 @@
 - ✅ OnlineUsersWidget on Instructor Dashboard
 - ✅ UserPresenceBadge in Office Hours queue
 - ✅ Online member count in Study Groups
-- ✅ PresenceStatusSelector in global Header
+- ✅ PresenceStatusSelector in global HeaderV5 (refactored Jan 31, 2026)
 - ✅ Real-time Socket.IO updates (not polling)
-- ✅ Global Header added to all pages
+- ✅ Global HeaderV5 added to all pages
 
 ---
 
@@ -447,7 +447,7 @@ GET    /api/presence/user/:userId      - Get user presence
 
 **Frontend - Modify:**
 13. `client/src/App.tsx` - Add routes
-14. `client/src/components/Navigation/Header.tsx` - Add sessions menu
+14. `client/src/components/Navigation/HeaderV5.tsx` - Navigation with sessions menu
 15. `client/src/services/socketService.ts` - Add session methods
 
 ---

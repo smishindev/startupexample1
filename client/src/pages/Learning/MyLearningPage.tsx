@@ -28,7 +28,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
-import { HeaderV4 as Header } from '../../components/Navigation/HeaderV4';
+import { HeaderV5 as Header } from '../../components/Navigation/HeaderV5';
 import { enrollmentApi, Enrollment } from '../../services/enrollmentApi';
 import { useAuthStore } from '../../stores/authStore';
 import { useTheme } from '@mui/material';

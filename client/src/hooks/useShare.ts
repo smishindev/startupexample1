@@ -9,10 +9,16 @@ export interface UseShareOptions {
   generateShareData: () => ShareData;
   preview?: React.ReactNode;
   metadata?: {
+    // Common fields
     title?: string;
+    // Course-specific fields
     category?: string;
     level?: string;
     price?: number;
+    // Certificate-specific fields
+    studentName?: string;
+    completionDate?: string;
+    verificationCode?: string;
   };
 }
 

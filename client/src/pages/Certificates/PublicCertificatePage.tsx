@@ -15,7 +15,7 @@ import {
 import { Download, Verified, ArrowBack, Share } from '@mui/icons-material';
 import { certificatesApi } from '../../services/certificatesApi';
 import { format } from 'date-fns';
-import { HeaderV4 as Header } from '../../components/Navigation/HeaderV4';
+import { HeaderV5 as Header } from '../../components/Navigation/HeaderV5';
 import { useShare } from '../../hooks/useShare';
 import { ShareService } from '../../services/shareService';
 

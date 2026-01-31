@@ -39,7 +39,7 @@ import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import profileApi, { UserProfile, UpdatePersonalInfoData, UpdateBillingAddressData, ChangePasswordData } from '../../services/profileApi';
 import { useAuthStore } from '../../stores/authStore';
-import { HeaderV4 } from '../../components/Navigation/HeaderV4';
+import { HeaderV5 as HeaderV4 } from '../../components/Navigation/HeaderV5';
 
 interface TabPanelProps {
   children?: React.ReactNode;

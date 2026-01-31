@@ -26,7 +26,7 @@ import {
   NotificationImportant as AlertIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { HeaderV4 as Header } from '../../components/Navigation/HeaderV4';
+import { HeaderV5 as Header } from '../../components/Navigation/HeaderV5';
 import { instructorApi, type InstructorStats } from '../../services/instructorApi';
 
 interface AnalyticsCard {

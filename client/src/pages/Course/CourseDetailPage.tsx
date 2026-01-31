@@ -53,7 +53,7 @@ import {
   ArrowBack,
   ShoppingCart,
 } from '@mui/icons-material';
-import { HeaderV4 as Header } from '../../components/Navigation/HeaderV4';
+import { HeaderV5 as Header } from '../../components/Navigation/HeaderV5';
 import { enrollmentApi } from '../../services/enrollmentApi';
 import { formatCurrency, roundToDecimals } from '../../utils/formatUtils';
 import { coursesApi } from '../../services/coursesApi';

@@ -987,7 +987,7 @@ useLiveSessionSocket({
 - `socketService` - Real-time notification updates
 
 **Features**:
-- HeaderV4 navigation
+- HeaderV5 navigation with mega-menu dropdowns
 - All/Unread toggle filter
 - Type filter (progress, risk, intervention, achievement, assignment, course)
 - Priority filter (urgent, high, normal, low)
@@ -1027,7 +1027,7 @@ useLiveSessionSocket({
 - Stripe Elements - Payment form UI
 
 **Features**:
-- HeaderV4 navigation
+- HeaderV5 navigation with mega-menu dropdowns
 - Course summary with thumbnail and price
 - Stripe PaymentElement integration
 - Loading states and error handling
@@ -1092,7 +1092,7 @@ useLiveSessionSocket({
   - `refundProcessing: boolean` - Refund submission state
 
 **Components Used**:
-- `<HeaderV4 />` - Navigation header
+- `<HeaderV5 />` - Navigation header with mega-menu dropdowns
 - `<Table />` - Transaction data table
 - `<Chip />` - Status badges (pending, completed, failed, refunded)
 - `<Dialog />` - Refund request dialog
@@ -1155,7 +1155,7 @@ useLiveSessionSocket({
   - `loading/saving: boolean` - Loading states
 
 **Components Used**:
-- `<HeaderV4 />` - Navigation with back button
+- `<HeaderV5 />` - Navigation header with mega-menu dropdowns
 - `<Avatar />` - User avatar with upload overlay
 - `<TextField />` - Form inputs
 - `<Switch />` - Toggle switches for preferences
@@ -1768,27 +1768,44 @@ if (progress >= 0.9 && !isCompleted) {
 
 ---
 
-### Header
-**Path**: `client/src/components/Navigation/Header.tsx`  
-**Purpose**: Top navigation bar with menus, notifications, profile
+### HeaderV5 (Navigation System)
+**Path**: `client/src/components/Navigation/HeaderV5.tsx`  
+**Purpose**: Modern navigation header with mega-menu dropdowns and mobile-optimized layout
+
+**Architecture** (Refactored January 31, 2026):
+- **Desktop**: Mega-menu dropdowns for grouped navigation (Learn, Collaborate, Tools, Instructor)
+- **Mobile**: Bottom navigation bar + full-screen drawer
+- **Centralized Config**: `client/src/config/navigation.tsx` - All nav items defined in one place
+- **Type Definitions**: `client/src/types/navigation.ts` - TypeScript interfaces
+
+**Related Components**:
+- `MegaMenuDropdown.tsx` - Desktop dropdown menus with icons and descriptions
+- `MobileBottomNav.tsx` - Fixed bottom navigation for mobile (64px height)
+- `MobileNavDrawer.tsx` - Full-screen mobile navigation drawer
 
 **Services Used**:
-- `useAuthStore()` - User authentication state
-- `notificationApi` (if integrated) - Notification count
+- `useAuthStore()` - User authentication state and logout
+- `useNotificationStore()` - Notification badge count
 
-**State Management**:
-- `useAuthStore()` - user, logout()
-- Local state: menu anchors, notification panel
+**Navigation Groups** (Role-based):
+- **Learn**: Courses, My Learning, Smart Progress
+- **Collaborate**: Live Sessions, Study Groups, Office Hours
+- **Tools**: AI Tutoring, Chat, Online Users
+- **Instructor** (role-restricted): Instructor Dashboard, Analytics Hub
 
-**Links** (Role-based):
-- **All Users**: Courses, Dashboard
-- **Students**: My Learning, Smart Progress
-- **Instructors**: Instructor Dashboard, Create Course, Students
+**Profile Menu Items**:
+- Profile, My Certificates, Transactions, Notifications, Settings, Logout
+
+**Test IDs** (Backwards Compatible):
+- `header-nav-*` - Desktop nav items
+- `header-mobile-*` - Mobile drawer items
+- `header-profile-menu-*` - Profile dropdown items
+- `mobile-nav-*` - Mobile bottom nav items
 
 **Common Issues**:
-- **Menu not showing correct links**: Check `user.Role` value
+- **Menu not showing for role**: Check `filterByRole()` in navigation.tsx
 - **Logout not working**: Check `authStore.logout()` call
-- **Navigation not working**: Check React Router Link components
+- **Mobile nav not showing**: Only renders when `user` is authenticated
 
 ---
 

@@ -44,7 +44,7 @@ import {
   TutoringMessage, 
   CreateSessionRequest 
 } from '../../services/tutoringApi';
-import { HeaderV4 as Header } from '../../components/Navigation/HeaderV4';
+import { HeaderV5 as Header } from '../../components/Navigation/HeaderV5';
 
 const Tutoring: React.FC = () => {
   const [sessions, setSessions] = useState<TutoringSession[]>([]);

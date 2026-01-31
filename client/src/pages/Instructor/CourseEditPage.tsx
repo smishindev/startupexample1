@@ -23,7 +23,7 @@ import {
 import { instructorApi, InstructorCourse } from '../../services/instructorApi';
 import { CurriculumBuilder } from './CurriculumBuilder';
 import { CourseDetailsEditor } from './CourseDetailsEditor';
-import { HeaderV4 as Header } from '../../components/Navigation/HeaderV4';
+import { HeaderV5 as Header } from '../../components/Navigation/HeaderV5';
 
 interface TabPanelProps {
   children?: React.ReactNode;

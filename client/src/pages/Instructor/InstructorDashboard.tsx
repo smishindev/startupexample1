@@ -42,7 +42,7 @@ import {
   PlayCircleOutline
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { HeaderV4 as Header } from '../../components/Navigation/HeaderV4';
+import { HeaderV5 as Header } from '../../components/Navigation/HeaderV5';
 import { PageHeader } from '../../components/Navigation/PageHeader';
 import { instructorApi, InstructorStats, InstructorCourse } from '../../services/instructorApi';
 import { useAuthStore } from '../../stores/authStore';

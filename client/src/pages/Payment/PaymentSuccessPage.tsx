@@ -24,7 +24,7 @@ import FacebookIcon from '@mui/icons-material/Facebook';
 import LinkedInIcon from '@mui/icons-material/LinkedIn';
 import Confetti from 'react-confetti';
 import { coursesApi } from '../../services/coursesApi';
-import { HeaderV4 } from '../../components/Navigation/HeaderV4';
+import { HeaderV5 as HeaderV4 } from '../../components/Navigation/HeaderV5';
 import { useAuthStore } from '../../stores/authStore';
 
 const PaymentSuccessPage: React.FC = () => {

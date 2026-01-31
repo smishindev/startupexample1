@@ -30,7 +30,7 @@ import {
   School as SchoolIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { HeaderV4 as Header } from '../../components/Navigation/HeaderV4';
+import { HeaderV5 as Header } from '../../components/Navigation/HeaderV5';
 import { assessmentApi } from '../../services/assessmentApi';
 
 interface AssessmentProgress {

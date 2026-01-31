@@ -41,7 +41,7 @@ import {
   Bar,
   Legend
 } from 'recharts';
-import { HeaderV4 as Header } from '../Navigation/HeaderV4';
+import { HeaderV5 as Header } from '../Navigation/HeaderV5';
 import { 
   assessmentAnalyticsApi, 
   type CrossAssessmentAnalytics,

@@ -1,7 +1,7 @@
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import { Box, Typography, Container } from '@mui/material';
-import { HeaderV4 as Header } from '../../components/Navigation/HeaderV4';
+import { HeaderV5 as Header } from '../../components/Navigation/HeaderV5';
 import QuizCreator from '../../components/Assessment/QuizCreator';
 
 export const AssessmentEditPage: React.FC = () => {

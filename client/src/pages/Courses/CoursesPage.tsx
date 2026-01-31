@@ -25,7 +25,7 @@ import {
 } from '@mui/material';
 import { Search, FilterList, TrendingUp } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { HeaderV4 as Header } from '../../components/Navigation/HeaderV4';
+import { HeaderV5 as Header } from '../../components/Navigation/HeaderV5';
 import { CourseCard, Course } from '../../components/Course/CourseCard';
 import { enrollmentApi } from '../../services/enrollmentApi';
 import { coursesApi, Course as ApiCourse, CourseFilters, CourseCategory, CourseLevel } from '../../services/coursesApi';

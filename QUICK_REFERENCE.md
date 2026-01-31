@@ -703,15 +703,22 @@ grep_search({
 ## 📊 COMPONENT DEPENDENCY MAP (Quick Glance)
 
 ```
+HeaderV5 (Navigation System - Refactored Jan 31, 2026)
+├─ Config: navigation.tsx (centralized nav items)
+├─ Types: navigation.ts (TypeScript interfaces)
+├─ Components: MegaMenuDropdown, MobileBottomNav, MobileNavDrawer
+├─ State: authStore, notificationStore
+└─ Used by: All pages (39+ pages migrated from HeaderV4)
+
 CourseDetailPage
 ├─ Services: coursesApi, enrollmentApi, progressApi, BookmarkApi
-├─ Components: Header, ShareDialog
+├─ Components: HeaderV5, ShareDialog
 ├─ State: authStore (Zustand)
 └─ Used by: App.tsx (/courses/:courseId route)
 
 CoursesPage
 ├─ Services: coursesApi, enrollmentApi, BookmarkApi
-├─ Components: Header, CourseCard (SHARED!)
+├─ Components: HeaderV5, CourseCard (SHARED!)
 ├─ State: authStore
 └─ Used by: App.tsx (/courses route)
 

@@ -16,7 +16,7 @@ import {
 import { usePresence } from '../../hooks/usePresence';
 import OnlineUsersList from '../../components/Presence/OnlineUsersList';
 import PresenceStatusSelector from '../../components/Presence/PresenceStatusSelector';
-import { HeaderV4 as Header } from '../../components/Navigation/HeaderV4';
+import { HeaderV5 as Header } from '../../components/Navigation/HeaderV5';
 
 const PresencePage: React.FC = () => {
   const { isLoadingStatus } = usePresence({

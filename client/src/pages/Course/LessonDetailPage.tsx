@@ -39,7 +39,7 @@ import {
   EmojiEvents,
 } from '@mui/icons-material';
 import { useParams, useNavigate } from 'react-router-dom';
-import { HeaderV4 as Header } from '../../components/Navigation/HeaderV4';
+import { HeaderV5 as Header } from '../../components/Navigation/HeaderV5';
 import { lessonApi, Lesson } from '../../services/lessonApi';
 import { progressApi } from '../../services/progressApi';
 import { assessmentApi, AssessmentWithProgress } from '../../services/assessmentApi';

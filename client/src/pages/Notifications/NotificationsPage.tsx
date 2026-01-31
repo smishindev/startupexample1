@@ -30,7 +30,7 @@ import {
   DoneAll as DoneAllIcon,
   Settings as SettingsIcon,
 } from '@mui/icons-material';
-import { HeaderV4 } from '../../components/Navigation/HeaderV4';
+import { HeaderV5 as HeaderV4 } from '../../components/Navigation/HeaderV5';
 import { notificationApi, Notification } from '../../services/notificationApi';
 import { useNotificationStore } from '../../stores/notificationStore';
 import { formatDistanceToNow } from 'date-fns';

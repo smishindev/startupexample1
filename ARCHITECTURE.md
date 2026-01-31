@@ -1755,8 +1755,12 @@ components/
 ├── Shared/
 │   └── ShareDialog.tsx - Unified social media sharing (courses + certificates)
 ├── Navigation/
-│   ├── Header.tsx - Top navigation bar
-│   └── Breadcrumbs.tsx - Breadcrumb trail
+│   ├── HeaderV5.tsx - Modern navigation header with mega-menu dropdowns
+│   ├── MegaMenuDropdown.tsx - Desktop dropdown menus with icons/descriptions
+│   ├── MobileBottomNav.tsx - Fixed bottom navigation for mobile (64px)
+│   ├── MobileNavDrawer.tsx - Full-screen mobile navigation drawer
+│   ├── PageHeader.tsx - Page-specific header component
+│   └── index.ts - Barrel exports
 ├── Layout/
 │   └── DashboardLayout.tsx - Dashboard wrapper
 ├── Video/
@@ -1765,6 +1769,14 @@ components/
 └── Auth/
     ├── ProtectedRoute.tsx - Auth guard
     └── TokenExpirationWarning.tsx - Session warning
+```
+
+**Navigation Config** (Centralized - January 31, 2026):
+```
+config/
+└── navigation.tsx - All navigation items, groups, and role filtering
+types/
+└── navigation.ts - TypeScript interfaces for navigation system
 ```
 
 **Hooks**:

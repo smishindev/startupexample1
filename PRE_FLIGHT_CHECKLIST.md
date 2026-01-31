@@ -245,7 +245,8 @@ grep_search(query="TODO|FIXME|BUG|HACK", isRegexp=true, includePattern="path/to/
 - [ ] Followed existing Material-UI patterns
 
 ### 2.4 Avoid Breaking Changes
-- [ ] If changing shared component (CourseCard, Header, etc.), verified it won't break other pages
+- [ ] If changing shared component (CourseCard, HeaderV5, etc.), verified it won't break other pages
+- [ ] If modifying navigation config (`navigation.tsx`), verified all nav items still work
 - [ ] If changing API response structure, updated all consumers
 - [ ] If changing database column, checked ALL queries using that column
 - [ ] If changing utility function, checked all its usages
@@ -418,9 +419,11 @@ get_errors(filePaths=["path/to/modified/file.tsx"])
 - [ ] Checked `isInstructorPreview` or `enrollmentStatus.isInstructor` flag
 
 ### Rule 3: Shared Components
-- [ ] If modifying `CourseCard`, `ShareDialog`, `Header`, or other shared components, **VERIFIED** all usages
+- [ ] If modifying `CourseCard`, `ShareDialog`, `HeaderV5`, or other shared components, **VERIFIED** all usages
+- [ ] If modifying navigation config (`navigation.tsx`), **VERIFIED** all nav items and test IDs
 - [ ] Tested or listed all pages that use the component
 - [ ] ShareDialog used by: 6 pages (3 course pages, 3 certificate pages)
+- [ ] HeaderV5 used by: 39+ pages (all authenticated pages)
 
 ### Rule 4: Database Columns
 - [ ] **NEVER** removed column references without checking ALL usages first

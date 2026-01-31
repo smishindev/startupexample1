@@ -13,6 +13,7 @@ import {
   useTheme,
   CircularProgress,
   alpha,
+  useMediaQuery,
 } from '@mui/material';
 import {
   TrendingUp,
@@ -22,7 +23,7 @@ import {
   Star,
   MoreVert,
 } from '@mui/icons-material';
-import { HeaderV4 as Header } from '../Navigation/HeaderV4';
+import { HeaderV5 as Header } from '../Navigation/HeaderV5';
 import { useAuthStore } from '../../stores/authStore';
 import { enrollmentApi } from '../../services/enrollmentApi';
 import { dashboardApi } from '../../services/dashboardApi';
@@ -83,6 +84,7 @@ interface Achievement {
 export const DashboardLayout: React.FC = () => {
   const theme = useTheme();
   const { user } = useAuthStore();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   // Real data from API
   const [stats, setStats] = useState<DashboardStats>({
@@ -438,7 +440,7 @@ export const DashboardLayout: React.FC = () => {
       <Header />
       <EmailVerificationBanner />
       
-      <Container maxWidth="xl" sx={{ mt: 4, mb: 4, flex: 1 }}>
+      <Container maxWidth="xl" sx={{ mt: 4, mb: 4, flex: 1, pb: isMobile ? 10 : 0 }}>
         {/* Welcome Section */}
         <Box sx={{ mb: 4 }}>
           <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1 }}>

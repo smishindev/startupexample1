@@ -40,7 +40,7 @@ import {
   Pie,
   Cell
 } from 'recharts';
-import { HeaderV4 as Header } from '../../components/Navigation/HeaderV4';
+import { HeaderV5 as Header } from '../../components/Navigation/HeaderV5';
 import { PageHeader } from '../../components/Navigation/PageHeader';
 import { analyticsApi, type CourseAnalytics, type DashboardAnalytics } from '../../services/analyticsApi';
 import { instructorApi, type InstructorCourse } from '../../services/instructorApi';

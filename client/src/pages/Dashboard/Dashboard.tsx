@@ -1,7 +1,7 @@
 import React from 'react'
 import { Typography, Grid, Card, CardContent, Paper, Container } from '@mui/material'
 import OnlineUsersWidget from '../../components/Presence/OnlineUsersWidget'
-import { HeaderV4 as Header } from '../../components/Navigation/HeaderV4'
+import { HeaderV5 as Header } from '../../components/Navigation/HeaderV5'
 
 const Dashboard: React.FC = () => {
   return (

@@ -42,7 +42,7 @@ import CheckIcon from '@mui/icons-material/Check';
 import InfoIcon from '@mui/icons-material/Info';
 import { getUserTransactions, requestRefund, downloadInvoice, testCompleteTransaction, type Transaction } from '../../services/paymentApi';
 import { format } from 'date-fns';
-import { HeaderV4 } from '../../components/Navigation/HeaderV4';
+import { HeaderV5 as HeaderV4 } from '../../components/Navigation/HeaderV5';
 
 const TransactionsPage: React.FC = () => {
   const navigate = useNavigate();

@@ -27,7 +27,7 @@ import {
   CheckCircle as CheckCircleIcon,
   Info as InfoIcon,
 } from '@mui/icons-material';
-import { HeaderV4 } from '../../components/Navigation/HeaderV4';
+import { HeaderV5 as HeaderV4 } from '../../components/Navigation/HeaderV5';
 import { toast } from 'react-hot-toast';
 import * as notificationPreferencesApi from '../../services/notificationPreferencesApi';
 

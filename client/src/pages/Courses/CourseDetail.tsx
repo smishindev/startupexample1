@@ -51,7 +51,7 @@ import {
   PersonAdd,
   CheckCircleOutline,
 } from '@mui/icons-material';
-import { HeaderV4 as Header } from '../../components/Navigation/HeaderV4';
+import { HeaderV5 as Header } from '../../components/Navigation/HeaderV5';
 import { coursesApi, CourseDetail as CourseDetailType, EnrollmentStatus } from '../../services/coursesApi';
 import { enrollmentApi } from '../../services/enrollmentApi';
 import { BookmarkApi } from '../../services/bookmarkApi';

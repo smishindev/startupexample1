@@ -138,7 +138,12 @@ export const MegaMenuDropdown: React.FC<MegaMenuDropdownProps> = ({
   const location = useLocation();
   const [open, setOpen] = useState(false);
   const anchorRef = useRef<HTMLButtonElement>(null);
+  const popperRef = useRef<HTMLDivElement>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Track if mouse is over button or menu
+  const isOverButton = useRef(false);
+  const isOverMenu = useRef(false);
 
   // Check if any item in this group is active
   const isGroupActive = group.items.some(
@@ -146,20 +151,42 @@ export const MegaMenuDropdown: React.FC<MegaMenuDropdownProps> = ({
             location.pathname.startsWith(item.path + '/')
   );
 
-  // Handle mouse enter with delay
-  const handleMouseEnter = () => {
+  // Unified close check - only close if mouse is over neither button nor menu
+  const checkAndClose = () => {
+    timeoutRef.current = setTimeout(() => {
+      if (!isOverButton.current && !isOverMenu.current) {
+        setOpen(false);
+      }
+    }, 100);
+  };
+
+  // Button hover handlers
+  const handleButtonEnter = () => {
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
       timeoutRef.current = null;
     }
+    isOverButton.current = true;
     setOpen(true);
   };
 
-  // Handle mouse leave with delay
-  const handleMouseLeave = () => {
-    timeoutRef.current = setTimeout(() => {
-      setOpen(false);
-    }, 150);
+  const handleButtonLeave = () => {
+    isOverButton.current = false;
+    checkAndClose();
+  };
+
+  // Menu hover handlers
+  const handleMenuEnter = () => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+    isOverMenu.current = true;
+  };
+
+  const handleMenuLeave = () => {
+    isOverMenu.current = false;
+    checkAndClose();
   };
 
   // Handle click (for touch devices)
@@ -195,8 +222,8 @@ export const MegaMenuDropdown: React.FC<MegaMenuDropdownProps> = ({
   return (
     <ClickAwayListener onClickAway={() => setOpen(false)}>
       <Box
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
+        onMouseEnter={handleButtonEnter}
+        onMouseLeave={handleButtonLeave}
         sx={{ display: 'inline-flex' }}
       >
         <Button
@@ -244,7 +271,7 @@ export const MegaMenuDropdown: React.FC<MegaMenuDropdownProps> = ({
             {
               name: 'offset',
               options: {
-                offset: [0, 8],
+                offset: [0, 4], // Reduced gap
               },
             },
             {
@@ -258,20 +285,24 @@ export const MegaMenuDropdown: React.FC<MegaMenuDropdownProps> = ({
         >
           {({ TransitionProps }) => (
             <Fade {...TransitionProps} timeout={200}>
-              <Paper
-                elevation={8}
-                onMouseEnter={handleMouseEnter}
-                onMouseLeave={handleMouseLeave}
-                sx={{
-                  mt: 0.5,
-                  borderRadius: 3,
-                  overflow: 'hidden',
-                  minWidth: 280,
-                  maxWidth: 320,
-                  border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-                  boxShadow: `0 8px 32px ${alpha(theme.palette.common.black, 0.12)}`,
-                }}
+              {/* Wrapper with hover handlers for the menu */}
+              <Box
+                ref={popperRef}
+                onMouseEnter={handleMenuEnter}
+                onMouseLeave={handleMenuLeave}
+                sx={{ pt: 1 }} // Adds hoverable area above the Paper
               >
+                <Paper
+                  elevation={8}
+                  sx={{
+                    borderRadius: 3,
+                    overflow: 'hidden',
+                    minWidth: 280,
+                    maxWidth: 320,
+                    border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                    boxShadow: `0 8px 32px ${alpha(theme.palette.common.black, 0.12)}`,
+                  }}
+                >
                 {/* Header */}
                 <Box
                   sx={{
@@ -309,6 +340,7 @@ export const MegaMenuDropdown: React.FC<MegaMenuDropdownProps> = ({
                   </Grid>
                 </Box>
               </Paper>
+              </Box>
             </Fade>
           )}
         </Popper>

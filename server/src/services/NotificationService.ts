@@ -1465,4 +1465,165 @@ export class NotificationService {
       return '';
     }
   }
+
+  /**
+   * Send notification to course participants when a new comment is posted
+   * 
+   * @param commentId - ID of the new comment
+   * @param entityType - Type of entity (lesson, course, assignment)
+   * @param entityId - ID of the entity
+   * @returns Number of notifications sent
+   */
+  async sendNewCommentNotification(
+    commentId: string,
+    entityType: string,
+    entityId: string
+  ): Promise<number> {
+    try {
+      // Get comment details and determine course context
+      const request = await this.dbService.getRequest();
+      const commentResult = await request
+        .input('CommentId', sql.UniqueIdentifier, commentId)
+        .input('EntityType', sql.NVarChar(50), entityType)
+        .input('EntityId', sql.UniqueIdentifier, entityId)
+        .query(`
+          SELECT 
+            c.UserId as AuthorId,
+            author.FirstName + ' ' + author.LastName as AuthorName,
+            c.EntityType,
+            c.EntityId,
+            c.Content,
+            -- Get entity title based on type
+            CASE c.EntityType
+              WHEN 'lesson' THEN (SELECT Title FROM dbo.Lessons WHERE Id = c.EntityId)
+              WHEN 'course' THEN (SELECT Title FROM dbo.Courses WHERE Id = c.EntityId)
+              WHEN 'assignment' THEN (SELECT Title FROM dbo.Assessments WHERE Id = c.EntityId)
+              ELSE 'Item'
+            END as EntityTitle,
+            -- Get course ID for context
+            CASE c.EntityType
+              WHEN 'lesson' THEN (SELECT CourseId FROM dbo.Lessons WHERE Id = c.EntityId)
+              WHEN 'course' THEN c.EntityId
+              WHEN 'assignment' THEN (SELECT l.CourseId FROM dbo.Assessments a JOIN dbo.Lessons l ON a.LessonId = l.Id WHERE a.Id = c.EntityId)
+              ELSE NULL
+            END as CourseId
+          FROM dbo.Comments c
+          JOIN dbo.Users author ON c.UserId = author.Id
+          WHERE c.Id = @CommentId
+            AND c.EntityType = @EntityType
+            AND c.EntityId = @EntityId
+            AND c.IsDeleted = 0
+            AND c.ParentCommentId IS NULL
+        `);
+
+      if (commentResult.recordset.length === 0) {
+        console.log(`⚠️ Comment not found or is a reply: ${commentId}`);
+        return 0;
+      }
+
+      const comment = commentResult.recordset[0];
+
+      if (!comment.CourseId) {
+        console.log(`⚠️ Could not determine course context for comment: ${commentId}`);
+        return 0;
+      }
+
+      // Get all enrolled participants (students + instructor), excluding comment author
+      const recipientsRequest = await this.dbService.getRequest();
+      const recipientsResult = await recipientsRequest
+        .input('CourseId', sql.UniqueIdentifier, comment.CourseId)
+        .input('AuthorId', sql.UniqueIdentifier, comment.AuthorId)
+        .query(`
+          SELECT DISTINCT e.UserId
+          FROM dbo.Enrollments e
+          WHERE e.CourseId = @CourseId
+            AND e.Status IN ('active', 'completed')
+            AND e.UserId != @AuthorId
+          
+          UNION
+          
+          SELECT c.InstructorId as UserId
+          FROM dbo.Courses c
+          WHERE c.Id = @CourseId
+            AND c.InstructorId IS NOT NULL
+            AND c.InstructorId != @AuthorId
+        `);
+
+      const recipients = recipientsResult.recordset;
+
+      if (recipients.length === 0) {
+        console.log(`📵 No recipients for new comment notification (course: ${comment.CourseId})`);
+        return 0;
+      }
+
+      // Truncate comment content for notification
+      const truncateText = (text: string, maxLength: number = 100): string => {
+        if (text.length <= maxLength) return text;
+        return text.substring(0, maxLength - 3) + '...';
+      };
+
+      // Build action URL based on entity type
+      let actionUrl = '';
+      if (comment.EntityType === 'lesson') {
+        actionUrl = `/courses/${comment.CourseId}/lessons/${comment.EntityId}#comment-${commentId}`;
+      } else if (comment.EntityType === 'course') {
+        actionUrl = `/courses/${comment.EntityId}#comment-${commentId}`;
+      } else if (comment.EntityType === 'assignment') {
+        // For assignments, we need the lesson ID - already have CourseId from query
+        actionUrl = `/courses/${comment.CourseId}#comment-${commentId}`;
+      } else {
+        actionUrl = `/${comment.EntityType}s/${comment.EntityId}#comment-${commentId}`;
+      }
+
+      // Create notifications for all recipients
+      let notificationCount = 0;
+      const notificationPromises = recipients.map(async (recipient) => {
+        try {
+          const notificationId = await this.createNotificationWithControls(
+            {
+              userId: recipient.UserId,
+              type: 'course', // Use 'course' type as community type
+              priority: 'low',
+              title: `${comment.AuthorName} commented on "${comment.EntityTitle}"`,
+              message: truncateText(comment.Content),
+              data: {
+                commentId: commentId,
+                entityType: comment.EntityType,
+                entityId: comment.EntityId,
+                authorName: comment.AuthorName,
+                courseId: comment.CourseId
+              },
+              actionUrl: actionUrl,
+              actionText: 'View Comment',
+              relatedEntityId: comment.EntityId,
+              relatedEntityType: comment.EntityType as any
+            },
+            {
+              category: 'community',
+              subcategory: 'Comments'
+            }
+          );
+
+          if (notificationId) {
+            notificationCount++;
+          }
+        } catch (error: any) {
+          console.error(`❌ Failed to create notification for user ${recipient.UserId}:`, error);
+        }
+      });
+
+      // Wait for all notifications to complete
+      await Promise.all(notificationPromises);
+
+      if (notificationCount > 0) {
+        console.log(`✅ Sent ${notificationCount} new comment notification(s) for ${comment.EntityType}:${comment.EntityId}`);
+      }
+
+      return notificationCount;
+    } catch (error: any) {
+      console.error('❌ Error sending new comment notifications:', error);
+      // Don't throw - notification failures shouldn't break comment creation
+      return 0;
+    }
+  }
 }

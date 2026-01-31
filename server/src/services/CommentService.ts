@@ -240,6 +240,20 @@ export class CommentService {
       console.log(`📝 [CommentService] Emitted comment:created to room: ${room}`);
     }
 
+    // Send notification for new top-level comments to course participants
+    if (!parentCommentId && this.notificationService) {
+      // Fire and forget - don't wait for notification to complete
+      this.notificationService.sendNewCommentNotification(commentId, entityType, entityId)
+        .then(count => {
+          if (count > 0) {
+            console.log(`✅ New comment notification sent to ${count} participant(s)`);
+          }
+        })
+        .catch(error => {
+          console.error('❌ Failed to send new comment notifications:', error);
+        });
+    }
+
     // Send notification if this is a reply
     if (parentCommentId && this.notificationService) {
       // Fire and forget - don't wait for notification to complete

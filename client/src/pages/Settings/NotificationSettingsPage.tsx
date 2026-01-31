@@ -228,12 +228,12 @@ const ASSESSMENT_SUBCATEGORIES: SubcategoryControl[] = [
 
 const COMMUNITY_SUBCATEGORIES: SubcategoryControl[] = [
   {
-    name: 'mentions',
-    label: 'Mentions',
-    inAppKey: 'EnableMentions',
-    emailKey: 'EmailMentions',
+    name: 'comments',
+    label: 'New Comments',
+    inAppKey: 'EnableComments',
+    emailKey: 'EmailComments',
     canDisable: true,
-    description: 'Someone mentioned you in a comment'
+    description: 'New comments on courses/lessons you\'re enrolled in'
   },
   {
     name: 'replies',
@@ -242,6 +242,14 @@ const COMMUNITY_SUBCATEGORIES: SubcategoryControl[] = [
     emailKey: 'EmailReplies',
     canDisable: true,
     description: 'Replies to your comments'
+  },
+  {
+    name: 'mentions',
+    label: 'Mentions',
+    inAppKey: 'EnableMentions',
+    emailKey: 'EmailMentions',
+    canDisable: true,
+    description: 'Someone mentioned you in a comment'
   },
   {
     name: 'group-invites',

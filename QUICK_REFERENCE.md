@@ -1,10 +1,10 @@
 # 🚀 Quick Reference - Development Workflow
 
-**Last Updated**: January 29, 2026 - Comments System Bug Fixes ✅
+**Last Updated**: January 31, 2026 - New Comment Notification Trigger ✅
 
 ---
 
-## 💬 Comments System (Updated Jan 29, 2026)
+## 💬 Comments System (Updated Jan 31, 2026)
 
 **Real-time threaded comments with likes, replies, and notifications**
 
@@ -62,10 +62,16 @@ import CommentsSection from '@/components/Shared/CommentsSection';
 - 6 indexes for performance
 
 **Notifications**:
-- Type: 'course' (community category)
-- Subcategory: 'Replies'
-- ActionUrl: `/{entityType}s/{entityId}#comment-{parentId}`
-- Respects EnableReplies/EmailReplies preferences
+- **Reply Notifications**: Type: 'course', Subcategory: 'Replies', Priority: 'normal'
+  - ActionUrl: `/{entityType}s/{entityId}#comment-{parentId}`
+  - Respects EnableReplies/EmailReplies preferences
+- **New Comment Notifications** (Jan 31, 2026): Type: 'course', Subcategory: 'Comments', Priority: 'low' ⭐ NEW
+  - Notifies all enrolled course participants + instructor
+  - Excludes comment author (no self-notification)
+  - ActionUrl: `/courses/{courseId}/lessons/{entityId}#comment-{commentId}`
+  - Respects EnableComments/EmailComments preferences
+  - Default: In-app ON, Email OFF
+  - **Automated Tests**: `tests/test_comment_notifications.py` (11 tests, 100% coverage)
 
 ---
 

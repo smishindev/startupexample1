@@ -23,6 +23,42 @@ A comprehensive, real-time comments system has been successfully implemented acr
 - ✅ Soft delete with moderator override
 - ✅ Instructor badges and moderator permissions
 - ✅ Keyboard shortcuts (Ctrl/Cmd+Enter to submit)
+- ✅ **New Comment Notifications** - January 31, 2026 ⭐ NEW
+
+### Notification System Integration
+
+#### Reply Notifications (January 25, 2026)
+- ✅ Automatic notification when user replies to a comment
+- ✅ Excludes self-replies (no notification if replying to own comment)
+- ✅ Respects EnableReplies and EmailReplies preferences
+- ✅ Priority: normal
+- ✅ Category: community, Subcategory: Replies
+
+#### New Comment Notifications (January 31, 2026) ⭐ NEW
+- ✅ Automatic notification when top-level comment is posted
+- ✅ Notifies all enrolled course participants (active + completed)
+- ✅ Includes course instructor in recipient list
+- ✅ Excludes comment author (no self-notification)
+- ✅ Respects EnableComments and EmailComments preferences
+- ✅ Priority: low (to avoid overwhelming users)
+- ✅ Category: community, Subcategory: Comments
+- ✅ Batch notification creation with error isolation
+- ✅ Fire-and-forget pattern (non-blocking)
+- ✅ Truncated content preview (100 chars max)
+- ✅ Direct link with hash anchor to comment
+
+**Notification Message Examples:**
+```typescript
+// Reply Notification
+Title: "John Doe replied to your comment"
+Message: "On \"Introduction to JavaScript\": \"Great explanation, thank you!\""
+Priority: normal
+
+// New Comment Notification
+Title: "Jane Smith commented on \"Introduction to JavaScript\""
+Message: "This lesson was very helpful. Looking forward to the next one!"
+Priority: low
+```
 
 ### Access Control
 - ✅ Enrollment-based permissions (must be enrolled in course)

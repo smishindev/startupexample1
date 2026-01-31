@@ -740,6 +740,102 @@ page.click('[data-testid="course-creation-publish-button"]')
 
 ---
 
+### CommentsSection.tsx
+**Path**: `client/src/components/Shared/CommentsSection.tsx`
+
+| Element | Selector | Type | Notes |
+|---------|----------|------|-------|
+| Comments section (dynamic) | `comments-section-{entityType}` | Paper | Container for comments (lesson, course, etc.) |
+| Comments disabled message | `comments-disabled` | Paper | Shown when comments are disabled |
+| Refresh button | `comments-refresh-button` | Button | Reload comments |
+| Loading indicator | `comments-loading` | CircularProgress | Displayed while loading comments |
+| Comments error message | `comments-error` | Alert | Error state |
+| Empty state message | `comments-empty` | Typography | No comments yet |
+
+**Dynamic Entity Types:**
+- `comments-section-lesson` - Comments on lesson page
+- `comments-section-course` - Comments on course page
+- `comments-section-assignment` - Comments on assignment
+- `comments-section-study_group` - Comments in study group
+- `comments-section-announcement` - Comments on announcement
+
+**Usage Example:**
+```python
+# Wait for comments section to load
+page.wait_for_selector('[data-testid="comments-section-lesson"]')
+
+# Check if comments are disabled
+if page.locator('[data-testid="comments-disabled"]').is_visible():
+    print("Comments are disabled for this lesson")
+
+# Refresh comments
+page.click('[data-testid="comments-refresh-button"]')
+```
+
+---
+
+### CommentItem.tsx
+**Path**: `client/src/components/Shared/CommentItem.tsx`
+
+| Element | Selector | Type | Notes |
+|---------|----------|------|-------|
+| Comment item (dynamic) | `comment-item-{id}` | Box | Individual comment container |
+| Like button (dynamic) | `comment-like-button-{id}` | IconButton | Like/unlike comment |
+| Reply button (dynamic) | `comment-reply-button-{id}` | Button | Open reply input |
+| Menu button (dynamic) | `comment-menu-button-{id}` | IconButton | Open actions menu (edit/delete) |
+| Edit option (dynamic) | `comment-edit-option-{id}` | MenuItem | Edit comment |
+| Delete option (dynamic) | `comment-delete-option-{id}` | MenuItem | Delete comment |
+
+**Dynamic Selectors:**
+- `{id}` = Comment ID (UUID format from database)
+
+**Usage Example:**
+```python
+# Find first comment
+first_comment = page.locator('[data-testid^="comment-item-"]').first
+
+# Like a specific comment
+comment_id = "abc-123-def-456"
+page.click(f'[data-testid="comment-like-button-{comment_id}"]')
+
+# Reply to comment
+page.click(f'[data-testid="comment-reply-button-{comment_id}"]')
+
+# Delete comment
+page.click(f'[data-testid="comment-menu-button-{comment_id}"]')
+page.click(f'[data-testid="comment-delete-option-{comment_id}"]')
+```
+
+---
+
+### CommentInput.tsx
+**Path**: `client/src/components/Shared/CommentInput.tsx`
+
+| Element | Selector | Type | Notes |
+|---------|----------|------|-------|
+| Input wrapper | `comment-input-wrapper` | Box | Container for input field |
+| Comment input field | `comment-input` | TextField | Text input for comment content |
+| Submit button | `comment-submit-button` | Button | Post comment (visible when has text) |
+| Cancel button | `comment-cancel-button` | Button | Cancel edit/reply (visible in edit mode) |
+
+**Usage Example:**
+```python
+# Post a comment
+page.fill('[data-testid="comment-input"]', 'This is my comment')
+page.click('[data-testid="comment-submit-button"]')
+
+# Cancel editing
+page.click('[data-testid="comment-cancel-button"]')
+```
+
+**Testing Notes:**
+- Submit button only appears when input has text
+- Cancel button only appears in edit/reply mode
+- Input uses multiline TextField with minRows=2
+- Placeholder text varies by context (new comment vs reply)
+
+---
+
 ### NotificationBell.tsx
 **Path**: `client/src/components/Notifications/NotificationBell.tsx`
 

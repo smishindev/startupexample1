@@ -143,7 +143,7 @@ export const GroupMembersList: React.FC<GroupMembersListProps> = ({
 
           return (
             <ListItem
-              key={member.Id}
+              key={member.UserId}
               data-testid={`group-member-item-${member.UserId}`}
               secondaryAction={
                 isAdmin && !isCurrentUser && (

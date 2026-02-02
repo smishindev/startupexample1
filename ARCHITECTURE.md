@@ -236,7 +236,17 @@ POST   /api/email-unsubscribe/resubscribe - Resubscribe to emails
 - **Unsubscribe**: One-click token-based unsubscribe with database tracking
 - **Templates**: Beautiful HTML emails with type-specific styling (progress, course, system, social, assessment)
 
-**Notification Triggers (20/31 Active - January 21, 2026):**
+**Socket.IO Architecture (Updated February 2, 2026):**
+- **Emission Pattern**: ALL socket events emit exclusively from route handlers
+- **Service Layer**: Pure data operations, NO socket emissions
+- **Broadcasting**: Global `io.emit()` strategy (not room-based)
+- **Event Types**: 20+ unique events across features
+- **Critical Fix**: Removed duplicate emissions from all service classes
+- **Example**: Study Groups emits 6 events (member-joined, member-left, member-promoted, member-removed, group-created, group-deleted)
+- **Pattern**: Routes get `io` instance from `req.app.get('io')`, emit after successful DB operation
+- **Services**: Return data only, add comment `// Note: Socket event is emitted in the route handler, not here`
+
+**Notification Triggers (22/31 Active - February 2, 2026):**
 - ✅ **Lesson Completion**: Student progress update + instructor milestones (25%, 50%, 75%, 100%) - Dec 29, 2025
 - ✅ **Video Completion**: Student completion notification - Jan 8, 2026
 - ✅ **Course Completion**: Student achievement celebration - Jan 15, 2026
@@ -257,7 +267,8 @@ POST   /api/email-unsubscribe/resubscribe - Resubscribe to emails
 - ✅ **Weekly Progress Summary**: Weekly cron job (Monday 8 AM UTC) sends activity summaries - Jan 21, 2026
 - ✅ **Study Group Invitation**: Member invites user to join group - Jan 21, 2026
 - ✅ **Study Group Member Joined**: All existing members notified when someone joins - Jan 21, 2026
-- 🔜 **11 Remaining**: Direct messages, certificates, badges, interventions, etc.
+- ✅ **Study Group Member Promoted**: User promoted to admin role with management permissions - Feb 2, 2026
+- 🔜 **10 Remaining**: Direct messages, certificates, badges, interventions, etc.
 
 **Implementation Pattern:**
 ```typescript

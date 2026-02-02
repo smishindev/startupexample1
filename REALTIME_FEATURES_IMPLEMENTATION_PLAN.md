@@ -36,18 +36,24 @@
 - ✅ Database: LiveSessions, LiveSessionAttendees tables
 - **Status**: Production-ready with enterprise-grade reliability
 
-**Study Groups** ✅ **COMPLETED & ENHANCED** - November 30, 2025 (Updated January 21, 2026)
+**Study Groups** ✅ **COMPLETED & ENHANCED** - November 30, 2025 (Updated February 2, 2026)
 - ✅ Group creation and management
-- ✅ Real-time member sync
+- ✅ Real-time member sync (6 socket events)
 - ✅ Course-linked groups
 - ✅ Clickable course navigation
 - ✅ Online member count integration (Dec 6)
 - ✅ User invitation system with search (Jan 21, 2026)
 - ✅ Member join notifications (Jan 21, 2026)
+- ✅ Member promotion notifications (Feb 2, 2026)
+- ✅ Full member management UI with detail page (Feb 2, 2026)
+- ✅ Admin actions: promote to admin, remove members
+- ✅ User-specific redirects (removed/leaving/deleted)
+- ✅ Creator protection (cannot leave, only delete)
+- ✅ Centralized socket emissions (route handlers only)
 - ✅ Debounced auto-search (300ms, min 2 chars)
 - ✅ Self-invite prevention and security hardening
 - ✅ Database: StudyGroups, StudyGroupMembers tables
-- **Status**: Production-ready with invitation system
+- **Status**: Production-ready with full member management
 
 **Virtual Office Hours** ✅ **COMPLETED** - December 2, 2025
 - ✅ Instructor sets availability schedule

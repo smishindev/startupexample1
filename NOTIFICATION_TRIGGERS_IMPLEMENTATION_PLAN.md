@@ -1,8 +1,8 @@
 # Notification Triggers - Full Implementation Plan
 
 **Created**: December 28, 2025  
-**Last Updated**: January 31, 2026  
-**Status**: In Progress (21/31 Complete + Hybrid Controls Design)  
+**Last Updated**: February 2, 2026  
+**Status**: In Progress (22/31 Complete + Hybrid Controls Design)  
 **Goal**: Integrate automatic notification creation throughout the application with granular user controls
 
 ---
@@ -137,9 +137,9 @@ Users receive email notifications (based on their preferences) when these events
 ## 📋 EXECUTIVE SUMMARY
 
 **Current State:**
-- ✅ Twenty-one notification triggers implemented (Lesson, Video, Live Sessions x3, Course Management x3, Assessments x4, Course Completion, Payment x2, Password Changed, Office Hours, Study Groups x2, New Comments)
+- ✅ Twenty-two notification triggers implemented (Lesson, Video, Live Sessions x3, Course Management x3, Assessments x4, Course Completion, Payment x2, Password Changed, Office Hours, Study Groups x3, New Comments)
 - ✅ **Automated Testing**: Comprehensive Playwright test suite for comment notifications (11 tests, 100% coverage)
-- ❌ 10 additional notification triggers NOT implemented
+- ❌ 9 additional notification triggers NOT implemented
 
 **What's Missing:**
 Event hooks for instructor announcements, reply to comment (already exists but needs verification), study group messages, and additional system alerts
@@ -169,7 +169,7 @@ Event hooks for instructor announcements, reply to comment (already exists but n
 - Infrastructure: 5 scheduled jobs
 
 **Implementation Status:**
-- ✅ **Implemented & Working**: 21 triggers
+- ✅ **Implemented & Working**: 22 triggers
   - Lesson Completion (Student + Instructor notifications) - December 29, 2025
   - Video Completion (Student notification) - January 8, 2026
   - Live Session Created (Student notifications) - Pre-existing
@@ -190,8 +190,9 @@ Event hooks for instructor announcements, reply to comment (already exists but n
   - Weekly Progress Summary (Cron job - Monday 8 AM UTC) - January 21, 2026
   - Study Group Invitation (Invitation notification) - January 21, 2026
   - Study Group Member Joined (Member join notification) - January 21, 2026
-  - **New Comment on Course/Lesson (All course participants) - January 31, 2026** ⭐ NEW
-- ⏳ **Pending**: 10 triggers
+  - New Comment on Course/Lesson (All course participants) - January 31, 2026
+  - **Study Group Role Promotion (Promoted member notification) - February 1, 2026** ⭐ NEW
+- ⏳ **Pending**: 9 triggers
 
 ---
 
@@ -937,22 +938,80 @@ relatedEntityType: 'course'
 
 ### 3.5 Study Group Role Promotion
 **File**: `server/src/routes/studyGroups.ts`  
-**Endpoint**: `POST /api/study-groups/:groupId/members/:userId/promote` (Line ~281)
+**Endpoint**: `POST /api/study-groups/:groupId/members/:userId/promote` (Line ~472)
 
-**Status**: ⏳ **NOT YET IMPLEMENTED**
+**Status**: ✅ **IMPLEMENTED** - February 1, 2026
 
 **Triggers:**
-- ⏳ **Promoted member**: Role change notification
+- ✅ **Promoted member**: Role change notification with group details
+
+**Implementation Details:**
+- Validates requester is admin before promotion
+- Fetches group name and promoted user details for personalized notification
+- Creates notification with category='community', subcategory='GroupActivity'
+- Non-blocking error handling (promotion succeeds even if notification fails)
+- Console logging for success/error tracking
+- Socket.IO broadcast: Already emits `member-promoted` event
 
 **Notification Details:**
 ```typescript
 type: 'achievement'
 priority: 'high'
-title: 'Study Group Promotion'
-message: 'You\'ve been promoted to moderator in "{groupName}"'
-actionUrl: '/study-groups/{groupId}'
+title: 'Study Group Promotion 🎉'
+message: 'You\'ve been promoted to admin in "{groupName}"! You can now manage members and settings.'
+actionUrl: '/study-groups'
 actionText: 'View Group'
+relatedEntityId: groupId
+relatedEntityType: 'course'
+category: 'community'
+subcategory: 'GroupActivity'
 ```
+
+**Implementation:**
+```typescript
+// After successful promotion
+try {
+  const io = req.app.get('io');
+  const notificationService = new NotificationService(io);
+  const db = DatabaseService.getInstance();
+
+  // Fetch group name and user name for notification
+  const groupQuery = await (await db.getRequest())
+    .input('groupId', groupId)
+    .query(`SELECT Name FROM dbo.StudyGroups WHERE Id = @groupId`);
+
+  const userQuery = await (await db.getRequest())
+    .input('userId', userId)
+    .query(`SELECT FirstName, LastName FROM dbo.Users WHERE Id = @userId`);
+
+  const groupName = groupQuery.recordset[0]?.Name || 'Study Group';
+  const userName = `${userQuery.recordset[0]?.FirstName || ''} ${userQuery.recordset[0]?.LastName || ''}`.trim() || 'Member';
+
+  await notificationService.createNotificationWithControls(
+    {
+      userId: userId,
+      type: 'achievement',
+      priority: 'high',
+      title: 'Study Group Promotion 🎉',
+      message: `You've been promoted to admin in "${groupName}"! You can now manage members and settings.`,
+      actionUrl: '/study-groups',
+      actionText: 'View Group',
+      relatedEntityId: groupId,
+      relatedEntityType: 'course'
+    },
+    {
+      category: 'community',
+      subcategory: 'GroupActivity'
+    }
+  );
+
+  console.log(`✅ Promotion notification sent to ${userName} for group "${groupName}"`);
+} catch (notificationError) {
+  console.error('Failed to send promotion notification:', notificationError);
+}
+```
+
+**Error Handling**: Non-blocking try-catch ensures promotion succeeds even if notification fails
 
 ---
 
@@ -1169,9 +1228,11 @@ export async function getStudentCourses(userId: string): Promise<CourseInfo[]>
   - [x] Notify invited user with inviter's name
   - [x] Notify existing members when new member joins
   - [x] Test join flow with notifications
-- [ ] 3.4 Study group promotion
-  - [ ] Notify promoted member
-  - [ ] Test promotion
+- [x] 3.4 Study group promotion ✅ **COMPLETED** (February 2, 2026)
+  - [x] Notify promoted member with correct type/priority
+  - [x] Full member management UI (detail page)
+  - [x] Real-time socket updates (list + detail pages)
+  - [x] Test promotion flow with notifications
 - [x] 3.5 Live session created ✅ **COMPLETED**
   - [x] ALREADY IMPLEMENTED
 - [ ] 3.6 Live session starting soon

@@ -3,7 +3,7 @@
  * Phase 2 Week 2 Day 2 - Study Groups UI
  */
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { socketService } from '../services/socketService';
 
 interface MemberJoinedData {
@@ -31,7 +31,13 @@ interface GroupDeletedData {
 interface MemberPromotedData {
   groupId: string;
   userId: string;
-  userName: string;
+  userName?: string;
+}
+
+interface MemberRemovedData {
+  groupId: string;
+  userId: string;
+  userName?: string;
 }
 
 interface UseStudyGroupSocketCallbacks {
@@ -40,6 +46,7 @@ interface UseStudyGroupSocketCallbacks {
   onGroupCreated?: (data: GroupCreatedData) => void;
   onGroupDeleted?: (data: GroupDeletedData) => void;
   onMemberPromoted?: (data: MemberPromotedData) => void;
+  onMemberRemoved?: (data: MemberRemovedData) => void;
 }
 
 /**
@@ -89,12 +96,18 @@ export const useStudyGroupSocket = (callbacks: UseStudyGroupSocketCallbacks) => 
       callbacksRef.current.onMemberPromoted?.(data);
     };
 
+    const handleMemberRemoved = (data: MemberRemovedData) => {
+      console.log('📥 Received: member-removed', data);
+      callbacksRef.current.onMemberRemoved?.(data);
+    };
+
     // Register listeners (only once)
     socket.on('study-group-member-joined', handleMemberJoined);
     socket.on('study-group-member-left', handleMemberLeft);
     socket.on('group-created', handleGroupCreated);
     socket.on('group-deleted', handleGroupDeleted);
     socket.on('member-promoted', handleMemberPromoted);
+    socket.on('member-removed', handleMemberRemoved);
 
     console.log('Registered all Study Group Socket listeners');
 
@@ -106,28 +119,29 @@ export const useStudyGroupSocket = (callbacks: UseStudyGroupSocketCallbacks) => 
       socket.off('group-created', handleGroupCreated);
       socket.off('group-deleted', handleGroupDeleted);
       socket.off('member-promoted', handleMemberPromoted);
+      socket.off('member-removed', handleMemberRemoved);
     };
   }, []); // Empty deps - only register once when component mounts
 
   /**
    * Join a study group room
    */
-  const joinStudyGroup = (groupId: string) => {
+  const joinStudyGroup = useCallback((groupId: string) => {
     const socket = socketService.getSocket();
     if (socket && socketService.isConnected()) {
       socket.emit('join-study-group', { groupId });
     }
-  };
+  }, []);
 
   /**
    * Leave a study group room
    */
-  const leaveStudyGroup = (groupId: string) => {
+  const leaveStudyGroup = useCallback((groupId: string) => {
     const socket = socketService.getSocket();
     if (socket && socketService.isConnected()) {
       socket.emit('leave-study-group', { groupId });
     }
-  };
+  }, []);
 
   return {
     joinStudyGroup,

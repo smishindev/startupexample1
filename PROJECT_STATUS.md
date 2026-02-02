@@ -1,8 +1,155 @@
 # Mishin Learn Platform - Project Status & Memory
 
-**Last Updated**: January 31, 2026 - New Comment Notification Trigger ✅  
+**Last Updated**: February 2, 2026 - Study Group Promotion Notification + Full Member Management UI ✅  
 **Developer**: Sergey Mishin (s.mishin.dev@gmail.com)  
 **AI Assistant Context**: This file serves as project memory for continuity across chat sessions
+
+---
+
+## 🚀 MAJOR FEATURE - February 2, 2026
+
+### 👥 STUDY GROUP PROMOTION NOTIFICATION + MEMBER MANAGEMENT UI
+
+**Feature**: Complete implementation of Study Group member promotion with notifications and full member management interface
+
+**Implementation Time**: ~6 hours (Feb 2)  
+**Status**: ✅ **PRODUCTION READY** - Fully implemented with extensive bug fixes
+
+#### **What Was Built:**
+
+**1. Backend Notification Trigger** ✅
+- **File**: `server/src/routes/studyGroups.ts` (lines 485-565)
+- **Endpoint**: POST /api/study-groups/:groupId/members/:userId/promote
+- **Features**:
+  - Admin permission check (only admins can promote)
+  - Calls StudyGroupService.promoteToAdmin() for DB update
+  - Creates notification with correct categorization:
+    - Type: 'course' (not 'achievement')
+    - Priority: 'normal' (not 'high')
+    - Category: 'community'
+    - Subcategory: 'GroupActivity'
+  - Message: "You've been promoted to admin in \"{groupName}\". You can now manage members and settings."
+  - Action URL: `/study-groups/{groupId}` with "View Group" button
+  - Respects EnableGroupActivity and EmailGroupActivity preferences
+  - Emits 'member-promoted' socket event globally
+  - Non-blocking error handling for notifications
+
+**2. Full Member Management UI** ✅
+- **File**: `client/src/pages/StudyGroups/StudyGroupDetailPage.tsx` (251 lines)
+- **Route**: `/study-groups/:groupId`
+- **Features**:
+  - Full group details display with breadcrumb navigation
+  - GroupMembersList component integration
+  - Real-time socket updates via useStudyGroupSocket hook
+  - User-specific redirects when removed/leaving/group deleted
+  - Admin permission checks for management actions
+  - Automatic member count refresh
+  - Course navigation link
+  - Member count and admin status display
+
+**3. Member Management Component** ✅
+- **File**: `client/src/components/StudyGroups/GroupMembersList.tsx` (231 lines)
+- **Features**:
+  - Displays all group members with user info
+  - Sorts admins first, then by join date
+  - Admin actions (promote, remove) only for non-self members
+  - Visual indicators: admin badges, avatars
+  - "You" indicator for current user
+  - Relative timestamps ("Joined X days ago")
+  - Confirmation dialogs for destructive actions
+  - Toast feedback for all operations
+  - Test IDs on all interactive elements
+  - Prevents self-promotion and self-removal
+
+**4. Real-time Socket Updates** ✅
+- **Hook**: `client/src/hooks/useStudyGroupSocket.ts` (151 lines)
+- **Events Handled**: 6 types (member-joined, member-left, member-promoted, member-removed, group-created, group-deleted)
+- **Features**:
+  - callbacksRef pattern prevents duplicate subscriptions
+  - joinStudyGroup/leaveStudyGroup wrapped in useCallback
+  - Stable function references prevent infinite loops
+  - Room management for detail page
+  - Global event handling for list page
+  - Filtered processing by groupId/userId
+
+**5. Critical Architecture Improvements** ✅
+- **Socket Emission Centralization**:
+  - Removed ALL socket emissions from StudyGroupService (6 duplicates)
+  - ALL events now emit exclusively from route handlers
+  - Clean separation: services handle data, routes handle events
+  - Prevents duplicate events, duplicate toasts, duplicate API calls
+  - Files affected:
+    - `server/src/services/StudyGroupService.ts` - cleaned (no emissions)
+    - `server/src/routes/studyGroups.ts` - centralized emissions
+
+#### **Key Features:**
+- ✅ Promotes members to admin role
+- ✅ Sends notification with correct type/priority/category
+- ✅ Respects notification preferences (EnableGroupActivity)
+- ✅ Full member management UI with promote/remove actions
+- ✅ Real-time updates on both detail page and list page
+- ✅ User redirects when removed/leaving/group deleted
+- ✅ Creator cannot leave (only delete group)
+- ✅ Admin actions hidden for self (no self-promotion)
+- ✅ Optimistic updates prevent duplicate processing
+- ✅ No duplicate socket emissions (service layer cleaned)
+- ✅ Global broadcasting strategy for all events
+- ✅ Proper error handling and validation
+
+#### **Bug Fixes Completed:**
+1. ✅ **Infinite loop** - joinStudyGroup/leaveStudyGroup not wrapped in useCallback
+2. ✅ **Page flickering** - Socket room join/leave was emitting events
+3. ✅ **Duplicate socket emissions (CRITICAL)** - Service AND route both emitting same events
+4. ✅ **Notification settings** - Changed from achievement/high to course/normal
+5. ✅ **Group creator leave** - Backend blocks, frontend hides Leave button
+6. ✅ **User removed on detail page** - Now redirects to list page
+7. ✅ **User leaves on detail page** - Now redirects to list page
+8. ✅ **Promotion not showing on list page** - Added handleMemberPromoted
+9. ✅ **Removal not showing on list page** - Added handleMemberRemoved
+10. ✅ **React key warnings** - Fixed key prop to use member.UserId
+11. ✅ **SQL NULL concatenation** - Used CONCAT() with NULLIF()
+12. ✅ **Button layout overflow** - Fixed "Leave" button text cutoff
+13. ✅ **Manual socket listeners** - Replaced with useStudyGroupSocket hook
+
+#### **Socket Event Flow:**
+```typescript
+// Server emits (routes only)
+io.emit('member-promoted', { groupId, userId, timestamp });
+
+// Client listens (detail page)
+onMemberPromoted: (data) => {
+  if (data.groupId === groupId) loadGroup();
+}
+
+// Client listens (list page)
+onMemberPromoted: (data) => {
+  if (data.userId === user?.id) {
+    setGroups(prev => prev.map(g => 
+      g.Id === data.groupId ? {...g, IsAdmin: true} : g
+    ));
+    toast.success('You have been promoted to admin!');
+  }
+}
+```
+
+#### **Files Modified:**
+- `server/src/routes/studyGroups.ts` - Added promotion notification (lines 485-565)
+- `server/src/services/StudyGroupService.ts` - Cleaned all socket emissions
+- `client/src/pages/StudyGroups/StudyGroupDetailPage.tsx` - NEW (251 lines)
+- `client/src/components/StudyGroups/GroupMembersList.tsx` - Enhanced with admin actions
+- `client/src/components/StudyGroups/StudyGroupCard.tsx` - Added currentUserId prop
+- `client/src/pages/StudyGroups/StudyGroupsPage.tsx` - Added member promoted/removed handlers
+- `client/src/hooks/useStudyGroupSocket.ts` - Fixed infinite loop with useCallback
+- `client/src/App.tsx` - Added /study-groups/:groupId route
+
+#### **Documentation Updated:**
+- `NOTIFICATION_TRIGGERS_IMPLEMENTATION_PLAN.md` - Marked 3.4 complete (22/31)
+- `PROJECT_STATUS.md` - This section
+- `COMPONENT_REGISTRY.md` - Added StudyGroupDetailPage entry
+- `ARCHITECTURE.md` - Updated socket emission architecture
+- `REALTIME_FEATURES_IMPLEMENTATION_PLAN.md` - Added member promotion to Study Groups section
+
+**Status**: Fully tested, 0 TypeScript errors, production-ready
 
 ---
 

@@ -53,6 +53,7 @@ import NotificationsPage from './pages/Notifications/NotificationsPage';
 // Phase 2 - Collaborative Features
 import { LiveSessionsPage } from './pages/LiveSessions/LiveSessionsPage';
 import { StudyGroupsPage } from './pages/StudyGroups/StudyGroupsPage';
+import StudyGroupDetailPage from './pages/StudyGroups/StudyGroupDetailPage';
 import OfficeHoursPage from './pages/OfficeHours/OfficeHoursPage';
 import PresencePage from './pages/Presence/PresencePage';
 
@@ -402,6 +403,14 @@ function App() {
           element={
             <ProtectedRoute>
               <StudyGroupsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/study-groups/:groupId"
+          element={
+            <ProtectedRoute>
+              <StudyGroupDetailPage />
             </ProtectedRoute>
           }
         />

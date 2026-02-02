@@ -30,6 +30,7 @@ import type { StudyGroup } from '../../types/studyGroup';
 interface StudyGroupCardProps {
   group: StudyGroup;
   onlineMembers?: string[]; // Array of user IDs who are online
+  currentUserId?: string; // Current user ID to check if they're the creator
   onJoin?: (groupId: string) => void;
   onLeave?: (groupId: string) => void;
   onViewDetails?: (groupId: string) => void;
@@ -41,6 +42,7 @@ interface StudyGroupCardProps {
 export const StudyGroupCard: React.FC<StudyGroupCardProps> = ({
   group,
   onlineMembers = [],
+  currentUserId,
   onJoin,
   onLeave,
   onViewDetails,
@@ -156,98 +158,95 @@ export const StudyGroupCard: React.FC<StudyGroupCardProps> = ({
         )}
       </CardContent>
 
-      <CardActions sx={{ justifyContent: 'space-between', px: 2, pb: 2 }}>
-        <Box sx={{ display: 'flex', gap: 1 }}>
-          {/* View Details button */}
-          {onViewDetails && (
+      <CardActions sx={{ flexWrap: 'wrap', gap: 1, px: 2, pb: 2 }}>
+        {/* View Details button */}
+        {onViewDetails && (
+          <Button
+            size="small"
+            variant="outlined"
+            onClick={() => onViewDetails(group.Id)}
+            data-testid="study-group-view-details-button"
+          >
+            View Details
+          </Button>
+        )}
+
+        {/* Admin actions */}
+        {group.IsAdmin && (
+          <>
+            {onEdit && (
+              <Tooltip title="Edit group">
+                <Button
+                  size="small"
+                  variant="outlined"
+                  onClick={() => onEdit(group.Id)}
+                  data-testid="study-group-edit-button"
+                >
+                  Edit
+                </Button>
+              </Tooltip>
+            )}
+            {onDelete && (
+              <Tooltip title="Delete group">
+                <Button
+                  size="small"
+                  variant="outlined"
+                  color="error"
+                  onClick={() => onDelete(group.Id)}
+                  data-testid="study-group-delete-button"
+                >
+                  Delete
+                </Button>
+              </Tooltip>
+            )}
+          </>
+        )}
+
+        {/* Invite button - shown for all members */}
+        {group.IsMember && onInvite && (
+          <Tooltip title="Invite users to this group">
             <Button
               size="small"
               variant="outlined"
-              onClick={() => onViewDetails(group.Id)}
-              data-testid="study-group-view-details-button"
+              color="primary"
+              startIcon={<InviteIcon />}
+              onClick={() => onInvite(group.Id)}
+              data-testid="study-group-invite-button"
             >
-              View Details
+              Invite
             </Button>
-          )}
+          </Tooltip>
+        )}
 
-          {/* Admin actions */}
-          {group.IsAdmin && (
-            <>
-              {onEdit && (
-                <Tooltip title="Edit group">
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    onClick={() => onEdit(group.Id)}
-                    data-testid="study-group-edit-button"
-                  >
-                    Edit
-                  </Button>
-                </Tooltip>
-              )}
-              {onDelete && (
-                <Tooltip title="Delete group">
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    color="error"
-                    onClick={() => onDelete(group.Id)}
-                    data-testid="study-group-delete-button"
-                  >
-                    Delete
-                  </Button>
-                </Tooltip>
-              )}
-            </>
-          )}
-
-          {/* Invite button - shown for all members */}
-          {group.IsMember && onInvite && (
-            <Tooltip title="Invite users to this group">
-              <Button
-                size="small"
-                variant="outlined"
-                color="primary"
-                startIcon={<InviteIcon />}
-                onClick={() => onInvite(group.Id)}
-                data-testid="study-group-invite-button"
-              >
-                Invite
-              </Button>
-            </Tooltip>
-          )}
-        </Box>
-
-        <Box>
-          {/* Join/Leave actions */}
-          {group.IsMember ? (
-            onLeave && (
-              <Button
-                size="small"
-                variant="outlined"
-                color="error"
-                startIcon={<LeaveIcon />}
-                onClick={() => onLeave(group.Id)}
-                data-testid="study-group-leave-button"
-              >
-                Leave
-              </Button>
-            )
-          ) : (
-            canJoin && onJoin && (
-              <Button
-                size="small"
-                variant="contained"
-                color="primary"
-                startIcon={<JoinIcon />}
-                onClick={() => onJoin(group.Id)}
-                data-testid="study-group-join-button"
-              >
-                Join Group
-              </Button>
-            )
-          )}
-        </Box>
+        {/* Join/Leave actions */}
+        {group.IsMember ? (
+          // Don't show Leave button for group creator
+          onLeave && currentUserId !== group.CreatedBy && (
+            <Button
+              size="small"
+              variant="outlined"
+              color="error"
+              startIcon={<LeaveIcon />}
+              onClick={() => onLeave(group.Id)}
+              data-testid="study-group-leave-button"
+            >
+              Leave
+            </Button>
+          )
+        ) : (
+          canJoin && onJoin && (
+            <Button
+              size="small"
+              variant="contained"
+              color="primary"
+              startIcon={<JoinIcon />}
+              onClick={() => onJoin(group.Id)}
+              data-testid="study-group-join-button"
+            >
+              Join Group
+            </Button>
+          )
+        )}
       </CardActions>
     </Card>
   );

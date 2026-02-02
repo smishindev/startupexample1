@@ -73,15 +73,7 @@ export class StudyGroupService {
         VALUES (@groupId, @userId, @role)
       `);
 
-    // Broadcast to course if courseId exists
-    if (params.courseId && this.io) {
-      this.io.to(`course-${params.courseId}`).emit('study-group-created', {
-        groupId: group.Id,
-        name: group.Name,
-        courseId: params.courseId,
-        createdBy: params.createdBy
-      });
-    }
+    // Note: Socket event is emitted in the route handler, not here
 
     return group;
   }
@@ -95,8 +87,10 @@ export class StudyGroupService {
     const result = await (await db.getRequest())
       .input('groupId', sql.UniqueIdentifier, groupId)
       .query(`
-        SELECT * FROM dbo.StudyGroups
-        WHERE Id = @groupId AND IsActive = 1
+        SELECT sg.*, c.Title as CourseTitle
+        FROM dbo.StudyGroups sg
+        LEFT JOIN dbo.Courses c ON sg.CourseId = c.Id
+        WHERE sg.Id = @groupId AND sg.IsActive = 1
       `);
 
     if (result.recordset.length === 0) {
@@ -195,14 +189,7 @@ export class StudyGroupService {
 
     const member = result.recordset[0] as GroupMember;
 
-    // Broadcast to group
-    if (this.io) {
-      this.io.to(`study-group-${groupId}`).emit('member-joined', {
-        groupId,
-        userId,
-        joinedAt: member.JoinedAt
-      });
-    }
+    // Note: Socket event is emitted in the route handler, not here
 
     return member;
   }
@@ -227,14 +214,7 @@ export class StudyGroupService {
         WHERE GroupId = @groupId AND UserId = @userId
       `);
 
-    // Broadcast to group
-    if (this.io) {
-      this.io.to(`study-group-${groupId}`).emit('member-left', {
-        groupId,
-        userId,
-        leftAt: new Date()
-      });
-    }
+    // Note: Socket event is emitted in the route handler, not here
   }
 
   /**
@@ -246,7 +226,18 @@ export class StudyGroupService {
     const result = await (await db.getRequest())
       .input('groupId', sql.UniqueIdentifier, groupId)
       .query(`
-        SELECT sgm.*, u.Username, u.Email, u.FirstName, u.LastName
+        SELECT 
+          sgm.UserId as Id,
+          sgm.GroupId,
+          sgm.UserId,
+          sgm.Role,
+          sgm.JoinedAt,
+          COALESCE(
+            NULLIF(CONCAT(u.FirstName, ' ', u.LastName), ' '),
+            u.Username, 
+            'Unknown User'
+          ) as UserName,
+          u.Email as UserEmail
         FROM dbo.StudyGroupMembers sgm
         JOIN dbo.Users u ON sgm.UserId = u.Id
         WHERE sgm.GroupId = @groupId
@@ -331,14 +322,7 @@ export class StudyGroupService {
 
     const member = result.recordset[0] as GroupMember;
 
-    // Broadcast to group
-    if (this.io) {
-      this.io.to(`study-group-${groupId}`).emit('member-promoted', {
-        groupId,
-        userId,
-        role: 'admin'
-      });
-    }
+    // Note: Socket event is emitted in the route handler, not here
 
     return member;
   }
@@ -389,13 +373,7 @@ export class StudyGroupService {
 
     const group = result.recordset[0] as StudyGroup;
 
-    // Broadcast update to group members
-    if (this.io) {
-      this.io.to(`study-group-${groupId}`).emit('group-updated', {
-        groupId,
-        updates
-      });
-    }
+    // Note: If you need real-time updates for group edits, emit event in route handler
 
     return group;
   }
@@ -414,13 +392,7 @@ export class StudyGroupService {
         WHERE Id = @groupId
       `);
 
-    // Broadcast to group members
-    if (this.io) {
-      this.io.to(`study-group-${groupId}`).emit('group-deleted', {
-        groupId,
-        deletedAt: new Date()
-      });
-    }
+    // Note: Socket event is emitted in the route handler, not here
   }
 
   /**

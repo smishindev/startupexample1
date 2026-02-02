@@ -389,28 +389,18 @@ export const setupSocketHandlers = (io: Server) => {
     // Phase 2: Study Group Events
     // ========================================
 
-    // Join a study group room
+    // Join a study group room (for real-time updates, does NOT mean joining as a member)
     socket.on('join-study-group', (data: { groupId: string }) => {
       socket.join(`study-group-${data.groupId}`);
-      socket.to(`study-group-${data.groupId}`).emit('study-group-member-joined', {
-        userId: socket.userId,
-        groupId: data.groupId,
-        timestamp: new Date()
-      });
-      socket.emit('joined-study-group', { groupId: data.groupId });
-      console.log(`User ${socket.userId} joined study group ${data.groupId}`);
+      // Do NOT emit member-joined - that's only for actual group membership changes
+      console.log(`User ${socket.userId} joined study group room ${data.groupId} (socket only)`);
     });
 
-    // Leave a study group room
+    // Leave a study group room (socket only, does NOT mean leaving as a member)
     socket.on('leave-study-group', (data: { groupId: string }) => {
       socket.leave(`study-group-${data.groupId}`);
-      socket.to(`study-group-${data.groupId}`).emit('study-group-member-left', {
-        userId: socket.userId,
-        groupId: data.groupId,
-        timestamp: new Date()
-      });
-      socket.emit('left-study-group', { groupId: data.groupId });
-      console.log(`User ${socket.userId} left study group ${data.groupId}`);
+      // Do NOT emit member-left - that's only for actual group membership changes
+      console.log(`User ${socket.userId} left study group room ${data.groupId} (socket only)`);
     });
 
     // ========================================

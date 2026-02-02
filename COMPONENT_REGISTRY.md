@@ -484,6 +484,106 @@ WHERE GroupId = @groupId AND UserId != @newUserId
 
 ---
 
+### StudyGroupDetailPage
+**Path**: `client/src/pages/StudyGroups/StudyGroupDetailPage.tsx`  
+**Route**: `/study-groups/:groupId`  
+**Status**: ✅ Production-ready (February 2, 2026)
+
+**Purpose**: Full study group details with member management interface
+
+**Features**:
+- Group information display (name, description, course link)
+- Member count and admin status indicators
+- GroupMembersList component integration
+- Real-time socket updates (6 event types)
+- User-specific redirects (removed/leaving/deleted)
+- Breadcrumb navigation (Home → Study Groups → Group Name)
+- Admin permission checks
+- Automatic data refresh on member changes
+
+**Socket Events Handled**:
+- `member-joined` - Refreshes member list if same group
+- `member-left` - Redirects if self, else refreshes
+- `member-promoted` - Refreshes to update admin status
+- `member-removed` - Redirects if self, else refreshes
+- `group-deleted` - Redirects to list page with message
+
+**Dependencies**:
+- `useStudyGroupSocket` - Real-time event handling with callbacksRef pattern
+- `GroupMembersList` - Member list with admin actions
+- `getGroupById` - API call for group details
+- `useAuthStore` - Current user info
+- Material-UI components
+
+**Key Logic**:
+```typescript
+// Socket room management with stable callbacks
+useEffect(() => {
+  if (groupId) {
+    joinStudyGroup(groupId);
+    return () => leaveStudyGroup(groupId);
+  }
+}, [groupId, joinStudyGroup, leaveStudyGroup]);
+
+// User-specific redirects
+onMemberRemoved: (data) => {
+  if (data.groupId === groupId && data.userId === user?.id) {
+    navigate('/study-groups', { 
+      state: { message: 'You have been removed from this group' }
+    });
+  } else {
+    loadGroup();
+  }
+}
+```
+
+---
+
+### GroupMembersList (Enhanced)
+**Path**: `client/src/components/StudyGroups/GroupMembersList.tsx`  
+**Status**: ✅ Enhanced with full admin capabilities (February 2, 2026)
+
+**Purpose**: Display group members with admin management actions
+
+**Features** (Enhanced February 2, 2026):
+- Member list sorted (admins first, then by join date)
+- Admin badges and role indicators
+- User avatars with role-based colors
+- "You" indicator for current user
+- Email display (if available)
+- Relative join timestamps
+- Admin actions (promote, remove) for non-self members
+- Confirmation dialogs for destructive actions
+- Toast feedback for all operations
+- Disabled state during operations
+- Test IDs for all interactive elements
+
+**Admin Actions** (New):
+- **Promote to Admin**: IconButton with PromoteIcon (only for regular members)
+- **Remove Member**: IconButton with RemoveIcon (for all non-self members)
+- Actions hidden if `!isAdmin || isCurrentUser` (prevents self-management)
+
+**Props**:
+- `groupId: string` - Group ID for API calls
+- `isAdmin: boolean` - Current user is admin
+- `currentUserId: string` - Current user ID
+- `onMemberUpdate?: () => void` - Optional callback after updates
+
+**API Methods**:
+- `getGroupMembers(groupId)` - Fetch members
+- `promoteMember(groupId, userId)` - Promote to admin (sends notification)
+- `removeMember(groupId, userId)` - Remove from group (sends notification)
+
+**Member Promotion Notification**:
+- Type: 'course', Priority: 'normal'
+- Category: 'community', Subcategory: 'GroupActivity'
+- Title: "Study Group Promotion"
+- Message: "You've been promoted to admin in \"{groupName}\". You can now manage members and settings."
+- Action URL: `/study-groups/{groupId}`
+- Respects EnableGroupActivity and EmailGroupActivity preferences
+
+---
+
 ## 🎓 Instructor Course Management
 
 ### CourseEditPage

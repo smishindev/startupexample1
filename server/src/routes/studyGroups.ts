@@ -190,7 +190,20 @@ router.get('/:groupId', authenticateToken, async (req: AuthRequest, res) => {
       return res.status(404).json({ message: 'Study group not found' });
     }
 
-    res.json({ group });
+    // Enrich with membership info for the requesting user
+    const userId = req.user!.userId;
+    const isMember = await StudyGroupService.isMember(groupId, userId);
+    const isAdmin = await StudyGroupService.isAdmin(groupId, userId);
+    const memberCount = await StudyGroupService.getMemberCount(groupId);
+
+    const enrichedGroup = {
+      ...group,
+      IsMember: isMember,
+      IsAdmin: isAdmin,
+      MemberCount: memberCount
+    };
+
+    res.json({ group: enrichedGroup });
   } catch (error) {
     console.error('Error fetching study group:', error);
     res.status(500).json({ 
@@ -315,15 +328,16 @@ router.post('/:groupId/join', authenticateToken, async (req: AuthRequest, res) =
 
     const member = await StudyGroupService.addMember(groupId, req.user!.userId);
 
-    // Emit Socket.IO event (always)
+    // Emit Socket.IO event globally (reaches both detail page viewers and list page viewers)
     const io: Server = req.app.get('io');
     if (io) {
-      console.log('Emitting study-group-member-joined event:', { groupId, userId: req.user!.userId });
-      io.emit('study-group-member-joined', {
+      console.log('Emitting study-group-member-joined event globally:', { groupId, userId: req.user!.userId });
+      const eventData = {
         groupId,
         userId: req.user!.userId,
         userName: req.user!.email
-      });
+      };
+      io.emit('study-group-member-joined', eventData);
     }
 
     // Get group details and new member info for notifications
@@ -402,14 +416,15 @@ router.post('/:groupId/leave', authenticateToken, async (req: AuthRequest, res) 
 
     await StudyGroupService.removeMember(groupId, req.user!.userId);
 
-    // Emit Socket.IO event
+    // Emit Socket.IO event globally (reaches both detail page viewers and list page viewers)
     const io: Server = req.app.get('io');
     if (io) {
-      io.emit('study-group-member-left', {
+      const eventData = {
         groupId,
         userId: req.user!.userId,
         userName: req.user!.email
-      });
+      };
+      io.emit('study-group-member-left', eventData);
     }
 
     res.json({ message: 'Left study group successfully' });
@@ -481,6 +496,65 @@ router.post('/:groupId/members/:userId/promote', authenticateToken, async (req: 
 
     const member = await StudyGroupService.promoteToAdmin(groupId, userId);
 
+    // Send notification to promoted member
+    try {
+      const io = req.app.get('io');
+      const notificationService = new NotificationService(io);
+      const db = DatabaseService.getInstance();
+
+      // Fetch group name and promoted user name for notification
+      const groupQuery = await (await db.getRequest())
+        .input('groupId', groupId)
+        .query(`SELECT Name FROM dbo.StudyGroups WHERE Id = @groupId`);
+
+      const userQuery = await (await db.getRequest())
+        .input('userId', userId)
+        .query(`SELECT FirstName, LastName FROM dbo.Users WHERE Id = @userId`);
+
+      const groupName = groupQuery.recordset[0]?.Name || 'Study Group';
+      const userName = `${userQuery.recordset[0]?.FirstName || ''} ${userQuery.recordset[0]?.LastName || ''}`.trim() || 'Member';
+
+      // Create notification with preference controls
+      await notificationService.createNotificationWithControls(
+        {
+          userId: userId,
+          type: 'course',
+          priority: 'normal',
+          title: 'Study Group Promotion',
+          message: `You've been promoted to admin in "${groupName}". You can now manage members and settings.`,
+          actionUrl: `/study-groups/${groupId}`,
+          actionText: 'View Group',
+          relatedEntityId: groupId,
+          relatedEntityType: 'course'
+        },
+        {
+          category: 'community',
+          subcategory: 'GroupActivity'
+        }
+      );
+
+      console.log(`✅ Promotion notification sent to ${userName} for group "${groupName}"`);
+    } catch (notificationError) {
+      // Non-blocking: Log error but don't fail the promotion
+      console.error('Failed to send promotion notification:', notificationError);
+    }
+
+    // Emit socket event for real-time updates (globally)
+    // - Detail page: refreshes member list
+    // - List page: updates IsAdmin flag for the promoted user
+    try {
+      const io = req.app.get('io');
+      if (io) {
+        io.emit('member-promoted', {
+          groupId,
+          userId,
+          timestamp: new Date().toISOString()
+        });
+      }
+    } catch (socketError) {
+      console.error('Failed to emit member-promoted event:', socketError);
+    }
+
     res.json({ 
       message: 'Member promoted to admin', 
       member 
@@ -510,6 +584,22 @@ router.post('/:groupId/members/:userId/remove', authenticateToken, async (req: A
     }
 
     await StudyGroupService.removeMember(groupId, userId);
+
+    // Emit socket event for real-time updates (globally)
+    // - Detail page: refreshes member list
+    // - List page: updates IsMember/IsAdmin flags for the removed user
+    try {
+      const io = req.app.get('io');
+      if (io) {
+        io.emit('member-removed', {
+          groupId,
+          userId,
+          timestamp: new Date().toISOString()
+        });
+      }
+    } catch (socketError) {
+      console.error('Failed to emit member-removed event:', socketError);
+    }
 
     res.json({ message: 'Member removed successfully' });
   } catch (error) {
@@ -573,10 +663,12 @@ router.delete('/:groupId', authenticateToken, async (req: AuthRequest, res) => {
 
     await StudyGroupService.deleteGroup(groupId);
 
-    // Emit Socket.IO event
+    // Emit Socket.IO event globally (all users need to know)
+    // - Detail page viewers: will be redirected
+    // - List page viewers: will remove group from their list
     const io: Server = req.app.get('io');
     if (io) {
-      console.log('Emitting group-deleted event:', { groupId });
+      console.log('Emitting group-deleted event globally:', { groupId });
       io.emit('group-deleted', { groupId });
     }
 

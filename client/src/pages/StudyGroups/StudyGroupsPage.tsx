@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Box,
   Container,
@@ -58,6 +59,8 @@ type TabValue = 'all' | 'my-groups' | 'course';
 
 export const StudyGroupsPage: React.FC = () => {
   const { user } = useAuthStore();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [activeTab, setActiveTab] = useState<TabValue>('my-groups');
   const [groups, setGroups] = useState<StudyGroup[]>([]);
   const [loading, setLoading] = useState(true);
@@ -70,6 +73,16 @@ export const StudyGroupsPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
+
+  // Show message from navigation state (e.g., when group is deleted)
+  useEffect(() => {
+    const state = location.state as { message?: string } | null;
+    if (state?.message) {
+      toast.info(state.message);
+      // Clear the state to prevent showing again on refresh
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state, location.pathname, navigate]);
 
   // Fetch courses on mount
   useEffect(() => {
@@ -218,12 +231,40 @@ export const StudyGroupsPage: React.FC = () => {
     toast.warning('A group was deleted');
   }, []);
 
+  const handleMemberPromoted = useCallback((data: any) => {
+    console.log('handleMemberPromoted called:', data);
+    // If current user was promoted, update IsAdmin flag
+    if (data.userId === user?.id) {
+      setGroups(prev => prev.map(g => 
+        g.Id === data.groupId 
+          ? {...g, IsAdmin: true}
+          : g
+      ));
+      toast.success('You have been promoted to admin!');
+    }
+  }, [user]);
+
+  const handleMemberRemoved = useCallback((data: any) => {
+    console.log('handleMemberRemoved called:', data);
+    // If current user was removed, update IsMember and IsAdmin flags
+    if (data.userId === user?.id) {
+      setGroups(prev => prev.map(g => 
+        g.Id === data.groupId 
+          ? {...g, IsMember: false, IsAdmin: false, MemberCount: Math.max((g.MemberCount || 1) - 1, 0)}
+          : g
+      ));
+      toast.warning('You have been removed from this group');
+    }
+  }, [user]);
+
   // Socket.IO real-time updates
   useStudyGroupSocket({
     onMemberJoined: handleMemberJoined,
     onMemberLeft: handleMemberLeft,
     onGroupCreated: handleGroupCreated,
-    onGroupDeleted: handleGroupDeleted
+    onGroupDeleted: handleGroupDeleted,
+    onMemberPromoted: handleMemberPromoted,
+    onMemberRemoved: handleMemberRemoved
   });
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: TabValue) => {
@@ -259,13 +300,18 @@ export const StudyGroupsPage: React.FC = () => {
       // Update local state immediately (optimistic update)
       setGroups(prev => prev.map(g => 
         g.Id === groupId 
-          ? {...g, IsMember: false, MemberCount: Math.max((g.MemberCount || 1) - 1, 0)} 
+          ? {...g, IsMember: false, IsAdmin: false, MemberCount: Math.max((g.MemberCount || 1) - 1, 0)} 
           : g
       ));
       toast.success('Left study group');
     } catch (error: any) {
       console.error('Error leaving group:', error);
-      toast.error(error.message || 'Failed to leave group');
+      const message = error.message || 'Failed to leave group';
+      if (message.includes('creator')) {
+        toast.error('Group creators cannot leave. Delete the group instead.');
+      } else {
+        toast.error(message);
+      }
       // Revert on error
       fetchGroups();
     }
@@ -292,6 +338,10 @@ export const StudyGroupsPage: React.FC = () => {
       setSelectedGroupForInvite({ id: group.Id, name: group.Name });
       setInviteModalOpen(true);
     }
+  };
+
+  const handleViewDetails = (groupId: string) => {
+    navigate(`/study-groups/${groupId}`);
   };
 
   const filteredGroups = groups;
@@ -394,11 +444,13 @@ export const StudyGroupsPage: React.FC = () => {
             <Grid item xs={12} sm={6} md={4} key={group.Id}>
               <StudyGroupCard
                 group={group}
+                currentUserId={user?.id}
                 onlineMembers={onlineUsers}
                 onJoin={handleJoin}
                 onLeave={handleLeave}
                 onDelete={group.IsAdmin ? handleDelete : undefined}
                 onInvite={handleInvite}
+                onViewDetails={handleViewDetails}
               />
             </Grid>
           ))}

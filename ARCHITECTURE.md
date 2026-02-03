@@ -1,6 +1,6 @@
 # Mishin Learn Platform - System Architecture
 
-**Last Updated**: January 29, 2026 - Comments System Bug Fixes ✅  
+**Last Updated**: February 3, 2026 - AI Tutoring Smart Course Dropdown + Notifications ✅  
 **Purpose**: Understanding system components, data flows, and dependencies
 
 ---
@@ -268,7 +268,8 @@ POST   /api/email-unsubscribe/resubscribe - Resubscribe to emails
 - ✅ **Study Group Invitation**: Member invites user to join group - Jan 21, 2026
 - ✅ **Study Group Member Joined**: All existing members notified when someone joins - Jan 21, 2026
 - ✅ **Study Group Member Promoted**: User promoted to admin role with management permissions - Feb 2, 2026
-- 🔜 **10 Remaining**: Direct messages, certificates, badges, interventions, etc.
+- ✅ **AI Tutoring Response**: AI tutor sends response to user's question - Feb 3, 2026
+- 🔜 **9 Remaining**: Direct messages, certificates, badges, interventions, etc.
 
 **Implementation Pattern:**
 ```typescript
@@ -292,6 +293,45 @@ await notificationService.createNotificationWithControls(
   }
 );
 ```
+
+### AI Tutoring (added Feb 3, 2026)
+```
+POST   /api/tutoring/sessions               - Create new tutoring session (with optional courseId)
+GET    /api/tutoring/sessions               - Get user's tutoring sessions
+GET    /api/tutoring/sessions/:id/messages  - Get messages for session
+POST   /api/tutoring/sessions/:id/message   - Send message & get AI response + notification
+DELETE /api/tutoring/sessions/:id           - Delete tutoring session
+```
+
+**AI Tutoring Architecture:**
+- **OpenAI Integration**: GPT-4o, GPT-4o-mini, GPT-3.5-turbo models
+- **Course Context**: Optional courseId links session to specific course for context-aware responses
+- **Role Mapping** (CRITICAL):
+  ```
+  Database Storage: Role = 'user' | 'ai' (CHECK constraint)
+       ↓
+  Backend Context Building: 'ai' → 'assistant' (OpenAI API requirement)
+       ↓
+  OpenAI API: messages: [{ role: 'user' | 'assistant', content: '...' }]
+       ↓
+  Backend Response Storage: 'assistant' → 'ai' (database constraint)
+       ↓
+  Frontend Display: Checks Role === 'ai' for avatar rendering
+  ```
+- **Smart Course Dropdown**: Frontend shows enrolled courses for context selection
+  - Hybrid dropdown: "General Question" + user's enrolled courses
+  - Auto-fills courseId, subject, title when course selected
+  - NEW API: `GET /api/enrollment/my-enrollments?limit=100`
+- **Notification Trigger**: Sends notification after AI response
+  - Type: 'community', Category: 'community', Subcategory: 'AITutoring'
+  - Message: "Your AI tutor answered your question about \"{title}\""
+  - Action URL: `/tutoring?session={sessionId}` with "View Response" button
+  - Email subject: "👥 Community Update" with purple gradient
+  - Respects EnableAITutoring and EmailAITutoring preferences
+- **Database Tables**: 
+  - TutoringSessions (SessionID, UserId, CourseId nullable, Subject, Model, CreatedAt, UpdatedAt)
+  - TutoringMessages (MessageID, SessionID, Role 'user'|'ai', Content, Timestamp)
+- **Frontend**: Tutoring.tsx with auto-updating timestamps, session management, model selection
 
 **Automated Cron Schedulers (Added Jan 20-21, 2026):**
 ```typescript

@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { authenticateToken, AuthRequest } from '../middleware/auth';
 import { DatabaseService } from '../services/DatabaseService';
 import { AITutoringService, TutoringContext } from '../services/AITutoringService';
+import { NotificationService } from '../services/NotificationService';
 
 const router = Router();
 const db = DatabaseService.getInstance();
@@ -182,7 +183,7 @@ router.post('/sessions/:sessionId/messages', authenticateToken, async (req: Auth
       courseId: session.CourseId,
       lessonId: session.LessonId,
       previousMessages: previousMessages.map(msg => ({
-        role: msg.Role as 'user' | 'assistant',
+        role: msg.Role === 'ai' ? 'assistant' : 'user',
         content: msg.Content
       }))
     };
@@ -200,7 +201,7 @@ router.post('/sessions/:sessionId/messages', authenticateToken, async (req: Auth
       id: aiMessageId,
       sessionId,
       content: aiResponse.content,
-      role: 'assistant', // Fixed: Changed from 'ai' to 'assistant' to match OpenAI API requirements
+      role: 'ai', // Database CHECK constraint requires 'ai' or 'user'
       timestamp: aiTimestamp,
       metadata: JSON.stringify({
         suggestions: aiResponse.suggestions,
@@ -208,6 +209,43 @@ router.post('/sessions/:sessionId/messages', authenticateToken, async (req: Auth
         model: model || 'gpt-4o-mini' // Store which model was used
       })
     });
+
+    // Send notification for AI response
+    try {
+      const io = req.app.get('io');
+      if (io) {
+        const notificationService = new NotificationService(io);
+        
+        // Get session title for notification message
+        const sessionTitle = session.Title || 'your question';
+        const truncatedTitle = sessionTitle.length > 50 
+          ? sessionTitle.substring(0, 47) + '...' 
+          : sessionTitle;
+        
+        await notificationService.createNotificationWithControls(
+          {
+            userId: userId!,
+            type: 'community',
+            priority: 'normal',
+            title: 'AI Tutor Response',
+            message: `Your AI tutor answered your question about "${truncatedTitle}"`,
+            actionUrl: `/tutoring?session=${sessionId}`,
+            actionText: 'View Response',
+            relatedEntityId: sessionId,
+            relatedEntityType: 'tutoring'
+          },
+          {
+            category: 'community',
+            subcategory: 'AITutoring'
+          }
+        );
+        
+        console.log(`✅ [AI TUTORING] Notification sent to user ${userId} for session ${sessionId}`);
+      }
+    } catch (notifError) {
+      console.error('⚠️ Failed to send AI tutoring notification:', notifError);
+      // Don't block tutoring response on notification failure
+    }
 
     res.json({
       userMessage: {
@@ -220,7 +258,7 @@ router.post('/sessions/:sessionId/messages', authenticateToken, async (req: Auth
       aiMessage: {
         Id: aiMessageId,
         Content: aiResponse.content,
-        Role: 'assistant',
+        Role: 'ai',
         CreatedAt: aiTimestamp,
         MessageType: 'text',
         suggestions: aiResponse.suggestions,

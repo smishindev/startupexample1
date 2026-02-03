@@ -45,7 +45,7 @@ export interface TutoringSession {
 export interface TutoringMessage {
   Id: string;
   Content: string;
-  Role: 'user' | 'assistant';
+  Role: 'user' | 'ai';
   CreatedAt: string;
   MessageType: string;
 }
@@ -53,6 +53,7 @@ export interface TutoringMessage {
 export interface CreateSessionRequest {
   title?: string;
   subject?: string;
+  courseId?: string;
 }
 
 export interface SendMessageRequest {

@@ -1,8 +1,161 @@
 # Mishin Learn Platform - Project Status & Memory
 
-**Last Updated**: February 2, 2026 - Study Group Promotion Notification + Full Member Management UI ✅  
+**Last Updated**: February 3, 2026 - AI Tutoring Notifications + Smart Course Dropdown ✅  
 **Developer**: Sergey Mishin (s.mishin.dev@gmail.com)  
 **AI Assistant Context**: This file serves as project memory for continuity across chat sessions
+
+---
+
+## 🚀 MAJOR FEATURE - February 3, 2026
+
+### 🤖 AI TUTORING NOTIFICATIONS + SMART COURSE DROPDOWN
+
+**Feature**: Complete implementation of AI Tutoring Response notifications and smart course selection for context-aware tutoring
+
+**Implementation Time**: ~4 hours (Feb 3)  
+**Status**: ✅ **PRODUCTION READY** - Fully implemented with all critical bugs fixed
+
+#### **What Was Built:**
+
+**1. AI Tutoring Response Notification** ✅
+- **File**: `server/src/routes/tutoring.ts` (lines 214-248)
+- **Trigger**: When AI tutor sends response message (after OpenAI API call)
+- **Features**:
+  - Creates notification with correct categorization:
+    - Type: 'community' (not 'course')
+    - Priority: 'normal'
+    - Category: 'community'
+    - Subcategory: 'AITutoring'
+  - Message: "Your AI tutor answered your question about \"{title}\""
+  - Action URL: `/tutoring?session={sessionId}` with "View Response" button
+  - Respects EnableAITutoring and EmailAITutoring preferences
+  - Non-blocking error handling
+  - Email subject: "👥 Community Update" with purple gradient styling
+
+**2. Database Schema Updates** ✅
+- **File**: `database/schema.sql` (lines 627-628)
+- **Changes**:
+  - Added `EnableAITutoring BIT NULL` to NotificationPreferences table
+  - Added `EmailAITutoring BIT NULL` to NotificationPreferences table
+  - NULL inheritance from EnableCommunityUpdates category preference
+  - Migration executed successfully via sqlcmd
+
+**3. NotificationService Updates** ✅
+- **File**: `server/src/services/NotificationService.ts` (8 locations updated)
+- **Changes**:
+  - Added 'community' to CreateNotificationParams type union (line 9)
+  - Added 'tutoring' to relatedEntityType (line 17)
+  - Added EnableAITutoring, EmailAITutoring to UserNotificationPreferences interface (lines 104-105)
+  - Updated getUserPreferences SELECT query (line 629)
+  - Added to communityFields array (line 735)
+  - Updated createDefaultPreferences query 1 (line 844)
+  - Updated createDefaultPreferences query 2 (line 891)
+  - Added quiet hours defaults (lines 1249-1250)
+  - Added 'community' to sendEmailNotification type union (line 1046)
+
+**4. Email Service Updates** ✅
+- **File**: `server/src/services/EmailService.ts`
+- **Changes**:
+  - Added 'community' to notification type union (line 486)
+  - Added community styling configuration (lines 537-542):
+    - Icon: 👥
+    - Color: #9c27b0 (purple)
+    - Gradient: Purple to deep purple
+    - Subject: "Community Update"
+
+**5. Smart Course Dropdown** ✅
+- **File**: `client/src/pages/Tutoring/Tutoring.tsx` (lines 500-580)
+- **Features**:
+  - Hybrid dropdown with two sections:
+    - "General Question" option (🤖 AI icon)
+    - "YOUR ENROLLED COURSES" section with enrolled courses list
+  - Shows course level, category, title for each enrolled course
+  - Auto-fills courseId, subject, title when course selected
+  - Empty state: "You're not enrolled in any courses yet"
+  - Uses School icon (🏫) for course items
+  - Real-time course loading via coursesApi.getEnrolledCourses()
+  - Error handling with console logging
+
+**6. API Integration** ✅
+- **File**: `client/src/services/coursesApi.ts` (lines 175-194)
+- **New Method**: `getEnrolledCourses(): Promise<Course[]>`
+  - Endpoint: GET /api/enrollment/my-enrollments?limit=100
+  - Maps enrollment data to Course interface
+  - Returns array of enrolled courses with full details
+
+**7. Frontend Settings UI** ✅
+- **File**: `client/src/pages/Settings/NotificationSettingsPage.tsx` (lines 283-290)
+- **Changes**:
+  - Added AI Tutoring toggle to COMMUNITY_SUBCATEGORIES:
+    - Label: "AI Tutor Responses"
+    - Description: "AI tutor answered your questions"
+    - Keys: EnableAITutoring, EmailAITutoring
+    - Can disable: true
+
+#### **Critical Bug Fixes:**
+
+**1. Role Inconsistency (CRITICAL)** ✅
+- **Problem**: Database stores 'ai', OpenAI API requires 'assistant'
+- **Impact**: AI avatar wouldn't display, database constraint violations
+- **Solution**: 
+  - Database CHECK constraint: only 'user' or 'ai' allowed
+  - Frontend checks for Role === 'ai' (was checking 'assistant')
+  - Backend maps 'ai' → 'assistant' when building OpenAI context (lines 186-188)
+  - Backend inserts 'ai' into database (line 261)
+- **Files Fixed**: tutoringApi.ts, Tutoring.tsx, tutoring.ts
+
+**2. Notification Type Mismatch** ✅
+- **Problem**: Used type='course' with category='community'
+- **Impact**: Email subject was "📚 Course Update" instead of "👥 Community Update"
+- **Solution**: Changed type to 'community' to match category
+- **Files Fixed**: tutoring.ts, EmailService.ts
+
+**3. Missing Type Definitions** ✅
+- **Problem**: 'community' and 'tutoring' not in TypeScript unions
+- **Impact**: Compilation errors
+- **Solution**: Added to all relevant interfaces
+- **Files Fixed**: NotificationService.ts (3 locations), EmailService.ts, tutoring.ts
+
+**4. Missing Database Columns in Queries** ✅
+- **Problem**: EnableAITutoring/EmailAITutoring not in 6 SQL queries
+- **Impact**: Would cause NULL reference errors
+- **Solution**: Added to all SELECT/INSERT queries in NotificationService
+- **Files Fixed**: NotificationService.ts (6 query locations)
+
+#### **Testing Status:**
+
+- ✅ TypeScript compilation: 0 errors
+- ✅ Database migration: Columns created successfully
+- ✅ SQL query consistency: All 6 queries updated
+- ✅ Type consistency: All TypeScript unions aligned
+- ✅ Role mapping: Verified database 'ai' → OpenAI 'assistant' flow
+- ✅ Smart dropdown: Enrolled courses loading correctly
+- ⏳ End-to-end: Send tutoring message → verify notification + email
+
+#### **Notification Trigger Count:**
+- **Before**: 23/31 (74%)
+- **After**: 24/31 (77%) 📈
+- **Category**: Community (not Learning)
+
+#### **Architecture Notes:**
+
+**Role Mapping Flow:**
+```
+User → Frontend (Role: 'ai') → Database (Role: 'ai')
+Database → Backend context builder → OpenAI API (Role: 'assistant')
+OpenAI Response → Backend → Database (Role: 'ai') → Frontend (checks 'ai')
+```
+
+**Notification Hierarchy:**
+```
+Global: EnableAllNotifications → EmailAllNotifications
+  ↓
+Category: EnableCommunityUpdates → EmailCommunityUpdates
+  ↓
+Subcategory: EnableAITutoring → EmailAITutoring
+```
+
+**NULL Inheritance**: If EnableAITutoring is NULL, inherits from EnableCommunityUpdates
 
 ---
 

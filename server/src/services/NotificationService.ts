@@ -6,7 +6,7 @@ import EmailDigestService from './EmailDigestService';
 
 export interface CreateNotificationParams {
   userId: string;
-  type: 'progress' | 'risk' | 'achievement' | 'intervention' | 'assignment' | 'course' | 'assessment';
+  type: 'progress' | 'risk' | 'achievement' | 'intervention' | 'assignment' | 'course' | 'assessment' | 'community';
   priority: 'low' | 'normal' | 'high' | 'urgent';
   title: string;
   message: string;
@@ -14,7 +14,7 @@ export interface CreateNotificationParams {
   actionUrl?: string;
   actionText?: string;
   relatedEntityId?: string;
-  relatedEntityType?: 'course' | 'lesson' | 'assessment' | 'student';
+  relatedEntityType?: 'course' | 'lesson' | 'assessment' | 'student' | 'tutoring';
   expiresAt?: Date;
 }
 
@@ -101,6 +101,8 @@ export interface NotificationPreferences {
   EmailGroupInvites: boolean | null;
   EmailGroupActivity: boolean | null;
   EmailOfficeHours: boolean | null;
+  EnableAITutoring: boolean | null;
+  EmailAITutoring: boolean | null;
   
   // System Alerts subcategories
   EnablePaymentConfirmation: boolean | null;
@@ -624,6 +626,7 @@ export class NotificationService {
             EnableGroupInvites, EmailGroupInvites,
             EnableGroupActivity, EmailGroupActivity,
             EnableOfficeHours, EmailOfficeHours,
+            EnableAITutoring, EmailAITutoring,
             EnablePaymentConfirmation, EmailPaymentConfirmation,
             EnablePaymentReceipt, EmailPaymentReceipt,
             EnableRefundConfirmation, EmailRefundConfirmation,
@@ -728,7 +731,8 @@ export class NotificationService {
       const communityFields = ['EnableComments', 'EmailComments', 'EnableReplies', 'EmailReplies',
         'EnableMentions', 'EmailMentions', 'EnableGroupInvites', 'EmailGroupInvites',
         'EnableGroupActivity', 'EmailGroupActivity',
-        'EnableOfficeHours', 'EmailOfficeHours'];
+        'EnableOfficeHours', 'EmailOfficeHours',
+        'EnableAITutoring', 'EmailAITutoring'];
       // System subcategories
       const systemFields = ['EnablePaymentConfirmation', 'EmailPaymentConfirmation', 'EnablePaymentReceipt', 'EmailPaymentReceipt',
         'EnableRefundConfirmation', 'EmailRefundConfirmation',
@@ -837,6 +841,7 @@ export class NotificationService {
             EnableGroupInvites, EmailGroupInvites,
             EnableGroupActivity, EmailGroupActivity,
             EnableOfficeHours, EmailOfficeHours,
+            EnableAITutoring, EmailAITutoring,
             EnablePaymentConfirmation, EmailPaymentConfirmation,
             EnablePaymentReceipt, EmailPaymentReceipt,
             EnableRefundConfirmation, EmailRefundConfirmation,
@@ -883,6 +888,7 @@ export class NotificationService {
               EnableGroupInvites, EmailGroupInvites,
               EnableGroupActivity, EmailGroupActivity,
               EnableOfficeHours, EmailOfficeHours,
+              EnableAITutoring, EmailAITutoring,
               EnablePaymentConfirmation, EmailPaymentConfirmation,
               EnablePaymentReceipt, EmailPaymentReceipt,
               EnableRefundConfirmation, EmailRefundConfirmation,
@@ -1037,7 +1043,7 @@ export class NotificationService {
     userId: string,
     notification: {
       id: string;
-      type: 'progress' | 'risk' | 'achievement' | 'intervention' | 'assignment' | 'course' | 'assessment';
+      type: 'progress' | 'risk' | 'achievement' | 'intervention' | 'assignment' | 'course' | 'assessment' | 'community';
       priority: 'low' | 'normal' | 'high' | 'urgent';
       title: string;
       message: string;
@@ -1240,6 +1246,8 @@ export class NotificationService {
           EmailGroupActivity: null,
           EnableOfficeHours: null,
           EmailOfficeHours: null,
+          EnableAITutoring: null,
+          EmailAITutoring: null,
           EnablePaymentConfirmation: null,
           EmailPaymentConfirmation: null,
           EnablePaymentReceipt: null,

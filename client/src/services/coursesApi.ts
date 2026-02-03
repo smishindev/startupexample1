@@ -189,6 +189,33 @@ class CoursesApi {
       .sort((a, b) => (b.Rating * Math.log(b.EnrollmentCount + 1)) - (a.Rating * Math.log(a.EnrollmentCount + 1)))
       .slice(0, limit);
   }
+
+  // Get user's enrolled courses (for tutoring session course selection)
+  async getEnrolledCourses(): Promise<Course[]> {
+    const response = await api.get('/api/enrollment/my-enrollments?limit=100');
+    // Map enrollment data to Course interface
+    return response.data.enrollments.map((enrollment: any) => ({
+      Id: enrollment.courseId,
+      Title: enrollment.Title,
+      Description: enrollment.Description,
+      Thumbnail: enrollment.Thumbnail,
+      Category: enrollment.Category,
+      Level: enrollment.Level,
+      Duration: enrollment.Duration,
+      Price: enrollment.Price,
+      Rating: 0, // Not needed for tutoring dropdown
+      EnrollmentCount: 0, // Not needed
+      Tags: [],
+      CreatedAt: enrollment.EnrolledAt,
+      UpdatedAt: enrollment.EnrolledAt,
+      LessonCount: 0,
+      Instructor: {
+        Id: '',
+        FirstName: enrollment.instructorFirstName || '',
+        LastName: enrollment.instructorLastName || '',
+      }
+    }));
+  }
 }
 
 export const coursesApi = new CoursesApi();

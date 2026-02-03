@@ -619,6 +619,10 @@ CREATE TABLE dbo.NotificationPreferences (
     EmailSecurityAlerts BIT NULL,
     EmailProfileUpdates BIT NULL,
     
+    -- Learning Subcategories (AI Tutoring, etc.)
+    EnableAITutoring BIT NULL,
+    EmailAITutoring BIT NULL,
+    
     -- Email Unsubscribe Tracking
     UnsubscribedAt DATETIME2 NULL,
     UnsubscribeReason NVARCHAR(500) NULL,

@@ -97,6 +97,10 @@ interface NotificationPreferences {
   EmailGroupActivity: boolean | null;
   EmailOfficeHours: boolean | null;
   
+  // Learning subcategories
+  EnableAITutoring: boolean | null;
+  EmailAITutoring: boolean | null;
+  
   // System Alerts subcategories
   EnablePaymentConfirmation: boolean | null;
   EnablePaymentReceipt: boolean | null;
@@ -266,6 +270,22 @@ const COMMUNITY_SUBCATEGORIES: SubcategoryControl[] = [
     emailKey: 'EmailGroupActivity',
     canDisable: true,
     description: 'New members join your study groups'
+  },
+  {
+    name: 'office-hours',
+    label: 'Office Hours',
+    inAppKey: 'EnableOfficeHours',
+    emailKey: 'EmailOfficeHours',
+    canDisable: true,
+    description: 'Office hours queue and session updates'
+  },
+  {
+    name: 'ai-tutoring',
+    label: 'AI Tutor Responses',
+    inAppKey: 'EnableAITutoring',
+    emailKey: 'EmailAITutoring',
+    canDisable: true,
+    description: 'AI tutor answered your questions'
   },
 ];
 

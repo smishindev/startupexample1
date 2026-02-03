@@ -483,7 +483,7 @@ class EmailService {
     notification: {
       title: string;
       message: string;
-      type: 'progress' | 'risk' | 'achievement' | 'intervention' | 'assignment' | 'course' | 'assessment';
+      type: 'progress' | 'risk' | 'achievement' | 'intervention' | 'assignment' | 'course' | 'assessment' | 'community';
       priority: 'low' | 'normal' | 'high' | 'urgent';
       actionUrl?: string;
       actionText?: string;
@@ -534,6 +534,12 @@ class EmailService {
         color: '#2196F3',
         gradient: 'linear-gradient(135deg, #2196F3 0%, #1976D2 100%)',
         subject: 'Assessment Update'
+      },
+      community: {
+        icon: '👥',
+        color: '#9c27b0',
+        gradient: 'linear-gradient(135deg, #9c27b0 0%, #673ab7 100%)',
+        subject: 'Community Update'
       }
     };
 

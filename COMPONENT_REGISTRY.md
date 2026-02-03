@@ -1,6 +1,6 @@
 # Mishin Learn Platform - Component Registry
 
-**Last Updated**: January 29, 2026 - Comments System Bug Fixes ✅  
+**Last Updated**: February 3, 2026 - AI Tutoring Smart Course Dropdown + Notifications ✅  
 **Purpose**: Quick reference for all major components, their dependencies, and relationships
 
 ---
@@ -884,16 +884,38 @@ const unreadNotifications = useMemo(() =>
 
 ### Tutoring
 **Path**: `client/src/pages/Tutoring/Tutoring.tsx`  
-**Purpose**: AI-powered tutoring sessions with multiple models
+**Purpose**: AI-powered tutoring sessions with multiple models and course context
 
 **Key Features**:
 - ✅ **Auto-Updating Timestamps** (Jan 12, 2026) - Session "Updated X ago" and message times update automatically
+- ✅ **Smart Course Dropdown** (Feb 3, 2026) - Shows enrolled courses for context-aware AI responses
+  - Hybrid dropdown: "General Question" + user's enrolled courses
+  - Auto-fills courseId, subject, title when course selected
+  - Shows course level, category, title with School icon (🏫)
+  - Empty state: "You're not enrolled in any courses yet"
+- ✅ **AI Response Notifications** (Feb 3, 2026) - Sends notification when AI tutor answers question
+  - Notification type: 'community', category: 'community', subcategory: 'AITutoring'
+  - Respects EnableAITutoring and EmailAITutoring preferences
+  - Message: "Your AI tutor answered your question about \"{title}\""
+  - Action URL: `/tutoring?session={sessionId}` with "View Response" button
+  - Email subject: "👥 Community Update" with purple gradient
 - Session management (create, select, delete)
 - Message history with AI responses
-- Model selection (GPT-4, GPT-4 Mini, GPT-3.5)
+- Model selection (GPT-4o, GPT-4o-mini, GPT-3.5-turbo)
 - Suggestions and recommendations
+- **Role Mapping**: Database stores 'ai', frontend displays 'ai', OpenAI API receives 'assistant'
 
-**Status**: ✅ Production-ready with auto-updating timestamps
+**State Management**:
+- `enrolledCourses: Course[]` - User's enrolled courses loaded via coursesApi
+- `loadEnrolledCourses()` - Fetches courses on mount
+- `newSessionData.courseId` - Stores selected course ID for context
+
+**Dependencies**:
+- `tutoringApi.createSession()` - Creates session with optional courseId
+- `coursesApi.getEnrolledCourses()` - NEW: Fetches enrolled courses for dropdown
+- NotificationService - Sends notification after AI response (backend)
+
+**Status**: ✅ Production-ready with smart dropdown and notifications
 
 ---
 

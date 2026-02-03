@@ -44,6 +44,7 @@ import {
   TutoringMessage, 
   CreateSessionRequest 
 } from '../../services/tutoringApi';
+import { coursesApi, Course } from '../../services/coursesApi';
 import { HeaderV5 as Header } from '../../components/Navigation/HeaderV5';
 
 const Tutoring: React.FC = () => {
@@ -56,8 +57,10 @@ const Tutoring: React.FC = () => {
   const [createSessionOpen, setCreateSessionOpen] = useState(false);
   const [newSessionData, setNewSessionData] = useState<CreateSessionRequest>({
     title: '',
-    subject: 'General'
+    subject: 'General',
+    courseId: undefined
   });
+  const [enrolledCourses, setEnrolledCourses] = useState<Course[]>([]);
   const [recommendations, setRecommendations] = useState<string[]>([]);
   const [currentSuggestions, setCurrentSuggestions] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -80,6 +83,7 @@ const Tutoring: React.FC = () => {
   useEffect(() => {
     loadSessions();
     loadRecommendations();
+    loadEnrolledCourses();
   }, []);
 
   // Auto-update relative timestamps every 60 seconds
@@ -140,6 +144,16 @@ const Tutoring: React.FC = () => {
     }
   };
 
+  const loadEnrolledCourses = async () => {
+    try {
+      const courses = await coursesApi.getEnrolledCourses();
+      setEnrolledCourses(courses);
+    } catch (error) {
+      console.error('Failed to load enrolled courses:', error);
+      // Non-critical error - user can still use General option
+    }
+  };
+
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !selectedSession || sending) return;
 
@@ -181,7 +195,7 @@ const Tutoring: React.FC = () => {
       setSessions(prev => [newSession, ...prev]);
       setSelectedSession(newSession);
       setCreateSessionOpen(false);
-      setNewSessionData({ title: '', subject: 'General' });
+      setNewSessionData({ title: '', subject: 'General', courseId: undefined });
     } catch (error) {
       console.error('Failed to create session:', error);
       setError('Failed to create session');
@@ -391,7 +405,7 @@ const Tutoring: React.FC = () => {
                       }}
                     >
                       <Box sx={{ display: 'flex', maxWidth: '80%', alignItems: 'flex-start' }}>
-                        {message.Role === 'assistant' && (
+                        {message.Role === 'ai' && (
                           <Avatar sx={{ mr: 1, bgcolor: 'primary.main' }}>
                             <AIIcon />
                           </Avatar>
@@ -498,20 +512,66 @@ const Tutoring: React.FC = () => {
             sx={{ mb: 2 }}
           />
           <FormControl fullWidth variant="outlined">
-            <InputLabel>Subject</InputLabel>
+            <InputLabel>Course</InputLabel>
             <Select
-              value={newSessionData.subject}
-              label="Subject"
-              onChange={(e) => setNewSessionData(prev => ({ ...prev, subject: e.target.value }))}
+              value={newSessionData.courseId || ''}
+              label="Course"
+              onChange={(e) => {
+                const courseId = e.target.value || undefined;
+                const course = enrolledCourses.find(c => c.Id === courseId);
+                setNewSessionData(prev => ({ 
+                  ...prev, 
+                  courseId,
+                  subject: course ? course.Title : 'General',
+                  title: prev.title || (course ? `Help with ${course.Title}` : '')
+                }));
+              }}
             >
-              <MenuItem value="General">General</MenuItem>
-              <MenuItem value="JavaScript">JavaScript</MenuItem>
-              <MenuItem value="React">React</MenuItem>
-              <MenuItem value="Python">Python</MenuItem>
-              <MenuItem value="CSS">CSS</MenuItem>
-              <MenuItem value="Node.js">Node.js</MenuItem>
-              <MenuItem value="Database">Database</MenuItem>
-              <MenuItem value="Algorithms">Algorithms</MenuItem>
+              {/* General option */}
+              <MenuItem value="">
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                  <AIIcon fontSize="small" sx={{ color: 'text.secondary' }} />
+                  <Box>
+                    <Typography variant="body2" fontWeight={500}>General Question</Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Not related to a specific course
+                    </Typography>
+                  </Box>
+                </Box>
+              </MenuItem>
+
+              {/* Divider if user has courses */}
+              {enrolledCourses.length > 0 && (
+                <MenuItem disabled>
+                  <Typography variant="caption" fontWeight={600} color="text.secondary" sx={{ pl: 0.5 }}>
+                    YOUR ENROLLED COURSES
+                  </Typography>
+                </MenuItem>
+              )}
+
+              {/* User's enrolled courses */}
+              {enrolledCourses.map(course => (
+                <MenuItem key={course.Id} value={course.Id}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                    <SchoolIcon fontSize="small" color="primary" />
+                    <Box>
+                      <Typography variant="body2" fontWeight={500}>{course.Title}</Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {course.Level} · {course.Category}
+                      </Typography>
+                    </Box>
+                  </Box>
+                </MenuItem>
+              ))}
+
+              {/* Fallback if no courses */}
+              {enrolledCourses.length === 0 && (
+                <MenuItem disabled>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic', pl: 0.5 }}>
+                    You're not enrolled in any courses yet
+                  </Typography>
+                </MenuItem>
+              )}
             </Select>
           </FormControl>
         </DialogContent>

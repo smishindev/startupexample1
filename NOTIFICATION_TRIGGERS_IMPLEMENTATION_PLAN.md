@@ -1,8 +1,8 @@
 # Notification Triggers - Full Implementation Plan
 
 **Created**: December 28, 2025  
-**Last Updated**: February 2, 2026  
-**Status**: In Progress (22/31 Complete + Hybrid Controls Design)  
+**Last Updated**: February 3, 2026  
+**Status**: In Progress (23/31 Complete + Hybrid Controls Design)  
 **Goal**: Integrate automatic notification creation throughout the application with granular user controls
 
 ---
@@ -97,30 +97,32 @@ When creating notification:
 
 Users receive email notifications (based on their preferences) when these events occur:
 
-#### ✅ **Currently Active (21 triggers)**
+#### ✅ **Currently Active (23 triggers)**
 1. **Lesson Completed** - Student completes any lesson → Email to student + instructor (at milestones)
 2. **Video Completed** - Student finishes watching video → Email to student (January 8, 2026)
 3. **Live Session Created** - Instructor schedules session → Email to all enrolled students
 4. **Live Session Updated** - Instructor edits session → Notification to all enrolled students (January 6, 2026)
 5. **Live Session Deleted** - Instructor deletes session → Notification to all enrolled students (January 6, 2026)
-6. **Course Enrollment** - Student enrolls in course → Email to student + instructor (January 11, 2026)
-7. **New Lesson Created** - Instructor adds lesson → Email to all enrolled students (active + completed) (January 11, 2026)
-8. **Course Published** - Instructor publishes course → Email to all enrolled students (active + completed) (January 11, 2026)
-9. **Assessment Created** - Instructor creates assessment → Email to all enrolled students (January 12, 2026)
-10. **Assessment Submitted** - Student submits assessment → Confirmation to student + instructor alert (January 12, 2026)
-11. **Assessment Graded** - Instructor grades submission → Email to student with score/feedback (January 12, 2026)
-12. **Course Completion** - Student reaches 100% progress → Congratulations with certificate link (January 15, 2026) 🎉
-13. **Payment Receipt** - Payment successfully processed → Notification with transaction details (January 15, 2026) 💳
-14. **Refund Confirmation** - Refund processed → Notification with refund amount and timeline (January 15, 2026) 💰
-15. **Password Changed** - User changes password → Security alert notification (January 17, 2026) 🔒
-16. **Office Hours Completed** - Session ends → Summary notification with duration (January 17, 2026) 🕒
-17. **Assessment Due Date Reminders** - Cron job checks daily for assessments due in 2 days → Email to students without submissions (January 20, 2026) ⏰
-18. **Weekly Progress Summary** - Cron job sends weekly activity summary every Monday → Email to all active students with activity in past 7 days (January 21, 2026) 📊
-19. **Study Group Invitation** - Member invites user to join group → Notification to invited user (January 21, 2026) 👥
-20. **Study Group Member Joined** - User joins study group → Notification to all existing members (January 21, 2026) 👥
-21. **New Comment on Course/Lesson** - Student posts top-level comment → Notification to all enrolled participants + instructor (excludes author) (January 31, 2026) 💬 ⭐ NEW
+6. **Live Session Cancelled** - Instructor cancels session → Notification to all enrolled students (January 6, 2026)
+7. **Course Enrollment** - Student enrolls in course → Email to student + instructor (January 11, 2026)
+8. **New Lesson Created** - Instructor adds lesson → Email to all enrolled students (active + completed) (January 11, 2026)
+9. **Course Published** - Instructor publishes course → Email to all enrolled students (active + completed) (January 11, 2026)
+10. **Assessment Created** - Instructor creates assessment → Email to all enrolled students (January 12, 2026)
+11. **Assessment Submitted** - Student submits assessment → Confirmation to student + instructor alert (January 12, 2026)
+12. **Assessment Graded** - Instructor grades submission → Email to student with score/feedback (January 12, 2026)
+13. **Course Completion** - Student reaches 100% progress → Congratulations with certificate link (January 15, 2026) 🎉
+14. **Payment Receipt** - Payment successfully processed → Notification with transaction details (January 15, 2026) 💳
+15. **Refund Confirmation** - Refund processed → Notification with refund amount and timeline (January 15, 2026) 💰
+16. **Password Changed** - User changes password → Security alert notification (January 17, 2026) 🔒
+17. **Office Hours Completed** - Session ends → Summary notification with duration (January 17, 2026) 🕒
+18. **Assessment Due Date Reminders** - Cron job checks daily for assessments due in 2 days → Email to students without submissions (January 20, 2026) ⏰
+19. **Weekly Progress Summary** - Cron job sends weekly activity summary every Monday → Email to all active students with activity in past 7 days (January 21, 2026) 📊
+20. **Study Group Invitation** - Member invites user to join group → Notification to invited user (January 21, 2026) 👥
+21. **Study Group Member Joined** - User joins study group → Notification to all existing members (January 21, 2026) 👥
+22. **Study Group Role Promotion** - Member promoted to admin → Notification to promoted member (February 2, 2026) 👥
+23. **New Comment on Course/Lesson** - Student posts top-level comment → Notification to all enrolled participants + instructor (excludes author) (January 31, 2026) 💬
 
-#### 🔄 **Coming Soon (11 triggers)**
+#### 🔄 **Coming Soon (8 triggers)**
 - Study group promotion, direct messages, certificates earned
 - Instructor announcements, scheduled notifications, etc.
 
@@ -137,9 +139,9 @@ Users receive email notifications (based on their preferences) when these events
 ## 📋 EXECUTIVE SUMMARY
 
 **Current State:**
-- ✅ Twenty-two notification triggers implemented (Lesson, Video, Live Sessions x3, Course Management x3, Assessments x4, Course Completion, Payment x2, Password Changed, Office Hours, Study Groups x3, New Comments)
+- ✅ Twenty-three notification triggers implemented (Lesson, Video, Live Sessions x4, Course Management x3, Assessments x4, Course Completion, Payment x2, Password Changed, Office Hours, Study Groups x3, New Comments)
 - ✅ **Automated Testing**: Comprehensive Playwright test suite for comment notifications (11 tests, 100% coverage)
-- ❌ 9 additional notification triggers NOT implemented
+- ❌ 8 additional notification triggers NOT implemented
 
 **What's Missing:**
 Event hooks for instructor announcements, reply to comment (already exists but needs verification), study group messages, and additional system alerts
@@ -169,12 +171,13 @@ Event hooks for instructor announcements, reply to comment (already exists but n
 - Infrastructure: 5 scheduled jobs
 
 **Implementation Status:**
-- ✅ **Implemented & Working**: 22 triggers
+- ✅ **Implemented & Working**: 23 triggers
   - Lesson Completion (Student + Instructor notifications) - December 29, 2025
   - Video Completion (Student notification) - January 8, 2026
   - Live Session Created (Student notifications) - Pre-existing
   - Live Session Updated (Student notifications) - January 6, 2026
   - Live Session Deleted (Student notifications) - January 6, 2026
+  - Live Session Cancelled (Student notifications) - January 6, 2026
   - Course Enrollment (Student + Instructor notifications) - January 11, 2026
   - New Lesson Created (All enrolled students) - January 11, 2026
   - Course Published (All enrolled students) - January 11, 2026
@@ -191,8 +194,8 @@ Event hooks for instructor announcements, reply to comment (already exists but n
   - Study Group Invitation (Invitation notification) - January 21, 2026
   - Study Group Member Joined (Member join notification) - January 21, 2026
   - New Comment on Course/Lesson (All course participants) - January 31, 2026
-  - **Study Group Role Promotion (Promoted member notification) - February 1, 2026** ⭐ NEW
-- ⏳ **Pending**: 9 triggers
+  - Study Group Role Promotion (Promoted member notification) - February 2, 2026
+- ⏳ **Pending**: 8 triggers
 
 ---
 
@@ -1240,9 +1243,9 @@ export async function getStudentCourses(userId: string): Promise<CourseInfo[]>
   - [ ] Check sessions starting in 30 min
   - [ ] Notify enrolled students
   - [ ] Test with mock session
-- [ ] 3.7 Live session cancelled
-  - [ ] Notify all participants
-  - [ ] Test cancellation
+- [x] 3.7 Live session cancelled ✅ **COMPLETED** (January 6, 2026)
+  - [x] Notify all participants
+  - [x] Test cancellation
 - [ ] 3.8 AI tutoring response
   - [ ] Add notification for inactive sessions
   - [ ] Test tutoring flow

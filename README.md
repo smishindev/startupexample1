@@ -43,7 +43,7 @@ An innovative EdTech startup providing personalized learning experiences through
 - **Auto-Updating Timestamps** - Relative time displays ("X minutes ago") automatically update every 60 seconds across 6 components without page refresh (Jan 12, 2026) ✅
 - **Email Verification** - Secure account verification with Gmail SMTP, 6-digit codes, beautiful UI, resend with cooldown, profile badge integration ✅
 - **Email Notification System** - Complete email delivery with realtime, daily, and weekly digest options, tracking, analytics, and one-click unsubscribe (Phases 1-3 Complete - 100%) ✅
-  - **Active Triggers**: 26/31 implemented (84%) - lesson completion, live sessions x5, course management, assessments, payments, office hours, study groups, comments, AI tutoring, at-risk detection
+  - **Active Triggers**: 28/31 implemented (90.3%) - lesson completion, course completion with certificates, live sessions x6, course management, assessments, payments, office hours queue + completion, study groups, comments, AI tutoring, at-risk detection, weekly progress, due date reminders
   - **Delivery Options**: Realtime, daily digest (8 AM), weekly digest (Monday 8 AM)
   - **Email Tracking**: Open/click tracking and analytics
   - **User Control**: Customizable preferences with quiet hours and one-click unsubscribe

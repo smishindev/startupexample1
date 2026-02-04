@@ -853,4 +853,43 @@ router.get('/:sessionId/attendees', authenticateToken, async (req: AuthRequest, 
   }
 });
 
+/**
+ * @route   POST /api/live-sessions/test-session-reminders
+ * @desc    Manual trigger for live session reminders (testing only)
+ * @access  Private (instructor/admin only)
+ */
+router.post(
+  '/test-session-reminders',
+  authenticateToken,
+  async (req: AuthRequest, res) => {
+    try {
+      const { role } = req.user!;
+
+      // Only allow instructors and admins to trigger test
+      if (role !== 'instructor' && role !== 'admin') {
+        return res.status(403).json({ 
+          message: 'Access denied. Instructor or admin role required.' 
+        });
+      }
+
+      const { triggerLiveSessionReminders } = await import(
+        '../services/NotificationScheduler'
+      );
+      
+      const result = await triggerLiveSessionReminders();
+
+      return res.status(200).json({
+        ...result,
+        triggered: true
+      });
+    } catch (error) {
+      console.error('Error in test-session-reminders:', error);
+      return res.status(500).json({ 
+        message: 'Failed to trigger live session reminders',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  }
+);
+
 export default router;

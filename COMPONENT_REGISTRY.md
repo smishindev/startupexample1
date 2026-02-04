@@ -233,6 +233,8 @@
 - `triggerAssessmentDueReminders()` - Manual trigger for testing (exported)
 - `sendWeeklyProgressSummaries()` - Weekly cron job handler (Monday 8 AM UTC)
 - `triggerWeeklyProgressSummaries()` - Manual trigger for testing (exported)
+- `sendLiveSessionReminders()` - Every 15 minutes cron job handler
+- `triggerLiveSessionReminders()` - Manual trigger for testing (exported)
 
 **Cron Jobs Registered**:
 - **Assessment Due Reminders**: `'0 9 * * *'` (Daily at 9:00 AM UTC)
@@ -246,6 +248,13 @@
   - Sends notification only to students with activity
   - Multi-line message format with emojis (✅📚🎥📝⏱️)
   - Returns: `{ success: boolean, message: string, count: number }`
+- **Live Session Starting Soon**: `'*/15 * * * *'` (Every 15 minutes)
+  - Checks for sessions starting in 55-65 minutes (±5 buffer around 60)
+  - Sends urgent notifications to all enrolled students
+  - Duplicate prevention: LEFT JOIN checks past 2 hours
+  - Only targets Status='scheduled' sessions
+  - Message format: '"[Title]" starts in 1 hour ([Formatted Time])'
+  - Returns: `{ success: boolean, count: number, sessions: number, message: string }`
 
 **Features**:
 - Double initialization protection (returns early if already initialized)
@@ -260,7 +269,7 @@
 - `date-fns` - Date formatting
 - `Socket.io` - Real-time updates
 
-**Status**: ✅ Production-ready (January 20, 2026)
+**Status**: ✅ Production-ready (February 4, 2026)
 
 ---
 
@@ -273,6 +282,12 @@
   - Complex JOIN query: Assessments → Lessons → Courses → Enrollments → Users
   - Filters: `DueDate IS NOT NULL`, `DATEDIFF(day, GETUTCDATE(), a.DueDate) = @daysAhead`
   - Excludes students with completed submissions (LEFT JOIN AssessmentSubmissions)
+- `getUpcomingLiveSessions(minutesAhead: number)` - Find live sessions starting in N minutes (Feb 4, 2026)
+  - Complex JOIN query: LiveSessions → Courses → Enrollments → Users
+  - Time window: `BETWEEN DATEADD(MINUTE, @minutesAhead - 5, ...) AND DATEADD(MINUTE, @minutesAhead + 5, ...)`
+  - Duplicate prevention: LEFT JOIN Notifications excludes recent notifications (past 2 hours)
+  - Filters: `Status = 'scheduled'`, `Status IN ('active', 'completed')` enrollments
+  - Returns: `LiveSessionStartingSoonInfo[]` with session + student details
   - Returns: AssessmentId, Title, DueDate, Type, LessonId, CourseId, CourseTitle, UserId, StudentName, Email
 - `getWeeklyActivitySummaries()` - Aggregate 7-day activity for all users
   - Complex multi-subquery: UserProgress (lessons), VideoProgress (videos), AssessmentSubmissions

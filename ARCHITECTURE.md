@@ -265,6 +265,7 @@ POST   /api/email-unsubscribe/resubscribe - Resubscribe to emails
 - ✅ **Password Changed**: Security alert sent to user - Jan 17, 2026
 - ✅ **Assessment Due Reminders**: Daily cron job (9 AM UTC) checks for assessments due in 2 days - Jan 20, 2026
 - ✅ **Weekly Progress Summary**: Weekly cron job (Monday 8 AM UTC) sends activity summaries - Jan 21, 2026
+- ✅ **Live Session Starting Soon**: Every 15 minutes cron job checks for sessions 1 hour away - Feb 4, 2026
 - ✅ **Study Group Invitation**: Member invites user to join group - Jan 21, 2026
 - ✅ **Study Group Member Joined**: All existing members notified when someone joins - Jan 21, 2026
 - ✅ **Study Group Member Promoted**: User promoted to admin role with management permissions - Feb 2, 2026

@@ -30,6 +30,18 @@ export interface WeeklyActivitySummary {
   endDate: Date;
 }
 
+export interface LiveSessionStartingSoonInfo {
+  sessionId: string;
+  sessionTitle: string;
+  scheduledAt: Date;
+  courseId: string;
+  courseTitle: string;
+  instructorId: string;
+  userId: string;
+  userName: string;
+  userEmail: string;
+}
+
 /**
  * Get instructor ID for a given course
  */
@@ -315,5 +327,59 @@ export async function isUserOnline(userId: string): Promise<boolean> {
   } catch (error) {
     logger.error('Error checking user online status:', error);
     return false;
+  }
+}
+
+/**
+ * Get live sessions starting within N minutes that haven't been notified yet
+ * Returns list of enrolled students for each upcoming session
+ */
+export async function getUpcomingLiveSessions(minutesAhead: number): Promise<LiveSessionStartingSoonInfo[]> {
+  try {
+    const db = DatabaseService.getInstance();
+    
+    const results = await db.query(`
+      SELECT 
+        ls.Id as SessionId,
+        ls.Title as SessionTitle,
+        ls.ScheduledAt,
+        ls.CourseId,
+        c.Title as CourseTitle,
+        ls.InstructorId,
+        e.UserId,
+        u.FirstName + ' ' + u.LastName as UserName,
+        u.Email as UserEmail
+      FROM dbo.LiveSessions ls
+      INNER JOIN dbo.Courses c ON ls.CourseId = c.Id
+      INNER JOIN dbo.Enrollments e ON e.CourseId = c.Id 
+        AND e.Status IN ('active', 'completed')
+      INNER JOIN dbo.Users u ON e.UserId = u.Id
+      LEFT JOIN dbo.Notifications n ON n.UserId = e.UserId 
+        AND n.RelatedEntityType = 'live-session'
+        AND n.RelatedEntityId = ls.Id
+        AND n.Message LIKE '%starting in%'
+        AND n.CreatedAt > DATEADD(HOUR, -2, GETUTCDATE())
+      WHERE ls.Status = 'scheduled'
+        AND ls.ScheduledAt BETWEEN 
+          DATEADD(MINUTE, @minutesAhead - 5, GETUTCDATE()) 
+          AND DATEADD(MINUTE, @minutesAhead + 5, GETUTCDATE())
+        AND n.Id IS NULL
+      ORDER BY ls.ScheduledAt, u.FirstName, u.LastName
+    `, { minutesAhead });
+    
+    return results.map((row: any) => ({
+      sessionId: row.SessionId,
+      sessionTitle: row.SessionTitle,
+      scheduledAt: row.ScheduledAt,
+      courseId: row.CourseId,
+      courseTitle: row.CourseTitle,
+      instructorId: row.InstructorId,
+      userId: row.UserId,
+      userName: row.UserName,
+      userEmail: row.UserEmail
+    }));
+  } catch (error) {
+    logger.error('Error getting upcoming live sessions:', error);
+    return [];
   }
 }

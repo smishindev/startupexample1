@@ -14,7 +14,7 @@ export interface CreateNotificationParams {
   actionUrl?: string;
   actionText?: string;
   relatedEntityId?: string;
-  relatedEntityType?: 'course' | 'lesson' | 'assessment' | 'student' | 'tutoring';
+  relatedEntityType?: 'course' | 'lesson' | 'assessment' | 'student' | 'tutoring' | 'live-session';
   expiresAt?: Date;
 }
 

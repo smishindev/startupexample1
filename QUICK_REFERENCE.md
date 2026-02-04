@@ -1,6 +1,6 @@
 # 🚀 Quick Reference - Development Workflow
 
-**Last Updated**: January 31, 2026 - New Comment Notification Trigger ✅
+**Last Updated**: February 4, 2026 - Live Session Starting Soon Notification ⏰
 
 ---
 
@@ -238,6 +238,7 @@ Invoke-WebRequest -Uri "http://localhost:3001/api/notifications/test-weekly-summ
 **Cron Schedules:**
 - **Assessment Due Reminders**: Daily at 9:00 AM UTC (`'0 9 * * *'`)
 - **Weekly Progress Summary**: Monday at 8:00 AM UTC (`'0 8 * * 1'`)
+- **Live Session Starting Soon**: Every 15 minutes (`'*/15 * * * *'`) - Checks for sessions 55-65 min away
 - **Email Digest**: Daily at 8:00 AM UTC (existing)
 - **Email Weekly Digest**: Monday at 8:00 AM UTC (existing)
 - **Notification Queue**: Every 5 minutes (quiet hours processing)

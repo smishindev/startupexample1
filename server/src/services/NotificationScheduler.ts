@@ -1,7 +1,7 @@
 import cron from 'node-cron';
 import { Server } from 'socket.io';
 import { NotificationService } from './NotificationService';
-import { getUpcomingAssessmentsDue, getWeeklyActivitySummaries } from './NotificationHelpers';
+import { getUpcomingAssessmentsDue, getWeeklyActivitySummaries, getUpcomingLiveSessions } from './NotificationHelpers';
 import { logger } from '../utils/logger';
 import { format } from 'date-fns';
 
@@ -39,9 +39,16 @@ export function initializeScheduler(socketIoInstance: Server): void {
     await sendWeeklyProgressSummaries();
   });
 
+  // Schedule: Every 15 minutes - Live Session Starting Soon
+  cron.schedule('*/15 * * * *', async () => {
+    logger.info('⏰ Running scheduled job: Live Session Starting Soon');
+    await sendLiveSessionReminders();
+  });
+
   logger.info('✅ NotificationScheduler started successfully');
   logger.info('   - Assessment Due Reminders: Daily at 9:00 AM UTC');
   logger.info('   - Weekly Progress Summary: Monday at 8:00 AM UTC');
+  logger.info('   - Live Session Reminders: Every 15 minutes');
 }
 
 /**
@@ -229,6 +236,126 @@ export async function triggerWeeklyProgressSummaries(): Promise<{ success: boole
     return {
       success: false,
       count: 0,
+      message: error instanceof Error ? error.message : 'Unknown error'
+    };
+  }
+}
+
+/**
+ * Send reminders for live sessions starting in 1 hour
+ */
+async function sendLiveSessionReminders(): Promise<void> {
+  try {
+    if (!io) {
+      logger.error('Socket.io not initialized in NotificationScheduler');
+      return;
+    }
+
+    // Get sessions starting in 60 minutes (±5 min buffer)
+    const upcomingSessions = await getUpcomingLiveSessions(60);
+    
+    if (upcomingSessions.length === 0) {
+      // Silent success - no logging spam
+      return;
+    }
+
+    logger.info(`Found ${upcomingSessions.length} notification(s) for session(s) starting in ~1 hour`);
+
+    const notificationService = new NotificationService(io);
+    let successCount = 0;
+    let failureCount = 0;
+
+    // Group by session to get unique session count
+    const sessionMap = new Map<string, typeof upcomingSessions>();
+    upcomingSessions.forEach(session => {
+      if (!sessionMap.has(session.sessionId)) {
+        sessionMap.set(session.sessionId, []);
+      }
+      sessionMap.get(session.sessionId)!.push(session);
+    });
+
+    logger.info(`Sending reminders for ${sessionMap.size} session(s) to ${upcomingSessions.length} student(s)`);
+
+    // Send notification to each student for each session
+    for (const [sessionId, students] of sessionMap) {
+      const session = students[0]; // Get session details
+      const scheduledTime = new Date(session.scheduledAt);
+      const formattedTime = format(scheduledTime, 'MMM dd, yyyy h:mm a');
+
+      for (const student of students) {
+        try {
+          await notificationService.createNotificationWithControls(
+            {
+              userId: student.userId,
+              type: 'course',
+              priority: 'urgent',
+              title: 'Live Session Starting Soon!',
+              message: `"${session.sessionTitle}" starts in 1 hour (${formattedTime})`,
+              actionUrl: `/live-sessions/${session.sessionId}`,
+              actionText: 'Join Session',
+              relatedEntityId: session.sessionId,
+              relatedEntityType: 'live-session'
+            },
+            {
+              category: 'course',
+              subcategory: 'LiveSessions'
+            }
+          );
+
+          successCount++;
+          
+          logger.debug(
+            `Sent live session reminder to ${student.userName} for "${session.sessionTitle}"`
+          );
+        } catch (error) {
+          failureCount++;
+          logger.error(
+            `Failed to send live session reminder to ${student.userName}:`, 
+            error
+          );
+        }
+      }
+    }
+
+    logger.info(
+      `Live session reminders completed: ${successCount} sent, ${failureCount} failed`
+    );
+  } catch (error) {
+    logger.error('Error in sendLiveSessionReminders:', error);
+  }
+}
+
+/**
+ * Manual trigger for testing (can be called from API endpoint)
+ */
+export async function triggerLiveSessionReminders(): Promise<{ 
+  success: boolean; 
+  count: number; 
+  sessions: number;
+  message: string 
+}> {
+  try {
+    if (!io) {
+      return { success: false, count: 0, sessions: 0, message: 'Scheduler not initialized' };
+    }
+
+    const upcomingSessions = await getUpcomingLiveSessions(60);
+    const uniqueSessions = new Set(upcomingSessions.map(s => s.sessionId)).size;
+    
+    await sendLiveSessionReminders();
+
+    return {
+      success: true,
+      count: upcomingSessions.length,
+      sessions: uniqueSessions,
+      message: `Sent reminders for ${uniqueSessions} upcoming session(s) to ${upcomingSessions.length} student(s)`
+    };
+  } catch (error) {
+    logger.error('Error triggering live session reminders:', error);
+    return {
+      success: false,
+      count: 0,
+      sessions: 0,
       message: error instanceof Error ? error.message : 'Unknown error'
     };
   }

@@ -1,8 +1,8 @@
 # Notification Triggers - Full Implementation Plan
 
 **Created**: December 28, 2025  
-**Last Updated**: February 3, 2026  
-**Status**: In Progress (24/31 Complete + Hybrid Controls Design)  
+**Last Updated**: February 4, 2026  
+**Status**: In Progress (25/31 Complete + Hybrid Controls Design)  
 **Goal**: Integrate automatic notification creation throughout the application with granular user controls
 
 ---
@@ -12,13 +12,13 @@
 | Category | Completed | Total | Progress |
 |----------|-----------|-------|----------|
 | **Progress Updates** | 3/3 | 3 | 100% ✅ |
-| **Course Updates** | 7/7 | 7 | 100% ✅ |
+| **Course Updates** | 8/7 | 7 | 114% ✅ |
 | **Community Updates** | 6/7 | 7 | 86% 🔄 |
 | **Assessment Updates** | 4/4 | 4 | 100% ✅ |
 | **System Alerts** | 4/10 | 10 | 40% 🔄 |
-| **TOTAL** | **24/31** | **31** | **77%** 📈 |
+| **TOTAL** | **25/31** | **31** | **81%** 📈 |
 
-**Latest Addition**: AI Tutoring Response (Community, February 3, 2026) 🤖
+**Latest Addition**: Live Session Starting Soon (Course, February 4, 2026) ⏰
 
 ---
 
@@ -112,35 +112,36 @@ When creating notification:
 
 Users receive email notifications (based on their preferences) when these events occur:
 
-#### ✅ **Currently Active (24 triggers)**
+#### ✅ **Currently Active (25 triggers)**
 1. **Lesson Completed** - Student completes any lesson → Email to student + instructor (at milestones)
 2. **Video Completed** - Student finishes watching video → Email to student (January 8, 2026)
 3. **Live Session Created** - Instructor schedules session → Email to all enrolled students
 4. **Live Session Updated** - Instructor edits session → Notification to all enrolled students (January 6, 2026)
 5. **Live Session Deleted** - Instructor deletes session → Notification to all enrolled students (January 6, 2026)
 6. **Live Session Cancelled** - Instructor cancels session → Notification to all enrolled students (January 6, 2026)
-7. **Course Enrollment** - Student enrolls in course → Email to student + instructor (January 11, 2026)
-8. **New Lesson Created** - Instructor adds lesson → Email to all enrolled students (active + completed) (January 11, 2026)
-9. **Course Published** - Instructor publishes course → Email to all enrolled students (active + completed) (January 11, 2026)
-10. **Assessment Created** - Instructor creates assessment → Email to all enrolled students (January 12, 2026)
-11. **Assessment Submitted** - Student submits assessment → Confirmation to student + instructor alert (January 12, 2026)
-12. **Assessment Graded** - Instructor grades submission → Email to student with score/feedback (January 12, 2026)
-13. **Course Completion** - Student reaches 100% progress → Congratulations with certificate link (January 15, 2026) 🎉
-14. **Payment Receipt** - Payment successfully processed → Notification with transaction details (January 15, 2026) 💳
-15. **Refund Confirmation** - Refund processed → Notification with refund amount and timeline (January 15, 2026) 💰
-16. **Password Changed** - User changes password → Security alert notification (January 17, 2026) 🔒
-17. **Office Hours Completed** - Session ends → Summary notification with duration (January 17, 2026) 🕒
-18. **Assessment Due Date Reminders** - Cron job checks daily for assessments due in 2 days → Email to students without submissions (January 20, 2026) ⏰
-19. **Weekly Progress Summary** - Cron job sends weekly activity summary every Monday → Email to all active students with activity in past 7 days (January 21, 2026) 📊
-20. **Study Group Invitation** - Member invites user to join group → Notification to invited user (January 21, 2026) 👥
-21. **Study Group Member Joined** - User joins study group → Notification to all existing members (January 21, 2026) 👥
-22. **Study Group Role Promotion** - Member promoted to admin → Notification to promoted member (February 2, 2026) 👥
-23. **New Comment on Course/Lesson** - Student posts top-level comment → Notification to all enrolled participants + instructor (excludes author) (January 31, 2026) 💬
-24. **AI Tutoring Response** - AI tutor answers user question → Notification with session link (February 3, 2026) 🤖
+7. **Live Session Starting Soon** - Cron job checks every 15 minutes for sessions starting in 1 hour → Email to all enrolled students (February 4, 2026) ⏰
+8. **Course Enrollment** - Student enrolls in course → Email to student + instructor (January 11, 2026)
+9. **New Lesson Created** - Instructor adds lesson → Email to all enrolled students (active + completed) (January 11, 2026)
+10. **Course Published** - Instructor publishes course → Email to all enrolled students (active + completed) (January 11, 2026)
+11. **Assessment Created** - Instructor creates assessment → Email to all enrolled students (January 12, 2026)
+12. **Assessment Submitted** - Student submits assessment → Confirmation to student + instructor alert (January 12, 2026)
+13. **Assessment Graded** - Instructor grades submission → Email to student with score/feedback (January 12, 2026)
+14. **Course Completion** - Student reaches 100% progress → Congratulations with certificate link (January 15, 2026) 🎉
+15. **Payment Receipt** - Payment successfully processed → Notification with transaction details (January 15, 2026) 💳
+16. **Refund Confirmation** - Refund processed → Notification with refund amount and timeline (January 15, 2026) 💰
+17. **Password Changed** - User changes password → Security alert notification (January 17, 2026) 🔒
+18. **Office Hours Completed** - Session ends → Summary notification with duration (January 17, 2026) 🕒
+19. **Assessment Due Date Reminders** - Cron job checks daily for assessments due in 2 days → Email to students without submissions (January 20, 2026) ⏰
+20. **Weekly Progress Summary** - Cron job sends weekly activity summary every Monday → Email to all active students with activity in past 7 days (January 21, 2026) 📊
+21. **Study Group Invitation** - Member invites user to join group → Notification to invited user (January 21, 2026) 👥
+22. **Study Group Member Joined** - User joins study group → Notification to all existing members (January 21, 2026) 👥
+23. **Study Group Role Promotion** - Member promoted to admin → Notification to promoted member (February 2, 2026) 👥
+24. **New Comment on Course/Lesson** - Student posts top-level comment → Notification to all enrolled participants + instructor (excludes author) (January 31, 2026) 💬
+25. **AI Tutoring Response** - AI tutor answers user question → Notification with session link (February 3, 2026) 🤖
 
-#### 🔄 **Coming Soon (7 triggers)**
-- Study group promotion, direct messages, certificates earned
-- Instructor announcements, scheduled notifications, etc.
+#### 🔄 **Coming Soon (6 triggers)**
+- Direct messages, certificates earned, instructor announcements
+- Scheduled notifications, etc.
 
 **Email Delivery Options** (Profile → Preferences):
 - **Real-time**: Immediate email for each event
@@ -1044,18 +1045,30 @@ try {
 ---
 
 ### 3.6 Live Session Starting Soon
-**File**: `server/src/services/NotificationScheduler.ts` (NEW SERVICE)  
-**Trigger**: Cron job (every 15 minutes, check sessions starting in 30 min)
+**File**: `server/src/services/NotificationScheduler.ts`  
+**Trigger**: Cron job (every 15 minutes, check sessions starting in 60 min)
+
+**Status**: ✅ **IMPLEMENTED** - February 4, 2026
 
 **Notification Details:**
 ```typescript
 type: 'course'
 priority: 'urgent'
-title: 'Live Session Starting Soon'
-message: '"{sessionTitle}" starts in 30 minutes'
+title: 'Live Session Starting Soon!'
+message: '"{sessionTitle}" starts in 1 hour (Feb 04, 2026 3:00 PM)'
 actionUrl: '/live-sessions/{sessionId}'
 actionText: 'Join Session'
+category: 'course'
+subcategory: 'LiveSessions'
 ```
+
+**Implementation:**
+- Cron schedule: `'*/15 * * * *'` (every 15 minutes)
+- Query window: 55-65 minutes ahead (±5 min buffer)
+- Duplicate prevention: LEFT JOIN with Notifications table
+- Sends to all enrolled students (active + completed enrollments)
+- Manual test endpoint: `POST /api/live-sessions/test-session-reminders`
+- Helper function: `getUpcomingLiveSessions(minutesAhead)` in NotificationHelpers.ts
 
 ---
 

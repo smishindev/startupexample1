@@ -42,6 +42,23 @@ export interface LiveSessionStartingSoonInfo {
   userEmail: string;
 }
 
+export interface AtRiskStudentInfo {
+  studentId: string;
+  studentName: string;
+  studentEmail: string;
+  courseId: string;
+  courseTitle: string;
+  instructorId: string;
+  instructorName: string;
+  riskLevel: 'medium' | 'high' | 'critical';
+  riskScore: number;
+  riskFactors: string; // JSON array
+  daysSinceLastActivity: number;
+  lastActivityDate: Date;
+  completionRate: number;
+  averageScore: number;
+}
+
 /**
  * Get instructor ID for a given course
  */
@@ -380,6 +397,97 @@ export async function getUpcomingLiveSessions(minutesAhead: number): Promise<Liv
     }));
   } catch (error) {
     logger.error('Error getting upcoming live sessions:', error);
+    return [];
+  }
+}
+
+/**
+ * Get at-risk students across all courses
+ * Detects students who need intervention based on:
+ * - Risk level (medium, high, critical)
+ * - Inactivity (7+ days without progress)
+ * - Low assessment scores
+ * - Published courses only
+ * - Active students only
+ * - No duplicate notifications within 7 days
+ */
+export async function getAtRiskStudents(): Promise<AtRiskStudentInfo[]> {
+  try {
+    const db = DatabaseService.getInstance();
+    
+    const results = await db.query(`
+      SELECT 
+        sra.UserId as StudentId,
+        u.FirstName + ' ' + u.LastName as StudentName,
+        u.Email as StudentEmail,
+        sra.CourseId,
+        c.Title as CourseTitle,
+        c.InstructorId,
+        i.FirstName + ' ' + i.LastName as InstructorName,
+        sra.RiskLevel,
+        sra.RiskScore,
+        ISNULL(sra.RiskFactors, '[]') as RiskFactors,
+        ISNULL(DATEDIFF(DAY, cp.LastAccessedAt, GETUTCDATE()), 999) as DaysSinceLastActivity,
+        cp.LastAccessedAt as LastActivityDate,
+        ISNULL(cp.OverallProgress, 0) as CompletionRate,
+        ISNULL(AVG(CAST(asub.Score as DECIMAL(5,2))), 0) as AverageScore
+      FROM dbo.StudentRiskAssessment sra
+      INNER JOIN dbo.Users u ON sra.UserId = u.Id
+      INNER JOIN dbo.Courses c ON sra.CourseId = c.Id
+      INNER JOIN dbo.Users i ON c.InstructorId = i.Id
+      LEFT JOIN dbo.CourseProgress cp ON cp.UserId = sra.UserId AND cp.CourseId = sra.CourseId
+      LEFT JOIN dbo.Enrollments e ON e.UserId = sra.UserId AND e.CourseId = sra.CourseId
+      LEFT JOIN dbo.Lessons l ON l.CourseId = sra.CourseId
+      LEFT JOIN dbo.Assessments a ON a.LessonId = l.Id
+      LEFT JOIN dbo.AssessmentSubmissions asub ON asub.AssessmentId = a.Id AND asub.UserId = sra.UserId AND asub.Status = 'completed'
+      WHERE 
+        sra.RiskLevel IN ('medium', 'high', 'critical')
+        AND c.Status = 'published'
+        AND u.IsActive = 1
+        AND e.Status IN ('active', 'completed')
+        -- Only students inactive 7+ days OR with critical risk
+        AND (
+          DATEDIFF(DAY, cp.LastAccessedAt, GETUTCDATE()) >= 7
+          OR sra.RiskLevel = 'critical'
+        )
+        -- Prevent duplicate notifications within 7 days
+        AND NOT EXISTS (
+          SELECT 1 FROM dbo.Notifications n
+          WHERE n.UserId = c.InstructorId
+            AND n.Type = 'intervention'
+            AND n.RelatedEntityType = 'course'
+            AND n.RelatedEntityId = sra.CourseId
+            AND n.Message LIKE '%at-risk%'
+            AND n.CreatedAt > DATEADD(DAY, -7, GETUTCDATE())
+        )
+      GROUP BY 
+        sra.UserId, u.FirstName, u.LastName, u.Email,
+        sra.CourseId, c.Title, c.InstructorId,
+        i.FirstName, i.LastName,
+        sra.RiskLevel, sra.RiskScore, sra.RiskFactors,
+        cp.LastAccessedAt, cp.OverallProgress
+      ORDER BY 
+        sra.RiskScore DESC
+    `, {});
+    
+    return results.map((row: any) => ({
+      studentId: row.StudentId,
+      studentName: row.StudentName,
+      studentEmail: row.StudentEmail,
+      courseId: row.CourseId,
+      courseTitle: row.CourseTitle,
+      instructorId: row.InstructorId,
+      instructorName: row.InstructorName,
+      riskLevel: row.RiskLevel,
+      riskScore: row.RiskScore,
+      riskFactors: row.RiskFactors,
+      daysSinceLastActivity: row.DaysSinceLastActivity,
+      lastActivityDate: row.LastActivityDate,
+      completionRate: row.CompletionRate,
+      averageScore: row.AverageScore
+    }));
+  } catch (error) {
+    logger.error('Error getting at-risk students:', error);
     return [];
   }
 }

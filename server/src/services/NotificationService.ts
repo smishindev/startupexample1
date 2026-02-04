@@ -103,6 +103,8 @@ export interface NotificationPreferences {
   EmailOfficeHours: boolean | null;
   EnableAITutoring: boolean | null;
   EmailAITutoring: boolean | null;
+  EnableRiskAlerts: boolean | null;
+  EmailRiskAlerts: boolean | null;
   
   // System Alerts subcategories
   EnablePaymentConfirmation: boolean | null;
@@ -627,6 +629,7 @@ export class NotificationService {
             EnableGroupActivity, EmailGroupActivity,
             EnableOfficeHours, EmailOfficeHours,
             EnableAITutoring, EmailAITutoring,
+            EnableRiskAlerts, EmailRiskAlerts,
             EnablePaymentConfirmation, EmailPaymentConfirmation,
             EnablePaymentReceipt, EmailPaymentReceipt,
             EnableRefundConfirmation, EmailRefundConfirmation,
@@ -737,7 +740,8 @@ export class NotificationService {
       const systemFields = ['EnablePaymentConfirmation', 'EmailPaymentConfirmation', 'EnablePaymentReceipt', 'EmailPaymentReceipt',
         'EnableRefundConfirmation', 'EmailRefundConfirmation',
         'EnableCertificates', 'EmailCertificates', 'EnableSecurityAlerts', 'EmailSecurityAlerts',
-        'EnableProfileUpdates', 'EmailProfileUpdates'];
+        'EnableProfileUpdates', 'EmailProfileUpdates',
+        'EnableRiskAlerts', 'EmailRiskAlerts'];
       
       const allSubcategoryFields = [...progressFields, ...courseFields, ...assessmentFields, ...communityFields, ...systemFields];
       
@@ -847,7 +851,8 @@ export class NotificationService {
             EnableRefundConfirmation, EmailRefundConfirmation,
             EnableCertificates, EmailCertificates,
             EnableSecurityAlerts, EmailSecurityAlerts,
-            EnableProfileUpdates, EmailProfileUpdates
+            EnableProfileUpdates, EmailProfileUpdates,
+            EnableRiskAlerts, EmailRiskAlerts
           FROM NotificationPreferences
           WHERE UserId = @UserId2
         `);
@@ -894,7 +899,8 @@ export class NotificationService {
               EnableRefundConfirmation, EmailRefundConfirmation,
               EnableCertificates, EmailCertificates,
               EnableSecurityAlerts, EmailSecurityAlerts,
-              EnableProfileUpdates, EmailProfileUpdates
+              EnableProfileUpdates, EmailProfileUpdates,
+              EnableRiskAlerts, EmailRiskAlerts
             FROM NotificationPreferences
             WHERE UserId = @UserId
           `);
@@ -1248,6 +1254,8 @@ export class NotificationService {
           EmailOfficeHours: null,
           EnableAITutoring: null,
           EmailAITutoring: null,
+          EnableRiskAlerts: null,
+          EmailRiskAlerts: null,
           EnablePaymentConfirmation: null,
           EmailPaymentConfirmation: null,
           EnablePaymentReceipt: null,

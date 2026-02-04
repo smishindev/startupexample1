@@ -322,6 +322,14 @@ const SYSTEM_SUBCATEGORIES: SubcategoryControl[] = [
     canDisable: false, // Cannot disable security alerts
     description: 'Important account security notifications'
   },
+  {
+    name: 'risk-alerts',
+    label: 'At-Risk Student Alerts',
+    inAppKey: 'EnableRiskAlerts',
+    emailKey: 'EmailRiskAlerts',
+    canDisable: true,
+    description: 'Weekly alerts for students who may need intervention (Instructors only)'
+  },
 ];
 
 const NotificationSettingsPage: React.FC = () => {

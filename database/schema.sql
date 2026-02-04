@@ -623,6 +623,10 @@ CREATE TABLE dbo.NotificationPreferences (
     EnableAITutoring BIT NULL,
     EmailAITutoring BIT NULL,
     
+    -- System Alerts - At-Risk Students (Instructor notifications)
+    EnableRiskAlerts BIT NULL,
+    EmailRiskAlerts BIT NULL,
+    
     -- Email Unsubscribe Tracking
     UnsubscribedAt DATETIME2 NULL,
     UnsubscribeReason NVARCHAR(500) NULL,
@@ -662,6 +666,7 @@ CREATE NONCLUSTERED INDEX IX_LearningActivities_UserId_CreatedAt ON dbo.Learning
 CREATE NONCLUSTERED INDEX IX_LearningActivities_CourseId_ActivityType ON dbo.LearningActivities (CourseId, ActivityType);
 CREATE NONCLUSTERED INDEX IX_StudentRecommendations_UserId_IsActive ON dbo.StudentRecommendations (UserId, IsActive);
 CREATE NONCLUSTERED INDEX IX_StudentRiskAssessment_UserId_RiskLevel ON dbo.StudentRiskAssessment (UserId, RiskLevel);
+CREATE NONCLUSTERED INDEX IX_StudentRiskAssessment_RiskLevel_CourseId ON dbo.StudentRiskAssessment (RiskLevel, CourseId) WHERE RiskLevel IN ('medium', 'high', 'critical');
 CREATE NONCLUSTERED INDEX IX_PeerComparison_UserId_CourseId ON dbo.PeerComparison (UserId, CourseId);
 CREATE NONCLUSTERED INDEX IX_Bookmarks_UserId ON dbo.Bookmarks(UserId);
 CREATE NONCLUSTERED INDEX IX_Bookmarks_CourseId ON dbo.Bookmarks(CourseId);

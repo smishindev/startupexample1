@@ -2,7 +2,7 @@
 
 **Created**: December 28, 2025  
 **Last Updated**: February 4, 2026  
-**Status**: In Progress (25/31 Complete + Hybrid Controls Design)  
+**Status**: In Progress (26/31 Complete + Hybrid Controls Design)  
 **Goal**: Integrate automatic notification creation throughout the application with granular user controls
 
 ---
@@ -15,10 +15,10 @@
 | **Course Updates** | 8/7 | 7 | 114% ✅ |
 | **Community Updates** | 6/7 | 7 | 86% 🔄 |
 | **Assessment Updates** | 4/4 | 4 | 100% ✅ |
-| **System Alerts** | 4/10 | 10 | 40% 🔄 |
-| **TOTAL** | **25/31** | **31** | **81%** 📈 |
+| **System Alerts** | 5/10 | 10 | 50% 🔄 |
+| **TOTAL** | **26/31** | **31** | **84%** 📈 |
 
-**Latest Addition**: Live Session Starting Soon (Course, February 4, 2026) ⏰
+**Latest Addition**: At-Risk Student Detection (System, February 4, 2026) ⚠️
 
 ---
 
@@ -683,37 +683,43 @@ actionText: 'Work on Assignment'
 
 ---
 
-### 2.8 At-Risk Student Detection
-**File**: `server/src/services/NotificationScheduler.ts` (NEW SERVICE)  
+### 2.8 At-Risk Student Detection ✅ **IMPLEMENTED** (February 4, 2026)
+**Files**: 
+- `server/src/services/NotificationHelpers.ts` (getAtRiskStudents function)
+- `server/src/services/NotificationScheduler.ts` (cron job + trigger)
+- `server/src/routes/instructor.ts` (test endpoint)
+- `database/schema.sql` (EnableRiskAlerts, EmailRiskAlerts columns)
+- `client/src/pages/Settings/NotificationSettingsPage.tsx` (UI toggle)
+
 **Trigger**: Cron job (weekly on Monday at 10 AM UTC)
 
-**Logic:**
+**Detection Criteria:**
+- Risk level: medium, high, or critical (from StudentRiskAssessment table)
+- Inactive for 7+ days (no lesson progress) OR critical risk level
+- Only published courses with active students
+- 7-day duplicate prevention window
+
+**Implementation:**
 ```typescript
-// Detect students with no activity in 7+ days
-SELECT DISTINCT e.UserId, u.Name, c.Id as CourseId, c.Title, c.InstructorId
-FROM Enrollments e
-JOIN Users u ON e.UserId = u.Id
-JOIN Courses c ON e.CourseId = c.Id
-LEFT JOIN UserProgress up ON up.UserId = e.UserId AND up.CourseId = c.Id
-WHERE e.Status = 'active'
-  AND (up.LastAccessedAt IS NULL OR up.LastAccessedAt < DATEADD(day, -7, GETUTCDATE()))
+// Complex SQL query with JOINs on StudentRiskAssessment, Users, Courses, CourseProgress
+// Groups students by instructor+course to avoid spam
+// Sends ONE notification per instructor per course with risk breakdown
 
-// To Student
-type: 'risk'
-priority: 'high'
-title: 'We Miss You!'
-message: 'You haven\'t accessed "{courseTitle}" in 7 days. Keep up your momentum!'
-actionUrl: '/courses/{courseId}'
-actionText: 'Resume Learning'
-
-// To Instructor
-type: 'risk'
-priority: 'high'
-title: 'At-Risk Student Alert'
-message: '{studentName} inactive in "{courseTitle}" for 7+ days'
-actionUrl: '/instructor/students/{studentId}'
-actionText: 'Send Message'
+// To Instructor ONLY (students not notified)
+type: 'intervention'
+priority: 'urgent' (if critical students) | 'high' (otherwise)
+title: '⚠️ At-Risk Student Alert'
+message: '3 students need attention in "JavaScript Fundamentals" (1 critical, 2 high)'
+actionUrl: '/instructor/interventions?tab=at-risk&courseId={courseId}'
+actionText: 'Review Students'
+category: 'system'
+subcategory: 'RiskAlerts'
 ```
+
+**Testing**: 
+- 17 Playwright tests (all passed)
+- Manual test endpoint: `POST /api/instructor/test-at-risk-detection`
+- Settings UI: System Alerts → At-Risk Student Alerts
 
 ---
 
@@ -1157,7 +1163,7 @@ actionText: 'Read Message'
 
 **Cron Jobs:**
 - **Daily 9 AM UTC**: Assignment due reminders
-- **Weekly Monday 10 AM UTC**: At-risk student detection
+- **Weekly Monday 10 AM UTC**: At-risk student detection ✅
 - **Every 15 minutes**: Live session reminders
 
 **Dependencies:**
@@ -1232,11 +1238,13 @@ export async function getStudentCourses(userId: string): Promise<CourseInfo[]>
   - [ ] Create NotificationScheduler service
   - [ ] Add daily cron job for due date checks
   - [ ] Test with mock due dates
-- [ ] 2.8 At-risk student detection
-  - [ ] Add weekly cron job to NotificationScheduler
-  - [ ] Implement inactivity detection query
-  - [ ] Notify students and instructors
-  - [ ] Test with mock data
+- [x] 2.8 At-risk student detection ✅ **COMPLETED** (February 4, 2026)
+  - [x] Add weekly cron job to NotificationScheduler (Monday 10 AM UTC)
+  - [x] Implement inactivity detection query (7+ days OR critical risk)
+  - [x] Notify instructors (instructor-only, grouped by course)
+  - [x] Test with 17 Playwright tests (all passed)
+  - [x] Database: EnableRiskAlerts, EmailRiskAlerts columns
+  - [x] Frontend: Settings UI toggle in System Alerts section
 - [ ] 2.9 Course completion
   - [ ] Detect 100% progress
   - [ ] Create achievement notification

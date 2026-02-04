@@ -1,8 +1,8 @@
 # Test Selector Map - Organized for Test Automation
 
 **Purpose**: Quick reference for writing Playwright tests - organized by feature area  
-**Last Updated**: January 6, 2026  
-**Coverage**: 668 test IDs across 32 components
+**Last Updated**: February 4, 2026  
+**Coverage**: 670 test IDs across 32 components
 
 ---
 
@@ -988,6 +988,8 @@ page.click('[data-testid="comment-cancel-button"]')
 | Certificates email | `notifications-settings-system-certificates-email-switch` | Switch | Email toggle |
 | Security alerts in-app | `notifications-settings-system-security-alerts-inapp-switch` | Switch | Disabled (cannot disable) |
 | Security alerts email | `notifications-settings-system-security-alerts-email-switch` | Switch | Disabled (cannot disable) |
+| **At-Risk Student Alerts in-app** | `notifications-settings-system-risk-alerts-inapp-switch` | Switch | **In-app toggle (Instructor-only)** |
+| **At-Risk Student Alerts email** | `notifications-settings-system-risk-alerts-email-switch` | Switch | **Email toggle (Instructor-only)** |
 
 ---
 

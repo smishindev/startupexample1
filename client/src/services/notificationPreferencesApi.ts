@@ -81,24 +81,32 @@ export interface NotificationPreferences {
   EnableReplies: boolean | null;
   EnableMentions: boolean | null;
   EnableGroupInvites: boolean | null;
+  EnableGroupActivity: boolean | null;
   EnableOfficeHours: boolean | null;
+  EnableAITutoring: boolean | null;
   EmailComments: boolean | null;
   EmailReplies: boolean | null;
   EmailMentions: boolean | null;
   EmailGroupInvites: boolean | null;
+  EmailGroupActivity: boolean | null;
   EmailOfficeHours: boolean | null;
+  EmailAITutoring: boolean | null;
   
   // System Alerts subcategories
   EnablePaymentConfirmation: boolean | null;
+  EnablePaymentReceipt: boolean | null;
   EnableRefundConfirmation: boolean | null;
   EnableCertificates: boolean | null;
   EnableSecurityAlerts: boolean | null;
   EnableProfileUpdates: boolean | null;
+  EnableRiskAlerts: boolean | null;
   EmailPaymentConfirmation: boolean | null;
+  EmailPaymentReceipt: boolean | null;
   EmailRefundConfirmation: boolean | null;
   EmailCertificates: boolean | null;
   EmailSecurityAlerts: boolean | null;
   EmailProfileUpdates: boolean | null;
+  EmailRiskAlerts: boolean | null;
 }
 
 const notificationPreferencesApi = {

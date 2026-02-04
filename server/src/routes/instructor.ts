@@ -3,6 +3,7 @@ import { authenticateToken, authorize, AuthRequest } from '../middleware/auth';
 import { DatabaseService } from '../services/DatabaseService';
 import { SettingsService } from '../services/SettingsService';
 import { NotificationService } from '../services/NotificationService';
+import { triggerAtRiskDetection } from '../services/NotificationScheduler';
 import { v4 as uuidv4 } from 'uuid';
 
 const router = express.Router();
@@ -770,5 +771,29 @@ router.get('/pending-assessments', authenticateToken, authorize(['instructor', '
     res.json({ assessments: [] });
   }
 });
+
+// Manual trigger for at-risk student detection (testing only)
+router.post(
+  '/test-at-risk-detection',
+  authenticateToken,
+  authorize(['instructor', 'admin']),
+  async (req: AuthRequest, res) => {
+    try {
+      const result = await triggerAtRiskDetection();
+
+      res.json({
+        success: true,
+        message: 'At-risk detection triggered successfully',
+        data: result
+      });
+    } catch (error) {
+      console.error('Failed to trigger at-risk detection:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to trigger at-risk detection'
+      });
+    }
+  }
+);
 
 export default router;

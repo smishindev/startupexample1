@@ -1,7 +1,7 @@
 import cron from 'node-cron';
 import { Server } from 'socket.io';
 import { NotificationService } from './NotificationService';
-import { getUpcomingAssessmentsDue, getWeeklyActivitySummaries, getUpcomingLiveSessions } from './NotificationHelpers';
+import { getUpcomingAssessmentsDue, getWeeklyActivitySummaries, getUpcomingLiveSessions, getAtRiskStudents } from './NotificationHelpers';
 import { logger } from '../utils/logger';
 import { format } from 'date-fns';
 
@@ -45,10 +45,17 @@ export function initializeScheduler(socketIoInstance: Server): void {
     await sendLiveSessionReminders();
   });
 
+  // Schedule: Weekly on Monday at 10 AM UTC - At-Risk Student Detection
+  cron.schedule('0 10 * * 1', async () => {
+    logger.info('⏰ Running scheduled job: At-Risk Student Detection');
+    await detectAndNotifyAtRiskStudents();
+  });
+
   logger.info('✅ NotificationScheduler started successfully');
   logger.info('   - Assessment Due Reminders: Daily at 9:00 AM UTC');
   logger.info('   - Weekly Progress Summary: Monday at 8:00 AM UTC');
   logger.info('   - Live Session Reminders: Every 15 minutes');
+  logger.info('   - At-Risk Student Alerts: Monday at 10:00 AM UTC');
 }
 
 /**
@@ -358,5 +365,155 @@ export async function triggerLiveSessionReminders(): Promise<{
       sessions: 0,
       message: error instanceof Error ? error.message : 'Unknown error'
     };
+  }
+}
+
+/**
+ * Detect at-risk students and notify instructors
+ * Runs weekly on Monday at 10:00 AM UTC
+ */
+async function detectAndNotifyAtRiskStudents(): Promise<void> {
+  try {
+    if (!io) {
+      logger.error('Socket.io not initialized in NotificationScheduler');
+      return;
+    }
+
+    const atRiskStudents = await getAtRiskStudents();
+    
+    if (atRiskStudents.length === 0) {
+      // Silent success - no at-risk students this week
+      return;
+    }
+
+    logger.info(`📊 Found ${atRiskStudents.length} at-risk student(s) across courses`);
+
+    // Group students by instructor and course
+    const instructorCourseMap = new Map<string, Map<string, typeof atRiskStudents>>();
+    
+    for (const student of atRiskStudents) {
+      if (!instructorCourseMap.has(student.instructorId)) {
+        instructorCourseMap.set(student.instructorId, new Map());
+      }
+      const courseMap = instructorCourseMap.get(student.instructorId)!;
+      
+      if (!courseMap.has(student.courseId)) {
+        courseMap.set(student.courseId, []);
+      }
+      courseMap.get(student.courseId)!.push(student);
+    }
+
+    const notificationService = new NotificationService(io);
+    let successCount = 0;
+    let errorCount = 0;
+
+    // Send one notification per instructor per course
+    for (const [instructorId, courseMap] of instructorCourseMap) {
+      for (const [courseId, students] of courseMap) {
+        try {
+          const courseTitle = students[0].courseTitle;
+          const studentCount = students.length;
+          
+          // Build risk breakdown message
+          const criticalCount = students.filter(s => s.riskLevel === 'critical').length;
+          const highCount = students.filter(s => s.riskLevel === 'high').length;
+          const mediumCount = students.filter(s => s.riskLevel === 'medium').length;
+          
+          let riskBreakdown = '';
+          if (criticalCount > 0) riskBreakdown += `${criticalCount} critical, `;
+          if (highCount > 0) riskBreakdown += `${highCount} high, `;
+          if (mediumCount > 0) riskBreakdown += `${mediumCount} medium`;
+          riskBreakdown = riskBreakdown.replace(/, $/, '');
+
+          await notificationService.createNotificationWithControls(
+            {
+              userId: instructorId,
+              type: 'intervention',
+              priority: criticalCount > 0 ? 'urgent' : 'high',
+              title: '⚠️ At-Risk Student Alert',
+              message: `${studentCount} student${studentCount > 1 ? 's' : ''} need${studentCount === 1 ? 's' : ''} attention in "${courseTitle}" (${riskBreakdown})`,
+              actionUrl: `/instructor/interventions?tab=at-risk&courseId=${courseId}`,
+              actionText: 'Review Students',
+              relatedEntityId: courseId,
+              relatedEntityType: 'course',
+              data: JSON.stringify({ 
+                studentCount,
+                criticalCount,
+                highCount,
+                mediumCount,
+                students: students.map(s => ({
+                  id: s.studentId,
+                  name: s.studentName,
+                  riskLevel: s.riskLevel,
+                  daysSinceLastActivity: s.daysSinceLastActivity
+                }))
+              })
+            },
+            {
+              category: 'system',
+              subcategory: 'RiskAlerts'
+            }
+          );
+
+          successCount++;
+        } catch (error) {
+          console.error(`❌ Failed to notify instructor ${instructorId} about course ${courseId}:`, error);
+          errorCount++;
+        }
+      }
+    }
+
+    logger.info(`✅ At-risk detection complete: ${successCount} notification(s) sent, ${errorCount} error(s)`);
+    
+  } catch (error) {
+    logger.error('❌ At-risk student detection failed:', error);
+  }
+}
+
+/**
+ * Manual trigger for testing at-risk detection
+ * Called from API endpoint
+ */
+export async function triggerAtRiskDetection(): Promise<{
+  success: boolean;
+  studentCount: number;
+  instructorCount: number;
+  courses: string[];
+}> {
+  try {
+    if (!io) {
+      return {
+        success: false,
+        studentCount: 0,
+        instructorCount: 0,
+        courses: []
+      };
+    }
+
+    const atRiskStudents = await getAtRiskStudents();
+    
+    if (atRiskStudents.length === 0) {
+      return {
+        success: true,
+        studentCount: 0,
+        instructorCount: 0,
+        courses: []
+      };
+    }
+
+    await detectAndNotifyAtRiskStudents();
+
+    const uniqueInstructors = new Set(atRiskStudents.map(s => s.instructorId));
+    const uniqueCourses = [...new Set(atRiskStudents.map(s => s.courseTitle))];
+
+    return {
+      success: true,
+      studentCount: atRiskStudents.length,
+      instructorCount: uniqueInstructors.size,
+      courses: uniqueCourses
+    };
+  } catch (error) {
+    logger.error('Manual at-risk detection trigger failed:', error);
+    throw error;
   }
 }

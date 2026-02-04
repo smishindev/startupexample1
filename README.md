@@ -43,12 +43,13 @@ An innovative EdTech startup providing personalized learning experiences through
 - **Auto-Updating Timestamps** - Relative time displays ("X minutes ago") automatically update every 60 seconds across 6 components without page refresh (Jan 12, 2026) ✅
 - **Email Verification** - Secure account verification with Gmail SMTP, 6-digit codes, beautiful UI, resend with cooldown, profile badge integration ✅
 - **Email Notification System** - Complete email delivery with realtime, daily, and weekly digest options, tracking, analytics, and one-click unsubscribe (Phases 1-3 Complete - 100%) ✅
-  - **Active Triggers**: 25/31 implemented (81%) - lesson completion, live sessions x5, course management, assessments, payments, office hours, study groups, comments, AI tutoring
+  - **Active Triggers**: 26/31 implemented (84%) - lesson completion, live sessions x5, course management, assessments, payments, office hours, study groups, comments, AI tutoring, at-risk detection
   - **Delivery Options**: Realtime, daily digest (8 AM), weekly digest (Monday 8 AM)
   - **Email Tracking**: Open/click tracking and analytics
   - **User Control**: Customizable preferences with quiet hours and one-click unsubscribe
   - **Smart Course Dropdown**: Tutoring sessions now show user's enrolled courses for context-aware AI responses (Feb 3, 2026) ✅
 - **Assessment Due Date Reminders** - Automated cron scheduler sends notifications to students for assessments due in 2 days, daily at 9 AM UTC (January 20, 2026) ⏰
+- **At-Risk Student Detection** - Weekly cron job (Monday 10 AM UTC) identifies at-risk students (7+ days inactive OR critical risk level) and notifies instructors with grouped alerts, risk breakdown, and duplicate prevention (February 4, 2026) ⚠️
 - **Notifications Center** - Full-page notification management with **centralized Zustand store architecture**, real-time updates, pagination, filtering (type/priority), cross-tab synchronization, optimistic UI updates, and toast notifications (REFACTORED Jan 14, 2026) ✅
   - **Architecture**: Single socket listener in App.tsx → Zustand store → Components
   - **Features**: Optimistic updates, idempotent actions, priority-based toast (urgent/high: 5s, normal/low: 3s)

@@ -1,12 +1,114 @@
 # Mishin Learn Platform - Project Status & Memory
 
-**Last Updated**: February 4, 2026 - Live Session Starting Soon Notification ⏰  
+**Last Updated**: February 4, 2026 - At-Risk Student Detection ⚠️  
 **Developer**: Sergey Mishin (s.mishin.dev@gmail.com)  
 **AI Assistant Context**: This file serves as project memory for continuity across chat sessions
 
 ---
 
-## 🚀 MAJOR FEATURE - February 4, 2026
+## 🚀 MAJOR FEATURES - February 4, 2026
+
+### ⚠️ AT-RISK STUDENT DETECTION (Latest)
+
+**Feature**: Automated weekly cron job to detect and notify instructors about at-risk students needing intervention
+
+**Implementation Time**: ~4 hours (Feb 4)  
+**Status**: ✅ **PRODUCTION READY** - Fully implemented with 17 passing Playwright tests
+
+#### **What Was Built:**
+
+**1. Database Schema Updates** ✅
+- **File**: `database/schema.sql`
+- **Changes**:
+  - Added `EnableRiskAlerts BIT NULL` column
+  - Added `EmailRiskAlerts BIT NULL` column
+  - Added performance index: `IX_StudentRiskAssessment_RiskLevel_CourseId`
+
+**2. Detection Query Function** ✅
+- **File**: `server/src/services/NotificationHelpers.ts` (~120 lines added)
+- **Function**: `getAtRiskStudents()`
+- **Features**:
+  - Complex SQL with JOINs on StudentRiskAssessment, Users, Courses, CourseProgress, Enrollments
+  - Detection criteria: Risk level (medium/high/critical) + 7+ days inactive OR critical risk
+  - Duplicate prevention: NOT EXISTS subquery checks last 7 days
+  - Returns: studentId, name, courseId, title, instructorId, riskLevel, daysSinceLastActivity, etc.
+
+**3. Weekly Cron Job Scheduler** ✅
+- **File**: `server/src/services/NotificationScheduler.ts` (~100 lines added)
+- **Schedule**: Weekly on Monday at 10:00 AM UTC (`'0 10 * * 1'`)
+- **Functions**:
+  - `detectAndNotifyAtRiskStudents()` - Main notification sender
+  - `triggerAtRiskDetection()` - Manual test trigger
+- **Features**:
+  - Groups students by instructor+course (ONE notification per instructor per course)
+  - Risk breakdown: counts critical/high/medium students
+  - Priority: urgent (if critical students exist), else high
+  - Non-blocking error handling
+  - 7-day duplicate prevention window
+
+**4. Manual Test API Endpoint** ✅
+- **File**: `server/src/routes/instructor.ts` (~25 lines added)
+- **Endpoint**: `POST /api/instructor/test-at-risk-detection`
+- **Access**: Instructor and Admin roles only
+- **Response**: Returns studentCount, instructorCount, courses array
+
+**5. NotificationService Updates** ✅
+- **File**: `server/src/services/NotificationService.ts`
+- **Changes**: Added EnableRiskAlerts/EmailRiskAlerts to interface, queries, defaults
+- **Logic**: NULL inheritance from EnableSystemAlerts category
+
+**6. Frontend Settings UI** ✅
+- **File**: `client/src/pages/Settings/NotificationSettingsPage.tsx`
+- **Location**: System Alerts section (after Security Alerts)
+- **Controls**: Independent in-app and email toggles
+- **Description**: "Weekly alerts for students who may need intervention (Instructors only)"
+- **Test IDs**: `notifications-settings-system-risk-alerts-{inapp|email}-switch`
+
+**7. TypeScript Interface** ✅
+- **File**: `client/src/services/notificationPreferencesApi.ts`
+- **Added**: EnableRiskAlerts, EmailRiskAlerts properties
+
+**8. Comprehensive Testing** ✅
+- **File**: `tests/test_at_risk_student_alerts.py` (625 lines, 17 tests)
+- **Coverage**: UI rendering, toggle functionality, persistence, inheritance, API integration, edge cases
+- **Result**: All 17 tests passed (9 min 19 sec)
+- **Documentation**: `tests/RUN_AT_RISK_ALERTS_TESTS.md`
+
+#### **Notification Details:**
+
+**Message Format** (Instructor-Only):
+```typescript
+Type: 'intervention'
+Priority: 'urgent' (if critical) | 'high' (otherwise)
+Title: '⚠️ At-Risk Student Alert'
+Message: '3 students need attention in "JavaScript Fundamentals" (1 critical, 2 high)'
+ActionUrl: '/instructor/interventions?tab=at-risk&courseId={courseId}'
+ActionText: 'Review Students'
+Category: 'system'
+Subcategory: 'RiskAlerts'
+```
+
+**Email Integration:**
+- Subject: "⚠️ System Alert"
+- Respects EmailRiskAlerts preference
+- Respects digest settings (realtime/daily/weekly)
+- Respects quiet hours (queued if within quiet hours)
+
+**User Experience:**
+1. System detects at-risk students every Monday 10 AM UTC
+2. Instructor receives ONE notification per course with multiple at-risk students
+3. Notification shows risk breakdown (e.g., "1 critical, 2 high")
+4. Click "Review Students" → Navigate to intervention dashboard
+5. Instructor can reach out to students proactively
+
+**Key Features:**
+- **Instructor-Only**: Students do NOT receive these notifications
+- **Grouped Notifications**: One per instructor per course (prevents spam)
+- **Duplicate Prevention**: 7-day window (won't spam weekly if already notified)
+- **Risk Prioritization**: Urgent for critical students, high for medium/high
+- **Comprehensive Data**: Includes student names, risk levels, inactivity days
+
+---
 
 ### ⏰ LIVE SESSION STARTING SOON NOTIFICATION
 

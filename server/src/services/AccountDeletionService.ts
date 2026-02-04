@@ -386,25 +386,63 @@ export class AccountDeletionService {
   }
 
   /**
-   * Notify admins of account deletion (optional)
+   * Notify admins of account deletion with both in-app and email notifications
    */
-  async notifyAdmin(userId: string, userEmail: string, userName: string, role: string): Promise<void> {
+  async notifyAdmin(
+    userId: string, 
+    userEmail: string, 
+    userName: string, 
+    role: string,
+    instructorStats?: InstructorContent | null,
+    deletionMethod?: string
+  ): Promise<void> {
     try {
-      // Get all admin users
+      // Get all admin users with their email preferences
       const request = await this.db.getRequest();
       const adminResult = await request.query(`
-        SELECT Id FROM dbo.Users WHERE Role = 'admin' AND IsActive = 1
+        SELECT 
+          u.Id, 
+          u.Email, 
+          u.FirstName,
+          -- Email enabled if: global emails ON AND (SecurityAlerts not explicitly disabled)
+          CASE 
+            WHEN np.EnableEmailNotifications = 0 THEN 0
+            WHEN np.EnableSystemAlerts = 0 THEN 0
+            WHEN np.EmailSecurityAlerts = 0 THEN 0
+            ELSE 1
+          END AS EmailEnabled
+        FROM dbo.Users u
+        LEFT JOIN dbo.NotificationPreferences np ON u.Id = np.UserId
+        WHERE u.Role = 'admin' AND u.IsActive = 1
       `);
+
+      const deletionTimestamp = new Date().toLocaleString('en-US', { 
+        timeZone: 'UTC',
+        dateStyle: 'medium',
+        timeStyle: 'short'
+      });
+
+      // Build detailed message
+      let detailedMessage = `User ${userName} (${userEmail}) deleted their ${role} account at ${deletionTimestamp} UTC.`;
+      
+      if (instructorStats && instructorStats.totalCourses > 0) {
+        detailedMessage += ` Instructor had ${instructorStats.totalCourses} course${instructorStats.totalCourses > 1 ? 's' : ''}`;
+        detailedMessage += ` (${instructorStats.publishedCourses} published, ${instructorStats.totalStudents} active students).`;
+        if (deletionMethod) {
+          detailedMessage += ` Action: ${deletionMethod.replace(/_/g, ' ')}.`;
+        }
+      }
 
       // Create notification for each admin
       for (const admin of adminResult.recordset) {
+        // Send in-app notification
         await this.notificationService.createNotificationWithControls(
           {
             userId: admin.Id,
             type: 'intervention',
-            priority: 'normal',
-            title: 'Account Deletion',
-            message: `User ${userName} (${userEmail}) deleted their ${role} account.`,
+            priority: 'urgent',
+            title: '🚨 Account Deletion',
+            message: detailedMessage,
             actionUrl: '/admin/users',
             actionText: 'View Users'
           },
@@ -413,8 +451,97 @@ export class AccountDeletionService {
             subcategory: 'SecurityAlerts'
           }
         );
+
+        // Send email notification if enabled
+        if (admin.EmailEnabled) {
+          try {
+            await EmailService.sendEmail({
+              to: admin.Email,
+              subject: '🚨 System Alert - Account Deletion',
+              html: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                  <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+                    <h1 style="color: white; margin: 0; font-size: 28px;">🚨 Account Deletion Alert</h1>
+                  </div>
+                  
+                  <div style="background-color: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
+                    <div style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin-bottom: 20px;">
+                      <p style="margin: 0; color: #856404; font-weight: bold;">⚠️ User Account Deleted</p>
+                    </div>
+
+                    <p style="font-size: 16px; color: #333; line-height: 1.6;">Hi ${admin.FirstName},</p>
+                    
+                    <p style="font-size: 16px; color: #333; line-height: 1.6;">
+                      A user account has been permanently deleted from the Mishin Learn platform:
+                    </p>
+
+                    <div style="background-color: white; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #e0e0e0;">
+                      <table style="width: 100%; border-collapse: collapse;">
+                        <tr>
+                          <td style="padding: 8px 0; color: #666; font-weight: bold;">User:</td>
+                          <td style="padding: 8px 0; color: #333;">${userName}</td>
+                        </tr>
+                        <tr>
+                          <td style="padding: 8px 0; color: #666; font-weight: bold;">Email:</td>
+                          <td style="padding: 8px 0; color: #333;">${userEmail}</td>
+                        </tr>
+                        <tr>
+                          <td style="padding: 8px 0; color: #666; font-weight: bold;">Role:</td>
+                          <td style="padding: 8px 0; color: #333; text-transform: capitalize;">${role}</td>
+                        </tr>
+                        <tr>
+                          <td style="padding: 8px 0; color: #666; font-weight: bold;">Time:</td>
+                          <td style="padding: 8px 0; color: #333;">${deletionTimestamp} UTC</td>
+                        </tr>
+                        ${instructorStats && instructorStats.totalCourses > 0 ? `
+                        <tr>
+                          <td style="padding: 8px 0; color: #666; font-weight: bold;">Courses:</td>
+                          <td style="padding: 8px 0; color: #333;">${instructorStats.totalCourses} total (${instructorStats.publishedCourses} published)</td>
+                        </tr>
+                        <tr>
+                          <td style="padding: 8px 0; color: #666; font-weight: bold;">Students:</td>
+                          <td style="padding: 8px 0; color: #333;">${instructorStats.totalStudents} active</td>
+                        </tr>
+                        ${deletionMethod ? `
+                        <tr>
+                          <td style="padding: 8px 0; color: #666; font-weight: bold;">Action:</td>
+                          <td style="padding: 8px 0; color: #333; text-transform: capitalize;">${deletionMethod.replace(/_/g, ' ')}</td>
+                        </tr>
+                        ` : ''}
+                        ` : ''}
+                      </table>
+                    </div>
+
+                    <div style="text-align: center; margin: 30px 0;">
+                      <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/admin/users" 
+                         style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                                color: white; 
+                                padding: 12px 30px; 
+                                text-decoration: none; 
+                                border-radius: 5px; 
+                                display: inline-block; 
+                                font-weight: bold;">
+                        View Admin Dashboard
+                      </a>
+                    </div>
+
+                    <p style="font-size: 14px; color: #666; line-height: 1.6; margin-top: 30px;">
+                      This is an automated security alert. For compliance purposes, deletion details have been logged in the AccountDeletionLog table.
+                    </p>
+                    
+                    <p style="font-size: 14px; color: #666;">Best regards,<br>Mishin Learn Platform</p>
+                  </div>
+                </div>
+              `
+            });
+            console.log(`✅ Email sent to admin: ${admin.Email}`);
+          } catch (emailError) {
+            console.error(`❌ Failed to send email to admin ${admin.Email}:`, emailError);
+            // Continue with other admins even if one email fails
+          }
+        }
       }
-      console.log('✅ Admin notifications sent');
+      console.log(`✅ Admin notifications sent to ${adminResult.recordset.length} admin(s)`);
     } catch (error) {
       console.error('❌ Failed to notify admins:', error);
       // Don't fail the deletion if notification fails
@@ -531,7 +658,7 @@ export class AccountDeletionService {
       
       await this.logDeletion(userId, userEmail, userRole, content, deletionMethod, reason);
       await this.sendConfirmationEmail(userEmail, firstName);
-      await this.notifyAdmin(userId, userEmail, userName, userRole);
+      await this.notifyAdmin(userId, userEmail, userName, userRole, content, deletionMethod);
 
       return {
         success: true,

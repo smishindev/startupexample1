@@ -4,7 +4,7 @@
 
 An innovative EdTech startup providing personalized learning experiences through AI tutoring, adaptive content delivery, and comprehensive progress analytics.
 
-**Last Major Update**: February 4, 2026 - Live Session Starting Soon Notification ⏰
+**Last Major Update**: February 4, 2026 - Account Deletion CASCADE DELETE Fixes 🗑️
 
 ## 🚀 Features
 
@@ -43,7 +43,7 @@ An innovative EdTech startup providing personalized learning experiences through
 - **Auto-Updating Timestamps** - Relative time displays ("X minutes ago") automatically update every 60 seconds across 6 components without page refresh (Jan 12, 2026) ✅
 - **Email Verification** - Secure account verification with Gmail SMTP, 6-digit codes, beautiful UI, resend with cooldown, profile badge integration ✅
 - **Email Notification System** - Complete email delivery with realtime, daily, and weekly digest options, tracking, analytics, and one-click unsubscribe (Phases 1-3 Complete - 100%) ✅
-  - **Active Triggers**: 28/31 implemented (90.3%) - lesson completion, course completion with certificates, live sessions x6, course management, assessments, payments, office hours queue + completion, study groups, comments, AI tutoring, at-risk detection, weekly progress, due date reminders
+  - **Active Triggers**: 29/31 implemented (93.5%) - lesson completion, course completion with certificates, live sessions x6, course management, assessments, payments, office hours queue + completion, study groups, comments, AI tutoring, at-risk detection, weekly progress, due date reminders, account deletion alerts to admins
   - **Delivery Options**: Realtime, daily digest (8 AM), weekly digest (Monday 8 AM)
   - **Email Tracking**: Open/click tracking and analytics
   - **User Control**: Customizable preferences with quiet hours and one-click unsubscribe
@@ -68,11 +68,13 @@ An innovative EdTech startup providing personalized learning experiences through
   - Privacy controls fully functional and enforced system-wide
   - Appearance settings (theme/language/fontSize) stored but UI application pending
   - **Account Deletion**: Instructor-specific flow with 3 course management options
-- **Account Deletion** - Production-ready account deletion system with instructor course management (Jan 18-19, 2026) ✅
+- **Account Deletion** - Production-ready account deletion system with instructor course management and automatic CASCADE DELETE (Jan 18-19, 2026, CASCADE fixes Feb 4, 2026) ✅
   - **Archive All Courses**: Students maintain access, instructor can restore later
   - **Transfer All Courses**: Select new instructor for seamless course continuity
   - **Force Delete All Courses**: Orphan courses, students lose access
   - Password confirmation required, transaction-safe, comprehensive audit logging
+  - **CASCADE DELETE**: Automatic cleanup of 25+ related tables (Transactions→Invoices, CourseProgress, EmailTrackingEvents, etc.)
+  - **GDPR Compliant**: All user personal data automatically deleted
   - Instructors see teaching + enrolled courses via UNION ALL query
   - Orphaned courses filtered from public catalog (INNER JOIN Users)
 - **Transactions History** - Complete payment history with refund requests (DATABASE SETUP COMPLETE) ✅

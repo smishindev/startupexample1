@@ -15,10 +15,10 @@
 | **Course Updates** | 8/7 | 7 | 114% ✅ |
 | **Community Updates** | 6/7 | 7 | 86% 🔄 |
 | **Assessment Updates** | 4/4 | 4 | 100% ✅ |
-| **System Alerts** | 5/10 | 10 | 50% 🔄 |
-| **TOTAL** | **26/31** | **31** | **84%** 📈 |
+| **System Alerts** | 8/10 | 10 | 80% 🔄 |
+| **TOTAL** | **29/31** | **31** | **94%** 📈 |
 
-**Latest Addition**: At-Risk Student Detection (System, February 4, 2026) ⚠️
+**Latest Addition**: Account Deletion Request - Email & In-App Notifications (System, February 4, 2026) 🚨
 
 ---
 
@@ -156,14 +156,14 @@ Users receive email notifications (based on their preferences) when these events
 ## 📋 EXECUTIVE SUMMARY
 
 **Current State:**
-- ✅ Twenty-four notification triggers implemented (Lesson, Video, Live Sessions x4, Course Management x3, Assessments x4, Course Completion, Payment x2, Password Changed, Office Hours, Study Groups x3, New Comments, AI Tutoring)
+- ✅ Twenty-nine notification triggers implemented (Lesson, Video, Live Sessions x4, Course Management x3, Assessments x4, Course Completion, Payment x2, Password Changed, Office Hours, Study Groups x3, New Comments, AI Tutoring, At-Risk Detection, Live Session Reminders, Account Deletion)
 - ✅ **Automated Testing**: Comprehensive Playwright test suite for comment notifications (11 tests, 100% coverage)
-- ❌ 7 additional notification triggers NOT implemented
+- ❌ 2 additional notification triggers NOT implemented
 
 **What's Missing:**
-Event hooks for instructor announcements, reply to comment (already exists but needs verification), study group messages, and additional system alerts
+Direct message notifications (2 triggers)
 
-**Estimated Effort:** 6-8 hours remaining for final triggers
+**Estimated Effort:** 2-3 hours remaining for final triggers
 ---
 
 ## 🎯 IMPLEMENTATION PHASES
@@ -188,7 +188,7 @@ Event hooks for instructor announcements, reply to comment (already exists but n
 - Infrastructure: 5 scheduled jobs
 
 **Implementation Status:**
-- ✅ **Implemented & Working**: 28 triggers (90.3% complete)
+- ✅ **Implemented & Working**: 29 triggers (93.5% complete)
   - Lesson Completion (Student + Instructor notifications) - December 29, 2025
   - Video Completion (Student notification) - January 8, 2026
   - Live Session Created (Student notifications) - Pre-existing
@@ -216,7 +216,8 @@ Event hooks for instructor announcements, reply to comment (already exists but n
   - AI Tutoring Response (Student notification) - February 3, 2026
   - Live Session Starting Soon (Cron job - every 15 min) - February 4, 2026
   - At-Risk Student Detection (Cron job - Monday 10 AM UTC) - February 4, 2026
-- ⏳ **Pending**: 3 triggers
+  - **Account Deletion** (Admin in-app + email notifications) - February 4, 2026 🚨
+- ⏳ **Pending**: 2 triggers (Direct Messages)
 
 ---
 
@@ -826,21 +827,98 @@ try {
 ---
 
 ### 2.11 Account Deletion Request
-**File**: `server/src/routes/settings.ts`  
-**Endpoint**: `POST /api/settings/delete-account` (Line ~123)
+**File**: `server/src/services/AccountDeletionService.ts`  
+**Method**: `notifyAdmin()` (Line ~388)
+**Endpoint**: `POST /api/settings/delete-account`
+
+**Status**: ✅ **FULLY IMPLEMENTED** - February 4, 2026
 
 **Triggers:**
-- ✅ **Admin**: Account deletion request
+- ✅ **Admin (In-App)**: Account deletion urgent notification
+- ✅ **Admin (Email)**: Detailed email with user info and deletion context
 
 **Notification Details:**
 ```typescript
-type: 'course'
+// In-App Notification
+type: 'intervention'
 priority: 'urgent'
-title: 'Account Deletion Request'
-message: '{userName} ({email}) requested account deletion'
+title: '🚨 Account Deletion'
+message: 'User {userName} ({email}) deleted their {role} account at {timestamp} UTC. [Instructor stats if applicable]'
 actionUrl: '/admin/users'
-actionText: 'Review Request'
+actionText: 'View Users'
+category: 'system'
+subcategory: 'SecurityAlerts'
+
+// Email Notification
+subject: '🚨 System Alert - Account Deletion'
+to: All active admin users with EmailSecurityAlerts enabled
+style: Purple gradient header (intervention type)
+contents:
+  - User details (name, email, role)
+  - Deletion timestamp (UTC)
+  - Instructor stats (courses, students) if applicable
+  - Deletion method (direct/archive/transfer/force)
+  - Action button: 'View Admin Dashboard'
+  - Compliance note about audit logging
 ```
+
+**Implementation Features:**
+- Respects admin's `EmailSecurityAlerts` preference (inherits from `EnableSystemAlerts`)
+- Sends detailed HTML email with professional styling
+- Includes instructor statistics when applicable
+- Shows course action taken (archive/transfer/delete)
+- Non-blocking error handling
+- Audit trail logged in AccountDeletionLog table
+- **Test Script**: `scripts/test-account-deletion-notification.js`
+
+**Implementation:**
+```typescript
+// Enhanced notifyAdmin method
+async notifyAdmin(
+  userId: string, 
+  userEmail: string, 
+  userName: string, 
+  role: string,
+  instructorStats?: InstructorContent | null,
+  deletionMethod?: string
+): Promise<void> {
+  // Query admins with email preferences
+  const adminResult = await request.query(`
+    SELECT 
+      u.Id, u.Email, u.FirstName,
+      COALESCE(np.EmailSecurityAlerts, np.EnableSystemAlerts, 1) AS EmailEnabled
+    FROM dbo.Users u
+    LEFT JOIN dbo.NotificationPreferences np ON u.Id = np.UserId
+    WHERE u.Role = 'admin' AND u.IsActive = 1
+  `);
+
+  // Build detailed message with instructor stats
+  let detailedMessage = `User ${userName} (${userEmail}) deleted their ${role} account at ${timestamp} UTC.`;
+  if (instructorStats?.totalCourses > 0) {
+    detailedMessage += ` Instructor had ${instructorStats.totalCourses} courses...`;
+  }
+
+  // Send in-app notification to all admins
+  for (const admin of adminResult.recordset) {
+    await notificationService.createNotificationWithControls(
+      { type: 'intervention', priority: 'urgent', ... },
+      { category: 'system', subcategory: 'SecurityAlerts' }
+    );
+
+    // Send email if enabled
+    if (admin.EmailEnabled) {
+      await EmailService.sendEmail({
+        subject: '🚨 System Alert - Account Deletion',
+        html: /* Professional HTML template with user details */
+      });
+    }
+  }
+}
+```
+
+**Error Handling**: Email failures are caught and logged without blocking deletion.
+
+**Frontend Settings**: SecurityAlerts description updated to "Password changes, account deletions, suspicious activity"
 
 ---
 

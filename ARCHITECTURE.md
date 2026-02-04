@@ -1,6 +1,6 @@
 # Mishin Learn Platform - System Architecture
 
-**Last Updated**: February 3, 2026 - AI Tutoring Smart Course Dropdown + Notifications ✅  
+**Last Updated**: February 4, 2026 - Account Deletion CASCADE DELETE Fixes ✅  
 **Purpose**: Understanding system components, data flows, and dependencies
 
 ---
@@ -80,7 +80,7 @@ POST   /api/settings/export-data       - Request data export (TODO)
 DELETE /api/account-deletion/delete    - Delete account with course management (Jan 19, 2026)
 ```
 
-**Account Deletion Flow (Added Jan 18-19, 2026):**
+**Account Deletion Flow (Updated Feb 4, 2026):**
 ```
 Settings Page → Privacy & Security → Delete Account Button
   ↓
@@ -101,13 +101,22 @@ Backend AccountDeletionService:
   │   └─ Course deletion warning to students
   ├─ Soft-delete user (Status='deleted')
   ├─ Log in AccountDeletionLog
-  └─ Commit transaction or rollback on error
+  ├─ Commit transaction or rollback on error
+  └─ CASCADE DELETE automatically cleans up:
+      ├─ Transactions → Invoices (CASCADE)
+      ├─ CourseProgress (CASCADE)
+      ├─ EmailTrackingEvents (CASCADE)
+      ├─ EmailUnsubscribeTokens (CASCADE)
+      ├─ UserProgress, Enrollments, Notifications (CASCADE)
+      ├─ NotificationPreferences, UserSettings (CASCADE)
+      ├─ UserPresence (CASCADE)
+      └─ 15+ other tables (automatic cleanup)
   ↓
 Frontend: Logout, navigate to login, show success message
 
 Note: Account deletion emails are security-critical and always sent,
-regardless of user notification preferences.
-```
+regardless of user notification preferences. All user data is automatically
+deleted via CASCADE DELETE for GDPR compliance (Feb 4, 2026 fixes).
 
 ### Comments & Discussion (added Jan 25, updated Jan 29, 2026)
 ```

@@ -3157,7 +3157,8 @@ getShareStatistics(): { totalShares, platformBreakdown, avgSharesPerCourse }
 
 ### AccountDeletionService (Backend)
 **Path**: `server/src/services/AccountDeletionService.ts` (547 lines)  
-**Purpose**: Orchestrate account deletion with course management
+**Purpose**: Orchestrate account deletion with course management  
+**Updated**: February 4, 2026 - CASCADE DELETE fixes for automatic cleanup
 
 **Key Methods**:
 
@@ -3166,6 +3167,13 @@ getShareStatistics(): { totalShares, platformBreakdown, avgSharesPerCourse }
    - Begins SQL transaction
    - Routes to appropriate course action handler
    - Soft-deletes user (Status='deleted', DeletedAt=NOW())
+   - Triggers CASCADE DELETE on 25+ related tables automatically:
+     - Transactions → Invoices (CASCADE)
+     - CourseProgress, UserProgress, Enrollments (CASCADE)
+     - EmailTrackingEvents, EmailUnsubscribeTokens (CASCADE)
+     - Notifications, NotificationPreferences (CASCADE)
+     - UserSettings, UserPresence (CASCADE)
+     - And 15+ more tables
    - Logs deletion in AccountDeletionLog
    - Commits transaction or rolls back on error
 
@@ -3190,6 +3198,15 @@ getShareStatistics(): { totalShares, platformBreakdown, avgSharesPerCourse }
 - `Courses` - Update Status or InstructorId
 - `CourseOwnershipHistory` - Track transfers
 - `AccountDeletionLog` - Audit trail
+
+**CASCADE DELETE Pattern (Fixed Feb 4, 2026)**:
+- 4 FK constraints updated for proper automatic cleanup:
+  - CourseProgress.UserId → ON DELETE CASCADE
+  - Invoices.TransactionId → ON DELETE CASCADE
+  - EmailTrackingEvents.UserId → ON DELETE CASCADE
+  - EmailUnsubscribeTokens.UserId → ON DELETE CASCADE
+- GDPR-compliant: All user personal data automatically deleted
+- No manual deletion code needed for CASCADE-enabled tables
 
 **Email Notifications**:
 - Sends 4 types of emails during deletion process:

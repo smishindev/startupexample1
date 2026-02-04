@@ -1,6 +1,31 @@
 # 🚀 Quick Reference - Development Workflow
 
-**Last Updated**: February 4, 2026 - Live Session Starting Soon Notification ⏰
+**Last Updated**: February 4, 2026 - Account Deletion CASCADE DELETE Fixes 🗑️
+
+---
+
+## 📧 Account Deletion Admin Notification (New - Feb 4, 2026)
+
+**When user deletes account → Admins receive notification**
+
+**In-App Notification:**
+```typescript
+Type: 'intervention'
+Priority: 'urgent' (red badge)
+Title: '🚨 Account Deletion'
+Message: 'User {name} ({email}) deleted their {role} account at {timestamp} UTC. [Instructor stats if applicable]'
+ActionUrl: '/admin/users'
+Category: 'system', Subcategory: 'SecurityAlerts'
+```
+
+**Email Notification:**
+- Subject: "🚨 System Alert - Account Deletion"
+- Sent to: All active admins with EmailSecurityAlerts enabled
+- Contains: User details, timestamp, instructor stats (if applicable), deletion method, action button
+- Styling: Purple gradient header (intervention type)
+- Respects: EmailSecurityAlerts preference (inherits from EnableSystemAlerts)
+
+**Test Script**: `node scripts/test-account-deletion-notification.js`
 
 ---
 

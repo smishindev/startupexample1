@@ -320,7 +320,7 @@ const SYSTEM_SUBCATEGORIES: SubcategoryControl[] = [
     inAppKey: 'EnableSecurityAlerts',
     emailKey: 'EmailSecurityAlerts',
     canDisable: false, // Cannot disable security alerts
-    description: 'Important account security notifications'
+    description: 'Password changes, account deletions, suspicious activity'
   },
   {
     name: 'risk-alerts',

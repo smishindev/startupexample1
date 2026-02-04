@@ -28,11 +28,18 @@
 - [ ] Identified all pages that use this component
 
 **Recent Additions to Check:**
-- [x] **Instructor Account Deletion with Course Management** - PRODUCTION READY (Jan 18-19, 2026) ✅
+- [x] **Instructor Account Deletion with Course Management** - PRODUCTION READY (Jan 18-19, 2026, CASCADE fixes Feb 4, 2026) ✅
   - Complete account deletion system with instructor-specific flow
   - 3 course management options: Archive All / Transfer All / Force Delete
   - Password confirmation required before execution (security fix)
   - Transaction-safe operations with rollback on error
+  - **CASCADE DELETE Fixes** (Feb 4, 2026): 4 FK constraints updated for automatic cleanup
+    - CourseProgress.UserId → CASCADE DELETE
+    - Invoices.TransactionId → CASCADE DELETE (payment chain)
+    - EmailTrackingEvents.UserId → CASCADE DELETE (GDPR compliance)
+    - EmailUnsubscribeTokens.UserId → CASCADE DELETE (GDPR compliance)
+  - Automatic cleanup of 25+ related tables (Transactions, Enrollments, Notifications, etc.)
+  - GDPR-compliant: All user personal data automatically deleted
   - Audit logging in AccountDeletionLog and CourseOwnershipHistory tables
   - **Bug #34 Fixed**: Archive/transfer delayed until password confirmation (not immediate)
   - **Bug #35 Fixed**: Instructors see teaching + enrolled courses via UNION ALL query

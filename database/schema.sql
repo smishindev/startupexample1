@@ -408,7 +408,7 @@ CREATE INDEX IX_FileUploads_UploadedAt ON dbo.FileUploads(UploadedAt);
 -- CourseProgress Table - Enhanced course-level progress tracking
 CREATE TABLE dbo.CourseProgress (
     Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
-    UserId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id),
+    UserId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id) ON DELETE CASCADE,
     CourseId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Courses(Id) ON DELETE CASCADE,
     OverallProgress INT NOT NULL DEFAULT 0 CHECK (OverallProgress >= 0 AND OverallProgress <= 100),
     CompletedLessons NVARCHAR(MAX) NULL, -- JSON array of lesson IDs
@@ -853,7 +853,7 @@ CREATE TABLE dbo.EmailTrackingEvents (
     UserAgent NVARCHAR(500) NULL,
     IpAddress NVARCHAR(50) NULL,
     CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
-    FOREIGN KEY (UserId) REFERENCES dbo.Users(Id) ON DELETE NO ACTION
+    FOREIGN KEY (UserId) REFERENCES dbo.Users(Id) ON DELETE CASCADE
 );
 
 CREATE NONCLUSTERED INDEX IX_EmailTrackingEvents_UserId ON dbo.EmailTrackingEvents(UserId);
@@ -869,7 +869,7 @@ CREATE TABLE dbo.EmailUnsubscribeTokens (
     ExpiresAt DATETIME2 NULL,
     UsedAt DATETIME2 NULL,
     CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
-    FOREIGN KEY (UserId) REFERENCES dbo.Users(Id) ON DELETE NO ACTION
+    FOREIGN KEY (UserId) REFERENCES dbo.Users(Id) ON DELETE CASCADE
 );
 
 CREATE NONCLUSTERED INDEX IX_EmailUnsubscribeTokens_Token ON dbo.EmailUnsubscribeTokens(Token);
@@ -915,7 +915,7 @@ CREATE TABLE dbo.Transactions (
 -- Invoices Table
 CREATE TABLE dbo.Invoices (
     Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
-    TransactionId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Transactions(Id),
+    TransactionId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Transactions(Id) ON DELETE CASCADE,
     
     -- Invoice Details
     InvoiceNumber NVARCHAR(50) NOT NULL UNIQUE,

@@ -80,6 +80,7 @@ export interface NotificationPreferences {
   EnableComments: boolean | null;
   EnableReplies: boolean | null;
   EnableMentions: boolean | null;
+  EnableDirectMessages: boolean | null;
   EnableGroupInvites: boolean | null;
   EnableGroupActivity: boolean | null;
   EnableOfficeHours: boolean | null;
@@ -87,6 +88,7 @@ export interface NotificationPreferences {
   EmailComments: boolean | null;
   EmailReplies: boolean | null;
   EmailMentions: boolean | null;
+  EmailDirectMessages: boolean | null;
   EmailGroupInvites: boolean | null;
   EmailGroupActivity: boolean | null;
   EmailOfficeHours: boolean | null;

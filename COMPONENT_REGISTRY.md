@@ -1,7 +1,138 @@
 # Mishin Learn Platform - Component Registry
 
-**Last Updated**: February 3, 2026 - AI Tutoring Smart Course Dropdown + Notifications ✅  
+**Last Updated**: February 5, 2026 - Chat System with Conversation Deletion/Restoration 💬  
 **Purpose**: Quick reference for all major components, their dependencies, and relationships
+
+---
+
+## 💬 Chat System Components (Added Feb 5, 2026)
+
+### Chat (Main Page)
+**Path**: `client/src/pages/Chat/Chat.tsx`  
+**Purpose**: Real-time messaging interface with conversation management
+
+**Features**:
+- Direct messaging between users
+- Conversation list with unread badges
+- Real-time message delivery via Socket.IO
+- Conversation soft-delete with automatic restoration
+- User search for starting new conversations
+- Typing indicators and read receipts
+- URL parameter support (?roomId=X)
+- Auto-updating timestamps (60-second interval)
+
+**State**:
+- `rooms` - List of conversations with unread counts
+- `selectedRoom` - Currently active conversation
+- `messages` - Messages for selected room
+- `typingUsers` - Set of user IDs currently typing
+
+**Socket.IO Events**:
+- Listens: `chat:message`, `chat:user-typing`, `chat:read`, `chat:error`, `chat:conversation-restored`
+- Emits: `chat:join-room`, `chat:leave-room`, `chat:typing-start`, `chat:typing-stop`
+
+**API Calls**:
+- `chatApi.getRooms()` - Fetch conversations
+- `chatApi.getMessages(roomId)` - Fetch messages with pagination
+- `chatApi.sendMessage(roomId, data)` - Send message
+- `chatApi.markAsRead(roomId)` - Mark messages read
+- `chatApi.deleteRoom(roomId)` - Delete conversation (soft)
+
+**Dependencies**:
+- `socketService` - Socket.IO client wrapper
+- `chatApi` - REST API client
+- `useAuthStore` - Current user context
+- Material-UI components
+
+**Key Behaviors**:
+- Merges restored conversations with API data (race condition protection)
+- Auto-selects first room if none selected
+- Preserves room selection across reloads
+- Cleans up Socket.IO listeners on unmount
+- Clears typing timeout on unmount (memory leak prevention)
+
+**Status**: ✅ Production-ready
+
+---
+
+### UserSearchDialog
+**Path**: `client/src/components/Chat/UserSearchDialog.tsx`  
+**Purpose**: Search and select users to start new conversations
+
+**Props**:
+- `open: boolean` - Dialog visibility
+- `onClose: () => void` - Close handler
+- `onSelectUser: (userId: string) => void` - User selection callback
+
+**Features**:
+- Debounced search (300ms delay)
+- Minimum 2 characters to trigger search
+- Displays user FirstName, LastName, Email
+- Avatar with initials
+- Loading spinner during search
+- Empty state and error handling
+- Auto-clears on close
+
+**API**:
+- `GET /api/users/search?q={query}&limit=20`
+- Handles both `response.data.users` and `response.data` formats
+
+**Dependencies**:
+- axios with auth interceptor
+- `useAuthStore` for token
+- Material-UI Dialog components
+
+**Status**: ✅ Production-ready
+
+---
+
+### chatApi Service
+**Path**: `client/src/services/chatApi.ts`  
+**Purpose**: REST API client for chat operations
+
+**Methods**:
+1. `getRooms()` - Fetch user's active conversations
+2. `getMessages(roomId, options?)` - Fetch messages with pagination
+3. `sendMessage(roomId, data)` - Send message to room
+4. `createDirectRoom(recipientId)` - Create/reactivate DM room
+5. `markAsRead(roomId)` - Mark all messages read
+6. `deleteRoom(roomId)` - Delete conversation (soft)
+
+**Types**:
+- `ChatRoom` - Conversation metadata with unread count
+- `ChatMessage` - Message with user info
+- `SendMessageRequest` - Message creation payload
+
+**Status**: ✅ Production-ready
+
+---
+
+### ChatService (Backend)
+**Path**: `server/src/services/ChatService.ts`  
+**Purpose**: Complete chat business logic with conversation lifecycle management
+
+**Key Methods**:
+- `getUserRooms(userId)` - Get active conversations (filters IsActive=1)
+- `getRoomMessages(roomId, userId, options)` - Paginated messages
+- `sendMessage(roomId, userId, content, type, replyTo)` - Send + auto-reactivate
+- `createDirectMessageRoom(user1Id, user2Id)` - Create/reactivate DM
+- `markMessagesAsRead(roomId, userId)` - Update LastReadAt
+- `leaveRoom(roomId, userId)` - Soft delete (IsActive=0)
+
+**Reactivation Logic** (Bug #23-26 fixes):
+1. Track inactive participants BEFORE reactivation
+2. Reactivate all inactive participants (SET IsActive=1)
+3. Check privacy settings AFTER reactivation
+4. Send message and emit Socket.IO events
+5. Notify previously inactive users (excluding sender) with `chat:conversation-restored`
+
+**Dependencies**:
+- DatabaseService - SQL queries
+- SettingsService - Privacy enforcement
+- NotificationService - Offline notifications
+- Socket.IO - Real-time events
+
+**Status**: ✅ Production-ready
 
 ---
 

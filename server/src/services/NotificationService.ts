@@ -92,12 +92,14 @@ export interface NotificationPreferences {
   EnableComments: boolean | null;
   EnableReplies: boolean | null;
   EnableMentions: boolean | null;
+  EnableDirectMessages: boolean | null;
   EnableGroupInvites: boolean | null;
   EnableGroupActivity: boolean | null;
   EnableOfficeHours: boolean | null;
   EmailComments: boolean | null;
   EmailReplies: boolean | null;
   EmailMentions: boolean | null;
+  EmailDirectMessages: boolean | null;
   EmailGroupInvites: boolean | null;
   EmailGroupActivity: boolean | null;
   EmailOfficeHours: boolean | null;
@@ -625,6 +627,7 @@ export class NotificationService {
             EnableComments, EmailComments,
             EnableReplies, EmailReplies,
             EnableMentions, EmailMentions,
+            EnableDirectMessages, EmailDirectMessages,
             EnableGroupInvites, EmailGroupInvites,
             EnableGroupActivity, EmailGroupActivity,
             EnableOfficeHours, EmailOfficeHours,
@@ -842,6 +845,7 @@ export class NotificationService {
             EnableComments, EmailComments,
             EnableReplies, EmailReplies,
             EnableMentions, EmailMentions,
+            EnableDirectMessages, EmailDirectMessages,
             EnableGroupInvites, EmailGroupInvites,
             EnableGroupActivity, EmailGroupActivity,
             EnableOfficeHours, EmailOfficeHours,
@@ -1246,6 +1250,8 @@ export class NotificationService {
           EmailReplies: null,
           EnableMentions: null,
           EmailMentions: null,
+          EnableDirectMessages: null,
+          EmailDirectMessages: null,
           EnableGroupInvites: null,
           EmailGroupInvites: null,
           EnableGroupActivity: null,

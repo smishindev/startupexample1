@@ -28,6 +28,21 @@
 - [ ] Identified all pages that use this component
 
 **Recent Additions to Check:**
+- [x] **Chat System with Conversation Deletion/Restoration** - PRODUCTION READY (Feb 5, 2026) 💬
+  - Real-time direct messaging between users
+  - Conversation soft-delete with IsActive flag (preserves data)
+  - Automatic restoration when either party sends message
+  - Real-time Socket.IO notifications (chat:conversation-restored event)
+  - Privacy enforcement (AllowMessages setting with 403 errors)
+  - User search dialog with debounced search (300ms, min 2 chars)
+  - 6 REST API endpoints + 6 Socket.IO events
+  - Database: ChatRooms, ChatMessages, ChatParticipants, ChatMessageReadStatus
+  - Bug #23: Recipients see restored conversations in real-time
+  - Bug #24: Senders can message after deleting own conversation
+  - Bug #26: "New Message" button notifies recipient
+  - Files: ChatService.ts (608 lines), Chat.tsx (643 lines), UserSearchDialog.tsx (161 lines)
+  - Notification integration: DirectMessages category
+  - Status: 0 TypeScript errors, all scenarios tested, production-ready
 - [x] **Instructor Account Deletion with Course Management** - PRODUCTION READY (Jan 18-19, 2026, CASCADE fixes Feb 4, 2026) ✅
   - Complete account deletion system with instructor-specific flow
   - 3 course management options: Archive All / Transfer All / Force Delete

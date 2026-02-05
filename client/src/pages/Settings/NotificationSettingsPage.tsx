@@ -256,6 +256,14 @@ const COMMUNITY_SUBCATEGORIES: SubcategoryControl[] = [
     description: 'Someone mentioned you in a comment'
   },
   {
+    name: 'direct-messages',
+    label: 'Direct Messages',
+    inAppKey: 'EnableDirectMessages',
+    emailKey: 'EmailDirectMessages',
+    canDisable: true,
+    description: 'New direct messages from other users'
+  },
+  {
     name: 'group-invites',
     label: 'Study Group Invites',
     inAppKey: 'EnableGroupInvites',

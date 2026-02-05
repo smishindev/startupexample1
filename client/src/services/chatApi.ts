@@ -20,26 +20,39 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// Backend response interfaces (matching ChatService.ts)
 export interface ChatRoom {
-  roomId: string;
-  roomName: string;
-  roomType: string;
-  description?: string;
-  createdAt: string;
-  lastMessage?: string;
-  lastMessageTime?: string;
+  Id: string;
+  Name: string;
+  Type: string;
+  CourseId: string | null;
+  CreatedBy: string | null;
+  IsActive: boolean;
+  LastMessageAt: string | null;
+  LastMessagePreview: string | null;
+  UnreadCount: number;
+  CreatedAt: string;
+  UpdatedAt: string;
 }
 
 export interface ChatMessage {
   Id: string;
-  Content: string;
-  CreatedAt: string;
-  EditedAt?: string;
-  MessageType: string;
-  FirstName: string;
-  LastName: string;
-  Email: string;
+  RoomId: string;
   UserId: string;
+  Content: string;
+  Type: string;
+  ReplyTo: string | null;
+  IsEdited: boolean;
+  IsSystemMessage: boolean;
+  CreatedAt: string;
+  EditedAt: string | null;
+  User?: {
+    Id: string;
+    FirstName: string;
+    LastName: string;
+    Avatar: string | null;
+    Role: string;
+  };
 }
 
 export interface CreateRoomRequest {
@@ -51,7 +64,8 @@ export interface CreateRoomRequest {
 
 export interface SendMessageRequest {
   content: string;
-  messageType?: string;
+  type?: string;
+  replyTo?: string;
 }
 
 class ChatApi {
@@ -60,9 +74,9 @@ class ChatApi {
     return response.data;
   }
 
-  async getMessages(roomId: string, page = 1, limit = 50): Promise<ChatMessage[]> {
+  async getMessages(roomId: string, limit = 50, offset = 0): Promise<ChatMessage[]> {
     const response = await api.get(`/chat/rooms/${roomId}/messages`, {
-      params: { page, limit }
+      params: { limit, offset }
     });
     return response.data;
   }
@@ -72,13 +86,17 @@ class ChatApi {
     return response.data;
   }
 
-  async createRoom(data: CreateRoomRequest): Promise<ChatRoom> {
-    const response = await api.post('/chat/rooms', data);
+  async createDirectRoom(recipientId: string): Promise<ChatRoom> {
+    const response = await api.post('/chat/rooms/direct', { recipientId });
     return response.data;
   }
 
-  async joinRoom(roomId: string): Promise<void> {
-    await api.post(`/chat/rooms/${roomId}/join`);
+  async markAsRead(roomId: string): Promise<void> {
+    await api.post(`/chat/rooms/${roomId}/read`);
+  }
+
+  async leaveRoom(roomId: string): Promise<void> {
+    await api.delete(`/chat/rooms/${roomId}`);
   }
 }
 

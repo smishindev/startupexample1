@@ -193,9 +193,25 @@ export class AccountDeletionService {
     await request.query('DELETE FROM dbo.OfficeHoursQueue WHERE InstructorId = @userId');
     console.log('✅ Deleted office hours queue entries (as instructor)');
 
-    // 4. Anonymize or delete chat messages (CASCADE handles this, but we could anonymize instead)
-    // For now, let CASCADE handle it
-    // await request.query("UPDATE dbo.ChatMessages SET Content = '[deleted]' WHERE UserId = @userId");
+    // 4. Delete chat-related data (NO ACTION constraints require manual deletion)
+    // Delete read status records
+    await request.query('DELETE FROM dbo.ChatMessageReadStatus WHERE UserId = @userId');
+    console.log('✅ Deleted chat message read status records');
+    
+    // Delete chat participants
+    await request.query('DELETE FROM dbo.ChatParticipants WHERE UserId = @userId');
+    console.log('✅ Deleted chat participant records');
+    
+    // Anonymize chat messages (preserve conversation history)
+    await request.query(`
+      UPDATE dbo.ChatMessages 
+      SET Content = '[Message deleted - user account removed]',
+          MentionedUsers = NULL,
+          AttachmentUrl = NULL,
+          Reactions = NULL
+      WHERE UserId = @userId
+    `);
+    console.log('✅ Anonymized chat messages');
 
     // 5. Handle instructor-owned content
     // NOTE: Instructor courses are already handled by archive/transfer/force actions
@@ -280,7 +296,6 @@ export class AccountDeletionService {
     // - Bookmarks (CASCADE)
     // - AssessmentSubmissions (CASCADE)
     // - LiveSessionAttendees (CASCADE)
-    // - ChatMessages (CASCADE)
     // - TutoringSessions (CASCADE)
     // - FileUploads (CASCADE)
     // - CourseProgress (CASCADE)
@@ -291,6 +306,11 @@ export class AccountDeletionService {
     // - Transactions (CASCADE)
     // - UserPresence (CASCADE - PRIMARY KEY)
     // - StudyGroupMembers (CASCADE)
+    
+    // Note: Chat-related tables (NO ACTION constraints - already handled manually above):
+    // - ChatMessageReadStatus (deleted)
+    // - ChatParticipants (deleted)
+    // - ChatMessages (anonymized to preserve conversation history)
 
     console.log('✅ All related data prepared for deletion');
   }

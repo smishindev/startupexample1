@@ -341,6 +341,41 @@ class SocketService {
       this.socket.removeAllListeners();
     }
   }
+
+  // Generic socket.io methods for chat and other features
+  emit(event: string, ...args: any[]): void {
+    if (this.socket && this.connected) {
+      this.socket.emit(event, ...args);
+    } else {
+      console.warn(`[SocketService] Cannot emit "${event}" - socket not connected`);
+    }
+  }
+
+  on(event: string, callback: (...args: any[]) => void): void {
+    if (this.socket) {
+      this.socket.on(event, callback);
+    } else {
+      console.warn(`[SocketService] Cannot register listener for "${event}" - socket not available`);
+    }
+  }
+
+  off(event: string, callback?: (...args: any[]) => void): void {
+    if (this.socket) {
+      if (callback) {
+        this.socket.off(event, callback);
+      } else {
+        this.socket.off(event);
+      }
+    }
+  }
+
+  once(event: string, callback: (...args: any[]) => void): void {
+    if (this.socket) {
+      this.socket.once(event, callback);
+    } else {
+      console.warn(`[SocketService] Cannot register one-time listener for "${event}" - socket not available`);
+    }
+  }
 }
 
 export const socketService = new SocketService();

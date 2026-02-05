@@ -1,6 +1,6 @@
 # Mishin Learn Platform - System Architecture
 
-**Last Updated**: February 4, 2026 - Account Deletion CASCADE DELETE Fixes ✅  
+**Last Updated**: February 5, 2026 - Chat System with Conversation Deletion/Restoration ✅  
 **Purpose**: Understanding system components, data flows, and dependencies
 
 ---
@@ -150,7 +150,100 @@ Socket.IO Events:
 - Implemented atomic state updates to prevent race conditions
 - Removed totalCount display and all increment/decrement logic
 
-**Settings Implementation Status (Verified Jan 10, 2026):**
+### Chat System (added Feb 5, 2026)
+```
+GET    /api/chat/rooms                    - Get user's active conversations (IsActive=1)
+GET    /api/chat/rooms/:id/messages       - Get messages with pagination
+POST   /api/chat/rooms/:id/messages       - Send message (auto-reactivates participants)
+POST   /api/chat/rooms/direct             - Create or reactivate direct message room
+POST   /api/chat/rooms/:id/read           - Mark messages as read (updates LastReadAt)
+DELETE /api/chat/rooms/:id                - Delete conversation (soft delete, sets IsActive=0)
+
+Socket.IO Events:
+  Client → Server: chat:join-room, chat:leave-room, chat:typing-start, chat:typing-stop
+  Server → Client: chat:message, chat:user-typing, chat:read, chat:error, chat:user-left, chat:conversation-restored
+```
+
+**Chat System Architecture:**
+- **Real-time Messaging**: Direct messages between users with Socket.IO delivery
+- **Conversation Management**: Soft delete with automatic restoration
+- **Privacy Integration**: Respects AllowMessages setting with 403 enforcement
+- **Database Tables**:
+  - ChatRooms (Id, Name, Type, CourseId nullable, CreatedBy, LastMessageAt, LastMessagePreview, IsActive)
+  - ChatMessages (Id, RoomId, UserId, Content, Type, ReplyTo nullable, IsEdited, IsSystemMessage)
+  - ChatParticipants (Id, RoomId, UserId, Role, JoinedAt, LeftAt nullable, LastReadAt nullable, IsActive)
+  - ChatMessageReadStatus (Id, MessageId, UserId, ReadAt)
+- **Constraint Strategy**: ON DELETE NO ACTION for UserId FKs (prevents SQL Server cascade conflicts with Users table)
+- **Manual Cleanup**: AccountDeletionService handles chat data deletion during account deletion
+- **Indexes**: 5 total (room lookup, message lookup, participant lookup, user messages, read status)
+
+**Conversation Deletion & Restoration (Bug Fixes #23-26):**
+
+**Soft Delete Behavior:**
+- DELETE /api/chat/rooms/:id sets ChatParticipants.IsActive = 0, preserves all data
+- Preserves LastReadAt timestamp for accurate unread counts after restoration
+- getUserRooms() filters by IsActive = 1 (deleted conversations don't appear)
+
+**Automatic Restoration:**
+1. **Sending Message** (sendMessage):
+   - Tracks inactive participants BEFORE reactivation
+   - Sets ALL participants IsActive = 1 (sender + recipients)
+   - Checks privacy AFTER reactivation (prevents getDirectMessageRecipient failures)
+   - Sends message and emits Socket.IO events
+   - Emits `chat:conversation-restored` to previously inactive users (excluding sender)
+
+2. **Creating Conversation** (createDirectMessageRoom):
+   - Checks for existing room (includes inactive participants)
+   - If exists: Tracks inactive participants, reactivates both users, notifies recipient
+   - If not exists: Creates new room, checks privacy, adds both participants
+   - Emits `chat:conversation-restored` to recipient if they had deleted conversation
+
+**Real-time Restoration Flow:**
+```
+User A deletes conversation → User B sends message
+  ↓
+Backend: Query inactive participants (finds User A)
+  ↓
+Backend: UPDATE IsActive = 1 for all participants
+  ↓
+Backend: Send message + emit chat:message to room
+  ↓
+Backend: Emit chat:conversation-restored to user-${User A}
+  ↓
+Frontend: User A receives event → adds room to list
+  ↓
+Result: Conversation reappears for User A with unread badge
+```
+
+**Privacy Enforcement:**
+- Privacy check happens AFTER participant reactivation
+- Prevents "Recipient not found" errors when recipient deleted conversation
+- Returns 403 error if recipient has AllowMessages = 0
+- Edge case: Recipient reactivated even if privacy blocks message (acceptable UX tradeoff)
+
+**Notification Integration:**
+- DirectMessages category with in-app + email support
+- Notifications sent only to offline participants (not in Socket.IO room)
+- Respects EnableDirectMessages preference
+- Instructor messages get "high" priority
+
+**Frontend Components:**
+- Chat.tsx (643 lines) - Main UI with real-time updates, conversation list, message view
+- UserSearchDialog.tsx (161 lines) - Debounced user search (300ms, min 2 chars)
+- chatApi.ts - 7 REST API methods
+- socketService.ts - Generic Socket.IO wrapper (emit, on, off, once)
+
+**Backend Services:**
+- ChatService.ts (608 lines) - Complete business logic with restoration handling
+- routes/chat.ts (182 lines) - REST API endpoints with authenticateToken middleware
+- sockets.ts - Socket.IO event handlers for chat
+
+**Bug Fixes:**
+- **Bug #23**: Recipients didn't see restored conversations until page refresh → Fixed with chat:conversation-restored events
+- **Bug #24**: Senders couldn't message after deleting own conversation → Fixed participant check to verify existence regardless of IsActive
+- **Bug #26**: "New Message" button didn't notify recipient → Fixed createDirectMessageRoom to emit restoration events
+
+**Settings Implementation Status (Verified Jan 10, 2026):****
 - **Privacy Settings**: ✅ Fully enforced across 8+ endpoints
   - ProfileVisibility (public/students/private) - enforced in profile viewing
   - ShowEmail - enforced in 7 endpoints with instructor override

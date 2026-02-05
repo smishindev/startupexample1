@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import { DatabaseService } from './services/DatabaseService';
 import { LiveSessionService } from './services/LiveSessionService';
 import { PresenceService } from './services/PresenceService';
+import { ChatService } from './services/ChatService';
 
 const db = DatabaseService.getInstance();
 
@@ -111,107 +112,73 @@ export const setupSocketHandlers = (io: Server) => {
       }
     });
 
-    // Chat room events
-    socket.on('join-room', async (roomId: string) => {
-      try {
-        // Verify user has access to this room
-        const room = await db.query(`
-          SELECT ParticipantsJson FROM dbo.ChatRooms 
-          WHERE Id = @roomId AND IsActive = 1
-        `, { roomId });
+    // ========================================
+    // Chat Room Events (Updated Feb 5, 2026)
+    // ========================================
 
-        if (room.length === 0) {
-          socket.emit('error', { message: 'Chat room not found' });
+    // Join chat room
+    socket.on('chat:join-room', async (roomId: string) => {
+      try {
+        if (!socket.userId) {
+          socket.emit('chat:error', { message: 'User not authenticated' });
           return;
         }
 
-        const participants = JSON.parse(room[0].ParticipantsJson || '[]');
-        if (participants.includes(socket.userId)) {
-          socket.join(roomId);
-          socket.emit('joined-room', { roomId });
-          console.log(`User ${socket.userId} joined room ${roomId}`);
-        } else {
-          socket.emit('error', { message: 'Access denied to this room' });
+        // Verify user is participant using ChatParticipants table
+        const result = await db.query(`
+          SELECT 1 FROM dbo.ChatParticipants
+          WHERE RoomId = @roomId AND UserId = @userId AND IsActive = 1
+        `, { roomId, userId: socket.userId });
+
+        if (result.length === 0) {
+          socket.emit('chat:error', { message: 'Not authorized to join this room' });
+          return;
         }
+
+        const chatRoomName = `chat-room-${roomId}`;
+        socket.join(chatRoomName);
+        console.log(`✅ [Chat] User ${socket.userId} joined chat room ${roomId}`);
+
+        // Notify other participants
+        socket.to(chatRoomName).emit('chat:user-joined', {
+          userId: socket.userId,
+          roomId,
+          timestamp: new Date().toISOString()
+        });
       } catch (error) {
-        console.error('Error joining room:', error);
-        socket.emit('error', { message: 'Failed to join room' });
+        console.error('Error joining chat room:', error);
+        socket.emit('chat:error', { message: 'Failed to join room' });
       }
     });
 
-    socket.on('leave-room', (roomId: string) => {
-      socket.leave(roomId);
-      socket.emit('left-room', { roomId });
-      console.log(`User ${socket.userId} left room ${roomId}`);
-    });
+    // Leave chat room
+    socket.on('chat:leave-room', (roomId: string) => {
+      const chatRoomName = `chat-room-${roomId}`;
+      socket.leave(chatRoomName);
+      console.log(`👋 [Chat] User ${socket.userId} left chat room ${roomId}`);
 
-    socket.on('chat-message', async (data: {
-      roomId: string;
-      content: string;
-      messageType?: string;
-      messageId?: string;
-      createdAt?: string;
-    }) => {
-      try {
-        // Verify user has access to this room
-        const room = await db.query(`
-          SELECT ParticipantsJson FROM dbo.ChatRooms 
-          WHERE Id = @roomId AND IsActive = 1
-        `, { roomId: data.roomId });
-
-        if (room.length === 0) {
-          socket.emit('error', { message: 'Chat room not found' });
-          return;
-        }
-
-        const participants = JSON.parse(room[0].ParticipantsJson || '[]');
-        if (!participants.includes(socket.userId)) {
-          socket.emit('error', { message: 'Access denied to this room' });
-          return;
-        }
-
-        // Get user info for the message
-        const userInfo = await db.query(`
-          SELECT FirstName, LastName, Email FROM dbo.Users WHERE Id = @userId
-        `, { userId: socket.userId });
-
-        const messageData = {
-          id: data.messageId || require('uuid').v4(), // Use provided messageId if available
-          roomId: data.roomId,
-          content: data.content,
-          messageType: data.messageType || 'text',
-          createdAt: data.createdAt || new Date().toISOString(),
-          user: {
-            id: socket.userId,
-            firstName: userInfo[0]?.FirstName,
-            lastName: userInfo[0]?.LastName,
-            email: userInfo[0]?.Email
-          }
-        };
-
-        // Broadcast message to OTHER users in the room (exclude sender to prevent double display)
-        socket.to(data.roomId).emit('new-message', messageData);
-        console.log(`Broadcasting message ${messageData.id} to room ${data.roomId} (excluding sender)`);
-
-      } catch (error) {
-        console.error('Error broadcasting message:', error);
-        socket.emit('error', { message: 'Failed to broadcast message' });
-      }
-    });
-
-    // Typing indicators
-    socket.on('typing-start', (data: { roomId: string }) => {
-      socket.to(data.roomId).emit('user-typing', {
+      // Notify other participants
+      socket.to(chatRoomName).emit('chat:user-left', {
         userId: socket.userId,
-        email: socket.userEmail,
-        roomId: data.roomId
+        roomId,
+        timestamp: new Date().toISOString()
       });
     });
 
-    socket.on('typing-stop', (data: { roomId: string }) => {
-      socket.to(data.roomId).emit('user-stop-typing', {
+    // Typing indicators
+    socket.on('chat:typing-start', (roomId: string) => {
+      socket.to(`chat-room-${roomId}`).emit('chat:user-typing', {
         userId: socket.userId,
-        roomId: data.roomId
+        roomId,
+        isTyping: true
+      });
+    });
+
+    socket.on('chat:typing-stop', (roomId: string) => {
+      socket.to(`chat-room-${roomId}`).emit('chat:user-typing', {
+        userId: socket.userId,
+        roomId,
+        isTyping: false
       });
     });
 

@@ -31,6 +31,14 @@ An innovative EdTech startup providing personalized learning experiences through
 
 ### Advanced Features
 - **Real-time Collaboration** - Live sessions, chat, and peer learning ✅
+- **Direct Messaging System** - Real-time chat with conversation management, soft delete, automatic restoration, typing indicators, read receipts, and privacy controls (February 5, 2026) 💬
+  - **User Search**: Find and message any user with debounced search
+  - **Privacy Integration**: Respects AllowMessages setting with enforcement
+  - **Conversation Management**: Delete conversations (soft delete preserves data)
+  - **Automatic Restoration**: Conversations reappear when either party messages
+  - **Real-time Notifications**: Recipients instantly see restored conversations
+  - **Notification Integration**: DirectMessages category with in-app + email
+  - **Bug Fixes #23-26**: Restoration flow, sender reactivation, recipient notifications
 - **Live Study Sessions** - Instructor-led collaborative learning with enterprise-grade reliability (race condition protection, atomic joins, multi-device sync) ✅
 - **Study Groups** - Peer collaboration spaces with online member tracking and invitation system (ENHANCED Jan 21, 2026) ✅  
   - **User Invitations**: Members can invite others via debounced search modal

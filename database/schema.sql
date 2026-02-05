@@ -26,6 +26,8 @@ IF OBJECT_ID('dbo.VideoProgress', 'U') IS NOT NULL DROP TABLE dbo.VideoProgress;
 IF OBJECT_ID('dbo.FileUploads', 'U') IS NOT NULL DROP TABLE dbo.FileUploads;
 IF OBJECT_ID('dbo.TutoringMessages', 'U') IS NOT NULL DROP TABLE dbo.TutoringMessages;
 IF OBJECT_ID('dbo.TutoringSessions', 'U') IS NOT NULL DROP TABLE dbo.TutoringSessions;
+IF OBJECT_ID('dbo.ChatMessageReadStatus', 'U') IS NOT NULL DROP TABLE dbo.ChatMessageReadStatus;
+IF OBJECT_ID('dbo.ChatParticipants', 'U') IS NOT NULL DROP TABLE dbo.ChatParticipants;
 IF OBJECT_ID('dbo.ChatMessages', 'U') IS NOT NULL DROP TABLE dbo.ChatMessages;
 IF OBJECT_ID('dbo.ChatRooms', 'U') IS NOT NULL DROP TABLE dbo.ChatRooms;
 IF OBJECT_ID('dbo.LiveSessionAttendees', 'U') IS NOT NULL DROP TABLE dbo.LiveSessionAttendees;
@@ -250,21 +252,52 @@ CREATE TABLE dbo.ChatRooms (
     Name NVARCHAR(100) NOT NULL,
     Type NVARCHAR(20) NOT NULL CHECK (Type IN ('course_general', 'course_qa', 'study_group', 'direct_message', 'ai_tutoring')),
     CreatedBy UNIQUEIDENTIFIER NULL FOREIGN KEY REFERENCES dbo.Users(Id),
-    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE()
+    IsActive BIT NOT NULL DEFAULT 1,
+    LastMessageAt DATETIME2 NULL,
+    LastMessagePreview NVARCHAR(200) NULL,
+    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    UpdatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE()
 );
 
 -- Chat Messages Table
 CREATE TABLE dbo.ChatMessages (
     Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
     RoomId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.ChatRooms(Id) ON DELETE CASCADE,
-    UserId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id) ON DELETE CASCADE,
+    UserId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id) ON DELETE NO ACTION,
     Content NVARCHAR(MAX) NOT NULL,
     Type NVARCHAR(20) NOT NULL DEFAULT 'text' CHECK (Type IN ('text', 'image', 'file', 'code', 'system', 'announcement')),
     ReplyTo UNIQUEIDENTIFIER NULL FOREIGN KEY REFERENCES dbo.ChatMessages(Id),
     Reactions NVARCHAR(MAX) NULL, -- JSON array of reaction objects
     IsEdited BIT NOT NULL DEFAULT 0,
+    IsSystemMessage BIT NOT NULL DEFAULT 0,
+    AttachmentUrl NVARCHAR(500) NULL,
+    AttachmentType NVARCHAR(50) NULL,
+    MentionedUsers NVARCHAR(MAX) NULL, -- JSON array of userIds
     EditedAt DATETIME2 NULL,
     CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE()
+);
+
+-- Chat Participants Junction Table
+CREATE TABLE dbo.ChatParticipants (
+    Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    RoomId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.ChatRooms(Id) ON DELETE CASCADE,
+    UserId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id) ON DELETE NO ACTION,
+    Role NVARCHAR(20) NOT NULL DEFAULT 'member' CHECK (Role IN ('owner', 'admin', 'member')),
+    JoinedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    LastReadAt DATETIME2 NULL,
+    IsMuted BIT NOT NULL DEFAULT 0,
+    IsActive BIT NOT NULL DEFAULT 1,
+    LeftAt DATETIME2 NULL,
+    UNIQUE(RoomId, UserId)
+);
+
+-- Chat Message Read Status Table
+CREATE TABLE dbo.ChatMessageReadStatus (
+    Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    MessageId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.ChatMessages(Id) ON DELETE CASCADE,
+    UserId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id) ON DELETE NO ACTION,
+    ReadAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    UNIQUE(MessageId, UserId)
 );
 
 -- =============================================
@@ -391,6 +424,14 @@ CREATE INDEX IX_UserProgress_LastAccessedAt ON dbo.UserProgress(LastAccessedAt);
 CREATE INDEX IX_ChatMessages_RoomId ON dbo.ChatMessages(RoomId);
 CREATE INDEX IX_ChatMessages_UserId ON dbo.ChatMessages(UserId);
 CREATE INDEX IX_ChatMessages_CreatedAt ON dbo.ChatMessages(CreatedAt);
+CREATE INDEX IX_ChatMessages_RoomId_CreatedAt ON dbo.ChatMessages(RoomId, CreatedAt DESC);
+
+CREATE INDEX IX_ChatParticipants_RoomId ON dbo.ChatParticipants(RoomId);
+CREATE INDEX IX_ChatParticipants_UserId ON dbo.ChatParticipants(UserId);
+CREATE INDEX IX_ChatParticipants_Active ON dbo.ChatParticipants(IsActive) WHERE IsActive = 1;
+
+CREATE INDEX IX_ChatMessageReadStatus_MessageId ON dbo.ChatMessageReadStatus(MessageId);
+CREATE INDEX IX_ChatMessageReadStatus_UserId ON dbo.ChatMessageReadStatus(UserId);
 
 CREATE INDEX IX_TutoringMessages_SessionId ON dbo.TutoringMessages(SessionId);
 CREATE INDEX IX_TutoringMessages_Timestamp ON dbo.TutoringMessages(Timestamp);
@@ -595,12 +636,14 @@ CREATE TABLE dbo.NotificationPreferences (
     EnableComments BIT NULL,
     EnableReplies BIT NULL,
     EnableMentions BIT NULL,
+    EnableDirectMessages BIT NULL,
     EnableGroupInvites BIT NULL,
     EnableGroupActivity BIT NULL,
     EnableOfficeHours BIT NULL,
     EmailComments BIT NULL,
     EmailReplies BIT NULL,
     EmailMentions BIT NULL,
+    EmailDirectMessages BIT NULL,
     EmailGroupInvites BIT NULL,
     EmailGroupActivity BIT NULL,
     EmailOfficeHours BIT NULL,

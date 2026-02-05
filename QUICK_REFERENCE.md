@@ -1,6 +1,69 @@
 # 🚀 Quick Reference - Development Workflow
 
-**Last Updated**: February 4, 2026 - Account Deletion CASCADE DELETE Fixes 🗑️
+**Last Updated**: February 5, 2026 - Chat System with Conversation Deletion/Restoration 💬
+
+---
+
+## 💬 Chat System (Added Feb 5, 2026)
+
+**Real-time direct messaging with conversation management**
+
+**Quick Usage**:
+```typescript
+// Navigate to chat page
+import { useNavigate } from 'react-router-dom';
+const navigate = useNavigate();
+navigate('/chat');
+
+// Start conversation with specific user
+navigate('/chat?roomId=ROOM_ID');
+```
+
+**API Endpoints**:
+- `GET /api/chat/rooms` - Get active conversations
+- `GET /api/chat/rooms/:id/messages` - Get messages with pagination
+- `POST /api/chat/rooms/:id/messages` - Send message
+- `POST /api/chat/rooms/direct` - Create/reactivate DM room
+- `POST /api/chat/rooms/:id/read` - Mark messages read
+- `DELETE /api/chat/rooms/:id` - Delete conversation (soft)
+
+**Socket.IO Events**:
+```typescript
+// Listen for events
+socketService.on('chat:message', (message) => { /* handle */ });
+socketService.on('chat:conversation-restored', (data) => { /* handle */ });
+socketService.on('chat:user-typing', (data) => { /* handle */ });
+
+// Emit events
+socketService.emit('chat:join-room', roomId);
+socketService.emit('chat:typing-start', roomId);
+```
+
+**Features**:
+- Real-time message delivery
+- Typing indicators
+- Unread count badges
+- Conversation soft-delete
+- Automatic restoration when either party messages
+- Privacy enforcement (AllowMessages setting)
+- User search for starting new conversations
+
+**Components**:
+- `pages/Chat/Chat.tsx` - Main chat interface
+- `components/Chat/UserSearchDialog.tsx` - User search modal
+- `services/chatApi.ts` - REST API client
+- `services/socketService.ts` - Socket.IO wrapper
+
+**Database Tables**:
+- ChatRooms - Conversation metadata
+- ChatMessages - Message content
+- ChatParticipants - User membership with IsActive flag
+- ChatMessageReadStatus - Read receipts
+
+**Bug Fixes**:
+- #23: Real-time restoration notifications
+- #24: Sender can message after deleting
+- #26: "New Message" button notifies recipient
 
 ---
 

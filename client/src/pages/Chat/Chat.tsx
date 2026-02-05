@@ -12,158 +12,173 @@ import {
   Avatar,
   TextField,
   IconButton,
-  Chip,
+  Badge,
   InputAdornment,
   CircularProgress,
   Alert,
+  Divider,
+  Button,
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogActions,
-  Button,
-  Grid
+  DialogContentText,
+  DialogActions
 } from '@mui/material';
 import {
   Send as SendIcon,
-  Add as AddIcon,
-  Group as GroupIcon,
-  Search as SearchIcon,
-  MoreVert as MoreVertIcon,
-  EmojiEmotions as EmojiIcon
+  PersonAdd as PersonAddIcon,
+  Delete as DeleteIcon
 } from '@mui/icons-material';
 import { formatDistanceToNow } from 'date-fns';
-import { chatApi, ChatRoom, ChatMessage, CreateRoomRequest } from '../../services/chatApi';
-import { socketService, SocketMessage, TypingUser } from '../../services/socketService';
+import { chatApi } from '../../services/chatApi';
+import { socketService } from '../../services/socketService';
 import { useAuthStore } from '../../stores/authStore';
 import { HeaderV5 as Header } from '../../components/Navigation/HeaderV5';
+import { useSearchParams } from 'react-router-dom';
+import { UserSearchDialog } from '../../components/Chat/UserSearchDialog';
+
+interface ChatRoom {
+  Id: string;
+  Name: string;
+  Type: string;
+  CourseId: string | null;
+  CreatedBy: string | null;
+  CreatedAt: string;
+  UpdatedAt: string;
+  LastMessageAt: string | null;
+  LastMessagePreview: string | null;
+  UnreadCount: number;
+  IsActive: boolean;
+}
+
+interface ChatMessage {
+  Id: string;
+  RoomId: string;
+  UserId: string;
+  Content: string;
+  Type: string;
+  ReplyTo: string | null;
+  IsEdited: boolean;
+  IsSystemMessage: boolean;
+  CreatedAt: string;
+  EditedAt: string | null;
+  User?: {
+    Id: string;
+    FirstName: string;
+    LastName: string;
+    Avatar: string | null;
+    Role: string;
+  };
+}
 
 const Chat: React.FC = () => {
+  const [searchParams] = useSearchParams();
   const [rooms, setRooms] = useState<ChatRoom[]>([]);
   const [selectedRoom, setSelectedRoom] = useState<ChatRoom | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
-  const [createRoomOpen, setCreateRoomOpen] = useState(false);
-  const [newRoomData, setNewRoomData] = useState<CreateRoomRequest>({ name: '' });
-  const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
-  const [, setCurrentTime] = useState(Date.now()); // Force re-render for relative time updates
+  const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
+  const [, setCurrentTime] = useState(Date.now());
+  const [userSearchOpen, setUserSearchOpen] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [roomToDelete, setRoomToDelete] = useState<ChatRoom | null>(null);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   const { user } = useAuthStore();
 
-  // Update relative timestamps every minute
+  // Auto-update timestamps
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentTime(Date.now());
-    }, 60000); // Update every 60 seconds
-
+    }, 60000);
     return () => clearInterval(interval);
   }, []);
 
-  // Scroll to bottom of messages
+  // Scroll to bottom
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  // Load chat rooms
+  // Load rooms
   const loadRooms = async () => {
     try {
+      setLoading(true);
       const roomsData = await chatApi.getRooms();
       setRooms(roomsData);
-      if (roomsData.length > 0 && !selectedRoom) {
-        setSelectedRoom(roomsData[0]);
-      }
-    } catch (error) {
+      
+      setError(null);
+    } catch (error: any) {
       console.error('Failed to load rooms:', error);
-      // Only show error if we have rooms (indicates real error, not empty state)
-      if (rooms.length > 0) {
-        setError('Failed to load chat rooms');
-      }
+      setError(error.response?.data?.error || 'Failed to load chat rooms');
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Load messages for selected room
+  // Load messages
   const loadMessages = async (roomId: string) => {
     try {
-      // Loading messages for room
       const messagesData = await chatApi.getMessages(roomId);
-      // Loaded messages successfully
       
-      // Check for duplicates in loaded data
-      const duplicates = messagesData.filter((msg, index, arr) => 
-        arr.findIndex(m => m.Content === msg.Content && m.UserId === msg.UserId) !== index
-      );
-      if (duplicates.length > 0) {
-        console.warn(`⚠️ Found ${duplicates.length} duplicate messages in database:`, duplicates);
-      }
+      // Replace messages but keep any that arrived via websocket after this fetch started
+      setMessages(prev => {
+        // Get IDs of loaded messages
+        const loadedIds = new Set(messagesData.map(m => m.Id));
+        
+        // Find messages that are in prev but not in loaded (received via websocket)
+        const newMessages = prev.filter(m => !loadedIds.has(m.Id) && m.RoomId === roomId);
+        
+        // Combine: loaded messages + new websocket messages
+        return [...messagesData, ...newMessages];
+      });
       
-      setMessages(messagesData);
+      setError(null);
       setTimeout(scrollToBottom, 100);
-    } catch (error) {
+      
+      // Mark messages as read
+      await chatApi.markAsRead(roomId);
+    } catch (error: any) {
       console.error('Failed to load messages:', error);
-      setError('Failed to load messages');
+      if (error.response?.status === 403) {
+        setError('You do not have access to this room');
+      } else {
+        setError(error.response?.data?.error || 'Failed to load messages');
+      }
     }
   };
 
   // Send message
   const handleSendMessage = async () => {
-    console.log(`🚀 handleSendMessage called - sending: ${sending}, newMessage: "${newMessage.trim()}"`);
-    
-    if (!newMessage.trim() || !selectedRoom) {
-      console.log('❌ Aborting - no message or no room');
-      return;
-    }
-    
-    // Prevent double-sending
-    if (sending) {
-      console.log('❌ Already sending, preventing duplicate call');
-      return;
-    }
+    if (!newMessage.trim() || !selectedRoom || sending) return;
 
     const messageContent = newMessage.trim();
-    console.log(`📤 Starting to send: "${messageContent}"`);
-
     setSending(true);
+    setNewMessage('');
+
     try {
-      // Clear the input immediately to prevent accidental double-sends
-      setNewMessage('');
-      console.log('🔄 Input cleared, calling API...');
-      
-      // Send via API for persistence
-      const savedMessage = await chatApi.sendMessage(selectedRoom.roomId, {
+      const savedMessage = await chatApi.sendMessage(selectedRoom.Id, {
         content: messageContent
       });
-      console.log('✅ API call completed, received:', savedMessage);
-
-      // Add the message to the UI immediately
-      setMessages(prev => {
-        // Check if message already exists (prevent duplicates)
-        const messageExists = prev.some(msg => msg.Id === savedMessage.Id);
-        if (messageExists) {
-          console.log('⚠️ Message already exists in UI, not adding');
-          return prev;
-        }
-        console.log('➕ Adding message to UI');
-        return [...prev, savedMessage];
-      });
-
-      // Send via socket for real-time delivery to other users
-      console.log('📡 Sending via socket...');
-      socketService.sendMessage(selectedRoom.roomId, messageContent, savedMessage.Id, savedMessage.CreatedAt);
       
-      socketService.stopTyping(selectedRoom.roomId);
+      // Message will be received via Socket.IO for all users including sender
+      // So we don't need to add it manually
+      
+      setError(null);
       setTimeout(scrollToBottom, 100);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to send message:', error);
-      setError('Failed to send message');
-      // Restore the message if sending failed
-      setNewMessage(messageContent);
+      if (error.response?.status === 403 && error.response?.data?.code === 'MESSAGES_DISABLED') {
+        setError('Recipient does not accept direct messages');
+      } else {
+        setError(error.response?.data?.error || 'Failed to send message');
+      }
+      setNewMessage(messageContent); // Restore message
     } finally {
-      console.log('🏁 Setting sending to false');
       setSending(false);
     }
   };
@@ -172,426 +187,410 @@ const Chat: React.FC = () => {
   const handleTyping = () => {
     if (!selectedRoom) return;
 
-    socketService.startTyping(selectedRoom.roomId);
+    socketService.emit('chat:typing-start', selectedRoom.Id);
     
-    // Clear existing timeout
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
     }
     
-    // Set new timeout to stop typing
     typingTimeoutRef.current = setTimeout(() => {
-      socketService.stopTyping(selectedRoom.roomId);
+      socketService.emit('chat:typing-stop', selectedRoom.Id);
     }, 1000);
   };
 
-  // Create new room
-  const handleCreateRoom = async () => {
-    if (!newRoomData.name.trim()) {
-      setError('Please enter a room name');
-      return;
-    }
+  // Handle delete room confirmation
+  const handleDeleteClick = (room: ChatRoom, event: React.MouseEvent) => {
+    event.stopPropagation(); // Prevent selecting the room
+    setRoomToDelete(room);
+    setDeleteConfirmOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!roomToDelete) return;
 
     try {
-      console.log('Creating room with data:', newRoomData);
-      const createdRoom = await chatApi.createRoom(newRoomData);
-      console.log('Room created successfully:', createdRoom);
+      await chatApi.leaveRoom(roomToDelete.Id);
       
-      setCreateRoomOpen(false);
-      setNewRoomData({ name: '' });
-      await loadRooms();
-      setError(null);
+      // Remove room from list
+      setRooms(prev => prev.filter(r => r.Id !== roomToDelete.Id));
       
-      // Optionally select the newly created room
-      setSelectedRoom(createdRoom);
-    } catch (error) {
-      console.error('Failed to create room:', error);
-      if (error instanceof Error) {
-        setError(`Failed to create room: ${error.message}`);
-      } else {
-        setError('Failed to create room. Please try again.');
+      // If deleted room was selected, clear selection and messages
+      if (selectedRoom?.Id === roomToDelete.Id) {
+        setSelectedRoom(null);
+        setMessages([]);
       }
+      
+      setError(null);
+    } catch (error: any) {
+      console.error('Failed to delete room:', error);
+      setError(error.response?.data?.error || 'Failed to delete conversation');
+    } finally {
+      setDeleteConfirmOpen(false);
+      setRoomToDelete(null);
     }
   };
 
-  // Initialize component
-  useEffect(() => {
-    const initializeChat = async () => {
-      try {
-        // Wait for socket to be ready (App.tsx handles connection)
-        if (!socketService.isConnected()) {
-          console.log('🔌 [Chat] Waiting for socket connection...');
-          await socketService.connect();
-        }
-        console.log('✅ [Chat] Socket ready');
-        
-        // Load rooms
-        await loadRooms();
-        
-        // Set up socket event listeners
-        socketService.onMessage((message: SocketMessage) => {
-          console.log('🔔 Received socket message:', message);
-          
-          // Only add message if it's NOT from the current user (we handle our own messages via API response)
-          if (message.user.id === user?.id) {
-            console.log('⏭️ Skipping own message from socket');
-            return; // Skip our own messages
-          }
-          
-          // Only add message if it's for the currently selected room
-          setMessages(prev => {
-            // Check if message already exists (prevent duplicates)
-            const messageExists = prev.some(msg => msg.Id === message.id);
-            if (messageExists) {
-              console.log('⚠️ Message already exists in UI, skipping socket message');
-              return prev;
-            }
-            
-            console.log('➕ Adding socket message from other user to UI');
-            // Add the new message
-            const newMessage = {
-              Id: message.id,
-              Content: message.content,
-              CreatedAt: message.createdAt,
-              MessageType: message.messageType,
-              FirstName: message.user.firstName,
-              LastName: message.user.lastName,
-              Email: message.user.email,
-              UserId: message.user.id
-            };
-            
-            return [...prev, newMessage];
-          });
-          setTimeout(scrollToBottom, 100);
-        });
+  const handleDeleteCancel = () => {
+    setDeleteConfirmOpen(false);
+    setRoomToDelete(null);
+  };
 
-        socketService.onUserTyping((user: TypingUser) => {
-          setTypingUsers(prev => new Set([...prev, user.userId]));
-        });
-
-        socketService.onUserStopTyping((data) => {
-          setTypingUsers(prev => {
-            const newSet = new Set(prev);
-            newSet.delete(data.userId);
-            return newSet;
-          });
-        });
-
-        socketService.onError((error) => {
-          setError(error.message);
-        });
-
-      } catch (error) {
-        console.error('Failed to initialize chat:', error);
-        setError('Failed to connect to chat service');
-      } finally {
-        setLoading(false);
+  // Create direct message room
+  const handleCreateDirectMessage = async (recipientId: string) => {
+    try {
+      setLoading(true);
+      const room = await chatApi.createDirectRoom(recipientId);
+      
+      // Reload rooms to get updated list
+      const roomsData = await chatApi.getRooms();
+      setRooms(roomsData);
+      
+      // Find and select the newly created room from the loaded list
+      const newRoom = roomsData.find(r => r.Id === room.Id);
+      if (newRoom) {
+        setSelectedRoom(newRoom);
       }
+      
+      setError(null);
+    } catch (error: any) {
+      console.error('Failed to create direct message room:', error);
+      if (error.response?.status === 403 && error.response?.data?.code === 'MESSAGES_DISABLED') {
+        setError('This user does not accept direct messages');
+      } else {
+        setError(error.response?.data?.error || 'Failed to create conversation');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load rooms on mount
+  useEffect(() => {
+    loadRooms();
+  }, []);
+
+  // Listen for conversation restoration events (when someone messages after both deleted)
+  useEffect(() => {
+    const handleConversationRestored = (data: { room: ChatRoom; message: ChatMessage | null }) => {
+      console.log('🔄 [Chat] Conversation restored:', data.room.Id);
+      
+      // Add room to list if not already present
+      setRooms(prev => {
+        const exists = prev.find(r => r.Id === data.room.Id);
+        if (exists) {
+          // Update existing room with new data
+          return prev.map(r => r.Id === data.room.Id ? data.room : r);
+        }
+        // Add new room at the top (most recent)
+        return [data.room, ...prev];
+      });
+
+      // If no room is selected, select this restored room
+      setSelectedRoom(current => {
+        if (!current) {
+          return data.room;
+        }
+        // If user is looking at this room, update it
+        if (current.Id === data.room.Id) {
+          return data.room;
+        }
+        return current;
+      });
     };
 
-    initializeChat();
+    socketService.on('chat:conversation-restored', handleConversationRestored);
 
-    // Clean up chat listeners when component unmounts (socket stays connected for app)
     return () => {
-      console.log('🔕 [Chat] Component unmounting - cleaning up chat listeners');
-      socketService.offMessage();
-      socketService.offJoinedRoom();
-      socketService.offLeftRoom();
-      socketService.offUserTyping();
-      socketService.offUserStopTyping();
-      socketService.offError();
-      if (typingTimeoutRef.current) {
-        clearTimeout(typingTimeoutRef.current);
-      }
+      socketService.off('chat:conversation-restored', handleConversationRestored);
     };
   }, []);
 
-  // Handle room selection
+  // Load messages when room changes
   useEffect(() => {
     if (selectedRoom) {
-      // Clear messages when switching rooms
-      setMessages([]);
-      
-      // Join the new room
-      socketService.joinRoom(selectedRoom.roomId);
-      loadMessages(selectedRoom.roomId);
-      
-      // Leave previous room when switching (handled automatically by socket.io)
-      return () => {
-        if (selectedRoom) {
-          socketService.leaveRoom(selectedRoom.roomId);
-        }
-      };
+      loadMessages(selectedRoom.Id);
     }
   }, [selectedRoom]);
 
-  if (loading) {
-    return (
-      <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-        <Header />
-        <Container maxWidth="xl" sx={{ py: 4, display: 'flex', justifyContent: 'center' }}>
-          <CircularProgress />
-        </Container>
-      </Box>
-    );
-  }
+  // Socket.IO event listeners
+  useEffect(() => {
+    if (!selectedRoom) return;
+
+    console.log(`📡 [Chat] Subscribing to room ${selectedRoom.Id}`);
+    
+    // Join room
+    socketService.emit('chat:join-room', selectedRoom.Id);
+
+    // Listen for new messages
+    const handleNewMessage = (message: ChatMessage) => {
+      console.log(`💬 [Chat] Received message for room ${message.RoomId}`);
+      if (message.RoomId === selectedRoom.Id) {
+        setMessages(prev => {
+          // Prevent duplicates
+          if (prev.some(m => m.Id === message.Id)) {
+            return prev;
+          }
+          return [...prev, message];
+        });
+        setTimeout(scrollToBottom, 100);
+      }
+    };
+
+    // Listen for typing indicators
+    const handleUserTyping = (data: { userId: string; roomId: string; isTyping: boolean }) => {
+      if (data.roomId === selectedRoom.Id && data.userId !== user?.id) {
+        setTypingUsers(prev => {
+          const newSet = new Set(prev);
+          if (data.isTyping) {
+            newSet.add(data.userId);
+          } else {
+            newSet.delete(data.userId);
+          }
+          return newSet;
+        });
+      }
+    };
+
+    // Listen for read receipts
+    const handleRead = (data: { roomId: string; userId: string }) => {
+      if (data.roomId === selectedRoom.Id) {
+        // Mark messages as read in UI if needed
+        console.log(`✓ User ${data.userId} read messages in room ${selectedRoom.Id}`);
+      }
+    };
+
+    // Listen for Socket.IO errors
+    const handleChatError = (error: { message: string }) => {
+      console.error('❌ [Chat] Socket error:', error.message);
+      setError(error.message);
+    };
+
+    socketService.on('chat:message', handleNewMessage);
+    socketService.on('chat:user-typing', handleUserTyping);
+    socketService.on('chat:read', handleRead);
+    socketService.on('chat:error', handleChatError);
+
+    return () => {
+      console.log(`👋 [Chat] Unsubscribing from room ${selectedRoom.Id}`);
+      socketService.emit('chat:leave-room', selectedRoom.Id);
+      socketService.off('chat:message', handleNewMessage);
+      socketService.off('chat:user-typing', handleUserTyping);
+      socketService.off('chat:read', handleRead);
+      socketService.off('chat:error', handleChatError);
+      
+      // Clean up typing timeout
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+        typingTimeoutRef.current = null;
+      }
+    };
+  }, [selectedRoom, user?.id]);
+
+  const userName = user ? `${user.firstName} ${user.lastName}` : 'User';
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+    <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
       <Header />
       
-      <Container maxWidth="xl" sx={{ py: 4 }}>
-        {error && (
-          <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
-            {error}
-          </Alert>
-        )}
-        
-        <Paper sx={{ height: '80vh', display: 'flex' }}>
-        {/* Chat Rooms Sidebar */}
-        <Box sx={{ width: 300, borderRight: 1, borderColor: 'divider', display: 'flex', flexDirection: 'column' }}>
-          <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-              <Typography variant="h6">Chat Rooms</Typography>
-              <IconButton size="small" onClick={() => setCreateRoomOpen(true)} data-testid="chat-create-room-button">
-                <AddIcon />
-              </IconButton>
-            </Box>
-            <TextField
-              size="small"
-              placeholder="Search rooms..."
-              fullWidth
-              data-testid="chat-search-rooms-input"
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon />
-                  </InputAdornment>
-                ),
-              }}
-            />
-          </Box>
+      <Container maxWidth="xl" sx={{ mt: 3, mb: 3 }}>
+        <Paper elevation={2} sx={{ height: 'calc(100vh - 150px)', display: 'flex', overflow: 'hidden' }}>
           
-          <List sx={{ flex: 1, overflow: 'auto' }}>
-            {rooms.length === 0 ? (
+          {/* Rooms List */}
+          <Box sx={{ width: 300, borderRight: 1, borderColor: 'divider', display: 'flex', flexDirection: 'column' }}>
+            <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
+              <Typography variant="h6">Messages</Typography>
+              <Button
+                startIcon={<PersonAddIcon />}
+                size="small"
+                sx={{ mt: 1 }}
+                fullWidth
+                variant="outlined"
+                onClick={() => setUserSearchOpen(true)}
+              >
+                New Message
+              </Button>
+            </Box>
+            
+            {loading ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+                <CircularProgress />
+              </Box>
+            ) : rooms.length === 0 ? (
               <Box sx={{ p: 3, textAlign: 'center' }}>
-                <Typography variant="body2" color="text.secondary" gutterBottom>
-                  No chat rooms yet
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  Create a new room to start chatting with your peers!
+                <Typography variant="body2" color="text.secondary">
+                  No conversations yet
                 </Typography>
               </Box>
             ) : (
-              rooms.map((room) => (
-                <ListItem key={room.roomId} disablePadding>
-                  <ListItemButton
-                    selected={selectedRoom?.roomId === room.roomId}
-                    onClick={() => setSelectedRoom(room)}
-                    data-testid={`chat-room-item-${room.roomId}`}
+              <List sx={{ overflow: 'auto', flex: 1 }}>
+                {rooms.map((room) => (
+                  <ListItem 
+                    key={room.Id} 
+                    disablePadding
+                    secondaryAction={
+                      <IconButton 
+                        edge="end" 
+                        aria-label="delete"
+                        onClick={(e) => handleDeleteClick(room, e)}
+                        size="small"
+                      >
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    }
                   >
-                    <ListItemAvatar>
-                      <Avatar>
-                        <GroupIcon />
-                      </Avatar>
-                    </ListItemAvatar>
-                    <ListItemText
-                      primary={room.roomName}
-                      secondary={
-                        <React.Fragment>
-                          <Typography variant="caption" component="span" display="block" noWrap>
-                            {room.lastMessage || 'No messages yet'}
-                          </Typography>
-                          {room.lastMessageTime && (
-                            <Typography variant="caption" color="text.secondary" component="span" display="block">
-                              {formatDistanceToNow(new Date(room.lastMessageTime), { addSuffix: true })}
-                            </Typography>
-                          )}
-                        </React.Fragment>
-                      }
-                    />
-                    <Chip label={room.roomType} size="small" variant="outlined" />
-                  </ListItemButton>
-                </ListItem>
-              ))
-            )}
-          </List>
-        </Box>
-
-        {/* Chat Area */}
-        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-          {selectedRoom ? (
-            <>
-              {/* Chat Header */}
-              <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Box>
-                    <Typography variant="h6">{selectedRoom.roomName}</Typography>
-                    {selectedRoom.description && (
-                      <Typography variant="body2" color="text.secondary">
-                        {selectedRoom.description}
-                      </Typography>
-                    )}
-                  </Box>
-                  <IconButton data-testid="chat-more-options-button">
-                    <MoreVertIcon />
-                  </IconButton>
-                </Box>
-              </Box>
-
-              {/* Messages Area */}
-              <Box sx={{ flex: 1, overflow: 'auto', p: 1 }}>
-                {messages.map((message, index) => {
-                  const isOwnMessage = message.UserId === user?.id;
-                  const showAvatar = index === 0 || messages[index - 1].UserId !== message.UserId;
-                  
-                  return (
-                    <Box
-                      key={message.Id}
-                      sx={{
-                        display: 'flex',
-                        justifyContent: isOwnMessage ? 'flex-end' : 'flex-start',
-                        mb: 1
-                      }}
+                    <ListItemButton
+                      selected={selectedRoom?.Id === room.Id}
+                      onClick={() => setSelectedRoom(room)}
                     >
-                      <Box sx={{ display: 'flex', alignItems: 'flex-end', maxWidth: '70%' }}>
-                        {!isOwnMessage && showAvatar && (
-                          <Avatar
-                            sx={{ width: 32, height: 32, mr: 1 }}
-                            src={`https://ui-avatars.com/api/?name=${message.FirstName}+${message.LastName}&background=random`}
-                          >
-                            {message.FirstName?.[0]}
-                          </Avatar>
-                        )}
-                        
-                        <Box>
-                          {!isOwnMessage && showAvatar && (
-                            <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
-                              {message.FirstName} {message.LastName}
-                            </Typography>
-                          )}
-                          
-                          <Paper
-                            sx={{
-                              p: 1.5,
-                              ml: !isOwnMessage && !showAvatar ? 5 : 0,
-                              backgroundColor: isOwnMessage ? 'primary.main' : 'grey.100',
-                              color: isOwnMessage ? 'primary.contrastText' : 'text.primary',
-                            }}
-                          >
-                            <Typography variant="body2">{message.Content}</Typography>
-                            <Typography
-                              variant="caption"
-                              sx={{
-                                display: 'block',
-                                mt: 0.5,
-                                opacity: 0.8
-                              }}
-                            >
-                              {formatDistanceToNow(new Date(message.CreatedAt), { addSuffix: true })}
-                            </Typography>
-                          </Paper>
-                        </Box>
-                      </Box>
-                    </Box>
-                  );
-                })}
-                
-                {/* Typing Indicator */}
-                {typingUsers.size > 0 && (
-                  <Box sx={{ display: 'flex', alignItems: 'center', p: 1 }}>
+                      <ListItemAvatar>
+                        <Badge badgeContent={room.UnreadCount} color="primary">
+                          <Avatar>{room.Name.charAt(0)}</Avatar>
+                        </Badge>
+                      </ListItemAvatar>
+                      <ListItemText
+                        primary={room.Name}
+                        secondary={room.LastMessagePreview || 'No messages'}
+                        primaryTypographyProps={{ noWrap: true }}
+                        secondaryTypographyProps={{ noWrap: true }}
+                      />
+                    </ListItemButton>
+                  </ListItem>
+                ))}
+              </List>
+            )}
+          </Box>
+
+          {/* Messages Area */}
+          <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+            {!selectedRoom ? (
+              <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Typography variant="h6" color="text.secondary">
+                  Select a conversation to start messaging
+                </Typography>
+              </Box>
+            ) : (
+              <>
+                {/* Room Header */}
+                <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
+                  <Typography variant="h6">{selectedRoom.Name}</Typography>
+                  {typingUsers.size > 0 && (
                     <Typography variant="caption" color="text.secondary">
                       Someone is typing...
                     </Typography>
-                  </Box>
-                )}
-                
-                <div ref={messagesEndRef} />
-              </Box>
+                  )}
+                </Box>
 
-              {/* Message Input */}
-              <Box sx={{ p: 2, borderTop: 1, borderColor: 'divider' }}>
-                <TextField
-                  fullWidth
-                  placeholder="Type a message..."
-                  value={newMessage}
-                  onChange={(e) => {
-                    setNewMessage(e.target.value);
-                    handleTyping();
-                  }}
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      handleSendMessage();
-                    }
-                  }}
-                  disabled={sending}
-                  data-testid="chat-message-input"
-                  InputProps={{
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <IconButton edge="end" data-testid="chat-emoji-button">
-                          <EmojiIcon />
-                        </IconButton>
-                        <IconButton
-                          edge="end"
-                          onClick={handleSendMessage}
-                          disabled={!newMessage.trim() || sending}
-                          data-testid="chat-send-button"
-                        >
-                          {sending ? <CircularProgress size={20} /> : <SendIcon />}
-                        </IconButton>
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-              </Box>
-            </>
-          ) : (
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-              <Typography variant="h6" color="text.secondary">
-                Select a room to start chatting
-              </Typography>
-            </Box>
-          )}
-        </Box>
-      </Paper>
+                {/* Messages */}
+                <Box sx={{ flex: 1, overflow: 'auto', p: 2 }}>
+                  {error && (
+                    <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
+                      {error}
+                    </Alert>
+                  )}
+                  
+                  {messages.map((message) => {
+                    const isOwn = message.UserId === user?.id;
+                    const senderName = message.User 
+                      ? `${message.User.FirstName} ${message.User.LastName}`
+                      : 'Unknown';
 
-      {/* Create Room Dialog */}
-      <Dialog open={createRoomOpen} onClose={() => setCreateRoomOpen(false)} maxWidth="sm" fullWidth disableEnforceFocus>
-        <DialogTitle>Create New Chat Room</DialogTitle>
+                    return (
+                      <Box
+                        key={message.Id}
+                        sx={{
+                          display: 'flex',
+                          justifyContent: isOwn ? 'flex-end' : 'flex-start',
+                          mb: 2
+                        }}
+                      >
+                        <Box sx={{ maxWidth: '70%' }}>
+                          {!isOwn && (
+                            <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
+                              {senderName}
+                            </Typography>
+                          )}
+                          <Paper
+                            elevation={1}
+                            sx={{
+                              p: 1.5,
+                              backgroundColor: isOwn ? 'primary.main' : 'grey.100',
+                              color: isOwn ? 'white' : 'text.primary'
+                            }}
+                          >
+                            <Typography variant="body2">{message.Content}</Typography>
+                          </Paper>
+                          <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
+                            {formatDistanceToNow(new Date(message.CreatedAt), { addSuffix: true })}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    );
+                  })}
+                  <div ref={messagesEndRef} />
+                </Box>
+
+                {/* Message Input */}
+                <Box sx={{ p: 2, borderTop: 1, borderColor: 'divider' }}>
+                  <TextField
+                    fullWidth
+                    placeholder="Type a message..."
+                    value={newMessage}
+                    onChange={(e) => {
+                      setNewMessage(e.target.value);
+                      handleTyping();
+                    }}
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        handleSendMessage();
+                      }
+                    }}
+                    disabled={sending}
+                    InputProps={{
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <IconButton
+                            onClick={handleSendMessage}
+                            disabled={sending || !newMessage.trim()}
+                            color="primary"
+                          >
+                            {sending ? <CircularProgress size={24} /> : <SendIcon />}
+                          </IconButton>
+                        </InputAdornment>
+                      )
+                    }}
+                  />
+                </Box>
+              </>
+            )}
+          </Box>
+        </Paper>
+      </Container>
+
+      <UserSearchDialog
+        open={userSearchOpen}
+        onClose={() => setUserSearchOpen(false)}
+        onSelectUser={handleCreateDirectMessage}
+      />
+
+      <Dialog
+        open={deleteConfirmOpen}
+        onClose={handleDeleteCancel}
+      >
+        <DialogTitle>Delete Conversation?</DialogTitle>
         <DialogContent>
-          <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12}>
-              <TextField
-                label="Room Name"
-                fullWidth
-                value={newRoomData.name}
-                onChange={(e) => setNewRoomData({ ...newRoomData, name: e.target.value })}
-                data-testid="chat-room-name-input"
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                label="Description (Optional)"
-                fullWidth
-                multiline
-                rows={3}
-                value={newRoomData.description || ''}
-                onChange={(e) => setNewRoomData({ ...newRoomData, description: e.target.value })}
-                data-testid="chat-room-description-input"
-              />
-            </Grid>
-          </Grid>
+          <DialogContentText>
+            Are you sure you want to delete this conversation with {roomToDelete?.Name}?
+            This will remove it from your list, but the other person can still see the conversation.
+          </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setCreateRoomOpen(false)} data-testid="chat-cancel-button">Cancel</Button>
-          <Button onClick={handleCreateRoom} variant="contained" disabled={!newRoomData.name.trim()} data-testid="chat-create-room-submit">
-            Create Room
+          <Button onClick={handleDeleteCancel}>Cancel</Button>
+          <Button onClick={handleDeleteConfirm} color="error" variant="contained">
+            Delete
           </Button>
         </DialogActions>
       </Dialog>
-    </Container>
     </Box>
   );
 };

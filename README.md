@@ -46,11 +46,22 @@ An innovative EdTech startup providing personalized learning experiences through
   - **Course Details**: Edit metadata (title, description, category, level, price, thumbnail)
   - **Lesson Details**: Manage curriculum and lessons
   - **Assessments**: Configure course assessments
-  - **Settings**: Course preferences and options
+  - **Settings**: Course prerequisites and learning outcomes (Feb 7, 2026) ✅
+    - Multi-select prerequisite courses with autocomplete search
+    - Dynamic learning outcomes list with inline validation (200 char limit)
+    - Change detection and save confirmation
+    - Visual chips with delete functionality
   - Smart navigation with query parameters
   - Real-time validation and error handling
   - Level field normalization (beginner, intermediate, advanced, expert)
   - Category mapping (10 categories with user-friendly names)
+- **Course Prerequisites System** - Enforce learning paths and course dependencies (Feb 7, 2026) ✅
+  - Instructors set required prerequisite courses
+  - Students blocked from enrolling without completing prerequisites
+  - Visual completion tracking (✅ complete, ⏳ in-progress, ❌ not enrolled)
+  - Clear error messages with missing course names
+  - Automatic validation filters published courses only
+  - Prevents circular dependencies
 - **Course Creation Tools** - Rich authoring environment with comprehensive validation
 - **Student Management** - View enrolled students with course filtering
 - **Analytics Dashboard** - Course performance metrics and insights

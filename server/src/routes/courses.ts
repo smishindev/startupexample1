@@ -242,6 +242,92 @@ router.get('/:id/enrollment', authenticateToken, async (req: any, res: any) => {
   }
 });
 
+// Check if user can enroll (prerequisites validation)
+router.get('/:id/check-prerequisites', authenticateToken, async (req: any, res: any) => {
+  try {
+    const { id: courseId } = req.params;
+    const userId = req.user.userId;
+
+    // Get course prerequisites
+    const courseResult = await db.query(`
+      SELECT Prerequisites FROM Courses WHERE Id = @courseId
+    `, { courseId });
+
+    if (courseResult.length === 0) {
+      return res.status(404).json({ error: 'Course not found' });
+    }
+
+    const course = courseResult[0];
+    
+    // If no prerequisites, user can enroll
+    if (!course.Prerequisites) {
+      return res.json({
+        canEnroll: true,
+        missingPrerequisites: []
+      });
+    }
+
+    try {
+      const prerequisites = JSON.parse(course.Prerequisites);
+      
+      if (!Array.isArray(prerequisites) || prerequisites.length === 0) {
+        return res.json({
+          canEnroll: true,
+          missingPrerequisites: []
+        });
+      }
+
+      // Check completion status for each prerequisite
+      const prerequisiteCheck = await db.query(`
+        SELECT 
+          c.Id,
+          c.Title,
+          c.Thumbnail,
+          cp.OverallProgress,
+          CASE 
+            WHEN cp.CompletedAt IS NOT NULL THEN 1
+            ELSE 0
+          END as IsCompleted
+        FROM Courses c
+        LEFT JOIN CourseProgress cp ON c.Id = cp.CourseId AND cp.UserId = @userId
+        WHERE c.Id IN (${prerequisites.map((_, i) => `@prereq${i}`).join(', ')})
+          AND (c.Status = 'published' OR (c.Status IS NULL AND c.IsPublished = 1))
+      `, prerequisites.reduce((acc: any, prereqId: string, i: number) => {
+        acc[`prereq${i}`] = prereqId;
+        return acc;
+      }, { userId }));
+
+      // Only return courses that exist and are published (deleted courses are ignored)
+      const allPrerequisites = prerequisiteCheck.map((p: any) => ({
+        id: p.Id,
+        title: p.Title,
+        thumbnail: p.Thumbnail,
+        progress: p.OverallProgress || 0,
+        isCompleted: !!p.IsCompleted
+      }));
+
+      const missingPrerequisites = allPrerequisites.filter((p: any) => !p.isCompleted);
+
+      return res.json({
+        canEnroll: missingPrerequisites.length === 0,
+        prerequisites: allPrerequisites,
+        missingPrerequisites: missingPrerequisites.map(p => ({ id: p.id, title: p.title }))
+      });
+
+    } catch (parseError) {
+      console.error('Failed to parse prerequisites:', parseError);
+      return res.json({
+        canEnroll: true,
+        missingPrerequisites: []
+      });
+    }
+
+  } catch (error) {
+    console.error('Error checking prerequisites:', error);
+    res.status(500).json({ error: 'Failed to check prerequisites' });
+  }
+});
+
 // Get course categories and stats
 router.get('/meta/categories', async (req: any, res: any) => {
   try {

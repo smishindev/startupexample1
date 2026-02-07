@@ -52,11 +52,14 @@ import {
   CheckCircleOutline,
   ArrowBack,
   ShoppingCart,
+  Cancel,
+  HourglassEmpty,
 } from '@mui/icons-material';
 import { HeaderV5 as Header } from '../../components/Navigation/HeaderV5';
 import { enrollmentApi } from '../../services/enrollmentApi';
 import { formatCurrency, roundToDecimals } from '../../utils/formatUtils';
 import { coursesApi } from '../../services/coursesApi';
+import type { PrerequisiteCheck } from '../../services/coursesApi';
 import { useAuthStore } from '../../stores/authStore';
 import { BookmarkApi } from '../../services/bookmarkApi';
 import { useShare } from '../../hooks/useShare';
@@ -114,6 +117,7 @@ interface CourseDetails {
   sections: CourseSection[];
   requirements: string[];
   whatYouWillLearn: string[];
+  prerequisites?: string[];
   isEnrolled: boolean;
   isBookmarked: boolean;
   progress: number;
@@ -139,6 +143,8 @@ export const CourseDetailPage: React.FC = () => {
     message: string;
     severity: 'success' | 'error' | 'warning' | 'info';
   }>({ open: false, message: '', severity: 'info' });
+  const [prerequisiteCheck, setPrerequisiteCheck] = useState<PrerequisiteCheck | null>(null);
+  const [loadingPrerequisites, setLoadingPrerequisites] = useState(false);
 
   const { openShareDialog, ShareDialogComponent } = useShare({
     contentType: 'course',
@@ -244,6 +250,19 @@ export const CourseDetailPage: React.FC = () => {
             console.log('Progress not available:', err);
           }
         }
+
+        // Check prerequisites if user is logged in (for all users to see completion status)
+        if (user && courseData.Prerequisites && courseData.Prerequisites.length > 0) {
+          try {
+            setLoadingPrerequisites(true);
+            const prereqCheck = await coursesApi.checkPrerequisites(courseId);
+            setPrerequisiteCheck(prereqCheck);
+          } catch (err) {
+            console.log('Failed to check prerequisites:', err);
+          } finally {
+            setLoadingPrerequisites(false);
+          }
+        }
         
         // Check if course is bookmarked
         if (user) {
@@ -287,8 +306,9 @@ export const CourseDetailPage: React.FC = () => {
           isBookmarked: false,
           progress: realProgress,
           currentLesson: undefined,
-          requirements: courseData.Prerequisites || [],
+          requirements: [],
           whatYouWillLearn: courseData.LearningOutcomes || [],
+          prerequisites: courseData.Prerequisites || [],
           sections: courseData.Lessons && courseData.Lessons.length > 0 ? [{
             id: 'section-1',
             title: 'Course Content',
@@ -352,6 +372,10 @@ export const CourseDetailPage: React.FC = () => {
           setError('Instructors cannot enroll in their own courses.');
         } else if (errorData.code === 'COURSE_NOT_PUBLISHED') {
           setError('This course is not available for enrollment at this time.');
+        } else if (errorData.error === 'PREREQUISITES_NOT_MET') {
+          setError(
+            `You must complete these prerequisite courses first: ${errorData.missingPrerequisites?.map((p: any) => p.title).join(', ')}`
+          );
         } else {
           setError(errorData.message || 'Failed to enroll in course. Please try again.');
         }
@@ -711,6 +735,121 @@ export const CourseDetailPage: React.FC = () => {
               )}
             </Paper>
 
+            {/* Prerequisites */}
+            {course.prerequisites && course.prerequisites.length > 0 && (
+              <Paper 
+                elevation={0}
+                sx={{ 
+                  p: 4, 
+                  mb: 4,
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  borderRadius: 3
+                }}
+              >
+                <Typography variant="h5" sx={{ fontWeight: 700, mb: 3 }}>
+                  Prerequisites
+                </Typography>
+                {!user ? (
+                  <Alert severity="info" sx={{ mb: 2 }}>
+                    This course has {course.prerequisites.length} prerequisite course{course.prerequisites.length > 1 ? 's' : ''} that must be completed before enrollment.
+                    <Typography variant="body2" sx={{ mt: 1 }}>
+                      <Link href="/login" sx={{ fontWeight: 600 }}>Log in</Link> to see your progress and enrollment eligibility.
+                    </Typography>
+                  </Alert>
+                ) : loadingPrerequisites ? (
+                  <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+                    <CircularProgress size={32} />
+                  </Box>
+                ) : prerequisiteCheck && prerequisiteCheck.prerequisites ? (
+                  <Box>
+                    {!prerequisiteCheck.canEnroll && !course.isEnrolled && (
+                      <Alert severity="warning" sx={{ mb: 3 }}>
+                        You must complete the following prerequisite courses before enrolling in this course.
+                      </Alert>
+                    )}
+                    {prerequisiteCheck.canEnroll && !course.isEnrolled && (
+                      <Alert severity="success" sx={{ mb: 3 }}>
+                        Great! You've completed all prerequisites and can enroll in this course.
+                      </Alert>
+                    )}
+                    <List sx={{ py: 0 }}>
+                      {prerequisiteCheck.prerequisites.map((prereq) => (
+                        <ListItem 
+                          key={prereq.id}
+                          sx={{ 
+                            px: 0, 
+                            py: 2,
+                            borderBottom: '1px solid',
+                            borderColor: 'divider',
+                            '&:last-child': { borderBottom: 'none' }
+                          }}
+                        >
+                          <ListItemIcon sx={{ minWidth: 40 }}>
+                            {prereq.isCompleted || prereq.progress === 100 ? (
+                              <CheckCircle sx={{ color: 'success.main', fontSize: 28 }} />
+                            ) : prereq.progress > 0 ? (
+                              <HourglassEmpty sx={{ color: 'warning.main', fontSize: 28 }} />
+                            ) : (
+                              <Cancel sx={{ color: 'error.main', fontSize: 28 }} />
+                            )}
+                          </ListItemIcon>
+                          <Box sx={{ flex: 1 }}>
+                            <Link
+                              href={`/courses/${prereq.id}`}
+                              underline="hover"
+                              sx={{ 
+                                fontWeight: 600, 
+                                color: 'text.primary',
+                                '&:hover': { color: 'primary.main' }
+                              }}
+                            >
+                              {prereq.title}
+                            </Link>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
+                              {prereq.isCompleted || prereq.progress === 100 ? (
+                                <Chip 
+                                  label="Completed" 
+                                  size="small" 
+                                  color="success" 
+                                  sx={{ fontWeight: 600 }}
+                                />
+                              ) : prereq.progress > 0 ? (
+                                <>
+                                  <Chip 
+                                    label={`${prereq.progress}% Complete`} 
+                                    size="small" 
+                                    color="warning" 
+                                    sx={{ fontWeight: 600 }}
+                                  />
+                                  <LinearProgress 
+                                    variant="determinate" 
+                                    value={prereq.progress} 
+                                    sx={{ flex: 1, maxWidth: 200, height: 6, borderRadius: 3 }}
+                                  />
+                                </>
+                              ) : (
+                                <Chip 
+                                  label="Not Started" 
+                                  size="small" 
+                                  color="error" 
+                                  sx={{ fontWeight: 600 }}
+                                />
+                              )}
+                            </Box>
+                          </Box>
+                        </ListItem>
+                      ))}
+                    </List>
+                  </Box>
+                ) : (
+                  <Alert severity="info">
+                    This course requires completing {course.prerequisites.length} prerequisite course{course.prerequisites.length > 1 ? 's' : ''} before enrollment.
+                  </Alert>
+                )}
+              </Paper>
+            )}
+
             {/* Course Content */}
             <Paper 
               elevation={0}
@@ -1066,31 +1205,42 @@ export const CourseDetailPage: React.FC = () => {
                     Purchase Course - {formatCurrency(course.price)}
                   </Button>
                 ) : (
-                  <Button
-                    fullWidth
-                    variant="contained"
-                    size="large"
-                    onClick={handleEnroll}
-                    disabled={isEnrolling}
-                    data-testid="course-enroll-button"
-                    sx={{ 
-                      mb: 2,
-                      py: 2,
-                      fontSize: '1.1rem',
-                      fontWeight: 700,
-                      borderRadius: 2,
-                      textTransform: 'none',
-                      background: 'linear-gradient(90deg, #10b981 0%, #059669 100%)',
-                      '&:hover': {
-                        background: 'linear-gradient(90deg, #059669 0%, #047857 100%)',
-                      },
-                      '&.Mui-disabled': {
-                        background: 'rgba(0,0,0,0.12)'
-                      }
-                    }}
+                  <Tooltip 
+                    title={
+                      prerequisiteCheck && !prerequisiteCheck.canEnroll
+                        ? 'Complete all prerequisite courses before enrolling'
+                        : ''
+                    }
+                    arrow
                   >
-                    {isEnrolling ? <CircularProgress size={24} sx={{ color: 'white' }} /> : 'Enroll For Free'}
-                  </Button>
+                    <span>
+                      <Button
+                        fullWidth
+                        variant="contained"
+                        size="large"
+                        onClick={handleEnroll}
+                        disabled={isEnrolling || (prerequisiteCheck ? !prerequisiteCheck.canEnroll : false)}
+                        data-testid="course-enroll-button"
+                        sx={{ 
+                          mb: 2,
+                          py: 2,
+                          fontSize: '1.1rem',
+                          fontWeight: 700,
+                          borderRadius: 2,
+                          textTransform: 'none',
+                          background: 'linear-gradient(90deg, #10b981 0%, #059669 100%)',
+                          '&:hover': {
+                            background: 'linear-gradient(90deg, #059669 0%, #047857 100%)',
+                          },
+                          '&.Mui-disabled': {
+                            background: 'rgba(0,0,0,0.12)'
+                          }
+                        }}
+                      >
+                        {isEnrolling ? <CircularProgress size={24} sx={{ color: 'white' }} /> : 'Enroll For Free'}
+                      </Button>
+                    </span>
+                  </Tooltip>
                 )}
 
                 {/* Action Buttons */}

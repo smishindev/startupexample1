@@ -132,8 +132,13 @@ export interface EnrollmentResponse {
 
 export interface EnrollmentError {
   error: string;
-  code: string;
+  code?: string;
+  message?: string;
   enrollmentId?: string;
+  missingPrerequisites?: Array<{
+    id: string;
+    title: string;
+  }>;
 }
 
 class EnrollmentApi {
@@ -158,9 +163,11 @@ class EnrollmentApi {
       if (error.response?.data) {
         const errorData = error.response.data as EnrollmentError;
         throw new Error(JSON.stringify({
-          message: errorData.error,
+          error: errorData.error,
           code: errorData.code,
+          message: errorData.message,
           enrollmentId: errorData.enrollmentId,
+          missingPrerequisites: errorData.missingPrerequisites,
           status: error.response.status
         }));
       }

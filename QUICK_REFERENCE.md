@@ -1,6 +1,83 @@
 # 🚀 Quick Reference - Development Workflow
 
-**Last Updated**: February 7, 2026 - Code Quality Phase 2 Complete ✅
+**Last Updated**: February 7, 2026 - Course Prerequisites System + Code Quality Phase 2 Complete ✅
+
+---
+
+## 🎓 Course Prerequisites & Learning Outcomes (Added Feb 7, 2026)
+
+**Instructor workflow for setting course prerequisites and learning outcomes**
+
+### Quick Usage - Instructor
+```typescript
+// Navigate to course Settings tab
+import { useNavigate } from 'react-router-dom';
+const navigate = useNavigate();
+navigate(`/instructor/courses/${courseId}/edit?tab=3`);
+
+// CourseSettingsEditor automatically loads
+// 1. Select prerequisite courses (autocomplete)
+// 2. Add learning outcomes (dynamic list)
+// 3. Click Save
+```
+
+### Quick Usage - Student
+```typescript
+// View course with prerequisites
+import { coursesApi } from '@/services/coursesApi';
+
+// Check if student can enroll
+const result = await coursesApi.checkPrerequisites(courseId);
+console.log(result.canEnroll); // boolean
+console.log(result.prerequisites); // Array with completion status
+console.log(result.missingPrerequisites); // Array of courses to complete
+
+// Enroll in course (will fail if prerequisites not met)
+try {
+  await enrollmentApi.enrollInCourse(courseId);
+} catch (error) {
+  // Error message: "You must complete the following prerequisite course(s) before enrolling: [course names]"
+}
+```
+
+### API Endpoints
+```
+GET    /api/instructor/courses              - Returns prerequisites and learningOutcomes arrays
+PUT    /api/instructor/courses/:id          - Accepts prerequisites and learningOutcomes
+GET    /api/courses/:id/check-prerequisites - Returns ALL prerequisites with completion status
+POST   /api/enrollment/courses/:id/enroll   - Validates prerequisites before enrollment (403 if not met)
+```
+
+### Data Format
+```typescript
+// Backend storage (NVARCHAR(MAX) JSON)
+Prerequisites: ["B58FE297-E8D0-4AD5-91F9-EAD985620C00", "A1234567-..."]  
+LearningOutcomes: ["Understand React hooks", "Build full-stack apps", "Deploy to production"]
+
+// Frontend interface
+interface PrerequisiteCheck {
+  canEnroll: boolean;
+  prerequisites: Array<{
+    id: string;
+    title: string;
+    progress: number;       // 0-100
+    isCompleted: boolean;   // true if progress >= 100
+  }>;
+  missingPrerequisites: Array<{ id: string; title: string }>;
+}
+```
+
+### Features
+- **Validation**: Only published courses can be prerequisites (filters deleted/draft)
+- **Circular Prevention**: Current course excluded from prerequisite selection
+- **Completion Tracking**: Shows progress percentage for in-progress courses
+- **User Experience**: Clear error messages, visual indicators (✅⏳❌), disabled enrollment button
+- **Error Handling**: Expected business logic errors don't spam console
+
+### Components
+- **CourseSettingsEditor** (242 lines) - Instructor UI in Settings tab
+- **CourseDetailPage** - Student view with prerequisites display
+- **CoursesPage** - Enhanced error handling for enrollment
 
 ---
 

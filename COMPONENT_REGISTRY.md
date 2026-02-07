@@ -1,7 +1,157 @@
 # Mishin Learn Platform - Component Registry
 
-**Last Updated**: February 7, 2026 - TypeScript Type System Enhanced 📦  
+**Last Updated**: February 7, 2026 - Course Prerequisites System + TypeScript Type System Enhanced 📦  
 **Purpose**: Quick reference for all major components, their dependencies, and relationships
+
+---
+
+## 🎓 Course Prerequisites & Settings Components (Added Feb 7, 2026)
+
+### CourseSettingsEditor
+**Path**: `client/src/components/Instructor/CourseSettingsEditor.tsx` (242 lines)  
+**Purpose**: Instructor UI for managing course prerequisites and learning outcomes
+
+**Features**:
+1. **Prerequisites Management**
+   - Multi-select Autocomplete for choosing prerequisite courses
+   - Filters current course from selection (prevents self-reference)
+   - Loads published courses only
+   - Visual Chip components with delete functionality
+   - React key prop best practices (extracted from spread)
+
+2. **Learning Outcomes Management**
+   - Dynamic list with add/remove buttons
+   - 200 character limit per outcome (inline validation)
+   - Empty outcome prevention
+   - Automatic cleanup of empty entries
+
+3. **Form Management**
+   - Change detection (dirty state tracking)
+   - Save/Cancel buttons with confirmation
+   - Toast notifications (success/error)
+   - Loading states during save
+
+**Component Structure**:
+```tsx
+<Box>
+  {/* Prerequisites Section */}
+  <Autocomplete
+    multiple
+    options={availableCourses}
+    value={prerequisites}
+    onChange={handlePrerequisitesChange}
+    renderTags={(value, getTagProps) => {
+      // Extracts key prop to avoid React warning
+      const { key, ...tagProps } = getTagProps({ index });
+      return <Chip key={key} {...tagProps} />;
+    }}
+  />
+  
+  {/* Learning Outcomes Section */}
+  {learningOutcomes.map((outcome, index) => (
+    <TextField
+      value={outcome}
+      onChange={(e) => handleOutcomeChange(index, e.target.value)}
+      helperText={`${outcome.length}/200`}
+      inputProps={{ maxLength: 200 }}
+    />
+  ))}
+  
+  {/* Action Buttons */}
+  <Button onClick={handleSave}>Save Changes</Button>
+  <Button onClick={handleCancel}>Cancel</Button>
+</Box>
+```
+
+**Props**:
+- `courseId: string` - Current course ID for loading data
+
+**Dependencies**:
+- Material-UI: Autocomplete, TextField, Chip, Button, Box, Typography
+- Services: `instructorApi.getInstructorCourses()`, `instructorApi.updateCourse()`
+- React: useState, useEffect
+
+**API Calls**:
+- GET `/api/instructor/courses?status=published` - Load available prerequisites
+- PUT `/api/instructor/courses/:id` - Save prerequisites and learning outcomes
+
+**State Management**:
+```typescript
+const [prerequisites, setPrerequisites] = useState<InstructorCourse[]>([]);
+const [learningOutcomes, setLearningOutcomes] = useState<string[]>(['']);
+const [availableCourses, setAvailableCourses] = useState<InstructorCourse[]>([]);
+const [hasChanges, setHasChanges] = useState(false);
+const [saving, setSaving] = useState(false);
+```
+
+**Validation Rules**:
+- Prerequisites: Must be array of valid course objects
+- Learning Outcomes: Max 200 chars each, no empty strings
+- Cannot select current course as prerequisite
+- Only published courses available as prerequisites
+
+**Used By**:
+- `CourseEditPage.tsx` (Settings tab - index 3)
+
+**Status**: ✅ Production-ready
+
+---
+
+### CourseDetailPage - Prerequisites Display
+**Path**: `client/src/pages/Course/CourseDetailPage.tsx` (updated lines 255-850)  
+**Purpose**: Student view of course prerequisites with completion tracking
+
+**Prerequisites Section Features**:
+1. **Three UI States**
+   - **Not Logged In**: Info alert with login link
+   - **Prerequisites Incomplete**: Warning alert with missing course list
+   - **Prerequisites Complete**: Success alert with completed course list
+
+2. **Completion Indicators**
+   - ✅ Green checkmark: Course completed
+   - ⏳ Clock icon: Course in progress (with percentage)
+   - ❌ Red X: Not enrolled
+
+3. **Enrollment Control**
+   - Disables enrollment button when prerequisites not met
+   - Shows clear warning message
+   - Links to prerequisite courses
+
+**Component Structure**:
+```tsx
+{prerequisites.length > 0 && (
+  <Paper>
+    <Typography variant="h6">Prerequisites</Typography>
+    {!isAuthenticated ? (
+      <Alert severity="info">
+        Please log in to see your prerequisite status
+      </Alert>
+    ) : canEnroll ? (
+      <Alert severity="success">
+        ✅ All prerequisites completed
+      </Alert>
+    ) : (
+      <Alert severity="warning">
+        Complete these courses before enrolling:
+        <List>
+          {prerequisites.map(prereq => (
+            <ListItem>
+              {prereq.isCompleted ? '✅' : prereq.progress > 0 ? '⏳' : '❌'}
+              {prereq.title} {prereq.progress > 0 && `(${prereq.progress}%)`}
+            </ListItem>
+          ))}
+        </List>
+      </Alert>
+    )}
+  </Paper>
+)}
+```
+
+**API Integration**:
+- GET `/api/courses/:id/check-prerequisites` - Loads prerequisite status
+- Returns: `{ canEnroll: boolean, prerequisites: [...], missingPrerequisites: [...] }`
+
+**Status**: ✅ Production-ready
 
 ---
 

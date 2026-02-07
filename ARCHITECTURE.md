@@ -117,12 +117,13 @@ pending → processing → completed → expired (7 days)
 - Frontend: SettingsPage export UI with status polling
 - Database: DataExportRequests table (14 columns, 3 indexes)
 
-### Instructor Course Management (updated Jan 14, 2026)
+### Instructor Course Management (updated Feb 7, 2026)
 ```
 GET    /api/instructor/courses         - Get instructor's courses with pagination
                                         - Query params: status (all/published/draft), page, limit
                                         - Returns: { courses: [], pagination: {} }
                                         - Level field: lowercase 'level'
+                                        - NOW INCLUDES: Prerequisites and LearningOutcomes arrays
 
 POST   /api/instructor/courses         - Create new course
                                         - Validates & normalizes level to lowercase
@@ -134,11 +135,19 @@ PUT    /api/instructor/courses/:id     - Update course details
                                         - Dynamic updates (only changed fields)
                                         - Normalizes level to lowercase
                                         - Maps category names to database values
+                                        - NOW ACCEPTS: prerequisites[] and learningOutcomes[] arrays
+                                        - Stores as JSON in NVARCHAR(MAX) columns
                                         - Returns: { message, courseId }
 
 GET    /api/instructor/stats           - Get instructor dashboard statistics
 GET    /api/instructor/courses/:id/students - Get students enrolled in course
 ```
+
+**Prerequisites & Learning Outcomes (Added Feb 7, 2026):**
+- **Prerequisites Storage**: NVARCHAR(MAX) JSON array of course IDs
+- **LearningOutcomes Storage**: NVARCHAR(MAX) JSON array of outcome strings
+- **Validation**: Prerequisites must be published courses only
+- **Format**: Backend stores JSON strings, API returns parsed arrays
 
 **Level Field Normalization (Critical Fix - Jan 14, 2026):**
 - **Database**: Stores lowercase (beginner, intermediate, advanced, expert)
@@ -152,6 +161,52 @@ GET    /api/instructor/courses/:id/students - Get students enrolled in course
 - Database stores: 'programming', 'data_science', 'mathematics', etc.
 - Backend maps user-friendly names to database enums
 - 10 valid categories: programming, data_science, design, business, marketing, language, mathematics, science, arts, other
+
+### Enrollment & Prerequisites (updated Feb 7, 2026)
+```
+POST   /api/enrollment/courses/:id/enroll  - Enroll in course
+                                            - Validates prerequisites before enrollment
+                                            - Returns 403 PREREQUISITES_NOT_MET if not completed
+                                            - Error includes: { error, message, missingPrerequisites: [{ id, title }] }
+                                            - Only checks published prerequisites (ignores deleted)
+                                            - Returns 409 if already enrolled
+                                            - Returns 402 if payment required
+
+GET    /api/courses/:id/check-prerequisites - Check prerequisite completion status
+                                            - Returns ALL prerequisites with completion status
+                                            - Returns: { canEnroll, prerequisites[], missingPrerequisites[] }
+                                            - Prerequisites include: id, title, progress, isCompleted
+                                            - Filters published courses only
+                                            - Available to authenticated users
+```
+
+**Prerequisite Validation Flow (Feb 7, 2026):**
+```
+Student clicks Enroll
+  ↓
+POST /api/enrollment/courses/:id/enroll
+  ↓
+1. Check if course has prerequisites (parse JSON from Courses.Prerequisites)
+2. Query CourseProgress for each prerequisite
+   - JOIN Courses ON Id = prerequisiteId
+   - WHERE Status = 'published' (ignore deleted courses)
+   - Calculate progress: SUM(CompletedLessons) / NULLIF(SUM(TotalLessons), 0) * 100
+   - IsCompleted: progress >= 100
+3. Filter incomplete prerequisites
+4. If any missing:
+   - Return 403 with error: "PREREQUISITES_NOT_MET"
+   - Include message: "You must complete prerequisite courses before enrolling in this course"
+   - Include array: missingPrerequisites [{ id, title }]
+5. If all complete:
+   - Proceed with enrollment
+   - Return 200 with enrollment data
+```
+
+**Frontend Error Handling:**
+- EnrollmentError interface includes missingPrerequisites array
+- CoursesPage catches 403 and displays: "You must complete the following prerequisite course(s) before enrolling: [course names]"
+- Expected business logic errors don't spam console
+- Only unexpected technical errors logged
 
 ### Profile Management (added Dec 11, 2025)
 ```

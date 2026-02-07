@@ -245,6 +245,62 @@ router.post('/courses/:courseId/enroll', authenticateToken, async (req: AuthRequ
       });
     }
 
+    // Get course details including prerequisites
+    const courseDetails = await db.query(`
+      SELECT Id, Title, Prerequisites FROM dbo.Courses
+      WHERE Id = @courseId
+    `, { courseId });
+
+    if (courseDetails.length === 0) {
+      return res.status(404).json({ error: 'Course not found' });
+    }
+
+    const courseData = courseDetails[0];
+
+    // Check prerequisites if they exist
+    if (courseData.Prerequisites) {
+      try {
+        const prerequisites = JSON.parse(courseData.Prerequisites);
+        
+        if (Array.isArray(prerequisites) && prerequisites.length > 0) {
+          // Check if user has completed all prerequisite courses
+          const prerequisiteCheck = await db.query(`
+            SELECT 
+              c.Id,
+              c.Title,
+              CASE 
+                WHEN cp.CompletedAt IS NOT NULL THEN 1
+                ELSE 0
+              END as IsCompleted
+            FROM Courses c
+            LEFT JOIN CourseProgress cp ON c.Id = cp.CourseId AND cp.UserId = @userId
+            WHERE c.Id IN (${prerequisites.map((_: any, i: number) => `@prereq${i}`).join(', ')})
+              AND (c.Status = 'published' OR (c.Status IS NULL AND c.IsPublished = 1))
+          `, prerequisites.reduce((acc: any, prereqId: string, i: number) => {
+            acc[`prereq${i}`] = prereqId;
+            return acc;
+          }, { userId }));
+
+          // Only check prerequisites that actually exist (ignore deleted courses)
+          const missingPrerequisites = prerequisiteCheck.filter((p: any) => !p.IsCompleted);
+          
+          if (missingPrerequisites.length > 0) {
+            return res.status(403).json({
+              error: 'PREREQUISITES_NOT_MET',
+              message: 'You must complete prerequisite courses before enrolling in this course',
+              missingPrerequisites: missingPrerequisites.map((p: any) => ({
+                id: p.Id,
+                title: p.Title
+              }))
+            });
+          }
+        }
+      } catch (parseError) {
+        console.error('Failed to parse prerequisites:', parseError);
+        // Continue with enrollment if prerequisites are malformed
+      }
+    }
+
     // Check if already enrolled
     const existingEnrollment = await db.query(`
       SELECT Id, Status FROM dbo.Enrollments

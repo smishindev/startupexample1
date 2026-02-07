@@ -104,8 +104,8 @@ CREATE TABLE dbo.Courses (
     Price DECIMAL(10,2) NOT NULL DEFAULT 0.00,
     Rating DECIMAL(3,2) NOT NULL DEFAULT 0.00,
     EnrollmentCount INT NOT NULL DEFAULT 0,
-    Prerequisites NVARCHAR(MAX) NULL, -- JSON array
-    LearningOutcomes NVARCHAR(MAX) NULL, -- JSON array
+    Prerequisites NVARCHAR(MAX) NULL, -- JSON array of prerequisite course IDs (e.g., ["uuid1", "uuid2"])
+    LearningOutcomes NVARCHAR(MAX) NULL, -- JSON array of learning outcome strings (e.g., ["Understand React", "Build apps"])
     Tags NVARCHAR(MAX) NULL, -- JSON array
     IsPublished BIT NOT NULL DEFAULT 0, -- Kept for backward compatibility
     Status NVARCHAR(20) NOT NULL DEFAULT 'draft' CHECK (Status IN ('draft', 'published', 'archived', 'deleted')),

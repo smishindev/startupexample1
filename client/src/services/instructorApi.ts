@@ -74,6 +74,8 @@ export interface InstructorCourse {
   createdAt: string;
   lastUpdated: string;
   price: number;
+  prerequisites?: string[];
+  learningOutcomes?: string[];
 }
 
 export interface CoursesResponse {
@@ -116,6 +118,8 @@ export interface CourseFormData {
   tags?: string[];
   requirements?: string[];
   whatYouWillLearn?: string[];
+  prerequisites?: string[]; // Course IDs that must be completed first
+  learningOutcomes?: string[]; // What students will learn
   isPublic?: boolean;
   allowComments?: boolean;
   certificateEnabled?: boolean;

@@ -16,7 +16,6 @@ import {
   InputAdornment,
   CircularProgress,
   Alert,
-  Divider,
   Button,
   Dialog,
   DialogTitle,
@@ -34,7 +33,6 @@ import { chatApi } from '../../services/chatApi';
 import { socketService } from '../../services/socketService';
 import { useAuthStore } from '../../stores/authStore';
 import { HeaderV5 as Header } from '../../components/Navigation/HeaderV5';
-import { useSearchParams } from 'react-router-dom';
 import { UserSearchDialog } from '../../components/Chat/UserSearchDialog';
 
 interface ChatRoom {
@@ -72,7 +70,6 @@ interface ChatMessage {
 }
 
 const Chat: React.FC = () => {
-  const [searchParams] = useSearchParams();
   const [rooms, setRooms] = useState<ChatRoom[]>([]);
   const [selectedRoom, setSelectedRoom] = useState<ChatRoom | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -161,7 +158,7 @@ const Chat: React.FC = () => {
     setNewMessage('');
 
     try {
-      const savedMessage = await chatApi.sendMessage(selectedRoom.Id, {
+      await chatApi.sendMessage(selectedRoom.Id, {
         content: messageContent
       });
       
@@ -385,8 +382,6 @@ const Chat: React.FC = () => {
       }
     };
   }, [selectedRoom, user?.id]);
-
-  const userName = user ? `${user.firstName} ${user.lastName}` : 'User';
 
   return (
     <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>

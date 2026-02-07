@@ -87,12 +87,14 @@ interface NotificationPreferences {
   EnableComments: boolean | null;
   EnableReplies: boolean | null;
   EnableMentions: boolean | null;
+  EnableDirectMessages: boolean | null;
   EnableGroupInvites: boolean | null;
   EnableGroupActivity: boolean | null;
   EnableOfficeHours: boolean | null;
   EmailComments: boolean | null;
   EmailReplies: boolean | null;
   EmailMentions: boolean | null;
+  EmailDirectMessages: boolean | null;
   EmailGroupInvites: boolean | null;
   EmailGroupActivity: boolean | null;
   EmailOfficeHours: boolean | null;
@@ -108,12 +110,14 @@ interface NotificationPreferences {
   EnableCertificates: boolean | null;
   EnableSecurityAlerts: boolean | null;
   EnableProfileUpdates: boolean | null;
+  EnableRiskAlerts: boolean | null;
   EmailPaymentConfirmation: boolean | null;
   EmailPaymentReceipt: boolean | null;
   EmailRefundConfirmation: boolean | null;
   EmailCertificates: boolean | null;
   EmailSecurityAlerts: boolean | null;
   EmailProfileUpdates: boolean | null;
+  EmailRiskAlerts: boolean | null;
 }
 
 interface SubcategoryControl {

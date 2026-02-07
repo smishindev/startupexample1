@@ -472,10 +472,9 @@ export const CoursesPage: React.FC = () => {
       
       console.log('Successfully enrolled in course:', courseId);
     } catch (error: any) {
-      console.error('Failed to enroll in course:', error);
-      
       // Handle specific error cases
       let errorMessage = 'Failed to enroll in course. Please try again.';
+      let isExpectedError = false;
       
       try {
         const errorData = JSON.parse(error.message);
@@ -496,9 +495,29 @@ export const CoursesPage: React.FC = () => {
           ));
           loadEnrolledCourses();
           errorMessage = 'You are already enrolled in this course.';
+          isExpectedError = true;
+        }
+        
+        // Handle prerequisites not met
+        if (errorData.error === 'PREREQUISITES_NOT_MET' || errorData.status === 403) {
+          if (errorData.missingPrerequisites && errorData.missingPrerequisites.length > 0) {
+            const prereqList = errorData.missingPrerequisites
+              .map((p: any) => p.title)
+              .join(', ');
+            errorMessage = `You must complete the following prerequisite course(s) before enrolling: ${prereqList}`;
+          } else {
+            errorMessage = errorData.message || 'You must complete prerequisite courses before enrolling in this course.';
+          }
+          isExpectedError = true;
         }
       } catch (parseError) {
         // If we can't parse the error, use the default message
+        console.error('Failed to enroll in course:', error);
+      }
+      
+      // Only log unexpected errors to console
+      if (!isExpectedError) {
+        console.error('Unexpected enrollment error:', error);
       }
       
       setError(errorMessage);

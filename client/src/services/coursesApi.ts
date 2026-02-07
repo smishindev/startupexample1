@@ -89,6 +89,21 @@ export interface EnrollmentStatus {
   message?: string;
 }
 
+export interface PrerequisiteCheck {
+  canEnroll: boolean;
+  prerequisites: {
+    id: string;
+    title: string;
+    thumbnail?: string;
+    progress: number;
+    isCompleted: boolean;
+  }[];
+  missingPrerequisites: {
+    id: string;
+    title: string;
+  }[];
+}
+
 export interface CourseCategory {
   Category: string;
   Count: number;
@@ -154,6 +169,12 @@ class CoursesApi {
     TotalCategories: number;
   }> {
     const response = await api.get('/api/courses/meta/stats');
+    return response.data;
+  }
+
+  // Check if user can enroll (validates prerequisites)
+  async checkPrerequisites(courseId: string): Promise<PrerequisiteCheck> {
+    const response = await api.get(`/api/courses/${courseId}/check-prerequisites`);
     return response.data;
   }
 

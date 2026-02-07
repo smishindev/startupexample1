@@ -23,6 +23,7 @@ import {
 import { instructorApi, InstructorCourse } from '../../services/instructorApi';
 import { CurriculumBuilder } from './CurriculumBuilder';
 import { CourseDetailsEditor } from './CourseDetailsEditor';
+import { CourseSettingsEditor } from '../../components/Instructor/CourseSettingsEditor';
 import { HeaderV5 as Header } from '../../components/Navigation/HeaderV5';
 
 interface TabPanelProps {
@@ -272,15 +273,10 @@ export const CourseEditPage: React.FC = () => {
         </TabPanel>
 
         <TabPanel value={tabValue} index={3}>
-          <Alert severity="info">
-            Advanced course settings coming soon! This will include:
-            <ul>
-              <li>Course prerequisites and requirements</li>
-              <li>Certificate settings</li>
-              <li>Enrollment options and restrictions</li>
-              <li>Advanced visibility and access controls</li>
-            </ul>
-          </Alert>
+          <CourseSettingsEditor 
+            course={course} 
+            onUpdate={loadCourse} 
+          />
         </TabPanel>
       </Paper>
     </Container>

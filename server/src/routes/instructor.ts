@@ -93,6 +93,8 @@ router.get('/courses', authenticateToken, authorize(['instructor', 'admin']), as
         c.EnrollmentCount as students,
         c.CreatedAt as createdAt,
         c.UpdatedAt as updatedAt,
+        c.Prerequisites as prerequisites,
+        c.LearningOutcomes as learningOutcomes,
         COUNT(DISTINCT l.Id) as lessons,
         ISNULL((SELECT SUM(Amount) FROM Transactions WHERE CourseId = c.Id AND Status = 'completed'), 0) as revenue
       FROM Courses c
@@ -116,7 +118,7 @@ router.get('/courses', authenticateToken, authorize(['instructor', 'admin']), as
 
     query += `
       GROUP BY c.Id, c.Title, c.Description, c.Thumbnail, c.Category, c.Level, c.Status, c.IsPublished, c.Price, 
-               c.Rating, c.EnrollmentCount, c.CreatedAt, c.UpdatedAt
+               c.Rating, c.EnrollmentCount, c.CreatedAt, c.UpdatedAt, c.Prerequisites, c.LearningOutcomes
       ORDER BY c.UpdatedAt DESC
       OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY
     `;
@@ -153,13 +155,35 @@ router.get('/courses', authenticateToken, authorize(['instructor', 'admin']), as
         courseStatus = course.isPublished ? 'published' : 'draft';
       }
       
+      // Parse JSON fields
+      let prerequisites: string[] = [];
+      let learningOutcomes: string[] = [];
+      
+      try {
+        if (course.prerequisites) {
+          prerequisites = JSON.parse(course.prerequisites);
+        }
+      } catch (e) {
+        console.error('Failed to parse prerequisites:', e);
+      }
+      
+      try {
+        if (course.learningOutcomes) {
+          learningOutcomes = JSON.parse(course.learningOutcomes);
+        }
+      } catch (e) {
+        console.error('Failed to parse learningOutcomes:', e);
+      }
+      
       const mappedCourse = {
         ...course,
         category: course.category, // Explicitly include category
         level: normalizedLevel, // Normalized level
         status: courseStatus, // Use Status field or convert from IsPublished
         progress: courseStatus === 'draft' ? Math.floor(Math.random() * 100) : 100,
-        lastUpdated: course.updatedAt
+        lastUpdated: course.updatedAt,
+        prerequisites,
+        learningOutcomes
       };
       // Remove uppercase Level if it exists to prevent confusion
       delete mappedCourse.Level;
@@ -377,7 +401,9 @@ router.put('/courses/:id', authenticateToken, authorize(['instructor', 'admin'])
       category,
       level,
       price,
-      thumbnail
+      thumbnail,
+      prerequisites,
+      learningOutcomes
     } = req.body;
 
     // Verify the course exists and belongs to this instructor
@@ -448,6 +474,24 @@ router.put('/courses/:id', authenticateToken, authorize(['instructor', 'admin'])
     if (thumbnail !== undefined) {
       updates.push('Thumbnail = @thumbnail');
       params.thumbnail = thumbnail;
+    }
+    if (prerequisites !== undefined) {
+      // Validate prerequisites is an array and contains valid UUIDs
+      if (!Array.isArray(prerequisites)) {
+        return res.status(400).json({ error: 'Prerequisites must be an array' });
+      }
+      // Store as JSON string
+      updates.push('Prerequisites = @prerequisites');
+      params.prerequisites = JSON.stringify(prerequisites);
+    }
+    if (learningOutcomes !== undefined) {
+      // Validate learningOutcomes is an array of strings
+      if (!Array.isArray(learningOutcomes)) {
+        return res.status(400).json({ error: 'Learning outcomes must be an array' });
+      }
+      // Store as JSON string
+      updates.push('LearningOutcomes = @learningOutcomes');
+      params.learningOutcomes = JSON.stringify(learningOutcomes);
     }
 
     // Always update the UpdatedAt timestamp

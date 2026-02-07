@@ -1,5 +1,4 @@
 import { Course } from '../components/Course/CourseCard';
-import { ShareAnalytics } from './shareAnalytics';
 
 export interface ShareData {
   url: string;
@@ -289,17 +288,12 @@ export class ShareService {
       verificationCode?: string;
     }
   ): void {
-    ShareAnalytics.trackShare({
+    // Track share event (analytics implementation removed)
+    console.log('📊 [Share Analytics] Tracking share:', {
       contentType,
       contentId,
       platform,
-      title: metadata?.title,
-      courseCategory: metadata?.category,
-      courseLevel: metadata?.level,
-      coursePrice: metadata?.price,
-      studentName: metadata?.studentName,
-      completionDate: metadata?.completionDate,
-      verificationCode: metadata?.verificationCode,
+      metadata
     });
   }
 

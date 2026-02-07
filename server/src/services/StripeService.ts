@@ -1,6 +1,8 @@
 import Stripe from 'stripe';
 import { DatabaseService } from './DatabaseService';
 import InvoicePdfService from './InvoicePdfService';
+import { logger } from '../utils/logger';
+import { Transaction } from '../types/database';
 
 /**
  * StripeService - Handles all Stripe payment operations
@@ -29,7 +31,7 @@ export class StripeService {
       typescript: true,
     });
 
-    console.log('✅ Stripe Service initialized');
+    logger.info('✅ Stripe Service initialized');
   }
 
   public static getInstance(): StripeService {
@@ -70,14 +72,14 @@ export class StripeService {
           );
           
           if (existingIntent.status !== 'canceled' && existingIntent.status !== 'succeeded') {
-            console.log(`♻️ Reusing existing payment intent: ${existingIntent.id} for user ${userId}`);
+            logger.info(`♻️ Reusing existing payment intent: ${existingIntent.id} for user ${userId}`);
             return {
               paymentIntent: existingIntent,
               clientSecret: existingIntent.client_secret!,
             };
           }
         } catch (error) {
-          console.warn(`⚠️ Could not retrieve existing payment intent, creating new one`);
+          logger.warn(`⚠️ Could not retrieve existing payment intent, creating new one`);
         }
       }
 
@@ -124,12 +126,12 @@ export class StripeService {
           }
         );
 
-        console.log(`✅ Payment Intent created: ${paymentIntent.id} for user ${userId}, course ${courseId}`);
+        logger.info(`✅ Payment Intent created: ${paymentIntent.id} for user ${userId}, course ${courseId}`);
       } catch (insertError: any) {
         // Check if it's a unique constraint violation (error 2601 or 2627)
         if (insertError.number === 2601 || insertError.number === 2627) {
-          console.log(`⚠️ Duplicate pending transaction detected for user ${userId}, course ${courseId}`);
-          console.log(`🔄 Retrieving existing pending transaction...`);
+          logger.info(`⚠️ Duplicate pending transaction detected for user ${userId}, course ${courseId}`);
+          logger.info(`🔄 Retrieving existing pending transaction...`);
           
           // Query for the existing pending transaction
           const existingPending = await db.query<{ StripePaymentIntentId: string }>(
@@ -144,7 +146,7 @@ export class StripeService {
               existingPending[0].StripePaymentIntentId
             );
             
-            console.log(`♻️ Returning existing payment intent: ${existingIntent.id}`);
+            logger.info(`♻️ Returning existing payment intent: ${existingIntent.id}`);
             return {
               paymentIntent: existingIntent,
               clientSecret: existingIntent.client_secret!,
@@ -161,7 +163,7 @@ export class StripeService {
         clientSecret: paymentIntent.client_secret!,
       };
     } catch (error) {
-      console.error('❌ Error creating payment intent:', error);
+      logger.error('❌ Error creating payment intent:', error);
       throw new Error('Failed to create payment intent');
     }
   }
@@ -194,7 +196,7 @@ export class StripeService {
             return customer as Stripe.Customer;
           }
         } catch (error) {
-          console.warn(`⚠️ Stripe customer ${user.StripeCustomerId} not found, creating new one`);
+          logger.warn(`⚠️ Stripe customer ${user.StripeCustomerId} not found, creating new one`);
         }
       }
 
@@ -213,11 +215,11 @@ export class StripeService {
         { customerId: customer.id, userId }
       );
 
-      console.log(`✅ Created Stripe customer ${customer.id} for user ${userId}`);
+      logger.info(`✅ Created Stripe customer ${customer.id} for user ${userId}`);
 
       return customer;
     } catch (error) {
-      console.error('❌ Error getting/creating customer:', error);
+      logger.error('❌ Error getting/creating customer:', error);
       throw new Error('Failed to get or create Stripe customer');
     }
   }
@@ -264,17 +266,17 @@ export class StripeService {
            VALUES (NEWID(), @userId, @courseId, GETUTCDATE(), 'active')`,
           { userId, courseId }
         );
-        console.log(`✅ Enrollment created for user ${userId}, course ${courseId}`);
+        logger.info(`✅ Enrollment created for user ${userId}, course ${courseId}`);
       } else {
-        console.log(`ℹ️ User ${userId} already enrolled in course ${courseId}, skipping enrollment creation`);
+        logger.info(`ℹ️ User ${userId} already enrolled in course ${courseId}, skipping enrollment creation`);
       }
 
       // Generate invoice (idempotent - checks if invoice already exists)
       await this.generateInvoice(paymentIntent.id);
 
-      console.log(`✅ Payment success processed for payment intent ${paymentIntent.id}`);
+      logger.info(`✅ Payment success processed for payment intent ${paymentIntent.id}`);
     } catch (error) {
-      console.error('❌ Error handling payment success:', error);
+      logger.error('❌ Error handling payment success:', error);
       throw error; // Re-throw to trigger webhook retry
     }
   }
@@ -349,11 +351,11 @@ export class StripeService {
         { userId: transaction.UserId, courseId: transaction.CourseId }
       );
 
-      console.log(`✅ Refund processed: ${refund.id} for transaction ${transactionId}`);
+      logger.info(`✅ Refund processed: ${refund.id} for transaction ${transactionId}`);
 
       return { refund, success: true };
     } catch (error) {
-      console.error('❌ Error processing refund:', error);
+      logger.error('❌ Error processing refund:', error);
       throw new Error('Failed to process refund');
     }
   }
@@ -374,7 +376,7 @@ export class StripeService {
       );
 
       if (existingInvoices.length > 0) {
-        console.log(`ℹ️ Invoice already exists for payment ${paymentIntentId}: ${existingInvoices[0].InvoiceNumber}`);
+        logger.info(`ℹ️ Invoice already exists for payment ${paymentIntentId}: ${existingInvoices[0].InvoiceNumber}`);
         return existingInvoices[0].InvoiceNumber;
       }
 
@@ -487,11 +489,11 @@ export class StripeService {
         }
       );
 
-      console.log(`✅ Invoice generated: ${invoiceNumber} for payment ${paymentIntentId} (PDF: ${pdfUrl})`);
+      logger.info(`✅ Invoice generated: ${invoiceNumber} for payment ${paymentIntentId} (PDF: ${pdfUrl})`);
 
       return invoiceNumber;
     } catch (error) {
-      console.error('❌ Error generating invoice:', error);
+      logger.error('❌ Error generating invoice:', error);
       throw new Error('Failed to generate invoice');
     }
   }
@@ -509,7 +511,7 @@ export class StripeService {
     try {
       return this.stripe.webhooks.constructEvent(payload, signature, webhookSecret);
     } catch (error) {
-      console.error('❌ Webhook signature verification failed:', error);
+      logger.error('❌ Webhook signature verification failed:', error);
       throw new Error('Invalid webhook signature');
     }
   }
@@ -517,7 +519,7 @@ export class StripeService {
   /**
    * Get transaction history for user
    */
-  async getUserTransactions(userId: string): Promise<any[]> {
+  async getUserTransactions(userId: string): Promise<Transaction[]> {
     try {
       const db = DatabaseService.getInstance();
 
@@ -537,7 +539,7 @@ export class StripeService {
 
       return transactions;
     } catch (error) {
-      console.error('❌ Error getting user transactions:', error);
+      logger.error('❌ Error getting user transactions:', error);
       throw new Error('Failed to retrieve transactions');
     }
   }

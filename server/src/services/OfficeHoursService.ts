@@ -2,6 +2,8 @@ import sql from 'mssql';
 import { DatabaseService } from './DatabaseService';
 import { NotificationService } from './NotificationService';
 import { Server as SocketIOServer } from 'socket.io';
+import { logger } from '../utils/logger';
+import { OfficeHoursQueueEntry } from '../types/database';
 
 interface OfficeHoursSchedule {
   Id: string;
@@ -325,7 +327,7 @@ export class OfficeHoursService {
   /**
    * Get current queue for an instructor
    */
-  static async getQueue(instructorId: string): Promise<any[]> {
+  static async getQueue(instructorId: string): Promise<OfficeHoursQueueEntry[]> {
     const db = DatabaseService.getInstance();
 
     const result = await (await db.getRequest())

@@ -4,6 +4,19 @@ import { DatabaseService } from './services/DatabaseService';
 import { LiveSessionService } from './services/LiveSessionService';
 import { PresenceService } from './services/PresenceService';
 import { ChatService } from './services/ChatService';
+import { logger } from './utils/logger';
+import { 
+  JwtPayload, 
+  ChatJoinData, 
+  LiveSessionJoinData, 
+  SessionMessageData, 
+  PresenceUpdateData, 
+  ActivityUpdateData, 
+  StudyGroupData, 
+  OfficeHoursData, 
+  OfficeHoursQueueData, 
+  CommentSubscribeData 
+} from './types/database';
 
 const db = DatabaseService.getInstance();
 
@@ -27,7 +40,7 @@ export const setupSocketHandlers = (io: Server) => {
         return next(new Error('Authentication error'));
       }
 
-      const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
+      const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JwtPayload;
       socket.userId = decoded.userId;
       socket.userEmail = decoded.email;
       next();
@@ -37,20 +50,21 @@ export const setupSocketHandlers = (io: Server) => {
   });
 
   io.on('connection', (socket: AuthenticatedSocket) => {
-    console.log('🟢 [Socket.IO] ===== USER CONNECTED =====');
-    console.log('   - Socket ID:', socket.id);
-    console.log('   - User ID:', socket.userId);
-    console.log('   - User Email:', socket.userEmail);
+    logger.info('🟢 [Socket.IO] ===== USER CONNECTED =====', {
+      socketId: socket.id,
+      userId: socket.userId,
+      userEmail: socket.userEmail
+    });
 
     // Join user to their personal room for direct messages
     if (socket.userId) {
       const userRoom = `user-${socket.userId}`;
       socket.join(userRoom);
-      console.log(`✅ [Socket.IO] User ${socket.userId} joined room: "${userRoom}"`);
+      logger.info(`✅ [Socket.IO] User ${socket.userId} joined room: "${userRoom}"`);
       
       // Set user online presence
       PresenceService.setUserOnline(socket.userId).catch(err => {
-        console.error('Error setting user online:', err);
+        logger.error('Error setting user online:', err);
       });
 
       // Join user to all their enrolled course rooms
@@ -63,9 +77,9 @@ export const setupSocketHandlers = (io: Server) => {
             socket.join(`course-${e.CourseId}`);
           }
         });
-        console.log(`User ${socket.userId} joined ${enrollments.length} course rooms`);
+        logger.info(`User ${socket.userId} joined ${enrollments.length} course rooms`);
       }).catch(err => {
-        console.error('Error joining course rooms:', err);
+        logger.error('Error joining course rooms:', err);
       });
 
       // Join instructor to all their course rooms
@@ -79,15 +93,15 @@ export const setupSocketHandlers = (io: Server) => {
           }
         });
         if (courses.length > 0) {
-          console.log(`Instructor ${socket.userId} joined ${courses.length} course rooms`);
+          logger.info(`Instructor ${socket.userId} joined ${courses.length} course rooms`);
         }
       }).catch(err => {
-        console.error('Error joining instructor course rooms:', err);
+        logger.error('Error joining instructor course rooms:', err);
       });
     }
 
     socket.on('disconnect', async () => {
-      console.log('User disconnected:', socket.id);
+      logger.info('User disconnected:', { socketId: socket.id, userId: socket.userId });
       
       // Don't immediately set user offline on socket disconnect
       // The status (away/busy/online) should persist across page refreshes
@@ -104,10 +118,10 @@ export const setupSocketHandlers = (io: Server) => {
               status: existing.Status, // Keep existing status
               activity: existing.Activity || undefined
             });
-            console.log('[PRESENCE] Socket disconnected, preserving status:', existing.Status);
+            logger.info('[PRESENCE] Socket disconnected, preserving status:', { status: existing.Status, userId: socket.userId });
           }
         } catch (err) {
-          console.error('Error updating LastSeenAt on disconnect:', err);
+          logger.error('Error updating LastSeenAt on disconnect:', err);
         }
       }
     });
@@ -117,7 +131,8 @@ export const setupSocketHandlers = (io: Server) => {
     // ========================================
 
     // Join chat room
-    socket.on('chat:join-room', async (roomId: string) => {
+    socket.on('chat:join-room', async (data: ChatJoinData | string) => {
+      const roomId = typeof data === 'string' ? data : data.roomId;
       try {
         if (!socket.userId) {
           socket.emit('chat:error', { message: 'User not authenticated' });
@@ -137,7 +152,7 @@ export const setupSocketHandlers = (io: Server) => {
 
         const chatRoomName = `chat-room-${roomId}`;
         socket.join(chatRoomName);
-        console.log(`✅ [Chat] User ${socket.userId} joined chat room ${roomId}`);
+        logger.info(`✅ [Chat] User ${socket.userId} joined chat room ${roomId}`);
 
         // Notify other participants
         socket.to(chatRoomName).emit('chat:user-joined', {
@@ -146,16 +161,17 @@ export const setupSocketHandlers = (io: Server) => {
           timestamp: new Date().toISOString()
         });
       } catch (error) {
-        console.error('Error joining chat room:', error);
+        logger.error('Error joining chat room:', error);
         socket.emit('chat:error', { message: 'Failed to join room' });
       }
     });
 
     // Leave chat room
-    socket.on('chat:leave-room', (roomId: string) => {
+    socket.on('chat:leave-room', (data: ChatJoinData | string) => {
+      const roomId = typeof data === 'string' ? data : data.roomId;
       const chatRoomName = `chat-room-${roomId}`;
       socket.leave(chatRoomName);
-      console.log(`👋 [Chat] User ${socket.userId} left chat room ${roomId}`);
+      logger.info(`👋 [Chat] User ${socket.userId} left chat room ${roomId}`);
 
       // Notify other participants
       socket.to(chatRoomName).emit('chat:user-left', {
@@ -187,7 +203,7 @@ export const setupSocketHandlers = (io: Server) => {
     // ========================================
 
     // Join a live session room
-    socket.on('join-live-session', async (data: { sessionId: string }) => {
+    socket.on('join-live-session', async (data: LiveSessionJoinData) => {
       try {
         if (!socket.userId) {
           socket.emit('error', { message: 'User not authenticated' });
@@ -221,15 +237,15 @@ export const setupSocketHandlers = (io: Server) => {
           message: 'Successfully joined live session'
         });
 
-        console.log(`User ${socket.userId} joined live session ${data.sessionId}`);
+        logger.info(`User ${socket.userId} joined live session ${data.sessionId}`);
       } catch (error) {
-        console.error('Error joining live session:', error);
+        logger.error('Error joining live session:', error);
         socket.emit('error', { message: 'Failed to join live session' });
       }
     });
 
     // Leave a live session room
-    socket.on('leave-live-session', (data: { sessionId: string }) => {
+    socket.on('leave-live-session', (data: LiveSessionJoinData) => {
       socket.leave(`session-${data.sessionId}`);
       
       // Broadcast to others that someone left
@@ -240,15 +256,11 @@ export const setupSocketHandlers = (io: Server) => {
       });
 
       socket.emit('left-live-session', { sessionId: data.sessionId });
-      console.log(`User ${socket.userId} left live session ${data.sessionId}`);
+      logger.info(`User ${socket.userId} left live session ${data.sessionId}`);
     });
 
     // Send a message in a live session
-    socket.on('session-message', async (data: {
-      sessionId: string;
-      content: string;
-      messageType?: 'text' | 'question' | 'poll';
-    }) => {
+    socket.on('session-message', async (data: SessionMessageData) => {
       try {
         // Get user info
         const userInfo = await db.query(`
@@ -271,9 +283,9 @@ export const setupSocketHandlers = (io: Server) => {
 
         // Broadcast to all in session (including sender for confirmation)
         io.to(`session-${data.sessionId}`).emit('session-new-message', messageData);
-        console.log(`Broadcasting session message to session ${data.sessionId}`);
+        logger.info(`Broadcasting session message to session ${data.sessionId}`);
       } catch (error) {
-        console.error('Error broadcasting session message:', error);
+        logger.error('Error broadcasting session message:', error);
         socket.emit('error', { message: 'Failed to send message' });
       }
     });
@@ -299,10 +311,7 @@ export const setupSocketHandlers = (io: Server) => {
     // ========================================
 
     // Update user presence status
-    socket.on('update-presence', async (data: {
-      status: 'online' | 'offline' | 'away' | 'busy';
-      activity?: string;
-    }) => {
+    socket.on('update-presence', async (data: PresenceUpdateData) => {
       try {
         if (!socket.userId) {
           socket.emit('error', { message: 'User not authenticated' });
@@ -320,7 +329,7 @@ export const setupSocketHandlers = (io: Server) => {
           activity: data.activity 
         });
       } catch (error) {
-        console.error('Error updating presence:', error);
+        logger.error('Error updating presence:', error);
         socket.emit('error', { message: 'Failed to update presence' });
       }
     });
@@ -332,12 +341,12 @@ export const setupSocketHandlers = (io: Server) => {
           await PresenceService.updateLastSeen(socket.userId);
         }
       } catch (error) {
-        console.error('Error processing heartbeat:', error);
+        logger.error('Error processing heartbeat:', error);
       }
     });
 
     // Update activity without changing status
-    socket.on('update-activity', async (data: { activity: string }) => {
+    socket.on('update-activity', async (data: ActivityUpdateData) => {
       try {
         if (!socket.userId) {
           socket.emit('error', { message: 'User not authenticated' });
@@ -347,7 +356,7 @@ export const setupSocketHandlers = (io: Server) => {
         await PresenceService.updateActivity(socket.userId, data.activity);
         socket.emit('activity-updated', { activity: data.activity });
       } catch (error) {
-        console.error('Error updating activity:', error);
+        logger.error('Error updating activity:', error);
         socket.emit('error', { message: 'Failed to update activity' });
       }
     });
@@ -357,17 +366,17 @@ export const setupSocketHandlers = (io: Server) => {
     // ========================================
 
     // Join a study group room (for real-time updates, does NOT mean joining as a member)
-    socket.on('join-study-group', (data: { groupId: string }) => {
+    socket.on('join-study-group', (data: StudyGroupData) => {
       socket.join(`study-group-${data.groupId}`);
       // Do NOT emit member-joined - that's only for actual group membership changes
-      console.log(`User ${socket.userId} joined study group room ${data.groupId} (socket only)`);
+      logger.info(`User ${socket.userId} joined study group room ${data.groupId} (socket only)`);
     });
 
     // Leave a study group room (socket only, does NOT mean leaving as a member)
-    socket.on('leave-study-group', (data: { groupId: string }) => {
+    socket.on('leave-study-group', (data: StudyGroupData) => {
       socket.leave(`study-group-${data.groupId}`);
       // Do NOT emit member-left - that's only for actual group membership changes
-      console.log(`User ${socket.userId} left study group room ${data.groupId} (socket only)`);
+      logger.info(`User ${socket.userId} left study group room ${data.groupId} (socket only)`);
     });
 
     // ========================================
@@ -375,22 +384,19 @@ export const setupSocketHandlers = (io: Server) => {
     // ========================================
 
     // Instructor joins office hours room (to receive queue updates)
-    socket.on('join-office-hours', (data: { instructorId: string }) => {
+    socket.on('join-office-hours', (data: OfficeHoursData) => {
       socket.join(`office-hours-${data.instructorId}`);
-      console.log(`Instructor ${socket.userId} joined office hours room ${data.instructorId}`);
+      logger.info(`Instructor ${socket.userId} joined office hours room ${data.instructorId}`);
     });
 
     // Instructor leaves office hours room
-    socket.on('leave-office-hours', (data: { instructorId: string }) => {
+    socket.on('leave-office-hours', (data: OfficeHoursData) => {
       socket.leave(`office-hours-${data.instructorId}`);
-      console.log(`Instructor ${socket.userId} left office hours room ${data.instructorId}`);
+      logger.info(`Instructor ${socket.userId} left office hours room ${data.instructorId}`);
     });
 
     // Join office hours queue
-    socket.on('join-office-hours-queue', (data: { 
-      instructorId: string;
-      queueId: string;
-    }) => {
+    socket.on('join-office-hours-queue', (data: OfficeHoursQueueData) => {
       // Join instructor's office hours room to get updates
       socket.join(`office-hours-${data.instructorId}`);
       
@@ -406,14 +412,11 @@ export const setupSocketHandlers = (io: Server) => {
         queueId: data.queueId
       });
       
-      console.log(`User ${socket.userId} joined office hours queue for instructor ${data.instructorId}`);
+      logger.info(`User ${socket.userId} joined office hours queue for instructor ${data.instructorId}`);
     });
 
     // Leave office hours queue
-    socket.on('leave-office-hours-queue', (data: { 
-      instructorId: string;
-      queueId: string;
-    }) => {
+    socket.on('leave-office-hours-queue', (data: OfficeHoursQueueData) => {
       socket.leave(`office-hours-${data.instructorId}`);
       
       // Notify instructor
@@ -427,7 +430,7 @@ export const setupSocketHandlers = (io: Server) => {
         instructorId: data.instructorId 
       });
       
-      console.log(`User ${socket.userId} left office hours queue for instructor ${data.instructorId}`);
+      logger.info(`User ${socket.userId} left office hours queue for instructor ${data.instructorId}`);
     });
 
     // ========================================
@@ -435,17 +438,17 @@ export const setupSocketHandlers = (io: Server) => {
     // ========================================
 
     // Subscribe to comments for an entity (lesson, course, etc.)
-    socket.on('comment:subscribe', (data: { entityType: string; entityId: string }) => {
+    socket.on('comment:subscribe', (data: CommentSubscribeData) => {
       const room = `comments:${data.entityType}:${data.entityId}`;
       socket.join(room);
-      console.log(`📝 [Socket.IO] User ${socket.userId} subscribed to comments: ${room}`);
+      logger.info(`📝 [Socket.IO] User ${socket.userId} subscribed to comments: ${room}`);
     });
 
     // Unsubscribe from comments for an entity
-    socket.on('comment:unsubscribe', (data: { entityType: string; entityId: string }) => {
+    socket.on('comment:unsubscribe', (data: CommentSubscribeData) => {
       const room = `comments:${data.entityType}:${data.entityId}`;
       socket.leave(room);
-      console.log(`📝 [Socket.IO] User ${socket.userId} unsubscribed from comments: ${room}`);
+      logger.info(`📝 [Socket.IO] User ${socket.userId} unsubscribed from comments: ${room}`);
     });
 
     // Note: comment:created, comment:updated, comment:deleted, comment:liked

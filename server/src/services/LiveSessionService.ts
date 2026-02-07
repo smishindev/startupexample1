@@ -1,6 +1,7 @@
 import sql from 'mssql';
 import { DatabaseService } from './DatabaseService';
 import { Server as SocketIOServer } from 'socket.io';
+import { LiveSessionDB, LiveSessionMaterial } from '../types/database';
 
 interface CreateSessionParams {
   title: string;
@@ -11,7 +12,7 @@ interface CreateSessionParams {
   duration?: number;
   capacity?: number;
   streamUrl?: string;
-  materials?: any[];
+  materials?: LiveSessionMaterial[];
 }
 
 interface LiveSession {
@@ -111,7 +112,7 @@ export class LiveSessionService {
       duration?: number;
       capacity?: number;
       streamUrl?: string;
-      materials?: any[];
+      materials?: LiveSessionMaterial[];
     }
   ): Promise<LiveSession> {
     const db = DatabaseService.getInstance();

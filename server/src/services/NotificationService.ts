@@ -3,6 +3,7 @@ import { DatabaseService } from './DatabaseService';
 import { Server } from 'socket.io';
 import EmailService from './EmailService';
 import EmailDigestService from './EmailDigestService';
+import { logger } from '../utils/logger';
 
 export interface CreateNotificationParams {
   userId: string;
@@ -158,13 +159,13 @@ export class NotificationService {
       // Use legacy checking for backwards compatibility
       // TODO: Update all triggers to use new NotificationCheckParams format
       if (!this.shouldSendNotificationLegacy(params.type, preferences)) {
-        console.log(`📵 Notification skipped for user ${params.userId} - type ${params.type} disabled in preferences`);
+        logger.info(`📵 Notification skipped for user ${params.userId} - type ${params.type} disabled in preferences`);
         return '';
       }
 
       // Check quiet hours
       if (this.isInQuietHours(preferences)) {
-        console.log(`🔕 Notification delayed for user ${params.userId} - quiet hours active`);
+        logger.info(`🔕 Notification delayed for user ${params.userId} - quiet hours active`);
         // Queue notification for later delivery
         return await this.queueNotification(params);
       }
@@ -195,7 +196,7 @@ export class NotificationService {
         `);
 
       const notificationId = result.recordset[0].Id;
-      console.log(`✅ Notification created: ${notificationId} for user ${params.userId}`);
+      logger.info(`✅ Notification created: ${notificationId} for user ${params.userId}`);
       
       // Emit real-time notification via Socket.io
       if (this.io) {
@@ -209,16 +210,16 @@ export class NotificationService {
           actionUrl: params.actionUrl,
           actionText: params.actionText
         });
-        console.log(`📡 Real-time notification sent to user-${params.userId}`);
+        logger.info(`📡 Real-time notification sent to user-${params.userId}`);
       } else {
-        console.warn(`⚠️ Socket.IO not available - notification ${notificationId} created in DB but NOT sent in real-time to user ${params.userId}`);
+        logger.warn(`⚠️ Socket.IO not available - notification ${notificationId} created in DB but NOT sent in real-time to user ${params.userId}`);
       }
 
       // Handle email notifications based on frequency preference
       if (preferences.EnableEmailNotifications) {
         if (preferences.EmailDigestFrequency === 'realtime') {
           // Send email immediately
-          console.log(`📧 Sending realtime email notification to user ${params.userId}`);
+          logger.info(`📧 Sending realtime email notification to user ${params.userId}`);
           this.sendEmailNotification(params.userId, {
             id: notificationId,
             type: params.type,
@@ -232,20 +233,20 @@ export class NotificationService {
           });
         } else if (preferences.EmailDigestFrequency === 'daily' || preferences.EmailDigestFrequency === 'weekly') {
           // Add to digest queue
-          console.log(`📬 Adding notification to ${preferences.EmailDigestFrequency} digest for user ${params.userId}`);
+          logger.info(`📬 Adding notification to ${preferences.EmailDigestFrequency} digest for user ${params.userId}`);
           EmailDigestService.addToDigest(
             params.userId,
             notificationId,
             preferences.EmailDigestFrequency as 'daily' | 'weekly'
           ).catch(error => {
-            console.error(`❌ Failed to add to digest: ${error.message}`);
+            logger.error(`❌ Failed to add to digest: ${error.message}`);
           });
         }
       }
       
       return notificationId;
     } catch (error) {
-      console.error('❌ Error creating notification:', error);
+      logger.error('❌ Error creating notification:', error);
       throw error;
     }
   }
@@ -271,15 +272,15 @@ export class NotificationService {
       const shouldSendEmail = this.shouldSendNotification({ ...checkParams, checkEmail: true }, preferences);
       
       if (!shouldSendInApp && !shouldSendEmail) {
-        console.log(`📵 Notification completely blocked for user ${params.userId} - both in-app and email disabled`);
+        logger.info(`📵 Notification completely blocked for user ${params.userId} - both in-app and email disabled`);
         return '';
       }
 
-      console.log(`✅ Notification allowed for user ${params.userId} - InApp: ${shouldSendInApp}, Email: ${shouldSendEmail}`);
+      logger.info(`✅ Notification allowed for user ${params.userId} - InApp: ${shouldSendInApp}, Email: ${shouldSendEmail}`);
 
       // Check quiet hours (only affects in-app notifications)
       if (shouldSendInApp && this.isInQuietHours(preferences)) {
-        console.log(`🔕 In-app notification delayed for user ${params.userId} - quiet hours active`);
+        logger.info(`🔕 In-app notification delayed for user ${params.userId} - quiet hours active`);
         // Queue notification for later delivery
         return await this.queueNotification(params);
       }
@@ -287,11 +288,11 @@ export class NotificationService {
       // Only create notification in database if in-app notifications are enabled
       // This prevents disabled notifications from appearing in the notification center/bell
       if (!shouldSendInApp) {
-        console.log(`📵 In-app notification disabled for user ${params.userId} - skipping DB record creation`);
+        logger.info(`📵 In-app notification disabled for user ${params.userId} - skipping DB record creation`);
         
         // If email is enabled, send it directly without creating notification record
         if (shouldSendEmail && preferences.EmailDigestFrequency === 'realtime') {
-          console.log(`📧 Sending email-only notification (realtime) for user ${params.userId}`);
+          logger.info(`📧 Sending email-only notification (realtime) for user ${params.userId}`);
           this.sendEmailNotification(params.userId, {
             id: 'email-only',
             type: params.type,
@@ -301,7 +302,7 @@ export class NotificationService {
             actionUrl: params.actionUrl,
             actionText: params.actionText
           }).catch(error => {
-            console.error(`❌ Failed to send email notification: ${error.message}`);
+            logger.error(`❌ Failed to send email notification: ${error.message}`);
           });
         }
         
@@ -335,23 +336,23 @@ export class NotificationService {
         `);
 
       const notificationId = result.recordset[0].Id;
-      console.log(`✅ Notification created in DB: ${notificationId} for user ${params.userId}`);
+      logger.info(`✅ Notification created in DB: ${notificationId} for user ${params.userId}`);
 
       // Emit real-time notification via Socket.io
       if (this.io) {
         const roomName = `user-${params.userId}`;
         const socketsInRoom = await this.io.in(roomName).fetchSockets();
-        console.log(`🔍 [NotificationService] ===== SOCKET EMIT ATTEMPT =====`);
-        console.log(`   - Target room: "${roomName}"`);
-        console.log(`   - User ID: ${params.userId}`);
-        console.log(`   - Sockets in room: ${socketsInRoom.length}`);
-        console.log(`   - Notification type: ${params.type}`);
-        console.log(`   - Notification title: "${params.title}"`);
+        logger.info(`🔍 [NotificationService] ===== SOCKET EMIT ATTEMPT =====`);
+        logger.info(`   - Target room: "${roomName}"`);
+        logger.info(`   - User ID: ${params.userId}`);
+        logger.info(`   - Sockets in room: ${socketsInRoom.length}`);
+        logger.info(`   - Notification type: ${params.type}`);
+        logger.info(`   - Notification title: "${params.title}"`);
         
         if (socketsInRoom.length > 0) {
-          console.log(`   - Connected socket IDs: ${socketsInRoom.map(s => s.id).join(', ')}`);
+          logger.info(`   - Connected socket IDs: ${socketsInRoom.map(s => s.id).join(', ')}`);
         } else {
-          console.log(`   ⚠️  NO ACTIVE SOCKETS - user may not be connected`);
+          logger.info(`   ⚠️  NO ACTIVE SOCKETS - user may not be connected`);
         }
         
         this.io.to(roomName).emit('notification-created', {
@@ -365,15 +366,15 @@ export class NotificationService {
           actionText: params.actionText,
           createdAt: new Date().toISOString()
         });
-        console.log(`✅ [NotificationService] Socket event "notification-created" emitted to ${roomName}`);
+        logger.info(`✅ [NotificationService] Socket event "notification-created" emitted to ${roomName}`);
       } else {
-        console.warn(`⚠️ Socket.IO not available in NotificationService - notification ${notificationId} created in DB but NOT sent in real-time to user ${params.userId}`);
+        logger.warn(`⚠️ Socket.IO not available in NotificationService - notification ${notificationId} created in DB but NOT sent in real-time to user ${params.userId}`);
       }
 
       // Send email if enabled
       if (shouldSendEmail) {
         if (preferences.EmailDigestFrequency === 'realtime') {
-          console.log(`📧 Sending realtime email to user ${params.userId}`);
+          logger.info(`📧 Sending realtime email to user ${params.userId}`);
           this.sendEmailNotification(params.userId, {
             id: notificationId || 'email-only',
             type: params.type,
@@ -388,23 +389,23 @@ export class NotificationService {
         } else if (preferences.EmailDigestFrequency === 'daily' || preferences.EmailDigestFrequency === 'weekly') {
           // Only add to digest if we created a notification record
           if (notificationId) {
-            console.log(`📧 Adding notification ${notificationId} to ${preferences.EmailDigestFrequency} digest`);
+            logger.info(`📧 Adding notification ${notificationId} to ${preferences.EmailDigestFrequency} digest`);
             EmailDigestService.addToDigest(
               params.userId,
               notificationId,
               preferences.EmailDigestFrequency as 'daily' | 'weekly'
             ).catch(error => {
-              console.error(`❌ Failed to add to digest: ${error.message}`);
+              logger.error(`❌ Failed to add to digest: ${error.message}`);
             });
           } else {
-            console.log(`⚠️ Skipping digest - notification not created (in-app disabled)`);
+            logger.info(`⚠️ Skipping digest - notification not created (in-app disabled)`);
           }
         }
       }
 
       return notificationId;
     } catch (error) {
-      console.error('❌ Error creating notification with controls:', error);
+      logger.error('❌ Error creating notification with controls:', error);
       return '';
     }
   }
@@ -427,7 +428,7 @@ export class NotificationService {
       // Check if in-app notifications are enabled for this user
       const preferences = await this.getUserPreferences(userId);
       if (!preferences.EnableInAppNotifications) {
-        console.log(`📵 getUserNotifications: In-app notifications disabled for user ${userId}, returning empty array`);
+        logger.info(`📵 getUserNotifications: In-app notifications disabled for user ${userId}, returning empty array`);
         return [];
       }
 
@@ -480,7 +481,7 @@ export class NotificationService {
         ExpiresAt: record.ExpiresAt === 'Z' ? null : record.ExpiresAt
       }));
     } catch (error) {
-      console.error('❌ Error fetching user notifications:', error);
+      logger.error('❌ Error fetching user notifications:', error);
       throw error;
     }
   }
@@ -497,7 +498,7 @@ export class NotificationService {
       // Check if in-app notifications are enabled for this user
       const preferences = await this.getUserPreferences(userId);
       if (!preferences.EnableInAppNotifications) {
-        console.log(`📵 getUnreadCount: In-app notifications disabled for user ${userId}, returning 0`);
+        logger.info(`📵 getUnreadCount: In-app notifications disabled for user ${userId}, returning 0`);
         return 0;
       }
 
@@ -514,7 +515,7 @@ export class NotificationService {
 
       return result.recordset[0].UnreadCount;
     } catch (error) {
-      console.error('❌ Error getting unread count:', error);
+      logger.error('❌ Error getting unread count:', error);
       throw error;
     }
   }
@@ -540,7 +541,7 @@ export class NotificationService {
       }
       return success;
     } catch (error) {
-      console.error('❌ Error marking notification as read:', error);
+      logger.error('❌ Error marking notification as read:', error);
       throw error;
     }
   }
@@ -565,7 +566,7 @@ export class NotificationService {
       }
       return count;
     } catch (error) {
-      console.error('❌ Error marking all notifications as read:', error);
+      logger.error('❌ Error marking all notifications as read:', error);
       throw error;
     }
   }

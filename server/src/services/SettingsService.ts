@@ -1,5 +1,7 @@
 import sql from 'mssql';
 import { DatabaseService } from './DatabaseService';
+import { logger } from '../utils/logger';
+import { FilteredUser } from '../types/database';
 
 export interface UserSettings {
   Id: string;
@@ -23,19 +25,6 @@ export interface UpdateSettingsParams {
   theme?: 'light' | 'dark' | 'auto';
   language?: 'en' | 'es' | 'fr' | 'de' | 'zh';
   fontSize?: 'small' | 'medium' | 'large';
-}
-
-export interface FilteredUser {
-  Id: string;
-  FirstName: string;
-  LastName: string;
-  Username?: string;
-  Email?: string | null;
-  Avatar?: string;
-  Role?: string;
-  LearningStyle?: string;
-  CreatedAt?: Date;
-  [key: string]: any;
 }
 
 export interface VisibilityCheckResult {

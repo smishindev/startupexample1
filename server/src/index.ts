@@ -51,6 +51,7 @@ import { DatabaseService } from './services/DatabaseService';
 import { setupSocketHandlers } from './sockets';
 import { logger } from './utils/logger';
 import { initializeScheduler } from './services/NotificationScheduler';
+import { stopCsrfCleanup } from './middleware/csrf';
 
 const app = express();
 const server = createServer(app);
@@ -112,7 +113,7 @@ app.get('/uploads/*', async (req, res, next) => {
   const requestedPath = req.path.replace('/uploads/', '');
   const filePath = path.join(__dirname, '../../uploads', requestedPath);
   
-  console.log('[UPLOADS] Request for:', requestedPath, 'Range:', req.headers.range);
+  logger.info('[UPLOADS] Request for:', { path: requestedPath, range: req.headers.range });
   
   // Set CORS headers BEFORE sending response
   res.setHeader('Access-Control-Allow-Origin', 'http://localhost:5173');
@@ -138,8 +139,8 @@ app.get('/uploads/*', async (req, res, next) => {
       res.setHeader('Content-Type', 'video/mp4');
       res.status(206);
       
-      console.log('[UPLOADS] Serving range:', start, '-', end, '/', fileSize);
-      console.log('[UPLOADS] Response headers:', res.getHeaders());
+      logger.info('[UPLOADS] Serving range:', { start, end, fileSize });
+      logger.debug('[UPLOADS] Response headers:', res.getHeaders());
       
       const fileStream = fs.createReadStream(filePath, { start, end });
       fileStream.pipe(res);
@@ -147,13 +148,13 @@ app.get('/uploads/*', async (req, res, next) => {
       res.setHeader('Content-Length', fileSize);
       res.setHeader('Content-Type', 'video/mp4');
       
-      console.log('[UPLOADS] Serving full file:', fileSize, 'bytes');
+      logger.info('[UPLOADS] Serving full file:', { fileSize });
       
       const fileStream = fs.createReadStream(filePath);
       fileStream.pipe(res);
     }
   } catch (err) {
-    console.error('[UPLOADS] File send error:', err);
+    logger.error('[UPLOADS] File send error:', err);
     res.status(404).json({ error: 'File not found' });
   }
 });
@@ -253,7 +254,7 @@ setupSocketHandlers(io);
 // Schedule notification queue processing every 5 minutes
 cron.schedule('*/5 * * * *', async () => {
   try {
-    console.log('⏰ [CRON] Running scheduled notification queue processing...');
+    logger.info('⏰ [CRON] Running scheduled notification queue processing...');
     const notificationService = new NotificationService(io);
     
     // Process queued notifications (quiet hours ended)
@@ -263,59 +264,63 @@ cron.schedule('*/5 * * * *', async () => {
     const expired = await notificationService.cleanupExpiredQueue();
     
     // Always log the result
-    console.log(`✅ [CRON] Queue processing complete: ${processed} delivered, ${expired} expired`);
+    logger.info(`✅ [CRON] Queue processing complete: ${processed} delivered, ${expired} expired`);
   } catch (error) {
-    console.error('❌ [CRON] Error in notification queue processing:', error);
+    logger.error('❌ [CRON] Error in notification queue processing:', error);
   }
 });
 
-console.log('✅ Notification queue processor scheduled (every 5 minutes)');
+logger.info('✅ Notification queue processor scheduled (every 5 minutes)');
 
 // Schedule daily digest sending at 8 AM every day
 cron.schedule('0 8 * * *', async () => {
   try {
-    console.log('⏰ [CRON] Running daily digest sending (8 AM)...');
+    logger.info('⏰ [CRON] Running daily digest sending (8 AM)...');
     const EmailDigestService = (await import('./services/EmailDigestService')).default;
     
     const sent = await EmailDigestService.sendDailyDigests();
     
     if (sent > 0) {
-      console.log(`✅ [CRON] Daily digests sent: ${sent} users`);
+      logger.info(`✅ [CRON] Daily digests sent: ${sent} users`);
     }
     
     // Clean up old digests
     const cleaned = await EmailDigestService.cleanupOldDigests();
     if (cleaned > 0) {
-      console.log(`🧹 [CRON] Cleaned up ${cleaned} old digest entries`);
+      logger.info(`🧹 [CRON] Cleaned up ${cleaned} old digest entries`);
     }
   } catch (error) {
-    console.error('❌ [CRON] Error in daily digest sending:', error);
+    logger.error('❌ [CRON] Error in daily digest sending:', error);
   }
 });
 
-console.log('✅ Daily digest scheduler active (8 AM daily)');
+logger.info('✅ Daily digest scheduler active (8 AM daily)');
 
 // Schedule weekly digest sending at 8 AM every Monday
 cron.schedule('0 8 * * 1', async () => {
   try {
-    console.log('⏰ [CRON] Running weekly digest sending (Monday 8 AM)...');
+    logger.info('⏰ [CRON] Running weekly digest sending (Monday 8 AM)...');
     const EmailDigestService = (await import('./services/EmailDigestService')).default;
     
     const sent = await EmailDigestService.sendWeeklyDigests();
     
     if (sent > 0) {
-      console.log(`✅ [CRON] Weekly digests sent: ${sent} users`);
+      logger.info(`✅ [CRON] Weekly digests sent: ${sent} users`);
     }
   } catch (error) {
-    console.error('❌ [CRON] Error in weekly digest sending:', error);
+    logger.error('❌ [CRON] Error in weekly digest sending:', error);
   }
 });
 
-console.log('✅ Weekly digest scheduler active (Monday 8 AM)');
+logger.info('✅ Weekly digest scheduler active (Monday 8 AM)');
 
-// Graceful shutdown
+// Graceful shutdown handlers
 process.on('SIGTERM', async () => {
   logger.info('SIGTERM received, shutting down gracefully');
+  
+  // Stop scheduled jobs and cleanup
+  stopCsrfCleanup();
+  PresenceService.stopPresenceMonitoring();
   
   server.close(() => {
     logger.info('Process terminated');
@@ -325,6 +330,10 @@ process.on('SIGTERM', async () => {
 
 process.on('SIGINT', async () => {
   logger.info('SIGINT received, shutting down gracefully');
+  
+  // Stop scheduled jobs and cleanup
+  stopCsrfCleanup();
+  PresenceService.stopPresenceMonitoring();
   
   server.close(() => {
     logger.info('Process terminated');

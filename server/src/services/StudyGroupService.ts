@@ -1,6 +1,7 @@
 import sql from 'mssql';
 import { DatabaseService } from './DatabaseService';
 import { Server as SocketIOServer } from 'socket.io';
+import { StudyGroupWithMembership, StudyGroupMembershipInfo } from '../types/database';
 
 interface StudyGroup {
   Id: string;
@@ -430,7 +431,7 @@ export class StudyGroupService {
   /**
    * Enrich groups with membership info for a specific user
    */
-  static async enrichGroupsWithMembership(groups: any[], userId: string): Promise<any[]> {
+  static async enrichGroupsWithMembership(groups: any[], userId: string): Promise<StudyGroupWithMembership[]> {
     const db = DatabaseService.getInstance();
     
     if (groups.length === 0) return groups;
@@ -453,7 +454,7 @@ export class StudyGroupService {
     `);
 
     const membershipMap = new Map(
-      membershipResult.recordset.map((m: any) => [m.GroupId, m.Role])
+      membershipResult.recordset.map((m: StudyGroupMembershipInfo) => [m.GroupId, m.Role])
     );
 
     return groups.map(group => ({

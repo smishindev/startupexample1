@@ -6,6 +6,7 @@
 import sql from 'mssql';
 import { DatabaseService } from './DatabaseService';
 import EmailService from './EmailService';
+import { logger } from '../utils/logger';
 
 const dbService = DatabaseService.getInstance();
 
@@ -84,10 +85,10 @@ class VerificationService {
       });
 
       if (!emailSent) {
-        console.warn(`⚠️ Failed to send verification email to ${user.Email}, but code saved in database`);
+        logger.warn(`⚠️ Failed to send verification email to ${user.Email}, but code saved in database`);
       }
 
-      console.log(`✅ Verification code sent to ${user.Email} (expires in 24h)`);
+      logger.info(`✅ Verification code sent to ${user.Email} (expires in 24h)`, { userId, email: user.Email });
 
       return {
         success: true,
@@ -101,7 +102,7 @@ class VerificationService {
       };
 
     } catch (error) {
-      console.error('❌ Error sending verification code:', error);
+      logger.error('❌ Error sending verification code:', error);
       return {
         success: false,
         message: 'Failed to send verification code'
@@ -180,7 +181,7 @@ class VerificationService {
           WHERE Id = @UserId
         `);
 
-      console.log(`✅ Email verified successfully for user: ${user.Email}`);
+      logger.info(`✅ Email verified successfully for user: ${user.Email}`, { userId, email: user.Email });
 
       // Send welcome email
       await EmailService.sendWelcomeEmail({
@@ -200,7 +201,7 @@ class VerificationService {
       };
 
     } catch (error) {
-      console.error('❌ Error verifying code:', error);
+      logger.error('❌ Error verifying code:', error);
       return {
         success: false,
         message: 'Failed to verify code'
@@ -242,7 +243,7 @@ class VerificationService {
       return this.sendVerificationCode(userId);
 
     } catch (error) {
-      console.error('❌ Error resending verification code:', error);
+      logger.error('❌ Error resending verification code:', error);
       return {
         success: false,
         message: 'Failed to resend verification code'
@@ -284,7 +285,7 @@ class VerificationService {
       };
 
     } catch (error) {
-      console.error('❌ Error checking verification status:', error);
+      logger.error('❌ Error checking verification status:', error);
       return {
         success: false,
         message: 'Failed to check verification status'
@@ -301,10 +302,10 @@ class VerificationService {
       const result = await this.sendVerificationCode(userId);
       
       if (!result.success) {
-        console.warn(`⚠️ Could not send verification email during registration: ${result.message}`);
+        logger.warn(`⚠️ Could not send verification email during registration: ${result.message}`, { userId });
       }
     } catch (error) {
-      console.error('❌ Error in registration verification:', error);
+      logger.error('❌ Error in registration verification:', error);
       // Don't throw error - registration should succeed even if email fails
     }
   }

@@ -1,5 +1,6 @@
 import { DatabaseService } from './DatabaseService';
 import { NotificationService } from './NotificationService';
+import { InterventionCheckDetails } from '../types/database';
 import sql from 'mssql';
 
 export interface RiskAssessment {
@@ -373,7 +374,7 @@ export class InterventionService {
   /**
    * Run all intervention checks
    */
-  async runAllChecks(): Promise<{ total: number; details: any }> {
+  async runAllChecks(): Promise<{ total: number; details: InterventionCheckDetails }> {
     try {
       console.log('🔍 Running intervention checks...');
       

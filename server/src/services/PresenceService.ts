@@ -1,6 +1,7 @@
 import sql from 'mssql';
 import { DatabaseService } from './DatabaseService';
 import { Server as SocketIOServer } from 'socket.io';
+import { logger } from '../utils/logger';
 
 export interface UserPresence {
   UserId: string;

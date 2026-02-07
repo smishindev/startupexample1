@@ -823,7 +823,13 @@ router.post('/:assessmentId/adaptive/submit-answer', authenticateToken, async (r
     if (currentSubmission[0]?.Answers) {
       try {
         currentAnswers = JSON.parse(currentSubmission[0].Answers);
-      } catch {}
+      } catch (error) {
+        // Log parse error but continue with empty object
+        console.error('Failed to parse assessment answers JSON, using empty object', {
+          submissionId,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        });
+      }
     }
 
     currentAnswers[questionId] = answer;

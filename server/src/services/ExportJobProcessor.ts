@@ -1,6 +1,8 @@
 import { DataExportService } from './DataExportService';
 import EmailService from './EmailService';
 import { DatabaseService } from './DatabaseService';
+import { PendingExportRequest, UserInfo } from '../types/database';
+import { logger } from '../utils/logger';
 import sql from 'mssql';
 
 export class ExportJobProcessor {
@@ -33,7 +35,7 @@ export class ExportJobProcessor {
   async processPendingExports(): Promise<void> {
     // Prevent concurrent processing
     if (this.isProcessing) {
-      console.log('⏭️ Export job already running, skipping...');
+      logger.info('⏭️ Export job already running, skipping...');
       return;
     }
 
@@ -47,15 +49,15 @@ export class ExportJobProcessor {
         return;
       }
 
-      console.log(`📦 Processing ${pendingRequests.length} pending export request(s)...`);
+      logger.info(`📦 Processing ${pendingRequests.length} pending export request(s)...`);
 
       for (const request of pendingRequests) {
         await this.processExportRequest(request);
       }
 
-      console.log('✅ Finished processing export requests');
+      logger.info('✅ Finished processing export requests');
     } catch (error) {
-      console.error('❌ Error processing export requests:', error);
+      logger.error('❌ Error processing export requests:', error);
     } finally {
       this.isProcessing = false;
     }
@@ -64,7 +66,7 @@ export class ExportJobProcessor {
   /**
    * Get all pending export requests
    */
-  private async getPendingRequests(): Promise<any[]> {
+  private async getPendingRequests(): Promise<PendingExportRequest[]> {
     const request = await this.dbService.getRequest();
 
     const result = await request
@@ -74,20 +76,20 @@ export class ExportJobProcessor {
         ORDER BY RequestedAt ASC
       `);
 
-    return result.recordset;
+    return result.recordset as PendingExportRequest[];
   }
 
   /**
    * Process a single export request
    */
-  private async processExportRequest(request: any): Promise<void> {
+  private async processExportRequest(request: PendingExportRequest): Promise<void> {
     try {
-      console.log(`📦 Generating export for user ${request.UserId} (Request ID: ${request.Id})`);
+      logger.info(`📦 Generating export for user ${request.UserId} (Request ID: ${request.Id})`);
 
       // Generate the export
       const result = await this.dataExportService.generateExport(request.UserId, request.Id);
 
-      console.log(`✅ Export generated: ${result.fileName} (${this.formatFileSize(result.fileSize)})`);
+      logger.info(`✅ Export generated: ${result.fileName} (${this.formatFileSize(result.fileSize)})`);
 
       // Get user info for email
       const userInfo = await this.getUserInfo(request.UserId);
@@ -98,7 +100,7 @@ export class ExportJobProcessor {
       }
 
     } catch (error: any) {
-      console.error(`❌ Failed to generate export for request ${request.Id}:`, error);
+      logger.error(`❌ Failed to generate export for request ${request.Id}:`, error);
       // Error status is already set by DataExportService
     }
   }
@@ -106,18 +108,18 @@ export class ExportJobProcessor {
   /**
    * Get user information
    */
-  private async getUserInfo(userId: string): Promise<any | null> {
+  private async getUserInfo(userId: string): Promise<UserInfo | null> {
     const request = await this.dbService.getRequest();
 
     const result = await request
       .input('userId', sql.UniqueIdentifier, userId)
       .query(`
-        SELECT Id, Email, FirstName, LastName
+        SELECT Id, Email, FirstName, LastName, Username
         FROM Users
         WHERE Id = @userId
       `);
 
-    return result.recordset[0] || null;
+    return (result.recordset[0] as UserInfo) || null;
   }
 
   /**
@@ -143,9 +145,9 @@ export class ExportJobProcessor {
         html: this.generateEmailTemplate(user.FirstName, downloadUrl, fileName, fileSize, expiryDate),
       });
 
-      console.log(`📧 Export ready email sent to ${user.Email}`);
+      logger.info(`📧 Export ready email sent to ${user.Email}`);
     } catch (error) {
-      console.error('❌ Failed to send export ready email:', error);
+      logger.error('❌ Failed to send export ready email:', error);
       // Don't throw - export is still successful even if email fails
     }
   }

@@ -1,7 +1,29 @@
 # Pre-Flight Checklist - Before Making Any Code Changes
 
 **Purpose**: Systematic checklist to follow before implementing changes  
-**Goal**: Reduce errors, missing considerations, and broken functionality
+**Goal**: Reduce errors, missing considerations, and broken functionality  
+**Last Updated**: February 7, 2026 - Code Quality Standards Added
+
+---
+
+## 💡 CODE QUALITY STANDARDS (Check Before Committing)
+
+### TypeScript Type Safety
+- [ ] Used proper types from `server/src/types/database.ts` (not 'any')
+- [ ] Verified 0 TypeScript errors: `npx tsc --noEmit`
+- [ ] All new interfaces added to types/database.ts (not inline)
+- [ ] SQL query results properly typed (or intentionally 'any')
+
+### Logging Standards
+- [ ] Used `logger.info/warn/error` instead of `console.log`
+- [ ] Added structured metadata to log statements: `logger.info('message', { userId, context })`
+- [ ] Used correct import: `import { logger } from '../utils/logger'` (named export)
+- [ ] Console statements only for local debugging
+
+### Error Handling
+- [ ] All catch blocks have proper error logging
+- [ ] User-facing errors return meaningful messages
+- [ ] Database errors don't expose SQL details to users
 
 ---
 

@@ -6,6 +6,7 @@
 import PDFDocument from 'pdfkit';
 import fs from 'fs';
 import path from 'path';
+import { logger } from '../utils/logger';
 
 type PDFDoc = typeof PDFDocument.prototype;
 

@@ -1,18 +1,55 @@
 import { Request, Response, NextFunction } from 'express';
 import crypto from 'crypto';
+import { logger } from '../utils/logger';
 
 // Store CSRF tokens in memory (in production, use Redis or database)
 const csrfTokens = new Map<string, { token: string; expiresAt: number }>();
 
-// Cleanup expired tokens every hour
-setInterval(() => {
-  const now = Date.now();
-  for (const [sessionId, data] of csrfTokens.entries()) {
-    if (data.expiresAt < now) {
-      csrfTokens.delete(sessionId);
-    }
+// Cleanup interval reference for proper shutdown
+let cleanupInterval: NodeJS.Timeout | null = null;
+
+/**
+ * Initialize CSRF token cleanup
+ * Should be called once during server startup
+ */
+export function initializeCsrfCleanup(): void {
+  if (cleanupInterval) {
+    logger.warn('CSRF cleanup already initialized');
+    return;
   }
-}, 60 * 60 * 1000);
+
+  // Cleanup expired tokens every hour
+  cleanupInterval = setInterval(() => {
+    const now = Date.now();
+    let cleanedCount = 0;
+    for (const [sessionId, data] of csrfTokens.entries()) {
+      if (data.expiresAt < now) {
+        csrfTokens.delete(sessionId);
+        cleanedCount++;
+      }
+    }
+    if (cleanedCount > 0) {
+      logger.info(`CSRF cleanup: Removed ${cleanedCount} expired token(s)`);
+    }
+  }, 60 * 60 * 1000);
+
+  logger.info('CSRF token cleanup initialized');
+}
+
+/**
+ * Stop CSRF token cleanup
+ * Should be called during graceful server shutdown
+ */
+export function stopCsrfCleanup(): void {
+  if (cleanupInterval) {
+    clearInterval(cleanupInterval);
+    cleanupInterval = null;
+    logger.info('CSRF token cleanup stopped');
+  }
+}
+
+// Initialize cleanup on module load
+initializeCsrfCleanup();
 
 export const generateCsrfToken = (req: Request, res: Response, next: NextFunction): void => {
   // Generate or retrieve session ID from cookie

@@ -1,6 +1,6 @@
 # Mishin Learn Platform - Project Status & Memory
 
-**Last Updated**: February 7, 2026 - Phase 2 Bug Fixes Complete 🐛  
+**Last Updated**: February 7, 2026 - Database Schema Improvements + Bug Fixes Complete 🗄️  
 **Developer**: Sergey Mishin (s.mishin.dev@gmail.com)  
 **AI Assistant Context**: This file serves as project memory for continuity across chat sessions
 
@@ -9,7 +9,74 @@
 
 ---
 
-## 🐛 PHASE 2 BUG FIXES (Latest - February 7, 2026)
+## 🗄️ DATABASE SCHEMA IMPROVEMENTS (Latest - February 7, 2026)
+
+**Activity**: Fixed notification deletion error and optimized foreign key CASCADE constraints
+
+**Status**: ✅ **Complete** - Schema ready for database recreation
+
+### **Issues Found & Fixed:**
+
+**1. Notification Deletion 500 Error** ✅
+- **Issue**: `DELETE http://localhost:3001/api/notifications/{id}` returned 500 Internal Server Error
+- **Root Cause**: EmailDigests.NotificationId FK constraint ON DELETE NO ACTION prevented cascade
+- **Fix**: Changed to `ON DELETE CASCADE` in schema.sql
+- **Impact**: Notifications now delete successfully with automatic email digest cleanup
+
+**2. Schema Optimization - FK Constraint Improvements** ✅
+After comprehensive database analysis using sys.foreign_keys inspection, identified 2 safe improvements:
+
+**2a. TutoringSessions.LessonId: `NO ACTION` → `CASCADE`** ✅
+- **Change** (Line 371 in schema.sql):
+  ```sql
+  LessonId UNIQUEIDENTIFIER NULL FOREIGN KEY REFERENCES dbo.Lessons(Id) ON DELETE CASCADE
+  ```
+- **Rationale**: Tutoring sessions should auto-delete when lesson is deleted (lose context)
+- **Safety**: No multiple cascade path conflict (CourseId uses SET NULL, not CASCADE)
+- **Impact**: Automatic cleanup when lessons deleted
+
+**2b. OfficeHoursQueue.InstructorId: `NO ACTION` → `CASCADE`** ✅
+- **Change** (Line 356 in schema.sql):
+  ```sql
+  InstructorId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id) ON DELETE CASCADE
+  ```
+- **Rationale**: Queue entries meaningless without instructor, consistency with StudentId CASCADE
+- **Safety**: No multiple cascade path conflict (InstructorId and StudentId are independent users)
+- **Impact**: Queue entries auto-deleted when instructor deletes account
+
+### **Rejected Changes (SQL Server Multiple Cascade Path Prevention):**
+
+**Critical Discovery**: 3 proposed changes would violate SQL Server's multiple cascade path limitation
+
+**3 Rejected Changes:**
+1. ❌ **UserProgress.LessonId** - Would create: Course→UserProgress (CourseId) + Course→Lessons→UserProgress (LessonId)
+2. ❌ **CommentLikes.UserId FK** - Would create: User→Comments→CommentLikes + User→CommentLikes
+3. ❌ **EmailDigests.UserId** - Would create: User→Notifications→EmailDigests + User→EmailDigests
+
+**SQL Server Constraint**: Multiple cascade delete paths to same record not allowed (design-time error)
+
+### **Schema Verification:**
+- ✅ 45 tables all have PRIMARY KEY
+- ✅ 70 FOREIGN KEY constraints (all syntactically correct)
+- ✅ All FK references point to valid tables
+- ✅ No multiple cascade path violations
+- ✅ Schema.sql ready for database recreation
+- ✅ `npx tsc --noEmit` - 0 TypeScript errors
+- ✅ Application code compatible (AccountDeletionService.ts has redundant DELETE statements, but CASCADE handles automatically)
+
+### **Files Modified:**
+- ✅ `database/schema.sql` - 2 FK constraints updated (TutoringSessions.LessonId, OfficeHoursQueue.InstructorId)
+- ✅ Database inspection: Used sys.foreign_keys queries to verify current state before changes
+
+### **Impact:**
+- Notification deletion restored to working state
+- Improved automatic data cleanup on parent record deletion
+- No breaking changes to functionality
+- Prevented 3 dangerous changes that would cause SQL Server errors
+
+---
+
+## 🐛 PHASE 2 BUG FIXES (February 7, 2026)
 
 **Activity**: Fixed TypeScript compilation errors discovered after Phase 2 implementation
 

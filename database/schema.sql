@@ -353,7 +353,7 @@ CREATE TABLE dbo.OfficeHours (
 -- Office Hours Queue Table
 CREATE TABLE dbo.OfficeHoursQueue (
     Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
-    InstructorId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id) ON DELETE NO ACTION,
+    InstructorId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id) ON DELETE CASCADE,
     StudentId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id) ON DELETE CASCADE,
     ScheduleId UNIQUEIDENTIFIER NULL FOREIGN KEY REFERENCES dbo.OfficeHours(Id),
     Status NVARCHAR(20) NOT NULL DEFAULT 'waiting' CHECK (Status IN ('waiting', 'admitted', 'completed', 'cancelled')),
@@ -368,7 +368,7 @@ CREATE TABLE dbo.TutoringSessions (
     Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
     UserId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id) ON DELETE CASCADE,
     CourseId UNIQUEIDENTIFIER NULL FOREIGN KEY REFERENCES dbo.Courses(Id) ON DELETE SET NULL,
-    LessonId UNIQUEIDENTIFIER NULL FOREIGN KEY REFERENCES dbo.Lessons(Id) ON DELETE NO ACTION,
+    LessonId UNIQUEIDENTIFIER NULL FOREIGN KEY REFERENCES dbo.Lessons(Id) ON DELETE CASCADE,
     Title NVARCHAR(255) NOT NULL,
     Context NVARCHAR(MAX) NULL, -- JSON object for session context
     Status NVARCHAR(20) NOT NULL DEFAULT 'active' CHECK (Status IN ('active', 'completed', 'cancelled')),
@@ -753,7 +753,7 @@ CREATE TABLE dbo.Comments (
 CREATE TABLE dbo.CommentLikes (
     Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
     CommentId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Comments(Id) ON DELETE CASCADE,
-    UserId UNIQUEIDENTIFIER NOT NULL, -- No FK to avoid cascade path conflicts (Comments already cascades from Users)
+    UserId UNIQUEIDENTIFIER NOT NULL, -- No FK to avoid multiple cascade paths: Users→Comments→CommentLikes AND Users→CommentLikes
     CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
     
     -- Prevent duplicate likes

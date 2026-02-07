@@ -874,7 +874,7 @@ CREATE TABLE dbo.EmailDigests (
     SentAt DATETIME2 NULL,
     CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
     FOREIGN KEY (UserId) REFERENCES dbo.Users(Id) ON DELETE NO ACTION,
-    FOREIGN KEY (NotificationId) REFERENCES dbo.Notifications(Id) ON DELETE NO ACTION
+    FOREIGN KEY (NotificationId) REFERENCES dbo.Notifications(Id) ON DELETE CASCADE
 );
 
 -- EmailDigests Indexes

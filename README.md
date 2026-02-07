@@ -4,7 +4,7 @@
 
 An innovative EdTech startup providing personalized learning experiences through AI tutoring, adaptive content delivery, and comprehensive progress analytics.
 
-**Last Major Update**: February 4, 2026 - Account Deletion CASCADE DELETE Fixes 🗑️
+**Last Major Update**: February 6, 2026 - GDPR-Compliant Data Export System 📦
 
 ## 🚀 Features
 
@@ -14,6 +14,31 @@ An innovative EdTech startup providing personalized learning experiences through
 - **Smart Content Delivery** - Dynamic course content adapted to learning style
 - **Progress Analytics** - Detailed insights and performance tracking
 - **Assessment System** - Adaptive testing and skill evaluation
+
+### Data Privacy & Security
+- **GDPR-Compliant Data Export** - Complete user data portability with one-click export (February 6, 2026) 📦
+  - **Comprehensive Data Collection**: 20+ tables (profile, enrollments, progress, certificates, transactions, chat, AI tutoring, comments, bookmarks, notifications)
+  - **Multiple Formats**: JSON (complete data) + CSV (summary) + README documentation
+  - **Background Processing**: Async export generation with email notification when ready
+  - **Resource Management**: 500MB size limit, 1GB minimum disk space requirement
+  - **Security**: 7-day expiry, rate limiting (3 per 24h), user ownership verification
+  - **Export Contents**: 28 JSON files + 5 CSV files organized in 7 folders
+  - **Status Tracking**: Real-time status polling (pending → processing → completed)
+  - **Download Tracking**: Metrics for download count and last download time
+- **Privacy Settings** - Comprehensive privacy controls (profile visibility, email, progress, messages) - VERIFIED WORKING (Jan 10, 2026) ✅
+  - **ProfileVisibility**: 3-tier system (public/students/private) enforced across platform
+  - **ShowEmail**: Enforced in 7 endpoints with instructor override for enrolled students
+  - **ShowProgress**: Enforced with 403 errors, instructor override for enrolled students
+  - **AllowMessages**: Stored (not enforced - chat system disabled)
+- **Account Deletion** - Production-ready account deletion system with instructor course management and automatic CASCADE DELETE (Jan 18-19, 2026, CASCADE fixes Feb 4, 2026) ✅
+  - **Archive All Courses**: Students maintain access, instructor can restore later
+  - **Transfer All Courses**: Select new instructor for seamless course continuity
+  - **Force Delete All Courses**: Orphan courses, students lose access
+  - Password confirmation required, transaction-safe, comprehensive audit logging
+  - **CASCADE DELETE**: Automatic cleanup of 25+ related tables (Transactions→Invoices, CourseProgress, EmailTrackingEvents, etc.)
+  - **GDPR Compliant**: All user personal data automatically deleted
+  - Instructors see teaching + enrolled courses via UNION ALL query
+  - Orphaned courses filtered from public catalog (INNER JOIN Users)
 
 ### Instructor Tools
 - **Unified Course Management** - Single 4-tab interface for complete course control (Jan 14, 2026) ✅

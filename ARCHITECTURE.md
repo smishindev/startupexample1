@@ -1,6 +1,6 @@
 # Mishin Learn Platform - System Architecture
 
-**Last Updated**: February 5, 2026 - Chat System with Conversation Deletion/Restoration ✅  
+**Last Updated**: February 6, 2026 - GDPR Data Export System ✅  
 **Purpose**: Understanding system components, data flows, and dependencies
 
 ---
@@ -24,6 +24,96 @@ State: Zustand (auth), React state (components)
 ---
 
 ## 🔌 API ENDPOINTS
+
+### Data Export (added Feb 6, 2026)
+```
+POST   /api/settings/export-data              - Request user data export
+                                              - Rate limit: 3 requests per 24 hours
+                                              - Returns: { requestId, status: 'pending' }
+                                              
+GET    /api/settings/export-data/status      - Get latest export request status
+                                              - Returns: { requestId, status, fileName, fileSize, 
+                                                          downloadCount, expiresAt, createdAt }
+                                              - Statuses: pending, processing, completed, failed, expired
+                                              
+GET    /api/settings/export-data/download/:requestId  
+                                              - Download export ZIP file
+                                              - Increments download count
+                                              - Verifies ownership + expiry
+                                              - Returns: ZIP file with Content-Disposition header
+                                              - Errors: 403 (not owner), 404 (not found), 410 (expired)
+```
+
+**GDPR Data Export System (Feb 6, 2026):**
+- **Purpose**: Fulfill GDPR right to data portability
+- **Processing**: Background async jobs via cron (every minute)
+- **Output**: ZIP file with 28 JSON + 5 CSV + README
+- **Data Scope**: 20+ tables (profile, courses, progress, certificates, messages, AI tutoring, transactions)
+- **Resource Limits**: 500MB max size, 1GB min disk space
+- **Expiry**: 7 days with automatic cleanup (daily 3 AM UTC)
+- **Email Notification**: Beautiful HTML email when export ready
+- **Security**: User ownership verification, download tracking
+- **Database**: DataExportRequests table with 3 indexes
+
+**Export Package Structure:**
+```
+mishin-learn-export-TIMESTAMP.zip
+├── profile/ (3 files)
+│   ├── personal-info.json
+│   ├── settings.json
+│   └── notification-preferences.json
+├── learning/ (7 files)
+│   ├── enrollments.json
+│   ├── course-progress.json
+│   ├── lesson-progress.json
+│   ├── video-progress.json
+│   ├── assessments.json
+│   ├── certificates.json
+│   └── learning-activities.json
+├── community/ (5 files)
+│   ├── comments.json
+│   ├── comment-likes.json
+│   ├── chat-rooms.json
+│   ├── chat-messages.json
+│   └── study-groups.json
+├── ai-tutoring/ (2 files)
+│   ├── sessions.json
+│   └── messages.json
+├── transactions/ (2 files)
+│   ├── payments.json
+│   └── invoices.json
+├── activity/ (3 files)
+│   ├── bookmarks.json
+│   ├── notifications.json (last 1000)
+│   └── live-sessions.json
+├── csv/ (5 files)
+│   ├── enrollments.csv
+│   ├── course-progress.csv
+│   ├── assessments.csv
+│   ├── transactions.csv
+│   └── certificates.csv
+└── README.txt (GDPR compliance info)
+```
+
+**Rate Limiting:**
+- 3 requests per 24 hours per user
+- Counted from RequestedAt timestamp
+- 429 Too Many Requests response with error message
+
+**Status Flow:**
+```
+pending → processing → completed → expired (7 days)
+                    ↘ failed (on error)
+```
+
+**Background Jobs:**
+- `* * * * *` (every minute): ExportJobProcessor.processPendingExports()
+- `0 3 * * *` (daily 3 AM): DataExportService.cleanupExpiredExports()
+
+**Components:**
+- Backend: DataExportService (812 lines), ExportJobProcessor (313 lines)
+- Frontend: SettingsPage export UI with status polling
+- Database: DataExportRequests table (14 columns, 3 indexes)
 
 ### Instructor Course Management (updated Jan 14, 2026)
 ```

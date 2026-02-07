@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Container,
@@ -55,6 +55,10 @@ const SettingsPage: React.FC = () => {
   const [language, setLanguage] = useState('en');
   const [fontSize, setFontSize] = useState('medium');
 
+  // Data Export State
+  const [exportStatus, setExportStatus] = useState<any>(null);
+  const [exportLoading, setExportLoading] = useState(false);
+
   // Data Management
   const [deleteDialog, setDeleteDialog] = useState(false);
   const [deletePassword, setDeletePassword] = useState('');
@@ -68,10 +72,47 @@ const SettingsPage: React.FC = () => {
   const [selectedAction, setSelectedAction] = useState<'archive' | 'transfer' | 'force' | null>(null);
   const [transferToInstructorId, setTransferToInstructorId] = useState<string | null>(null);
 
+  // Define loadExportStatus before useEffects that use it
+  const loadExportStatus = useCallback(async () => {
+    try {
+      const status = await settingsApi.getExportStatus();
+      setExportStatus(status);
+    } catch (error) {
+      console.error('Error loading export status:', error);
+    }
+  }, []);
+
   // Load settings on mount
   useEffect(() => {
     loadSettings();
-  }, []);
+    loadExportStatus();
+  }, [loadExportStatus]);
+
+  // Poll export status when pending/processing
+  useEffect(() => {
+    if (exportStatus?.status === 'pending' || exportStatus?.status === 'processing') {
+      const interval = setInterval(() => {
+        // Only poll if page is visible (optimize API calls)
+        if (!document.hidden) {
+          loadExportStatus();
+        }
+      }, 10000); // Poll every 10 seconds
+
+      // Resume polling when page becomes visible
+      const handleVisibilityChange = () => {
+        if (!document.hidden && (exportStatus?.status === 'pending' || exportStatus?.status === 'processing')) {
+          loadExportStatus();
+        }
+      };
+      
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+
+      return () => {
+        clearInterval(interval);
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+      };
+    }
+  }, [exportStatus?.status, loadExportStatus]);
 
   const loadSettings = async () => {
     try {
@@ -134,11 +175,48 @@ const SettingsPage: React.FC = () => {
 
   const handleExportData = async () => {
     try {
+      setExportLoading(true);
       const result = await settingsApi.requestDataExport();
       toast.success(result.message);
-    } catch (error) {
+      
+      // Reload status to show the new request
+      await loadExportStatus();
+    } catch (error: any) {
       console.error('Error requesting data export:', error);
-      toast.error('Failed to request data export');
+      
+      if (error.response?.status === 429) {
+        toast.error('Rate limit exceeded. Maximum 3 export requests per 24 hours.');
+      } else {
+        toast.error('Failed to request data export');
+      }
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
+  const handleDownloadExport = async () => {
+    if (!exportStatus?.requestId) return;
+    
+    try {
+      setExportLoading(true);
+      await settingsApi.downloadExport(exportStatus.requestId);
+      toast.success('Download started!');
+      
+      // Reload status to update download count
+      await loadExportStatus();
+    } catch (error: any) {
+      console.error('Error downloading export:', error);
+      
+      if (error.response?.status === 410) {
+        toast.error('Export has expired. Please request a new export.');
+      } else {
+        toast.error('Failed to download export');
+      }
+      
+      // Reload status in case of expiry
+      await loadExportStatus();
+    } finally {
+      setExportLoading(false);
     }
   };
 
@@ -500,15 +578,206 @@ const SettingsPage: React.FC = () => {
                     Download a copy of your personal data, including profile information, 
                     course progress, and transaction history.
                   </Typography>
-                  <Button
-                    variant="outlined"
-                    startIcon={<DownloadIcon />}
-                    onClick={handleExportData}
-                    fullWidth
-                    data-testid="settings-export-data-button"
-                  >
-                    Request Data Export
-                  </Button>
+
+                  {/* No export request yet */}
+                  {!exportStatus?.hasRequest && (
+                    <Button
+                      variant="outlined"
+                      startIcon={<DownloadIcon />}
+                      onClick={handleExportData}
+                      disabled={exportLoading}
+                      fullWidth
+                      data-testid="settings-export-data-button"
+                    >
+                      {exportLoading ? 'Requesting...' : 'Request Data Export'}
+                    </Button>
+                  )}
+
+                  {/* Export Status Display */}
+                  {exportStatus?.hasRequest && (
+                    <Box>
+                      {/* Pending / Processing Status */}
+                      {(exportStatus.status === 'pending' || exportStatus.status === 'processing') && (
+                        <Box 
+                          sx={{ 
+                            p: 3, 
+                            bgcolor: '#fff3e0', 
+                            borderRadius: 2, 
+                            border: '1px solid #ffb74d',
+                            mb: 2 
+                          }}
+                        >
+                          <Box display="flex" alignItems="center" gap={2} mb={2}>
+                            <CircularProgress size={24} />
+                            <Typography variant="h6" color="text.primary">
+                              ⏳ {exportStatus.status === 'pending' ? 'Queued' : 'Processing'}...
+                            </Typography>
+                          </Box>
+                          <Typography variant="body2" color="text.secondary" paragraph>
+                            Your data export is being prepared. This usually takes 5-10 minutes.
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            Requested {new Date(exportStatus.requestedAt).toLocaleString()}
+                          </Typography>
+                          <Box mt={2}>
+                            <Typography variant="caption" color="text.secondary">
+                              ℹ️ You'll receive an email with a download link when your export is ready. 
+                              You can also check back here.
+                            </Typography>
+                          </Box>
+                          <Box mt={2}>
+                            <Button
+                              size="small"
+                              onClick={loadExportStatus}
+                              disabled={exportLoading}
+                            >
+                              Refresh Status
+                            </Button>
+                          </Box>
+                        </Box>
+                      )}
+
+                      {/* Completed Status */}
+                      {exportStatus.status === 'completed' && (
+                        <Box 
+                          sx={{ 
+                            p: 3, 
+                            bgcolor: '#e8f5e9', 
+                            borderRadius: 2, 
+                            border: '1px solid #81c784',
+                            mb: 2 
+                          }}
+                        >
+                          <Typography variant="h6" color="success.dark" gutterBottom>
+                            ✅ Export Ready!
+                          </Typography>
+                          
+                          <Box sx={{ mt: 2, mb: 2 }}>
+                            <table style={{ width: '100%', fontSize: '14px' }}>
+                              <tbody>
+                                <tr>
+                                  <td style={{ padding: '4px 0', color: '#666' }}>
+                                    <strong>File Name:</strong>
+                                  </td>
+                                  <td style={{ padding: '4px 0', textAlign: 'right' }}>
+                                    {exportStatus.fileName}
+                                  </td>
+                                </tr>
+                                <tr>
+                                  <td style={{ padding: '4px 0', color: '#666' }}>
+                                    <strong>File Size:</strong>
+                                  </td>
+                                  <td style={{ padding: '4px 0', textAlign: 'right' }}>
+                                    {exportStatus.fileSize ? (exportStatus.fileSize / 1024 / 1024).toFixed(2) + ' MB' : 'N/A'}
+                                  </td>
+                                </tr>
+                                <tr>
+                                  <td style={{ padding: '4px 0', color: '#666' }}>
+                                    <strong>Completed:</strong>
+                                  </td>
+                                  <td style={{ padding: '4px 0', textAlign: 'right' }}>
+                                    {new Date(exportStatus.completedAt).toLocaleString()}
+                                  </td>
+                                </tr>
+                                <tr>
+                                  <td style={{ padding: '4px 0', color: '#666' }}>
+                                    <strong>Expires:</strong>
+                                  </td>
+                                  <td style={{ padding: '4px 0', textAlign: 'right', color: '#d32f2f' }}>
+                                    {new Date(exportStatus.expiresAt).toLocaleDateString()} (7 days)
+                                  </td>
+                                </tr>
+                                {exportStatus.downloadCount > 0 && (
+                                  <tr>
+                                    <td style={{ padding: '4px 0', color: '#666' }}>
+                                      <strong>Downloads:</strong>
+                                    </td>
+                                    <td style={{ padding: '4px 0', textAlign: 'right' }}>
+                                      {exportStatus.downloadCount} time{exportStatus.downloadCount !== 1 ? 's' : ''}
+                                    </td>
+                                  </tr>
+                                )}
+                              </tbody>
+                            </table>
+                          </Box>
+
+                          <Stack direction="row" spacing={2} mt={2}>
+                            <Button
+                              variant="contained"
+                              startIcon={<DownloadIcon />}
+                              onClick={handleDownloadExport}
+                              disabled={exportLoading}
+                              fullWidth
+                            >
+                              {exportLoading ? 'Downloading...' : 'Download Export'}
+                            </Button>
+                            <Button
+                              variant="outlined"
+                              onClick={handleExportData}
+                              disabled={exportLoading}
+                            >
+                              New Export
+                            </Button>
+                          </Stack>
+                        </Box>
+                      )}
+
+                      {/* Failed Status */}
+                      {exportStatus.status === 'failed' && (
+                        <Box 
+                          sx={{ 
+                            p: 3, 
+                            bgcolor: '#ffebee', 
+                            borderRadius: 2, 
+                            border: '1px solid #e57373',
+                            mb: 2 
+                          }}
+                        >
+                          <Typography variant="h6" color="error.dark" gutterBottom>
+                            ❌ Export Failed
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary" paragraph>
+                            {exportStatus.errorMessage || 'An error occurred while generating your export.'}
+                          </Typography>
+                          <Button
+                            variant="outlined"
+                            onClick={handleExportData}
+                            disabled={exportLoading}
+                            color="error"
+                          >
+                            Try Again
+                          </Button>
+                        </Box>
+                      )}
+
+                      {/* Expired Status */}
+                      {exportStatus.status === 'expired' && (
+                        <Box 
+                          sx={{ 
+                            p: 3, 
+                            bgcolor: '#fafafa', 
+                            borderRadius: 2, 
+                            border: '1px solid #bdbdbd',
+                            mb: 2 
+                          }}
+                        >
+                          <Typography variant="h6" color="text.secondary" gutterBottom>
+                            ⏱️ Export Expired
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary" paragraph>
+                            Your previous export has expired. Request a new export to download your data.
+                          </Typography>
+                          <Button
+                            variant="outlined"
+                            onClick={handleExportData}
+                            disabled={exportLoading}
+                          >
+                            Request New Export
+                          </Button>
+                        </Box>
+                      )}
+                    </Box>
+                  )}
                 </Box>
 
                 <Divider />

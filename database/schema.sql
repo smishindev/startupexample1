@@ -1103,6 +1103,34 @@ CREATE NONCLUSTERED INDEX IX_AccountDeletionLog_UserEmail ON dbo.AccountDeletion
 CREATE NONCLUSTERED INDEX IX_AccountDeletionLog_UserId ON dbo.AccountDeletionLog(UserId);
 
 -- ========================================
+-- DATA EXPORT SYSTEM (GDPR Compliance)
+-- ========================================
+
+-- Data Export Requests Table - User data export tracking
+CREATE TABLE dbo.DataExportRequests (
+    Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    UserId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id) ON DELETE CASCADE,
+    Status NVARCHAR(20) NOT NULL DEFAULT 'pending' 
+        CHECK (Status IN ('pending', 'processing', 'completed', 'failed', 'expired')),
+    RequestedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    CompletedAt DATETIME2 NULL,
+    ExpiresAt DATETIME2 NULL, -- Auto-delete after 7 days
+    FilePath NVARCHAR(500) NULL,
+    FileName NVARCHAR(255) NULL,
+    FileSize BIGINT NULL,
+    DownloadCount INT NOT NULL DEFAULT 0,
+    LastDownloadedAt DATETIME2 NULL,
+    ErrorMessage NVARCHAR(MAX) NULL,
+    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    UpdatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE()
+);
+
+-- Data Export Indexes
+CREATE NONCLUSTERED INDEX IX_DataExportRequests_UserId ON dbo.DataExportRequests(UserId);
+CREATE NONCLUSTERED INDEX IX_DataExportRequests_Status ON dbo.DataExportRequests(Status) WHERE Status IN ('pending', 'processing');
+CREATE NONCLUSTERED INDEX IX_DataExportRequests_ExpiresAt ON dbo.DataExportRequests(ExpiresAt) WHERE ExpiresAt IS NOT NULL AND Status = 'completed';
+
+-- ========================================
 -- ========================================
 -- SCHEMA CREATION COMPLETE
 -- ========================================
@@ -1118,4 +1146,5 @@ PRINT '🎥 Multi-Content Progress: VideoProgress (tracks videos, text, quizzes 
 PRINT '⚙️ User Settings: UserSettings (Privacy, Appearance)';
 PRINT '💳 Payment System: Transactions, Invoices, Stripe Integration';
 PRINT '🎓 Certificates: Track course completion certificates with verification';
-PRINT '🚀 Database is ready for Mishin Learn Platform!';
+PRINT '� Data Export: DataExportRequests (GDPR-compliant user data export)';
+PRINT '�🚀 Database is ready for Mishin Learn Platform!';

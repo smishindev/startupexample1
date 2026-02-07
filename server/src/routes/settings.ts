@@ -3,6 +3,9 @@ import { authenticateToken, AuthRequest } from '../middleware/auth';
 import { SettingsService, UpdateSettingsParams } from '../services/SettingsService';
 import { AccountDeletionService } from '../services/AccountDeletionService';
 import { CourseManagementService } from '../services/CourseManagementService';
+import { DataExportService } from '../services/DataExportService';
+import * as fs from 'fs';
+import * as path from 'path';
 
 const router = express.Router();
 
@@ -99,22 +102,120 @@ router.post('/export-data', authenticateToken, async (req: AuthRequest, res: Res
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    // TODO: Implement data export functionality
-    // This should:
-    // 1. Collect all user data (profile, enrollments, progress, transactions)
-    // 2. Create a ZIP file with JSON/CSV exports
-    // 3. Send email with download link
-    // 4. Clean up file after 48 hours
+    const dataExportService = new DataExportService();
 
-    console.log(`📦 Data export requested for user ${userId}`);
+    // Create export request (includes rate limiting check)
+    const exportRequest = await dataExportService.createExportRequest(userId);
+
+    console.log(`📦 Data export requested for user ${userId} (Request ID: ${exportRequest.Id})`);
 
     res.json({
       success: true,
-      message: 'Data export request received. You will receive an email with the download link within 24 hours.'
+      message: 'Data export request submitted successfully. You will receive an email when your export is ready (usually within 5-10 minutes).',
+      requestId: exportRequest.Id,
+      status: exportRequest.Status
+    });
+  } catch (error: any) {
+    console.error('Error requesting data export:', error);
+    
+    // Handle rate limiting
+    if (error.message?.includes('Rate limit exceeded')) {
+      return res.status(429).json({ error: error.message });
+    }
+    
+    res.status(500).json({ error: 'Failed to request data export' });
+  }
+});
+
+/**
+ * GET /api/settings/export-data/status
+ * Get status of latest export request
+ */
+router.get('/export-data/status', authenticateToken, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const dataExportService = new DataExportService();
+    const exportRequest = await dataExportService.getLatestExportRequest(userId);
+
+    if (!exportRequest) {
+      return res.json({
+        hasRequest: false,
+        status: null
+      });
+    }
+
+    res.json({
+      hasRequest: true,
+      requestId: exportRequest.Id,
+      status: exportRequest.Status,
+      requestedAt: exportRequest.RequestedAt,
+      completedAt: exportRequest.CompletedAt,
+      expiresAt: exportRequest.ExpiresAt,
+      fileName: exportRequest.FileName,
+      fileSize: exportRequest.FileSize,
+      downloadCount: exportRequest.DownloadCount,
+      errorMessage: exportRequest.ErrorMessage
     });
   } catch (error) {
-    console.error('Error requesting data export:', error);
-    res.status(500).json({ error: 'Failed to request data export' });
+    console.error('Error fetching export status:', error);
+    res.status(500).json({ error: 'Failed to fetch export status' });
+  }
+});
+
+/**
+ * GET /api/settings/export-data/download/:requestId
+ * Download export file
+ */
+router.get('/export-data/download/:requestId', authenticateToken, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    const { requestId } = req.params;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const dataExportService = new DataExportService();
+    const exportRequest = await dataExportService.getExportRequest(requestId, userId);
+
+    if (!exportRequest) {
+      return res.status(404).json({ error: 'Export request not found' });
+    }
+
+    if (exportRequest.Status !== 'completed') {
+      return res.status(400).json({ error: `Export is not ready yet. Status: ${exportRequest.Status}` });
+    }
+
+    if (!exportRequest.FilePath || !fs.existsSync(exportRequest.FilePath)) {
+      return res.status(404).json({ error: 'Export file not found' });
+    }
+
+    // Check if expired
+    if (exportRequest.ExpiresAt && new Date(exportRequest.ExpiresAt) < new Date()) {
+      return res.status(410).json({ error: 'Export has expired. Please request a new export.' });
+    }
+
+    // Increment download count
+    await dataExportService.incrementDownloadCount(requestId);
+
+    // Send file
+    res.download(exportRequest.FilePath, exportRequest.FileName || 'export.zip', (err) => {
+      if (err) {
+        console.error('Error downloading file:', err);
+        if (!res.headersSent) {
+          res.status(500).json({ error: 'Failed to download export file' });
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Error downloading export:', error);
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'Failed to download export' });
+    }
   }
 });
 

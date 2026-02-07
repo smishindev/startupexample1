@@ -1,7 +1,200 @@
 # Mishin Learn Platform - Component Registry
 
-**Last Updated**: February 5, 2026 - Chat System with Conversation Deletion/Restoration 💬  
+**Last Updated**: February 6, 2026 - GDPR Data Export System 📦  
 **Purpose**: Quick reference for all major components, their dependencies, and relationships
+
+---
+
+## 📦 Data Export System Components (Added Feb 6, 2026)
+
+### DataExportService
+**Path**: `server/src/services/DataExportService.ts` (812 lines)  
+**Purpose**: Core data export service - collects user data and generates ZIP files
+
+**Public Methods**:
+1. `createExportRequest(userId)` - Create new export request with rate limiting (3 per 24h)
+2. `getExportRequest(requestId, userId)` - Get export by ID with ownership verification
+3. `getLatestExportRequest(userId)` - Get user's most recent export request
+4. `incrementDownloadCount(requestId)` - Track download metrics
+5. `generateExport(userId, requestId)` - Main export generation logic
+6. `cleanupExpiredExports()` - Delete expired exports (7 days old)
+
+**Private Methods**:
+- `checkDiskSpace()` - Verify 1GB minimum free space (Windows PowerShell)
+- `collectUserData(userId)` - Execute 22 database queries across 20+ tables
+- `createZipExport(data, outputPath)` - Generate ZIP with archiver library
+- `convertToCSV(data)` - Convert JSON arrays to CSV format
+- `generateReadme(profile)` - Create README.txt with GDPR info
+
+**Data Collection (20+ Tables)**:
+- Profile: Users, UserSettings, NotificationPreferences
+- Learning: Enrollments, CourseProgress, UserProgress, VideoProgress, AssessmentSubmissions, Certificates, LearningActivities
+- Community: Comments, CommentLikes, ChatRooms, ChatMessages, StudyGroups
+- AI: TutoringSessions, TutoringMessages
+- Transactions: Transactions, Invoices
+- Activity: Bookmarks, Notifications, LiveSessionAttendees
+
+**Resource Limits**:
+- Max export size: 500MB
+- Min disk space: 1GB
+- Expiry: 7 days
+- Rate limit: 3 requests per 24 hours
+
+**Dependencies**:
+- DatabaseService.getInstance() - Database connection pool
+- archiver - ZIP file creation
+- fs, path - File system operations
+- child_process - PowerShell disk space check
+
+**Error Handling**:
+- Disk space validation before starting
+- Size validation after compression
+- Partial file cleanup on failure
+- Database status tracking (pending/processing/completed/failed/expired)
+
+**Status**: ✅ Production-ready
+
+---
+
+### ExportJobProcessor
+**Path**: `server/src/services/ExportJobProcessor.ts` (313 lines)  
+**Purpose**: Background job processor for async export generation
+
+**Architecture**: Singleton pattern (prevents concurrent processing)
+
+**Public Methods**:
+1. `getInstance()` - Get singleton instance
+2. `processPendingExports()` - Main cron job handler (every minute)
+
+**Processing Flow**:
+1. Check `isProcessing` flag (concurrency control)
+2. Query pending requests from database
+3. For each request:
+   - Generate export via DataExportService
+   - Get user info (email, name)
+   - Send HTML email notification with download link
+4. Update status to completed/failed
+
+**Email Template**:
+- Beautiful HTML with gradient header
+- File metadata (name, size, expiry)
+- Download button linking to settings page
+- 7-day expiry warning
+- GDPR compliance information
+
+**Cron Integration**:
+- Registered in NotificationScheduler.ts
+- Schedule: `* * * * *` (every minute)
+- Cleanup: Daily at 3 AM UTC
+
+**Dependencies**:
+- DataExportService - Export generation
+- EmailService - Email delivery (default export)
+- DatabaseService - Database operations
+
+**Concurrency Control**:
+- Singleton instance persists across cron runs
+- `isProcessing` flag prevents overlapping jobs
+- Safe for high-frequency cron execution
+
+**Status**: ✅ Production-ready
+
+---
+
+### Data Export UI (SettingsPage)
+**Path**: `client/src/pages/Settings/SettingsPage.tsx`  
+**Purpose**: User interface for data export feature
+
+**Export State Management**:
+```typescript
+const [exportStatus, setExportStatus] = useState<any>(null);
+const [exportLoading, setExportLoading] = useState(false);
+```
+
+**Status Polling**:
+- Auto-polls every 10 seconds when pending/processing
+- Uses React useCallback for stable reference
+- Integrates Page Visibility API (pauses when tab hidden)
+- Proper cleanup on unmount
+
+**UI States (5 variants)**:
+1. **No Request**: Shows "Request Data Export" button
+2. **Pending**: Shows spinner + "Your export is being queued"
+3. **Processing**: Shows spinner + "Generating your data export"
+4. **Completed**: Shows download button + file metadata (name, size, downloads, expiry)
+5. **Failed**: Shows error message + "Try Again" button
+6. **Expired**: Shows "expired" status + request new button
+
+**Actions**:
+- `handleExportData()` - Request new export
+- `handleDownloadExport()` - Download ZIP file
+- `loadExportStatus()` - Check current status
+
+**Error Handling**:
+- Rate limit (429): "Maximum 3 export requests per 24 hours"
+- Expired (410): "Export has expired. Please request a new export"
+- Generic errors: "Failed to request data export"
+
+**Dependencies**:
+- settingsApi.requestDataExport()
+- settingsApi.getExportStatus()
+- settingsApi.downloadExport(requestId)
+
+**Status**: ✅ Production-ready
+
+---
+
+### settingsApi - Data Export Methods
+**Path**: `client/src/services/settingsApi.ts`
+
+**New Exports**:
+1. `requestDataExport()` - POST /api/settings/export-data
+2. `getExportStatus()` - GET /api/settings/export-data/status
+3. `downloadExport(requestId)` - GET /api/settings/export-data/download/:requestId
+
+**Download Handling**:
+- Uses responseType: 'blob'
+- Extracts filename from Content-Disposition header
+- Creates temporary download link
+- Auto-clicks and cleans up
+- Default filename: 'mishin-learn-export.zip'
+
+---
+
+### DataExportRequests Database Table
+**Path**: `database/schema.sql` (lines 1110-1131)
+
+**Schema**:
+```sql
+CREATE TABLE dbo.DataExportRequests (
+    Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    UserId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES Users(Id) ON DELETE CASCADE,
+    Status NVARCHAR(20) CHECK (Status IN ('pending', 'processing', 'completed', 'failed', 'expired')),
+    RequestedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    CompletedAt DATETIME2 NULL,
+    ExpiresAt DATETIME2 NULL,
+    FilePath NVARCHAR(500) NULL,
+    FileName NVARCHAR(255) NULL,
+    FileSize BIGINT NULL,
+    DownloadCount INT NOT NULL DEFAULT 0,
+    LastDownloadedAt DATETIME2 NULL,
+    ErrorMessage NVARCHAR(MAX) NULL,
+    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    UpdatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE()
+);
+```
+
+**Indexes (3)**:
+1. `IX_DataExportRequests_UserId` - User's export history
+2. `IX_DataExportRequests_Status` - Pending/processing lookup (filtered)
+3. `IX_DataExportRequests_ExpiresAt` - Cleanup job (filtered)
+
+**Lifecycle**:
+- Created: Status='pending', RequestedAt=now
+- Processing: Status='processing'
+- Completed: Status='completed', ExpiresAt=now+7days, FilePath/FileName/FileSize set
+- Failed: Status='failed', ErrorMessage set
+- Expired: Status='expired' (cleanup job updates)
 
 ---
 

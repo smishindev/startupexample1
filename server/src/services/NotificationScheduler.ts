@@ -4,6 +4,8 @@ import { NotificationService } from './NotificationService';
 import { getUpcomingAssessmentsDue, getWeeklyActivitySummaries, getUpcomingLiveSessions, getAtRiskStudents } from './NotificationHelpers';
 import { logger } from '../utils/logger';
 import { format } from 'date-fns';
+import { ExportJobProcessor } from './ExportJobProcessor';
+import { DataExportService } from './DataExportService';
 
 /**
  * Notification Scheduler Service
@@ -51,11 +53,24 @@ export function initializeScheduler(socketIoInstance: Server): void {
     await detectAndNotifyAtRiskStudents();
   });
 
+  // Schedule: Every minute - Process Pending Data Exports
+  cron.schedule('* * * * *', async () => {
+    await processPendingDataExports();
+  });
+
+  // Schedule: Daily at 3 AM UTC - Cleanup Expired Data Exports
+  cron.schedule('0 3 * * *', async () => {
+    logger.info('⏰ Running scheduled job: Cleanup Expired Data Exports');
+    await cleanupExpiredExports();
+  });
+
   logger.info('✅ NotificationScheduler started successfully');
   logger.info('   - Assessment Due Reminders: Daily at 9:00 AM UTC');
   logger.info('   - Weekly Progress Summary: Monday at 8:00 AM UTC');
   logger.info('   - Live Session Reminders: Every 15 minutes');
   logger.info('   - At-Risk Student Alerts: Monday at 10:00 AM UTC');
+  logger.info('   - Data Export Processing: Every minute');
+  logger.info('   - Export Cleanup: Daily at 3:00 AM UTC');
 }
 
 /**
@@ -515,5 +530,36 @@ export async function triggerAtRiskDetection(): Promise<{
   } catch (error) {
     logger.error('Manual at-risk detection trigger failed:', error);
     throw error;
+  }
+}
+
+/**
+ * Process pending data export requests
+ * Runs every minute
+ */
+async function processPendingDataExports(): Promise<void> {
+  try {
+    logger.info('⏰ Running scheduled job: Process Pending Data Exports');
+    const exportProcessor = ExportJobProcessor.getInstance();
+    await exportProcessor.processPendingExports();
+  } catch (error) {
+    logger.error('Error processing pending data exports:', error);
+  }
+}
+
+/**
+ * Cleanup expired data export files
+ * Runs daily at 3:00 AM UTC
+ */
+async function cleanupExpiredExports(): Promise<void> {
+  try {
+    const dataExportService = new DataExportService();
+    const cleanedCount = await dataExportService.cleanupExpiredExports();
+    
+    if (cleanedCount > 0) {
+      logger.info(`🧹 Cleaned up ${cleanedCount} expired data export(s)`);
+    }
+  } catch (error) {
+    logger.error('Error cleaning up expired exports:', error);
   }
 }

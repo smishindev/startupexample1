@@ -87,9 +87,58 @@ export const updateSettings = async (params: UpdateSettingsParams): Promise<User
 /**
  * Request data export
  */
-export const requestDataExport = async (): Promise<{ success: boolean; message: string }> => {
+export const requestDataExport = async (): Promise<{ success: boolean; message: string; requestId: string; status: string }> => {
   const response = await axios.post(`${API_BASE}/settings/export-data`);
   return response.data;
+};
+
+/**
+ * Get data export status
+ */
+export const getExportStatus = async (): Promise<{
+  hasRequest: boolean;
+  requestId?: string;
+  status?: string;
+  requestedAt?: string;
+  completedAt?: string;
+  expiresAt?: string;
+  fileName?: string;
+  fileSize?: number;
+  downloadCount?: number;
+  errorMessage?: string;
+}> => {
+  const response = await axios.get(`${API_BASE}/settings/export-data/status`);
+  return response.data;
+};
+
+/**
+ * Download data export
+ */
+export const downloadExport = async (requestId: string): Promise<void> => {
+  const response = await axios.get(`${API_BASE}/settings/export-data/download/${requestId}`, {
+    responseType: 'blob',
+  });
+
+  // Create download link
+  const url = window.URL.createObjectURL(new Blob([response.data]));
+  const link = document.createElement('a');
+  link.href = url;
+  
+  // Get filename from Content-Disposition header or use default
+  const contentDisposition = response.headers['content-disposition'];
+  let fileName = 'mishin-learn-export.zip';
+  if (contentDisposition) {
+    const fileNameMatch = contentDisposition.match(/filename="?(.+)"?/);
+    if (fileNameMatch && fileNameMatch[1]) {
+      fileName = fileNameMatch[1];
+    }
+  }
+  
+  link.setAttribute('download', fileName);
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.URL.revokeObjectURL(url);
 };
 
 /**

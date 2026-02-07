@@ -1,6 +1,66 @@
 # 🚀 Quick Reference - Development Workflow
 
-**Last Updated**: February 5, 2026 - Chat System with Conversation Deletion/Restoration 💬
+**Last Updated**: February 6, 2026 - GDPR-Compliant Data Export System 📦
+
+---
+
+## 📦 Data Export System (Added Feb 6, 2026)
+
+**GDPR-compliant user data export with async processing**
+
+**Quick Usage**:
+```typescript
+// Frontend - Request export
+import * as settingsApi from '@/services/settingsApi';
+const result = await settingsApi.requestDataExport();
+// User receives email when ready (5-10 minutes)
+
+// Check status
+const status = await settingsApi.getExportStatus();
+console.log(status.status); // 'pending', 'processing', 'completed', 'failed', 'expired'
+
+// Download
+await settingsApi.downloadExport(requestId);
+```
+
+**API Endpoints**:
+- `POST /api/settings/export-data` - Request export (rate limit: 3 per 24h)
+- `GET /api/settings/export-data/status` - Get latest request status
+- `GET /api/settings/export-data/download/:requestId` - Download ZIP file
+
+**Features**:
+- **Complete Data Collection** - 20+ tables (profile, enrollments, progress, certificates, transactions, chat, AI tutoring, comments, bookmarks, notifications)
+- **Multiple Formats** - JSON (complete data) + CSV (summary) + README documentation
+- **Background Processing** - Cron job processes exports every minute
+- **Email Notifications** - Beautiful HTML email with download link
+- **Security** - 7-day expiry, user ownership verification, download tracking
+- **Resource Management** - 500MB size limit, 1GB minimum disk space requirement
+- **GDPR Compliance** - Right to data portability fulfilled
+
+**Export Contents (28 files)**:
+```
+profile/              - personal-info.json, settings.json, notification-preferences.json
+learning/             - enrollments, progress, assessments, certificates (7 files)
+community/            - comments, chat messages, study groups (5 files)
+ai-tutoring/          - sessions, messages (2 files)
+transactions/         - payments, invoices (2 files)
+activity/             - bookmarks, notifications, live sessions (3 files)
+csv/                  - 5 CSV files for spreadsheet viewing
+README.txt            - Complete documentation + GDPR info
+```
+
+**Components**:
+- `services/DataExportService.ts` - Data collection and ZIP generation (812 lines)
+- `services/ExportJobProcessor.ts` - Background processing (313 lines)
+- `pages/Settings/SettingsPage.tsx` - Export UI with status polling
+- Database: `DataExportRequests` table with 3 indexes
+
+**Background Jobs**:
+- Every minute: Process pending exports
+- Daily 3 AM UTC: Cleanup expired exports
+
+**Status Flow**:
+`pending` → `processing` → `completed` (or `failed`) → `expired` (after 7 days)
 
 ---
 

@@ -265,6 +265,9 @@ const StudentManagement: React.FC = () => {
       case 'completed': return 'primary';
       case 'suspended': return 'warning';
       case 'cancelled': return 'error';
+      case 'pending': return 'info';
+      case 'approved': return 'info';
+      case 'rejected': return 'error';
       default: return 'default';
     }
   };
@@ -443,6 +446,7 @@ const StudentManagement: React.FC = () => {
               >
                 <MenuItem value="">All Status</MenuItem>
                 <MenuItem value="active">Active</MenuItem>
+                <MenuItem value="approved">Approved</MenuItem>
                 <MenuItem value="completed">Completed</MenuItem>
                 <MenuItem value="suspended">Suspended</MenuItem>
                 <MenuItem value="cancelled">Cancelled</MenuItem>

@@ -22,6 +22,8 @@ import {
   Schedule,
   People,
   TrendingUp,
+  HourglassEmpty,
+  Block,
 } from '@mui/icons-material';
 import { formatCategory, getCategoryGradient as getCategoryGradientUtil, getLevelColor as getLevelColorUtil } from '../../utils/courseHelpers';
 
@@ -48,6 +50,7 @@ export interface Course {
   progress?: number; // For enrolled courses
   lastAccessed?: string;
   isEnrolled?: boolean;
+  enrollmentStatus?: 'active' | 'completed' | 'pending' | 'approved' | 'suspended' | 'cancelled' | 'rejected' | null;
   isPopular?: boolean;
   isNew?: boolean;
   // Enrollment Controls (Phase 2)
@@ -675,6 +678,85 @@ export const CourseCard: React.FC<CourseCardProps> = ({
             >
               Manage
             </Button>
+          ) : course.enrollmentStatus === 'pending' ? (
+            <Chip
+              icon={<HourglassEmpty sx={{ fontSize: '1rem' }} />}
+              label="Pending Approval"
+              size="small"
+              data-testid={`course-card-pending-chip-${course.id}`}
+              sx={{
+                backgroundColor: '#f59e0b',
+                color: 'white',
+                fontWeight: 'bold',
+                px: 0.5,
+                fontSize: '0.8rem',
+                '& .MuiChip-icon': { color: 'white' },
+              }}
+            />
+          ) : course.enrollmentStatus === 'approved' ? (
+            <Button
+              variant="contained"
+              size="small"
+              onClick={(e) => { e.stopPropagation(); onEnroll?.(course.id); }}
+              data-testid={`course-card-complete-purchase-button-${course.id}`}
+              sx={{
+                textTransform: 'none',
+                fontWeight: 'bold',
+                px: 2,
+                py: 0.75,
+                borderRadius: 2,
+                background: 'linear-gradient(45deg, #10b981 30%, #059669 90%)',
+                boxShadow: '0 3px 5px 2px rgba(16, 185, 129, .3)',
+                transition: 'all 0.2s ease',
+                '&:hover': {
+                  transform: 'translateY(-2px)',
+                  boxShadow: '0 6px 10px 4px rgba(16, 185, 129, .3)',
+                },
+              }}
+            >
+              Complete Purchase
+            </Button>
+          ) : course.enrollmentStatus === 'suspended' ? (
+            <Chip
+              icon={<Block sx={{ fontSize: '1rem' }} />}
+              label="Suspended"
+              size="small"
+              data-testid={`course-card-suspended-chip-${course.id}`}
+              sx={{
+                backgroundColor: '#ef4444',
+                color: 'white',
+                fontWeight: 'bold',
+                px: 0.5,
+                fontSize: '0.8rem',
+                '& .MuiChip-icon': { color: 'white' },
+              }}
+            />
+          ) : course.enrollmentStatus === 'cancelled' ? (
+            <Chip
+              label="Cancelled"
+              size="small"
+              data-testid={`course-card-cancelled-chip-${course.id}`}
+              sx={{
+                backgroundColor: '#6b7280',
+                color: 'white',
+                fontWeight: 'bold',
+                px: 0.5,
+                fontSize: '0.8rem',
+              }}
+            />
+          ) : course.enrollmentStatus === 'rejected' ? (
+            <Chip
+              label="Rejected"
+              size="small"
+              data-testid={`course-card-rejected-chip-${course.id}`}
+              sx={{
+                backgroundColor: '#dc2626',
+                color: 'white',
+                fontWeight: 'bold',
+                px: 0.5,
+                fontSize: '0.8rem',
+              }}
+            />
           ) : !course.isEnrolled ? (
             <span onClick={(e) => e.stopPropagation()}>
               <Button

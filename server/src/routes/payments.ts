@@ -43,7 +43,7 @@ router.post('/create-payment-intent', authenticateToken, async (req: Request, re
 
     // Verify course exists
     const courses = await db.query(
-      `SELECT Id, Title, Price, MaxEnrollment, EnrollmentOpenDate, EnrollmentCloseDate FROM dbo.Courses WHERE Id = @courseId`,
+      `SELECT Id, Title, Price, MaxEnrollment, EnrollmentOpenDate, EnrollmentCloseDate, RequiresApproval FROM dbo.Courses WHERE Id = @courseId`,
       { courseId }
     );
 
@@ -67,17 +67,59 @@ router.post('/create-payment-intent', authenticateToken, async (req: Request, re
       });
     }
 
-    // Check if already enrolled
+    // Check if already enrolled (active/completed blocks checkout; approved allows it)
     const enrollments = await db.query(
-      `SELECT Id FROM dbo.Enrollments WHERE UserId = @userId AND CourseId = @courseId`,
+      `SELECT Id, Status FROM dbo.Enrollments WHERE UserId = @userId AND CourseId = @courseId`,
       { userId, courseId }
     );
 
     if (enrollments.length > 0) {
-      console.warn(`[${requestId}] User already enrolled:`, { userId, courseId });
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Already enrolled in this course' 
+      const status = enrollments[0].Status;
+      if (status === 'active' || status === 'completed') {
+        console.warn(`[${requestId}] User already enrolled (${status}):`, { userId, courseId });
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Already enrolled in this course' 
+        });
+      }
+      if (status === 'pending') {
+        console.warn(`[${requestId}] Enrollment still pending approval:`, { userId, courseId });
+        return res.status(403).json({ 
+          success: false, 
+          message: 'Your enrollment is pending instructor approval. You cannot pay until approved.',
+          code: 'ENROLLMENT_PENDING_APPROVAL'
+        });
+      }
+      if (status === 'suspended') {
+        console.warn(`[${requestId}] Enrollment suspended:`, { userId, courseId });
+        return res.status(403).json({ 
+          success: false, 
+          message: 'Your enrollment has been suspended. Please contact the instructor for more information.',
+          code: 'ENROLLMENT_SUSPENDED'
+        });
+      }
+      // status === 'approved' is allowed — student was approved and now paying
+      if (course.RequiresApproval && status !== 'approved') {
+        // For RequiresApproval courses, only 'approved' enrollments can pay
+        // cancelled/rejected need to re-request and get approved first
+        console.warn(`[${requestId}] RequiresApproval course, enrollment status '${status}' cannot pay:`, { userId, courseId });
+        return res.status(403).json({
+          success: false,
+          message: 'This course requires instructor approval. Please request enrollment approval first.',
+          code: 'APPROVAL_REQUIRED'
+        });
+      }
+      // For non-RequiresApproval courses: cancelled/rejected are allowed — they can re-purchase
+    }
+
+    // SECURITY: Block direct checkout bypass for courses requiring approval
+    // If no enrollment exists and course requires approval, student must get approved first
+    if (enrollments.length === 0 && course.RequiresApproval) {
+      console.warn(`[${requestId}] No enrollment for RequiresApproval course:`, { userId, courseId });
+      return res.status(403).json({
+        success: false,
+        message: 'This course requires instructor approval before purchase. Please request enrollment first.',
+        code: 'APPROVAL_REQUIRED'
       });
     }
 
@@ -478,17 +520,50 @@ router.post('/confirm-enrollment', authenticateToken, async (req: Request, res: 
       }
     }
 
-    // Create enrollment if it doesn't exist
-    await db.query(
-      `IF NOT EXISTS (SELECT 1 FROM dbo.Enrollments WHERE UserId = @userId AND CourseId = @courseId)
-       BEGIN
-         INSERT INTO dbo.Enrollments (Id, UserId, CourseId, EnrolledAt, Status)
-         VALUES (NEWID(), @userId, @courseId, GETUTCDATE(), 'active')
-       END`,
+    // Create or activate enrollment
+    const existingEnrollment = await db.query(
+      `SELECT Id, Status FROM dbo.Enrollments WHERE UserId = @userId AND CourseId = @courseId`,
       { userId, courseId }
     );
 
+    if (existingEnrollment.length > 0) {
+      const enrollmentStatus = existingEnrollment[0].Status;
+      if (enrollmentStatus === 'active' || enrollmentStatus === 'completed') {
+        // Already enrolled, nothing to do
+        console.log(`ℹ️ User ${userId} already enrolled (${enrollmentStatus}) in course ${courseId}`);
+      } else if (enrollmentStatus === 'suspended') {
+        // Suspended enrollment — do NOT reactivate even after payment
+        console.warn(`⚠️ Payment confirmed but enrollment is suspended for user ${userId}, course ${courseId}. Manual review needed.`);
+      } else {
+        // Upgrade approved/pending/cancelled/rejected to active
+        await db.query(
+          `UPDATE dbo.Enrollments SET Status = 'active', EnrolledAt = GETUTCDATE() WHERE Id = @id`,
+          { id: existingEnrollment[0].Id }
+        );
+        // Increment enrollment count
+        await db.query(
+          `UPDATE dbo.Courses SET EnrollmentCount = ISNULL(EnrollmentCount, 0) + 1 WHERE Id = @courseId`,
+          { courseId }
+        );
+        console.log(`✅ Enrollment activated (was ${enrollmentStatus}) for user ${userId} in course ${courseId}`);
+      }
+    } else {
+      // No enrollment exists — create new active enrollment
+      await db.query(
+        `INSERT INTO dbo.Enrollments (Id, UserId, CourseId, EnrolledAt, Status)
+         VALUES (NEWID(), @userId, @courseId, GETUTCDATE(), 'active')`,
+        { userId, courseId }
+      );
+      // Increment enrollment count
+      await db.query(
+        `UPDATE dbo.Courses SET EnrollmentCount = ISNULL(EnrollmentCount, 0) + 1 WHERE Id = @courseId`,
+        { courseId }
+      );
+      console.log(`✅ Enrollment created for user ${userId} in course ${courseId}`);
+    }
+
     console.log(`✅ Enrollment confirmed for user ${userId} in course ${courseId} (Transaction: ${transactions[0].Id})`);
+
 
     res.json({
       success: true,

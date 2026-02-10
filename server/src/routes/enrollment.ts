@@ -314,8 +314,14 @@ router.post('/courses/:courseId/enroll', authenticateToken, async (req: AuthRequ
       });
     }
 
-    // 3. Prevent enrollment in paid courses without payment
-    if (courseData.Price > 0) {
+    // 3. Check if manual approval is required BEFORE price check (Phase 2 fix)
+    // For paid courses with RequiresApproval, we create a pending enrollment first.
+    // The student pays AFTER the instructor approves.
+    if (courseData.RequiresApproval && courseData.Price > 0) {
+      // Skip the price check — approval comes first, payment later
+      // Fall through to prerequisite check, existing enrollment check, and pending creation below
+    } else if (courseData.Price > 0) {
+      // Standard paid course without approval: redirect to checkout
       return res.status(402).json({ 
         error: 'This course requires payment. Please complete the checkout process.',
         code: 'PAYMENT_REQUIRED',
@@ -390,6 +396,34 @@ router.post('/courses/:courseId/enroll', authenticateToken, async (req: AuthRequ
           code: 'ENROLLMENT_ALREADY_PENDING',
           enrollmentId: existingEnrollment[0].Id
         });
+      } else if (status === 'approved') {
+        // Instructor approved but student hasn't paid yet (paid course with approval)
+        if (courseData.Price > 0) {
+          return res.status(200).json({
+            enrollmentId: existingEnrollment[0].Id,
+            courseId,
+            status: 'approved',
+            message: 'Your enrollment has been approved! Please complete payment to access the course.',
+            code: 'ENROLLMENT_APPROVED_PENDING_PAYMENT',
+            price: courseData.Price,
+            checkoutUrl: `/checkout/${courseId}`
+          });
+        } else {
+          // Free course that's approved — activate it
+          await db.execute(`
+            UPDATE dbo.Enrollments SET Status = 'active' WHERE Id = @enrollmentId
+          `, { enrollmentId: existingEnrollment[0].Id });
+          await db.execute(`
+            UPDATE dbo.Courses SET EnrollmentCount = EnrollmentCount + 1 WHERE Id = @courseId
+          `, { courseId });
+          return res.status(200).json({
+            enrollmentId: existingEnrollment[0].Id,
+            courseId,
+            status: 'active',
+            message: 'Successfully enrolled in course',
+            code: 'ENROLLMENT_SUCCESS'
+          });
+        }
       } else if (status === 'rejected') {
         // Previously rejected - allow re-enrollment by updating the existing record
         const newStatus = courseData.RequiresApproval ? 'pending' : 'active';
@@ -432,16 +466,34 @@ router.post('/courses/:courseId/enroll', authenticateToken, async (req: AuthRequ
           message: 'Already completed this course. You still have full access.',
           code: 'ALREADY_COMPLETED'
         });
+      } else if (status === 'suspended') {
+        // Suspended enrollment — student cannot self-reactivate
+        return res.status(403).json({
+          error: 'Your enrollment has been suspended. Please contact the instructor for more information.',
+          code: 'ENROLLMENT_SUSPENDED',
+          enrollmentId: existingEnrollment[0].Id
+        });
       } else if (status === 'cancelled') {
         // Reactivate cancelled enrollment
+        // Same logic as rejected: if RequiresApproval, go back to pending (re-approval needed)
+        const reactivateStatus = courseData.RequiresApproval ? 'pending' : 'active';
+        
         await db.execute(`
           UPDATE dbo.Enrollments
-          SET Status = 'active', EnrolledAt = @enrolledAt
+          SET Status = @reactivateStatus, EnrolledAt = @enrolledAt
           WHERE Id = @enrollmentId
         `, {
           enrollmentId: existingEnrollment[0].Id,
-          enrolledAt: new Date().toISOString()
+          enrolledAt: new Date().toISOString(),
+          reactivateStatus
         });
+
+        // Increment enrollment count only when directly activating (free course, no approval)
+        if (reactivateStatus === 'active') {
+          await db.execute(`
+            UPDATE dbo.Courses SET EnrollmentCount = EnrollmentCount + 1 WHERE Id = @courseId
+          `, { courseId });
+        }
 
         // Get user details for notifications (already have course details from courseData)
         const userDetails = await db.query(`
@@ -457,42 +509,59 @@ router.post('/courses/:courseId/enroll', authenticateToken, async (req: AuthRequ
           try {
             const notificationService = new NotificationService(io);
 
-            // Notify student: Welcome back notification
-            const studentNotificationId = await notificationService.createNotificationWithControls(
-              {
-                userId: userId!,
-                type: 'course',
-                priority: 'high',
-                title: `Welcome Back to ${courseData.Title}!`,
-                message: `You're re-enrolled! Continue your learning journey.`,
-                actionUrl: `/courses/${courseId}`,
-                actionText: 'Continue Learning'
-              },
-              {
-                category: 'course',
-                subcategory: 'CourseEnrollment'
-              }
-            );
+            if (reactivateStatus === 'active') {
+              // Notify student: Welcome back notification
+              await notificationService.createNotificationWithControls(
+                {
+                  userId: userId!,
+                  type: 'course',
+                  priority: 'high',
+                  title: `Welcome Back to ${courseData.Title}!`,
+                  message: `You're re-enrolled! Continue your learning journey.`,
+                  actionUrl: `/courses/${courseId}`,
+                  actionText: 'Continue Learning'
+                },
+                {
+                  category: 'course',
+                  subcategory: 'CourseEnrollment'
+                }
+              );
 
-            // NotificationService already emits Socket.IO event, no need to emit again
-
-            // Notify instructor: Re-enrollment alert
-            const instructorId = courseData.InstructorId;
-            const instructorNotificationId = await notificationService.createNotificationWithControls(
-              {
-                userId: instructorId,
-                type: 'course',
-                priority: 'normal',
-                title: 'Student Re-enrolled',
-                message: `${studentName} re-enrolled in "${courseData.Title}"`,
-                actionUrl: `/instructor/students?courseId=${courseId}`,
-                actionText: 'View Students'
-              },
-              {
-                category: 'course',
-                subcategory: 'CourseEnrollment'
-              }
-            );
+              // Notify instructor: Re-enrollment alert
+              const instructorId = courseData.InstructorId;
+              await notificationService.createNotificationWithControls(
+                {
+                  userId: instructorId,
+                  type: 'course',
+                  priority: 'normal',
+                  title: 'Student Re-enrolled',
+                  message: `${studentName} re-enrolled in "${courseData.Title}"`,
+                  actionUrl: `/instructor/students?courseId=${courseId}`,
+                  actionText: 'View Students'
+                },
+                {
+                  category: 'course',
+                  subcategory: 'CourseEnrollment'
+                }
+              );
+            } else {
+              // Notify instructor: Re-enrollment request (needs approval)
+              await notificationService.createNotificationWithControls(
+                {
+                  userId: courseData.InstructorId,
+                  type: 'course',
+                  priority: 'high',
+                  title: 'Re-enrollment Request',
+                  message: `${studentName} requested to re-enroll in "${courseData.Title}"`,
+                  actionUrl: `/instructor/students?courseId=${courseId}`,
+                  actionText: 'Review Request'
+                },
+                {
+                  category: 'course',
+                  subcategory: 'EnrollmentRequest'
+                }
+              );
+            }
 
             // NotificationService already emits Socket.IO event, no need to emit again
           } catch (notifError) {
@@ -503,13 +572,15 @@ router.post('/courses/:courseId/enroll', authenticateToken, async (req: AuthRequ
           console.warn('⚠️ Socket.IO not available, skipping real-time re-enrollment notifications');
         }
 
-        return res.status(200).json({
+        return res.status(reactivateStatus === 'pending' ? 202 : 200).json({
           enrollmentId: existingEnrollment[0].Id,
           courseId,
-          status: 'active',
+          status: reactivateStatus,
           enrolledAt: new Date().toISOString(),
-          message: 'Successfully re-enrolled in course',
-          code: 'RE_ENROLLED'
+          message: reactivateStatus === 'pending'
+            ? 'Your enrollment request has been resubmitted. Awaiting instructor approval.'
+            : 'Successfully re-enrolled in course',
+          code: reactivateStatus === 'pending' ? 'ENROLLMENT_PENDING_APPROVAL' : 'RE_ENROLLED'
         });
       }
     }

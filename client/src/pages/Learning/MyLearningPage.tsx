@@ -168,7 +168,15 @@ const MyLearningPage: React.FC = () => {
         return 'success';
       case 'active':
         return 'primary';
+      case 'pending':
+        return 'warning';
+      case 'approved':
+        return 'info';
+      case 'suspended':
+        return 'error';
       case 'cancelled':
+        return 'error';
+      case 'rejected':
         return 'error';
       default:
         return 'default';
@@ -495,7 +503,70 @@ const MyLearningPage: React.FC = () => {
                         }
                       </Typography>
 
-                      {enrollment.Status === 'teaching' ? (
+                      {enrollment.Status === 'pending' ? (
+                        <Chip
+                          label="Pending Approval"
+                          size="small"
+                          color="warning"
+                          sx={{ fontWeight: 600, width: '100%' }}
+                          data-testid={`my-learning-pending-chip-${enrollment.courseId}`}
+                        />
+                      ) : enrollment.Status === 'approved' && Number(enrollment.Price) > 0 ? (
+                        <Button
+                          variant="contained"
+                          fullWidth
+                          data-testid={`my-learning-complete-purchase-${enrollment.courseId}-button`}
+                          onClick={() => navigate(`/checkout/${enrollment.courseId}`)}
+                          sx={{
+                            py: 0.75,
+                            borderRadius: 2,
+                            background: 'linear-gradient(45deg, #10b981 30%, #059669 90%)',
+                            boxShadow: '0 3px 5px 2px rgba(16, 185, 129, .3)',
+                            fontWeight: 600,
+                            transition: 'all 0.2s ease',
+                            '&:hover': {
+                              transform: 'translateY(-2px)',
+                              boxShadow: '0 6px 10px 4px rgba(16, 185, 129, .3)',
+                            },
+                          }}
+                        >
+                          Complete Purchase
+                        </Button>
+                      ) : enrollment.Status === 'approved' ? (
+                        <Chip
+                          label="Approved"
+                          size="small"
+                          color="success"
+                          sx={{ fontWeight: 600, width: '100%' }}
+                          data-testid={`my-learning-approved-chip-${enrollment.courseId}`}
+                        />
+                      ) : enrollment.Status === 'rejected' ? (
+                        <Chip
+                          label="Enrollment Rejected"
+                          size="small"
+                          color="error"
+                          variant="outlined"
+                          sx={{ fontWeight: 600, width: '100%' }}
+                          data-testid={`my-learning-rejected-chip-${enrollment.courseId}`}
+                        />
+                      ) : enrollment.Status === 'suspended' ? (
+                        <Chip
+                          label="Enrollment Suspended"
+                          size="small"
+                          color="error"
+                          sx={{ fontWeight: 600, width: '100%' }}
+                          data-testid={`my-learning-suspended-chip-${enrollment.courseId}`}
+                        />
+                      ) : enrollment.Status === 'cancelled' ? (
+                        <Chip
+                          label="Enrollment Cancelled"
+                          size="small"
+                          color="error"
+                          variant="outlined"
+                          sx={{ fontWeight: 600, width: '100%' }}
+                          data-testid={`my-learning-cancelled-chip-${enrollment.courseId}`}
+                        />
+                      ) : enrollment.Status === 'teaching' ? (
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                           <Button
                             variant="contained"

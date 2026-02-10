@@ -240,7 +240,7 @@ export class StripeService {
       // Use database transaction for atomic operations (prevents race conditions)
       // Check if already enrolled BEFORE updating transaction
       const existingEnrollments = await db.query(
-        `SELECT Id FROM dbo.Enrollments WHERE UserId = @userId AND CourseId = @courseId`,
+        `SELECT Id, Status FROM dbo.Enrollments WHERE UserId = @userId AND CourseId = @courseId`,
         { userId, courseId }
       );
 
@@ -259,16 +259,51 @@ export class StripeService {
         }
       );
 
-      // Create enrollment only if not already enrolled (prevents duplicates)
-      if (existingEnrollments.length === 0) {
+      if (existingEnrollments.length > 0) {
+        const existingStatus = existingEnrollments[0].Status;
+        if (existingStatus === 'approved') {
+          // Approved enrollment from approval flow — activate it now that payment succeeded
+          await db.query(
+            `UPDATE dbo.Enrollments SET Status = 'active', EnrolledAt = GETUTCDATE() WHERE Id = @enrollmentId`,
+            { enrollmentId: existingEnrollments[0].Id }
+          );
+          // Increment enrollment count (was deferred until payment for paid+approval courses)
+          await db.query(
+            `UPDATE dbo.Courses SET EnrollmentCount = ISNULL(EnrollmentCount, 0) + 1 WHERE Id = @courseId`,
+            { courseId }
+          );
+          logger.info(`✅ Approved enrollment activated for user ${userId}, course ${courseId}`);
+        } else if (existingStatus === 'active' || existingStatus === 'completed') {
+          logger.info(`ℹ️ User ${userId} already enrolled (${existingStatus}) in course ${courseId}, skipping`);
+        } else if (existingStatus === 'suspended') {
+          // Suspended enrollment — do NOT reactivate even if payment succeeded
+          // The instructor intentionally suspended this student; a refund may be needed
+          logger.warn(`⚠️ Payment succeeded but enrollment is suspended for user ${userId}, course ${courseId}. Manual review needed.`);
+        } else {
+          // cancelled/rejected/pending — update to active
+          await db.query(
+            `UPDATE dbo.Enrollments SET Status = 'active', EnrolledAt = GETUTCDATE() WHERE Id = @enrollmentId`,
+            { enrollmentId: existingEnrollments[0].Id }
+          );
+          await db.query(
+            `UPDATE dbo.Courses SET EnrollmentCount = ISNULL(EnrollmentCount, 0) + 1 WHERE Id = @courseId`,
+            { courseId }
+          );
+          logger.info(`✅ Enrollment reactivated for user ${userId}, course ${courseId}`);
+        }
+      } else {
+        // No existing enrollment — create new active enrollment (standard paid course without approval)
         await db.query(
           `INSERT INTO dbo.Enrollments (Id, UserId, CourseId, EnrolledAt, Status)
            VALUES (NEWID(), @userId, @courseId, GETUTCDATE(), 'active')`,
           { userId, courseId }
         );
+        // Increment enrollment count
+        await db.query(
+          `UPDATE dbo.Courses SET EnrollmentCount = ISNULL(EnrollmentCount, 0) + 1 WHERE Id = @courseId`,
+          { courseId }
+        );
         logger.info(`✅ Enrollment created for user ${userId}, course ${courseId}`);
-      } else {
-        logger.info(`ℹ️ User ${userId} already enrolled in course ${courseId}, skipping enrollment creation`);
       }
 
       // Generate invoice (idempotent - checks if invoice already exists)

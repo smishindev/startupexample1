@@ -228,15 +228,18 @@ router.put('/:studentId/enrollment/:enrollmentId', authenticateToken, async (req
     const { studentId, enrollmentId } = req.params;
     const { status } = req.body;
 
-    if (!['active', 'completed', 'suspended', 'cancelled'].includes(status)) {
+    if (!['active', 'completed', 'suspended', 'cancelled', 'approved'].includes(status)) {
       return res.status(400).json({ error: 'Invalid enrollment status' });
     }
 
     // Verify instructor owns the course for this enrollment
     const enrollmentCheck = await db.query(`
-      SELECT e.Id, e.CourseId 
+      SELECT e.Id, e.CourseId, e.UserId, e.Status as CurrentStatus,
+             c.Title as CourseTitle, c.Price,
+             u.FirstName, u.LastName
       FROM dbo.Enrollments e
       INNER JOIN dbo.Courses c ON e.CourseId = c.Id
+      INNER JOIN dbo.Users u ON e.UserId = u.Id
       WHERE e.Id = @enrollmentId AND e.UserId = @studentId AND c.InstructorId = @instructorId
     `, { enrollmentId, studentId, instructorId });
 
@@ -244,11 +247,101 @@ router.put('/:studentId/enrollment/:enrollmentId', authenticateToken, async (req
       return res.status(403).json({ error: 'Access denied to this enrollment' });
     }
 
+    const enrollment = enrollmentCheck[0];
+
+    // Skip if status is already the same (no-op)
+    if (enrollment.CurrentStatus === status) {
+      return res.json({ message: `Enrollment is already ${status}` });
+    }
+
     // Update enrollment status
     await db.execute(
       'UPDATE dbo.Enrollments SET Status = @status WHERE Id = @enrollmentId',
       { status, enrollmentId }
     );
+
+    // Manage EnrollmentCount: increment when transitioning to 'active' from a never-counted status
+    if (status === 'active' && ['pending', 'approved'].includes(enrollment.CurrentStatus)) {
+      await db.execute(
+        'UPDATE dbo.Courses SET EnrollmentCount = ISNULL(EnrollmentCount, 0) + 1 WHERE Id = @courseId',
+        { courseId: enrollment.CourseId }
+      );
+    }
+
+    // Send notification to student for status changes
+    if (['active', 'approved', 'suspended', 'cancelled'].includes(status)) {
+      const io = req.app.get('io');
+      if (io) {
+        try {
+          const NotificationService = require('../services/NotificationService').NotificationService;
+          const notificationService = new NotificationService(io);
+
+          let title = '';
+          let message = '';
+          let priority: 'high' | 'normal' = 'normal';
+          let actionUrl = '';
+          let actionText = '';
+          let subcategory = '';
+
+          const isPaidCourse = enrollment.Price && parseFloat(enrollment.Price) > 0;
+
+          switch (status) {
+            case 'active':
+              title = 'Enrollment Activated! 🎉';
+              message = `Your enrollment in "${enrollment.CourseTitle}" has been activated. You can now access the course.`;
+              priority = 'high';
+              actionUrl = `/courses/${enrollment.CourseId}`;
+              actionText = 'Go to Course';
+              subcategory = 'EnrollmentApproved';
+              break;
+            case 'approved':
+              title = 'Enrollment Approved! 🎉';
+              message = isPaidCourse
+                ? `Your enrollment in "${enrollment.CourseTitle}" has been approved! Complete your purchase to access the course.`
+                : `Your enrollment in "${enrollment.CourseTitle}" has been approved. You can now access the course.`;
+              priority = 'high';
+              actionUrl = isPaidCourse ? `/checkout/${enrollment.CourseId}` : `/courses/${enrollment.CourseId}`;
+              actionText = isPaidCourse ? 'Complete Purchase' : 'Go to Course';
+              subcategory = 'EnrollmentApproved';
+              break;
+            case 'suspended':
+              title = 'Enrollment Suspended';
+              message = `Your enrollment in "${enrollment.CourseTitle}" has been suspended. Please contact the instructor for more information.`;
+              priority = 'normal';
+              actionUrl = `/courses`;
+              actionText = 'Browse Courses';
+              subcategory = 'EnrollmentSuspended';
+              break;
+            case 'cancelled':
+              title = 'Enrollment Cancelled';
+              message = `Your enrollment in "${enrollment.CourseTitle}" has been cancelled.`;
+              priority = 'normal';
+              actionUrl = `/courses`;
+              actionText = 'Browse Courses';
+              subcategory = 'EnrollmentCancelled';
+              break;
+          }
+
+          await notificationService.createNotificationWithControls(
+            {
+              userId: enrollment.UserId,
+              type: 'course',
+              priority,
+              title,
+              message,
+              actionUrl,
+              actionText
+            },
+            {
+              category: 'course',
+              subcategory
+            }
+          );
+        } catch (notifError) {
+          console.error('⚠️ Failed to send enrollment status notification:', notifError);
+        }
+      }
+    }
 
     console.log(`[STUDENT API] Updated enrollment ${enrollmentId} status to ${status}`);
     res.json({ message: 'Enrollment status updated successfully' });
@@ -332,6 +425,7 @@ router.get('/analytics', authenticateToken, async (req: any, res) => {
         COUNT(DISTINCT CASE WHEN e.Status = 'active' THEN e.UserId END) as activeStudents,
         COUNT(DISTINCT CASE WHEN e.Status = 'completed' THEN e.UserId END) as completedStudents,
         COUNT(DISTINCT CASE WHEN e.Status = 'suspended' THEN e.UserId END) as suspendedStudents,
+        COUNT(DISTINCT CASE WHEN e.Status = 'approved' THEN e.UserId END) as approvedStudents,
         AVG(CAST(up.OverallProgress AS FLOAT)) as avgProgress,
         AVG(CAST(up.TimeSpent AS FLOAT)) as avgTimeSpent,
         COUNT(DISTINCT CASE WHEN up.LastAccessedAt > DATEADD(day, -7, GETUTCDATE()) THEN e.UserId END) as activeLastWeek,
@@ -350,6 +444,7 @@ router.get('/analytics', authenticateToken, async (req: any, res) => {
       activeStudents: result.activeStudents || 0,
       completedStudents: result.completedStudents || 0,
       suspendedStudents: result.suspendedStudents || 0,
+      approvedStudents: result.approvedStudents || 0,
       averageProgress: Math.round(result.avgProgress || 0),
       averageTimeSpent: Math.round(result.avgTimeSpent || 0),
       activeLastWeek: result.activeLastWeek || 0,

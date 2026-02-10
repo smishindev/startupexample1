@@ -1,6 +1,6 @@
 # 🚀 Quick Reference - Development Workflow
 
-**Last Updated**: February 10, 2026 - Enrollment Controls UI/UX Complete ✅
+**Last Updated**: February 10, 2026 - Enrollment Notification Enhancements + Bug Fixes 🐛
 
 ---
 
@@ -60,10 +60,21 @@ POST /api/enrollment/courses/:id/enroll
     1. Instructor self-enroll check
     2. Capacity (MaxEnrollment vs EnrollmentCount)
     3. Date range (EnrollmentOpenDate, EnrollmentCloseDate)
-    4. Price check (free vs paid)
+    4. Approval+Price check:
+       - If RequiresApproval AND Price > 0: creates status='pending' (approval first, pay later)
+       - If Price > 0 (no approval): returns 402 PAYMENT_REQUIRED
     5. Prerequisites
-    6. Existing enrollment
-    7. Approval requirement (creates status='pending' if RequiresApproval=1)
+    6. Existing enrollment (handles pending, approved, rejected, cancelled, completed)
+    7. Approval requirement for free courses (creates status='pending')
+
+  Enrollment statuses: pending → approved → active (paid+approval)
+                       pending → active (free+approval)
+                       active (no approval)
+
+PUT /api/instructor/enrollments/:id/approve
+  - Free course: sets status='active', increments EnrollmentCount
+  - Paid course: sets status='approved', sends notification with checkout link
+  - EnrollmentCount incremented AFTER payment for paid courses
 
 GET /api/courses/:id
   Returns: MaxEnrollment, EnrollmentCount, EnrollmentOpenDate, 
@@ -86,14 +97,18 @@ interface Course {
 // "Enrollment Closed" (disabled, orange chip)
 // "Not Yet Open" (disabled, blue chip)
 
-// CourseDetailPage - Blocks purchase/enrollment
-const isEnrollmentDisabled = () => {
-  return isFull || isNotYetOpen || isClosed;
-};
+// CourseDetailPage button priority:
+// 1. Instructor → "Manage Course"
+// 2. Active/Completed → "Continue Learning"
+// 3. Pending → "⏳ Awaiting Instructor Approval" (disabled)
+// 4. Approved + Paid → "✅ Approved — Complete Purchase" (links to checkout)
+// 5. Paid + RequiresApproval → "Request Enrollment - $X"
+// 6. Paid (no approval) → "Purchase Course - $X"
+// 7. Free → "Enroll For Free"
 
 // For paid courses with approval:
-// Shows "Request Enrollment" button instead of "Purchase Course"
-// Creates pending enrollment, no payment until approved
+// Student requests → pending → instructor approves → approved → student pays → active
+// No payment until approved. No access until paid.
 ```
 
 ### Database Schema
@@ -103,6 +118,15 @@ MaxEnrollment INT NULL              -- NULL = unlimited
 EnrollmentOpenDate DATETIME2 NULL   -- NULL = always open
 EnrollmentCloseDate DATETIME2 NULL  -- NULL = never closes
 RequiresApproval BIT NOT NULL DEFAULT 0  -- 1 = creates pending enrollments
+
+-- Enrollments table Status values
+-- 'pending'    - Awaiting instructor approval
+-- 'approved'   - Approved by instructor, awaiting payment (paid courses only)
+-- 'active'     - Fully enrolled with course access
+-- 'completed'  - Course completed
+-- 'cancelled'  - Student cancelled
+-- 'rejected'   - Instructor rejected
+-- 'suspended'  - Admin suspended
 ```
 
 ### Features
@@ -450,6 +474,24 @@ import CommentsSection from '@/components/Shared/CommentsSection';
   - Respects EnableComments/EmailComments preferences
   - Default: In-app ON, Email OFF
   - **Automated Tests**: `tests/test_comment_notifications.py` (11 tests, 100% coverage)
+
+**Enrollment Notifications** (Feb 10, 2026): ⭐ **ENHANCED**
+- **Enrollment Suspended**: Type: 'course', Subcategory: 'EnrollmentSuspended', Priority: 'normal'
+  - Dedicated toggle (no longer shares EnrollmentRejected)
+  - Respects EnableEnrollmentSuspended/EmailEnrollmentSuspended preferences
+  - CourseCard shows red "Suspended" chip with Block icon
+- **Enrollment Cancelled**: Type: 'course', Subcategory: 'EnrollmentCancelled', Priority: 'normal'
+  - Dedicated toggle (no longer shares EnrollmentRejected)
+  - Respects EnableEnrollmentCancelled/EmailEnrollmentCancelled preferences
+  - CourseCard shows gray "Cancelled" chip
+- **Enrollment Rejected**: Type: 'course', Subcategory: 'EnrollmentRejected', Priority: 'normal'
+  - Keeps existing toggle
+  - CourseCard shows red "Rejected" chip
+- **Bug Fix**: Changed all enrollment notifications from `priority: 'medium'` → `'normal'`
+  - Fixed in: `students.ts` (3 places), `instructor.ts` (1 place)
+  - Database CHECK constraint only allows: 'low', 'normal', 'high', 'urgent'
+- **Database**: 4 new columns in NotificationPreferences (EnableEnrollmentSuspended, EmailEnrollmentSuspended, EnableEnrollmentCancelled, EmailEnrollmentCancelled)
+- **UI**: NotificationSettingsPage shows all 4 enrollment subcategories under "Course Updates"
 
 ---
 

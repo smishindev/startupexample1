@@ -148,8 +148,12 @@ class CoursesApi {
     const data = response.data;
     
     // Map backend response to frontend interface
+    // Only 'active' and 'completed' count as truly enrolled (can access course)
+    const status = data.status;
+    const isActivelyEnrolled = status === 'active' || status === 'completed';
+    
     return {
-      isEnrolled: data.enrolled || false,
+      isEnrolled: isActivelyEnrolled && !data.isInstructor,
       isInstructor: data.isInstructor || false,
       status: data.status,
       enrolledAt: data.enrolledAt,

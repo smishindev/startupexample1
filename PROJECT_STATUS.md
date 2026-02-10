@@ -1,17 +1,269 @@
 # Mishin Learn Platform - Project Status & Memory
 
-**Last Updated**: February 10, 2026 - Enrollment Controls UI/UX Complete 🎯  
+**Last Updated**: February 10, 2026 - Enrollment Notifications Enhancement + Bug Fixes 🐛  
 **Developer**: Sergey Mishin (s.mishin.dev@gmail.com)  
 **AI Assistant Context**: This file serves as project memory for continuity across chat sessions
 
 **Notification System Status**: 31/31 triggers implemented (100% complete) ✅  
+**Enrollment Notifications**: Dedicated toggles for Suspended/Cancelled (no longer piggyback on Rejected) ✅  
 **Code Quality Status**: Phase 1 + Phase 2 Complete + Verified (Grade: A, 95/100) ✅  
 **Course Features**: Prerequisites, Learning Outcomes, Enrollment Controls Implemented ✅  
-**Enrollment Controls**: Full UI/UX implementation with date awareness & paid course approval handling ✅
+**Enrollment Controls**: Full end-to-end approval → payment flow for paid courses ✅
 
 ---
 
-## 🎯 ENROLLMENT CONTROLS UI/UX (Latest - February 10, 2026)
+## � ENROLLMENT NOTIFICATION ENHANCEMENTS (Latest - February 10, 2026)
+
+**Activity**: Added dedicated notification preference toggles for enrollment suspension and cancellation events + fixed critical priority constraint bugs
+
+**Status**: ✅ **Complete** - Full end-to-end implementation with UI, backend, and database
+
+### **Problem Solved:**
+
+**1. Notification Priority Constraint Violations:**
+- Multiple routes were using `priority: 'medium'` which violates the database CHECK constraint
+- Database Notifications.Priority only allows: `'low'`, `'normal'`, `'high'`, `'urgent'` (NOT `'medium'` or `'critical'`)
+- Caused silent notification failures (CHECK constraint rejected inserts)
+- Found in: `students.ts` (suspend/cancel notifications), `instructor.ts` (rejection notification)
+
+**2. Piggybacking on EnrollmentRejected:**
+- Suspend and cancel notifications used `subcategory: 'EnrollmentRejected'`
+- Users couldn't distinguish or control suspend/cancel notifications separately
+- All three shared the same toggle in notification settings
+
+**3. Missing Enrollment Status UI:**
+- CourseCard showed "Enroll Now" button for suspended students
+- CoursesPage `enrollmentStatusMap` only tracked `pending` and `approved`
+- Suspended/cancelled/rejected statuses fell through to enrollment button
+
+**4. Incomplete NotificationService Coverage:**
+- 5 separate locations in NotificationService.ts needed updating for new columns
+- Missing columns in SELECT queries and hardcoded fallback objects
+- Would cause undefined preference values for new subcategories
+
+### **Solution Implemented:**
+
+**New Database Columns (4 total):**
+```sql
+-- Added to NotificationPreferences table in schema.sql
+EnableEnrollmentSuspended BIT NULL DEFAULT NULL,
+EmailEnrollmentSuspended BIT NULL DEFAULT NULL,
+EnableEnrollmentCancelled BIT NULL DEFAULT NULL,
+EmailEnrollmentCancelled BIT NULL DEFAULT NULL,
+```
+
+**Backend Changes (3 files, 8 locations):**
+- **students.ts**: 
+  - Priority `'medium'` → `'normal'` (3 occurrences: type declaration + 2 switch cases)
+  - Subcategory `'EnrollmentRejected'` → `'EnrollmentSuspended'` (suspend case)
+  - Subcategory `'EnrollmentRejected'` → `'EnrollmentCancelled'` (cancel case)
+- **instructor.ts**: 
+  - Priority `'medium'` → `'normal'` (rejection notification)
+- **NotificationService.ts**: 
+  - Interface: Added 4 new fields to `NotificationPreferences`
+  - 1st SELECT (`getUserPreferences`, line ~636): Added 4 new columns
+  - 2nd SELECT (`createDefaultPreferences`, line ~862): Added 4 new columns
+  - 3rd SELECT (race-condition fallback, line ~916): Added 4 new columns
+  - courseFields array (line ~750): Added 4 new field strings
+  - Hardcoded fallback object (queue processor, line ~1267): Added 4 new null fields
+
+**Frontend Changes (4 files):**
+- **NotificationSettingsPage.tsx**: 
+  - Interface: Added 4 new fields
+  - COURSE_SUBCATEGORIES: Added 2 new entries ("Enrollment Suspended", "Enrollment Cancelled")
+- **notificationPreferencesApi.ts**: Interface updated with 4 new fields
+- **CourseCard.tsx**: 
+  - Added `Block` icon import
+  - Added chip rendering for `suspended` (red, Block icon), `cancelled` (gray), `rejected` (red)
+  - Chips appear before "Enroll Now" button in ternary chain
+- **CoursesPage.tsx**: 
+  - Expanded `enrollmentStatusMap` to track `['pending', 'approved', 'suspended', 'cancelled', 'rejected']`
+
+**Database:**
+- **schema.sql**: Added 4 new columns to NotificationPreferences table (Course Updates Subcategories section)
+- Ran full schema recreation on fresh `startUp1` database
+
+### **Complete Flow:**
+
+```
+INSTRUCTOR SUSPENDS ENROLLMENT:
+  Instructor clicks "Suspend" on /instructor/students page
+  → PUT /instructor/students/:enrollmentId/status { status: 'suspended' }
+  → students.ts sets Status='suspended'
+  → Notification sent with:
+     - priority: 'normal' (not 'medium')
+     - subcategory: 'EnrollmentSuspended' (not 'EnrollmentRejected')
+  → Student sees notification (if EnableEnrollmentSuspended is ON/NULL)
+  → Student navigates to /courses
+  → CourseCard shows red "Suspended" chip with Block icon (no "Enroll Now")
+  → enrollmentStatus='suspended' tracked in enrollmentStatusMap
+
+INSTRUCTOR CANCELS ENROLLMENT:
+  Similar flow with:
+     - subcategory: 'EnrollmentCancelled'
+     - Gray "Cancelled" chip on CourseCard
+
+INSTRUCTOR REJECTS ENROLLMENT:
+  → students.ts or instructor.ts
+  → priority: 'normal' (was 'medium' in instructor.ts - now fixed)
+  → subcategory: 'EnrollmentRejected'
+  → Red "Rejected" chip on CourseCard
+
+NOTIFICATION SETTINGS:
+  User navigates to /settings/notifications
+  → Course Updates section shows:
+     - "Enrollment Approved" toggle
+     - "Enrollment Rejected" toggle
+     - "Enrollment Suspended" toggle ⭐ NEW
+     - "Enrollment Cancelled" toggle ⭐ NEW
+  → Each has independent In-App and Email toggles
+  → NULL (inherit) / OFF (disabled) / ON (enabled)
+```
+
+### **Files Modified (10 total):**
+
+**Backend:**
+- `database/schema.sql` — 4 new columns
+- `server/src/routes/students.ts` — Priority fix (3x), subcategory changes (2x)
+- `server/src/routes/instructor.ts` — Priority fix (1x)
+- `server/src/services/NotificationService.ts` — Interface + 5 query/object updates
+
+**Frontend:**
+- `client/src/pages/Settings/NotificationSettingsPage.tsx` — Interface + 2 new UI entries
+- `client/src/services/notificationPreferencesApi.ts` — Interface update
+- `client/src/components/Course/CourseCard.tsx` — Block icon + 3 chip renderings
+- `client/src/pages/Courses/CoursesPage.tsx` — enrollmentStatusMap expansion
+
+### **Testing:**
+- ✅ TypeScript compilation: 0 errors across all 10 files
+- ✅ Database recreation: schema.sql executed successfully on fresh DB
+- ✅ All notification preference columns present in DB
+- ✅ No more `priority: 'medium'` violations anywhere in codebase
+- ✅ UI renders suspended/cancelled/rejected chips correctly
+- ✅ Settings page shows all 4 enrollment notification toggles
+
+### **Technical Details:**
+
+**Database Constraint:**
+```sql
+-- Notifications table CHECK constraint
+CHECK (Priority IN ('low', 'normal', 'high', 'urgent'))
+```
+
+**Priority Mapping:**
+- Rejected enrollment: `'normal'` (was `'medium'` in instructor.ts)
+- Suspended enrollment: `'normal'`
+- Cancelled enrollment: `'normal'`
+- Approved enrollment: `'high'`
+- Activated enrollment: `'high'`
+
+**Subcategory Logic:**
+```typescript
+// In shouldSendNotification()
+const subcategoryKey = `Enable${subcategory}`; // e.g., 'EnableEnrollmentSuspended'
+const subcategoryValue = preferences[subcategoryKey];
+
+// NULL = inherit from EnableCourseUpdates
+// false = explicitly disabled
+// true = explicitly enabled
+```
+
+**CourseCard Ternary Chain:**
+```typescript
+isInstructor ? "Manage" 
+: enrollmentStatus === 'pending' ? <Chip "Pending Approval" />
+: enrollmentStatus === 'approved' ? <Button "Complete Purchase" />
+: enrollmentStatus === 'suspended' ? <Chip "Suspended" icon={Block} /> ⭐ NEW
+: enrollmentStatus === 'cancelled' ? <Chip "Cancelled" /> ⭐ NEW
+: enrollmentStatus === 'rejected' ? <Chip "Rejected" /> ⭐ NEW
+: !isEnrolled ? <Button "Enroll Now" />
+: <Button "Go to Course" />
+```
+
+**Bug Impact:**
+Before the fixes:
+- Suspend/cancel notifications silently failed (CHECK constraint violation)
+- Reject notifications from instructor.ts silently failed
+- Users couldn't control suspend/cancel notifications independently
+- Suspended students saw "Enroll Now" button (confusing UX)
+- Preference queries returned incomplete data (undefined fields)
+
+After the fixes:
+- All enrollment notifications send successfully with correct priority
+- Users have granular control over each enrollment notification type
+- Clear visual feedback for all enrollment statuses
+- Complete preference data across all code paths
+
+---
+
+## 💰 PAID COURSE APPROVAL → PAYMENT FLOW (February 10, 2026)
+
+**Activity**: Fixed end-to-end flow for paid courses with RequiresApproval — student requests → instructor approves → student pays → enrolled
+
+**Status**: ✅ **Complete** - No gaps in the approval-to-payment pipeline
+
+### **Problem Solved:**
+The previous implementation had 3 critical gaps:
+1. Backend `Price > 0` check returned `402 PAYMENT_REQUIRED` before `RequiresApproval` was evaluated — paid courses with approval never created pending enrollments
+2. Instructor approval set status directly to `'active'` — student got course access without paying
+3. No "Pending" or "Approved" button states on CourseDetailPage
+
+### **Solution Implemented:**
+
+**New Enrollment Status: `'approved'`**
+- Added to database CHECK constraint: `pending → approved → active` for paid courses
+- `approved` = instructor said yes, student hasn't paid yet
+
+**Backend Changes (3 files):**
+- **enrollment.ts**: Reordered validation — `RequiresApproval` checked BEFORE price for paid+approval courses
+- **instructor.ts**: Approve sets `'approved'` (not `'active'`) for paid courses, notification links to checkout
+- **payments.ts**: `create-payment-intent` allows `'approved'` enrollments (blocks `'pending'`)
+- **StripeService.ts**: `handlePaymentSuccess` upgrades `'approved'` → `'active'` and increments EnrollmentCount
+
+**Frontend Changes (3 files):**
+- **CourseDetailPage.tsx**: New button states for pending (disabled, "⏳ Awaiting Approval") and approved ("✅ Approved — Complete Purchase")
+- **coursesApi.ts**: `isEnrolled` only true for `active`/`completed` (not pending/approved)
+- **CoursesPage.tsx**: Handles pending/approved enrollment results
+
+### **Complete Flow:**
+
+```
+PAID COURSE + RequiresApproval:
+  Student clicks "Request Enrollment - $X"
+  → POST /enroll → creates status='pending' (no payment)
+  → Student sees: "⏳ Awaiting Instructor Approval" (disabled button)
+  → Instructor gets notification: "New Enrollment Request"
+  
+  Instructor clicks Approve
+  → PUT /approve → sets status='approved' (not active, no course access)
+  → Student gets notification: "Approved! Complete Purchase" (links to /checkout)
+  
+  Student clicks "✅ Approved — Complete Purchase - $X" (or notification link)
+  → Navigates to /checkout/:courseId
+  → Stripe payment → webhook → status='active' + EnrollmentCount++
+  → Student has full course access
+
+PAID COURSE (no approval):
+  Student clicks "Purchase Course - $X"
+  → Navigates to /checkout/:courseId (standard flow, unchanged)
+
+FREE COURSE + RequiresApproval:
+  Student clicks "Enroll For Free" → pending → approve → active (unchanged)
+```
+
+### **Files Modified:**
+- `database/schema.sql` — Added 'approved' to Enrollments Status CHECK constraint
+- `server/src/routes/enrollment.ts` — Reordered validation, handle 'approved' status
+- `server/src/routes/instructor.ts` — Price-aware approve (approved vs active)
+- `server/src/routes/payments.ts` — Allow 'approved' enrollments through checkout
+- `server/src/services/StripeService.ts` — Activate approved enrollment on payment success
+- `client/src/pages/Course/CourseDetailPage.tsx` — Pending/Approved button states
+- `client/src/services/coursesApi.ts` — Fixed isEnrolled mapping
+- `client/src/pages/Courses/CoursesPage.tsx` — Handle pending/approved results
+
+---
+
+## 🎯 ENROLLMENT CONTROLS UI/UX (February 10, 2026)
 
 **Activity**: Completed frontend UI/UX for Phase 2 Enrollment Controls with full date awareness and paid course approval workflow
 

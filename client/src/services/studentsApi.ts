@@ -23,7 +23,7 @@ export interface StudentEnrollment {
   courseTitle: string;
   enrolledAt: string;
   completedAt?: string;
-  status: 'active' | 'completed' | 'suspended' | 'cancelled';
+  status: 'active' | 'completed' | 'suspended' | 'cancelled' | 'pending' | 'approved' | 'rejected';
 }
 
 export interface StudentProgress {
@@ -84,6 +84,7 @@ export interface StudentAnalytics {
   activeStudents: number;
   completedStudents: number;
   suspendedStudents: number;
+  approvedStudents: number;
   averageProgress: number;
   averageTimeSpent: number;
   activeLastWeek: number;
@@ -93,7 +94,7 @@ export interface StudentAnalytics {
 export interface StudentFilters {
   courseId?: string;
   search?: string;
-  status?: 'active' | 'completed' | 'suspended' | 'cancelled';
+  status?: 'active' | 'completed' | 'suspended' | 'cancelled' | 'approved' | 'pending';
   sortBy?: 'enrolledAt' | 'lastName' | 'progress' | 'lastAccessed';
   sortOrder?: 'asc' | 'desc';
 }

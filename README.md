@@ -116,7 +116,7 @@ An innovative EdTech startup providing personalized learning experiences through
   - **AllowMessages**: Stored (not enforced - chat system disabled)
 - **User Profile Management** - Comprehensive profile with 5 tabs (personal info, password, billing, preferences, account info) ✅
 - **Payment System** - Stripe integration with secure checkout, professional invoice PDFs, production-ready error handling, enhanced refund UI, **database-level duplicate prevention** (Phases 1-6 Complete - 100%) ✅
-- **Notification Preferences** - **Hybrid 3-level control system** with Global→Category→Subcategory toggles, 64 database columns, separate in-app/email controls, quiet hours, email digest options (FULLY IMPLEMENTED with dedicated /settings/notifications page - Dec 29, 2025) ✅
+- **Notification Preferences** - **Hybrid 3-level control system** with Global→Category→Subcategory toggles, 68 database columns (includes dedicated EnrollmentSuspended/Cancelled toggles - Feb 10, 2026), separate in-app/email controls, quiet hours, email digest options (FULLY IMPLEMENTED with dedicated /settings/notifications page - Dec 29, 2025) ✅
 - **Bookmark System** - Save and organize favorite courses with cross-page synchronization (FULLY FUNCTIONAL - Dec 18, 2025) ✅
 - **Avatar Upload** - Image upload with automatic processing and optimization ✅
 - **Settings Page** - Privacy settings, appearance customization, account deletion, and data management (UPDATED Jan 19, 2026) ✅

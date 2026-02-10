@@ -58,11 +58,21 @@ export interface NotificationPreferences {
   EnableLiveSessions: boolean | null;
   EnableCoursePublished: boolean | null;
   EnableInstructorAnnouncements: boolean | null;
+  EnableEnrollmentRequest: boolean | null;
+  EnableEnrollmentApproved: boolean | null;
+  EnableEnrollmentRejected: boolean | null;
+  EnableEnrollmentSuspended: boolean | null;
+  EnableEnrollmentCancelled: boolean | null;
   EmailCourseEnrollment: boolean | null;
   EmailNewLessons: boolean | null;
   EmailLiveSessions: boolean | null;
   EmailCoursePublished: boolean | null;
   EmailInstructorAnnouncements: boolean | null;
+  EmailEnrollmentRequest: boolean | null;
+  EmailEnrollmentApproved: boolean | null;
+  EmailEnrollmentRejected: boolean | null;
+  EmailEnrollmentSuspended: boolean | null;
+  EmailEnrollmentCancelled: boolean | null;
   
   // Assessment Updates subcategories
   EnableAssessmentSubmitted: boolean | null;

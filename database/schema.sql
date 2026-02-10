@@ -140,7 +140,7 @@ CREATE TABLE dbo.Enrollments (
     CourseId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Courses(Id) ON DELETE CASCADE,
     EnrolledAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
     CompletedAt DATETIME2 NULL,
-    Status NVARCHAR(20) NOT NULL DEFAULT 'active' CHECK (Status IN ('pending', 'active', 'completed', 'suspended', 'cancelled', 'rejected')),
+    Status NVARCHAR(20) NOT NULL DEFAULT 'active' CHECK (Status IN ('pending', 'approved', 'active', 'completed', 'suspended', 'cancelled', 'rejected')),
     UNIQUE(UserId, CourseId)
 );
 
@@ -579,9 +579,9 @@ CREATE TABLE dbo.Notifications (
 --   ✅ Preferences FULLY ENFORCED with quiet hours queueing and type filtering
 --   ✅ NotificationQueue table with cron job processing every 5 minutes
 --   ✅ Quiet hours: Notifications queued during specified time range
---   ✅ HYBRID CONTROL SYSTEM: Global + Category (5) + Subcategory (54) toggles
+--   ✅ HYBRID CONTROL SYSTEM: Global + Category (5) + Subcategory (60) toggles
 --   ✅ Separate In-App and Email controls for granular user experience
---   ✅ 70 columns total: 2 identity, 5 global, 5 categories, 54 subcategories, 4 metadata
+--   ✅ 76 columns total: 2 identity, 5 global, 5 categories, 60 subcategories, 4 metadata
 --   ✅ All interfaces aligned (backend/frontend/API) with PascalCase consistency
 --   ✅ Settings persist correctly across sessions (bug fixed Dec 29, 2025)
 --   ✅ SELECT query bugs fixed Jan 17 - all 3 queries now include new fields
@@ -621,11 +621,21 @@ CREATE TABLE dbo.NotificationPreferences (
     EnableLiveSessions BIT NULL,
     EnableCoursePublished BIT NULL,
     EnableInstructorAnnouncements BIT NULL,
+    EnableEnrollmentRequest BIT NULL,
+    EnableEnrollmentApproved BIT NULL,
+    EnableEnrollmentRejected BIT NULL,
+    EnableEnrollmentSuspended BIT NULL,
+    EnableEnrollmentCancelled BIT NULL,
     EmailCourseEnrollment BIT NULL,
     EmailNewLessons BIT NULL,
     EmailLiveSessions BIT NULL,
     EmailCoursePublished BIT NULL,
     EmailInstructorAnnouncements BIT NULL,
+    EmailEnrollmentRequest BIT NULL,
+    EmailEnrollmentApproved BIT NULL,
+    EmailEnrollmentRejected BIT NULL,
+    EmailEnrollmentSuspended BIT NULL,
+    EmailEnrollmentCancelled BIT NULL,
     
     -- Assessment Updates Subcategories
     EnableAssessmentSubmitted BIT NULL,

@@ -65,11 +65,21 @@ interface NotificationPreferences {
   EnableLiveSessions: boolean | null;
   EnableCoursePublished: boolean | null;
   EnableInstructorAnnouncements: boolean | null;
+  EnableEnrollmentRequest: boolean | null;
+  EnableEnrollmentApproved: boolean | null;
+  EnableEnrollmentRejected: boolean | null;
+  EnableEnrollmentSuspended: boolean | null;
+  EnableEnrollmentCancelled: boolean | null;
   EmailCourseEnrollment: boolean | null;
   EmailNewLessons: boolean | null;
   EmailLiveSessions: boolean | null;
   EmailCoursePublished: boolean | null;
   EmailInstructorAnnouncements: boolean | null;
+  EmailEnrollmentRequest: boolean | null;
+  EmailEnrollmentApproved: boolean | null;
+  EmailEnrollmentRejected: boolean | null;
+  EmailEnrollmentSuspended: boolean | null;
+  EmailEnrollmentCancelled: boolean | null;
   
   // Assessment Updates subcategories
   EnableAssessmentSubmitted: boolean | null;
@@ -204,6 +214,46 @@ const COURSE_SUBCATEGORIES: SubcategoryControl[] = [
     emailKey: 'EmailInstructorAnnouncements',
     canDisable: true,
     description: 'Important updates from your instructors'
+  },
+  {
+    name: 'enrollment-request',
+    label: 'Enrollment Request',
+    inAppKey: 'EnableEnrollmentRequest',
+    emailKey: 'EmailEnrollmentRequest',
+    canDisable: true,
+    description: 'When a student requests to enroll in your course'
+  },
+  {
+    name: 'enrollment-approved',
+    label: 'Enrollment Approved',
+    inAppKey: 'EnableEnrollmentApproved',
+    emailKey: 'EmailEnrollmentApproved',
+    canDisable: true,
+    description: 'When your enrollment request is approved'
+  },
+  {
+    name: 'enrollment-rejected',
+    label: 'Enrollment Rejected',
+    inAppKey: 'EnableEnrollmentRejected',
+    emailKey: 'EmailEnrollmentRejected',
+    canDisable: true,
+    description: 'When your enrollment request is rejected'
+  },
+  {
+    name: 'enrollment-suspended',
+    label: 'Enrollment Suspended',
+    inAppKey: 'EnableEnrollmentSuspended',
+    emailKey: 'EmailEnrollmentSuspended',
+    canDisable: true,
+    description: 'When your enrollment is suspended by an instructor'
+  },
+  {
+    name: 'enrollment-cancelled',
+    label: 'Enrollment Cancelled',
+    inAppKey: 'EnableEnrollmentCancelled',
+    emailKey: 'EmailEnrollmentCancelled',
+    canDisable: true,
+    description: 'When your enrollment is cancelled'
   },
 ];
 

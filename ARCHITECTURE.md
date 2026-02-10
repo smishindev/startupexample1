@@ -737,11 +737,11 @@ POST   /api/payments/test-complete               - DEV ONLY: Complete test payme
 - **64 fields total**: 2 global toggles, 5 category toggles, 50 subcategory pairs, 5 metadata
 - **Global**: EnableInAppNotifications, EnableEmailNotifications (separate control)
 - **Categories**: EnableProgressUpdates, EnableCourseUpdates, EnableAssessmentUpdates, EnableCommunityUpdates, EnableSystemAlerts
-- **Subcategories**: 50 Enable*/Email* pairs (LessonCompletion, VideoCompletion, CourseMilestones, etc.)
+- **Subcategories**: 54 Enable*/Email* pairs (LessonCompletion, VideoCompletion, CourseMilestones, EnrollmentSuspended, EnrollmentCancelled, etc.)
 - **Case**: All PascalCase (EnableInAppNotifications, EnableLessonCompletion) - backend, frontend, API aligned
 - **NULL Inheritance**: Subcategory NULL = inherits category value
 - **Time format**: SQL Server TIME type, HTML5 HH:mm input
-- **UPSERT logic**: Creates default record if doesn't exist, updates dynamically (all 64 fields)
+- **UPSERT logic**: Creates default record if doesn't exist, updates dynamically (all 68 fields)
 - **UI**: Dedicated /settings/notifications page with 5 accordion sections (734 lines)
 - ✅ **FULLY FUNCTIONAL** (Dec 29, 2025) - 3-level cascade with queue system + cron job
 
@@ -844,7 +844,7 @@ Navigate to: /settings/notifications (dedicated page)
 Load: notificationPreferencesApi.getPreferences()
   ↓ (GET /api/notifications/preferences)
 Backend NotificationService.getUserPreferences()
-  ↓ (SELECT all 64 PascalCase fields from NotificationPreferences table)
+  ↓ (SELECT all 68 PascalCase fields from NotificationPreferences table)
 Frontend: Extract response.data.preferences (no conversion needed)
   ├─ All fields use PascalCase: EnableInAppNotifications, EnableLessonCompletion, etc.
   ├─ QuietHoursStart → format to HH:mm (if exists)
@@ -855,32 +855,33 @@ Render NotificationSettingsPage with 5 accordion sections:
   ├─ Email digest frequency selector
   ├─ Quiet hours time pickers with clear (X) buttons
   ├─ Progress Updates (8 subcategories × 2 toggles = 16 switches)
-  ├─ Course Updates (10 subcategories × 2 toggles = 20 switches)
+  ├─ Course Updates (12 subcategories × 2 toggles = 24 switches) ⭐ Updated Feb 10, 2026
   ├─ Assessment Updates (14 subcategories × 2 toggles = 28 switches)
   ├─ Community Updates (10 subcategories × 2 toggles = 20 switches)
   └─ System Alerts (10 subcategories × 2 toggles = 20 switches)
-  ↓ (user edits any of 64 fields)
+  ↓ (user edits any of 68 fields)
 Click "Save Settings"
   ↓
 notificationPreferencesApi.updatePreferences(preferences)
   ↓ (PATCH /api/notifications/preferences)
-Send all 64 fields as-is (PascalCase, no conversion)
+Send all 68 fields as-is (PascalCase, no conversion)
   ↓
 Backend NotificationService.updatePreferences()
   ├─ Check if record exists
   ├─ Create default if not (UPSERT)
   ├─ Build dynamic UPDATE query with all provided fields
-  └─ Update NotificationPreferences table (all 64 columns)
+  └─ Update NotificationPreferences table (all 68 columns)
   ↓
 Toast: "Notification settings saved!"
 
-✅ FULLY FUNCTIONAL (Dec 29, 2025):
+✅ FULLY FUNCTIONAL (Dec 29, 2025, Enhanced Feb 10, 2026):
 ├─→ 3-level cascade: Global → Category → Subcategory (NULL inheritance)
 ├─→ NotificationService.shouldSendNotification() enforces all levels
 ├─→ Quiet Hours: Queue notification in NotificationQueue table
 ├─→ Type Filtering: Skip if global/category/subcategory disabled
 ├─→ Cron Job: Runs every 5 minutes, processes queue
-├─→ All 64 settings persist correctly across sessions
+├─→ All 68 settings persist correctly across sessions
+├─→ Dedicated enrollment toggles: Suspended, Cancelled (Feb 10, 2026)
 └─→ Real-time Socket.IO delivery after quiet hours end
 ```
 
@@ -894,10 +895,10 @@ OfficeHoursService / InterventionService / Other Services
   ↓
 NotificationService.createNotificationWithControls(params)
   ├─ category: 'progress' | 'course' | 'assessment' | 'community' | 'system'
-  ├─ subcategory: 'LessonCompletion' | 'VideoCompletion' | 'LiveSessions' | etc.
+  ├─ subcategory: 'LessonCompletion' | 'VideoCompletion' | 'LiveSessions' | 'EnrollmentSuspended' | etc.
   └─ type: 'in-app' | 'email' | 'both'
   ↓
-getUserPreferences(userId) → Get all 64 fields
+getUserPreferences(userId) → Get all 68 fields
   ↓
 shouldSendNotification(preferences, category, subcategory, type)
   ├─ Level 1: Check global toggle (EnableInAppNotifications or EnableEmailNotifications)

@@ -71,11 +71,21 @@ export interface NotificationPreferences {
   EnableLiveSessions: boolean | null;
   EnableCoursePublished: boolean | null;
   EnableInstructorAnnouncements: boolean | null;
+  EnableEnrollmentRequest: boolean | null;
+  EnableEnrollmentApproved: boolean | null;
+  EnableEnrollmentRejected: boolean | null;
+  EnableEnrollmentSuspended: boolean | null;
+  EnableEnrollmentCancelled: boolean | null;
   EmailCourseEnrollment: boolean | null;
   EmailNewLessons: boolean | null;
   EmailLiveSessions: boolean | null;
   EmailCoursePublished: boolean | null;
   EmailInstructorAnnouncements: boolean | null;
+  EmailEnrollmentRequest: boolean | null;
+  EmailEnrollmentApproved: boolean | null;
+  EmailEnrollmentRejected: boolean | null;
+  EmailEnrollmentSuspended: boolean | null;
+  EmailEnrollmentCancelled: boolean | null;
   
   // Assessment Updates subcategories
   EnableAssessmentSubmitted: boolean | null;
@@ -620,6 +630,11 @@ export class NotificationService {
             EnableLiveSessions, EmailLiveSessions,
             EnableCoursePublished, EmailCoursePublished,
             EnableInstructorAnnouncements, EmailInstructorAnnouncements,
+            EnableEnrollmentRequest, EmailEnrollmentRequest,
+            EnableEnrollmentApproved, EmailEnrollmentApproved,
+            EnableEnrollmentRejected, EmailEnrollmentRejected,
+            EnableEnrollmentSuspended, EmailEnrollmentSuspended,
+            EnableEnrollmentCancelled, EmailEnrollmentCancelled,
             EnableAssessmentSubmitted, EmailAssessmentSubmitted,
             EnableAssessmentGraded, EmailAssessmentGraded,
             EnableNewAssessment, EmailNewAssessment,
@@ -729,7 +744,10 @@ export class NotificationService {
       // Course subcategories
       const courseFields = ['EnableCourseEnrollment', 'EmailCourseEnrollment', 'EnableNewLessons', 'EmailNewLessons',
         'EnableLiveSessions', 'EmailLiveSessions', 'EnableCoursePublished', 'EmailCoursePublished',
-        'EnableInstructorAnnouncements', 'EmailInstructorAnnouncements'];
+        'EnableInstructorAnnouncements', 'EmailInstructorAnnouncements',
+        'EnableEnrollmentRequest', 'EmailEnrollmentRequest', 'EnableEnrollmentApproved', 'EmailEnrollmentApproved',
+        'EnableEnrollmentRejected', 'EmailEnrollmentRejected',
+        'EnableEnrollmentSuspended', 'EmailEnrollmentSuspended', 'EnableEnrollmentCancelled', 'EmailEnrollmentCancelled'];
       // Assessment subcategories
       const assessmentFields = ['EnableAssessmentSubmitted', 'EmailAssessmentSubmitted', 'EnableAssessmentGraded', 'EmailAssessmentGraded',
         'EnableNewAssessment', 'EmailNewAssessment', 'EnableAssessmentDue', 'EmailAssessmentDue',
@@ -838,6 +856,11 @@ export class NotificationService {
             EnableLiveSessions, EmailLiveSessions,
             EnableCoursePublished, EmailCoursePublished,
             EnableInstructorAnnouncements, EmailInstructorAnnouncements,
+            EnableEnrollmentRequest, EmailEnrollmentRequest,
+            EnableEnrollmentApproved, EmailEnrollmentApproved,
+            EnableEnrollmentRejected, EmailEnrollmentRejected,
+            EnableEnrollmentSuspended, EmailEnrollmentSuspended,
+            EnableEnrollmentCancelled, EmailEnrollmentCancelled,
             EnableAssessmentSubmitted, EmailAssessmentSubmitted,
             EnableAssessmentGraded, EmailAssessmentGraded,
             EnableNewAssessment, EmailNewAssessment,
@@ -887,6 +910,11 @@ export class NotificationService {
               EnableLiveSessions, EmailLiveSessions,
               EnableCoursePublished, EmailCoursePublished,
               EnableInstructorAnnouncements, EmailInstructorAnnouncements,
+              EnableEnrollmentRequest, EmailEnrollmentRequest,
+              EnableEnrollmentApproved, EmailEnrollmentApproved,
+              EnableEnrollmentRejected, EmailEnrollmentRejected,
+              EnableEnrollmentSuspended, EmailEnrollmentSuspended,
+              EnableEnrollmentCancelled, EmailEnrollmentCancelled,
               EnableAssessmentSubmitted, EmailAssessmentSubmitted,
               EnableAssessmentGraded, EmailAssessmentGraded,
               EnableNewAssessment, EmailNewAssessment,
@@ -1235,6 +1263,16 @@ export class NotificationService {
           EmailCoursePublished: null,
           EnableInstructorAnnouncements: null,
           EmailInstructorAnnouncements: null,
+          EnableEnrollmentRequest: null,
+          EmailEnrollmentRequest: null,
+          EnableEnrollmentApproved: null,
+          EmailEnrollmentApproved: null,
+          EnableEnrollmentRejected: null,
+          EmailEnrollmentRejected: null,
+          EnableEnrollmentSuspended: null,
+          EmailEnrollmentSuspended: null,
+          EnableEnrollmentCancelled: null,
+          EmailEnrollmentCancelled: null,
           EnableAssessmentSubmitted: null,
           EmailAssessmentSubmitted: null,
           EnableAssessmentGraded: null,

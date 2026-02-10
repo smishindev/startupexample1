@@ -215,14 +215,20 @@ export const CourseDetailPage: React.FC = () => {
       try {
         const enrollmentStatusData = await enrollmentApi.getEnrollmentStatus(courseId);
         if (enrollmentStatusData?.enrolled) {
-          // Force refresh the page data
+          const status = enrollmentStatusData.status;
+          const isActivelyEnrolled = status === 'active' || status === 'completed';
+          
+          // Update enrollment status for all states (pending, approved, active, etc.)
           setEnrollmentStatus({ 
-            isEnrolled: true, 
+            isEnrolled: isActivelyEnrolled, 
             isInstructor: false,
-            status: enrollmentStatusData.status, 
+            status: status, 
             enrolledAt: enrollmentStatusData.enrolledAt 
           });
-          setCourse(prev => prev ? { ...prev, isEnrolled: true } : null);
+          
+          if (isActivelyEnrolled) {
+            setCourse(prev => prev ? { ...prev, isEnrolled: true } : null);
+          }
         }
       } catch (error) {
         console.error('Error refreshing enrollment:', error);
@@ -309,7 +315,7 @@ export const CourseDetailPage: React.FC = () => {
           lastUpdated: courseData.UpdatedAt ? courseData.UpdatedAt.split('T')[0] : new Date().toISOString().split('T')[0],
           language: 'English',
           certificate: false,
-          isEnrolled: enrollmentStatusData?.isEnrolled && !enrollmentStatusData?.isInstructor || false,
+          isEnrolled: (enrollmentStatusData?.isEnrolled) || false,
           isBookmarked: false,
           progress: realProgress,
           currentLesson: undefined,
@@ -371,6 +377,14 @@ export const CourseDetailPage: React.FC = () => {
         return;
       }
       
+      // Check if already approved but needs payment (paid course with approval)
+      if (result.status === 'approved' || result.code === 'ENROLLMENT_APPROVED_PENDING_PAYMENT') {
+        toast.success('Your enrollment is approved! Redirecting to checkout...');
+        setEnrollmentStatus({ isEnrolled: false, status: 'approved' });
+        navigate(`/checkout/${courseId}`);
+        return;
+      }
+      
       // Active enrollment success
       setCourse({ ...course, isEnrolled: true, progress: 0 });
       setEnrollmentStatus({ isEnrolled: true, status: result.status, enrolledAt: result.enrolledAt });
@@ -389,9 +403,14 @@ export const CourseDetailPage: React.FC = () => {
           setError('You are already enrolled in this course.');
           setCourse({ ...course, isEnrolled: true });
           setEnrollmentStatus({ ...enrollmentStatus, isEnrolled: true });
+        } else if (errorData.code === 'PAYMENT_REQUIRED') {
+          // Paid course without approval - redirect to checkout
+          navigate(`/checkout/${courseId}`);
+          return;
         } else if (errorData.code === 'ENROLLMENT_ALREADY_PENDING') {
           setError(null);
           toast.info('Your enrollment request is already pending approval.');
+          setEnrollmentStatus({ isEnrolled: false, status: 'pending' });
         } else if (errorData.code === 'INSTRUCTOR_SELF_ENROLLMENT') {
           setError('Instructors cannot enroll in their own courses.');
         } else if (errorData.code === 'COURSE_NOT_PUBLISHED') {
@@ -408,12 +427,15 @@ export const CourseDetailPage: React.FC = () => {
         } else if (errorData.code === 'ENROLLMENT_CLOSED') {
           const closeDate = new Date(errorData.enrollmentCloseDate).toLocaleDateString();
           setError(`Enrollment period ended on ${closeDate}.`);
+        } else if (errorData.code === 'ENROLLMENT_SUSPENDED') {
+          setError('Your enrollment has been suspended. Please contact the instructor for more information.');
         } else if (errorData.code === 'ENROLLMENT_PENDING_APPROVAL') {
           setError(null);
           toast.success('Enrollment request submitted! Awaiting instructor approval.');
+          setEnrollmentStatus({ isEnrolled: false, status: 'pending' });
           // Note: Enrollment is pending, so we don't mark as enrolled yet
         } else {
-          setError(errorData.message || 'Failed to enroll in course. Please try again.');
+          setError(errorData.message || errorData.error || 'Failed to enroll in course. Please try again.');
         }
       } catch {
         setError(error.message || 'Failed to enroll in course. Please try again.');
@@ -1216,14 +1238,32 @@ export const CourseDetailPage: React.FC = () => {
                       </Alert>
                     )}
                     
-                    {/* Approval Required */}
-                    {course.RequiresApproval && (
+                    {/* Approval Required - Status-specific messages */}
+                    {enrollmentStatus?.status === 'suspended' ? (
+                      <Alert severity="error" sx={{ mb: 1 }}>
+                        <Typography variant="body2">
+                          Your enrollment has been suspended. Please contact the instructor for more information.
+                        </Typography>
+                      </Alert>
+                    ) : enrollmentStatus?.status === 'pending' ? (
+                      <Alert severity="info" sx={{ mb: 1 }}>
+                        <Typography variant="body2">
+                          ⏳ Your enrollment request is pending instructor approval
+                        </Typography>
+                      </Alert>
+                    ) : enrollmentStatus?.status === 'approved' && course.price > 0 ? (
+                      <Alert severity="success" sx={{ mb: 1 }}>
+                        <Typography variant="body2">
+                          ✅ Your enrollment has been approved! Complete your purchase to access the course.
+                        </Typography>
+                      </Alert>
+                    ) : course.RequiresApproval && !course.isEnrolled ? (
                       <Alert severity="warning" sx={{ mb: 1 }}>
                         <Typography variant="body2">
                           ⏳ This course requires instructor approval before you can access it
                         </Typography>
                       </Alert>
-                    )}
+                    ) : null}
                   </Box>
                 )}
 
@@ -1280,6 +1320,79 @@ export const CourseDetailPage: React.FC = () => {
                     }}
                   >
                     Continue Learning
+                  </Button>
+                ) : enrollmentStatus?.status === 'suspended' ? (
+                  // Enrollment is suspended
+                  <Button
+                    fullWidth
+                    variant="contained"
+                    size="large"
+                    disabled
+                    data-testid="course-suspended-button"
+                    sx={{ 
+                      mb: 2,
+                      py: 2,
+                      fontSize: '1.1rem',
+                      fontWeight: 700,
+                      borderRadius: 2,
+                      textTransform: 'none',
+                      background: 'linear-gradient(90deg, #ef4444 0%, #dc2626 100%)',
+                      '&.Mui-disabled': {
+                        background: 'linear-gradient(90deg, #ef4444 0%, #dc2626 100%)',
+                        color: 'rgba(255,255,255,0.8)'
+                      }
+                    }}
+                  >
+                    Enrollment Suspended
+                  </Button>
+                ) : enrollmentStatus?.status === 'pending' ? (
+                  // Enrollment is pending instructor approval
+                  <Button
+                    fullWidth
+                    variant="contained"
+                    size="large"
+                    disabled
+                    startIcon={<HourglassEmpty />}
+                    data-testid="course-pending-approval-button"
+                    sx={{ 
+                      mb: 2,
+                      py: 2,
+                      fontSize: '1.1rem',
+                      fontWeight: 700,
+                      borderRadius: 2,
+                      textTransform: 'none',
+                      background: 'linear-gradient(90deg, #f59e0b 0%, #d97706 100%)',
+                      '&.Mui-disabled': {
+                        background: 'linear-gradient(90deg, #f59e0b 0%, #d97706 100%)',
+                        color: 'rgba(255,255,255,0.8)'
+                      }
+                    }}
+                  >
+                    ⏳ Awaiting Instructor Approval
+                  </Button>
+                ) : enrollmentStatus?.status === 'approved' && course.price > 0 ? (
+                  // Approved but needs to pay — show checkout button
+                  <Button
+                    fullWidth
+                    variant="contained"
+                    size="large"
+                    onClick={handlePurchase}
+                    startIcon={<ShoppingCart />}
+                    data-testid="course-complete-purchase-button"
+                    sx={{ 
+                      mb: 2,
+                      py: 2,
+                      fontSize: '1.1rem',
+                      fontWeight: 700,
+                      borderRadius: 2,
+                      textTransform: 'none',
+                      background: 'linear-gradient(90deg, #10b981 0%, #059669 100%)',
+                      '&:hover': {
+                        background: 'linear-gradient(90deg, #059669 0%, #047857 100%)',
+                      }
+                    }}
+                  >
+                    ✅ Approved — Complete Purchase - {formatCurrency(course.price)}
                   </Button>
                 ) : course.price > 0 && course.RequiresApproval ? (
                   // Paid course with approval required: request approval first, pay later

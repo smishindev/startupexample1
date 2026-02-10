@@ -1582,6 +1582,11 @@ MAX_NOTIFICATIONS_PER_HOUR: 10  // Rate limiting
 | Trigger | Subcategory | In-App Default | Email Default | Priority |
 |---------|-------------|----------------|---------------|----------|
 | Course Enrollment (Welcome) | `EnableCourseEnrollment` | ✅ ON | ✅ ON | high |
+| Enrollment Request (to Instructor) | `EnableEnrollmentRequest` | ✅ ON | ✅ ON | normal |
+| Enrollment Approved (to Student) | `EnableEnrollmentApproved` | ✅ ON | ✅ ON | high |
+| Enrollment Rejected (to Student) | `EnableEnrollmentRejected` | ✅ ON | ✅ ON | normal |
+| Enrollment Suspended (to Student) | `EnableEnrollmentSuspended` | ✅ ON | ✅ ON | normal |
+| Enrollment Cancelled (to Student) | `EnableEnrollmentCancelled` | ✅ ON | ✅ ON | normal |
 | New Lesson Created | `EnableNewLessons` | ✅ ON | ✅ ON | normal |
 | Live Session Created | `EnableLiveSessions` | ✅ ON | ✅ ON | high |
 | Live Session Starting Soon (15 min) | `EnableLiveSessions` | ✅ ON | ✅ ON | urgent |
@@ -1669,12 +1674,22 @@ ADD EnableCourseEnrollment BIT NULL,
     EnableLiveSessions BIT NULL,
     EnableCoursePublished BIT NULL,
     EnableInstructorAnnouncements BIT NULL,
+    EnableEnrollmentRequest BIT NULL,
+    EnableEnrollmentApproved BIT NULL,
+    EnableEnrollmentRejected BIT NULL,
+    EnableEnrollmentSuspended BIT NULL,
+    EnableEnrollmentCancelled BIT NULL,
     -- Email-specific toggles
     EmailCourseEnrollment BIT NULL,
     EmailNewLessons BIT NULL,
     EmailLiveSessions BIT NULL,
     EmailCoursePublished BIT NULL,
-    EmailInstructorAnnouncements BIT NULL;
+    EmailInstructorAnnouncements BIT NULL,
+    EmailEnrollmentRequest BIT NULL,
+    EmailEnrollmentApproved BIT NULL,
+    EmailEnrollmentRejected BIT NULL,
+    EmailEnrollmentSuspended BIT NULL,
+    EmailEnrollmentCancelled BIT NULL;
 
 -- Assessment Updates Subcategories
 ALTER TABLE NotificationPreferences

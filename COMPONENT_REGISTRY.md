@@ -2268,6 +2268,10 @@ interface Course {
   enrollmentOpenDate?: string | null;
   enrollmentCloseDate?: string | null;
   
+  // Enrollment Status (Feb 10, 2026) ⭐ NEW
+  isEnrolled?: boolean;
+  enrollmentStatus?: 'active' | 'completed' | 'pending' | 'approved' | 'suspended' | 'cancelled' | 'rejected' | null;
+  
   // Other fields...
 }
 ```
@@ -2292,6 +2296,13 @@ interface Course {
 - Enrollment count (with "X/Y enrolled" when capacity set)
 - Bookmark button (optional)
 - Enroll button (optional, with enrollment controls)
+- **Enrollment Status Chips** (Feb 10, 2026) ⭐ NEW:
+  - "Pending Approval" (orange, HourglassEmpty icon)
+  - "Suspended" (red, Block icon)
+  - "Cancelled" (gray)
+  - "Rejected" (red)
+  - Chips appear based on `enrollmentStatus` prop
+  - Prevents "Enroll Now" button from showing for blocked enrollments
 
 **Enrollment Controls (Phase 2)** ✅:
 - Date awareness: checks `enrollmentOpenDate` and `enrollmentCloseDate`

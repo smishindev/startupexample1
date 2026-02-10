@@ -995,6 +995,7 @@ router.put('/enrollments/:enrollmentId/approve', authenticateToken, authorize(['
         c.InstructorId,
         c.MaxEnrollment,
         c.EnrollmentCount,
+        c.Price,
         u.FirstName,
         u.LastName
       FROM dbo.Enrollments e
@@ -1031,19 +1032,27 @@ router.put('/enrollments/:enrollmentId/approve', authenticateToken, authorize(['
       });
     }
 
-    // Update enrollment status to active
+    // Determine new status based on course price
+    // Paid courses: approved (student still needs to pay) 
+    // Free courses: active (fully enrolled)
+    const isPaidCourse = enrollmentData.Price > 0;
+    const newStatus = isPaidCourse ? 'approved' : 'active';
+
+    // Update enrollment status
     await db.execute(`
       UPDATE dbo.Enrollments 
-      SET Status = 'active'
+      SET Status = @newStatus
       WHERE Id = @enrollmentId
-    `, { enrollmentId });
+    `, { enrollmentId, newStatus });
 
-    // Increment enrollment count
-    await db.execute(`
-      UPDATE dbo.Courses 
-      SET EnrollmentCount = ISNULL(EnrollmentCount, 0) + 1
-      WHERE Id = @courseId
-    `, { courseId: enrollmentData.CourseId });
+    // Only increment enrollment count for free courses (paid courses increment after payment)
+    if (!isPaidCourse) {
+      await db.execute(`
+        UPDATE dbo.Courses 
+        SET EnrollmentCount = ISNULL(EnrollmentCount, 0) + 1
+        WHERE Id = @courseId
+      `, { courseId: enrollmentData.CourseId });
+    }
 
     // Send notification to student
     const io = req.app.get('io');
@@ -1052,29 +1061,52 @@ router.put('/enrollments/:enrollmentId/approve', authenticateToken, authorize(['
         const NotificationService = require('../services/NotificationService').NotificationService;
         const notificationService = new NotificationService(io);
 
-        await notificationService.createNotificationWithControls(
-          {
-            userId: enrollmentData.UserId,
-            type: 'course',
-            priority: 'high',
-            title: 'Enrollment Approved! 🎉',
-            message: `Your enrollment in "${enrollmentData.CourseTitle}" has been approved. You can now access the course.`,
-            actionUrl: `/course/${enrollmentData.CourseId}`,
-            actionText: 'Go to Course'
-          },
-          {
-            category: 'course',
-            subcategory: 'EnrollmentApproved'
-          }
-        );
+        if (isPaidCourse) {
+          // Paid course: notify with checkout link
+          await notificationService.createNotificationWithControls(
+            {
+              userId: enrollmentData.UserId,
+              type: 'course',
+              priority: 'high',
+              title: 'Enrollment Approved! 🎉',
+              message: `Your enrollment in "${enrollmentData.CourseTitle}" has been approved! Complete your purchase to access the course.`,
+              actionUrl: `/checkout/${enrollmentData.CourseId}`,
+              actionText: 'Complete Purchase'
+            },
+            {
+              category: 'course',
+              subcategory: 'EnrollmentApproved'
+            }
+          );
+        } else {
+          // Free course: notify with course link
+          await notificationService.createNotificationWithControls(
+            {
+              userId: enrollmentData.UserId,
+              type: 'course',
+              priority: 'high',
+              title: 'Enrollment Approved! 🎉',
+              message: `Your enrollment in "${enrollmentData.CourseTitle}" has been approved. You can now access the course.`,
+              actionUrl: `/courses/${enrollmentData.CourseId}`,
+              actionText: 'Go to Course'
+            },
+            {
+              category: 'course',
+              subcategory: 'EnrollmentApproved'
+            }
+          );
+        }
       } catch (notifError) {
         console.error('⚠️ Failed to send approval notification:', notifError);
       }
     }
 
     res.json({ 
-      message: 'Enrollment approved successfully',
+      message: isPaidCourse 
+        ? 'Enrollment approved. Student has been notified to complete payment.'
+        : 'Enrollment approved successfully',
       enrollmentId,
+      status: newStatus,
       studentName: `${enrollmentData.FirstName} ${enrollmentData.LastName}`
     });
   } catch (error) {
@@ -1144,7 +1176,7 @@ router.put('/enrollments/:enrollmentId/reject', authenticateToken, authorize(['i
           {
             userId: enrollmentData.UserId,
             type: 'course',
-            priority: 'medium',
+            priority: 'normal',
             title: 'Enrollment Request Update',
             message: `Your enrollment request for "${enrollmentData.CourseTitle}" was not approved. ${reason}`,
             actionUrl: `/courses`,

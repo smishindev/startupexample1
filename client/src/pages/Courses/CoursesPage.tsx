@@ -33,6 +33,7 @@ import { BookmarkApi } from '../../services/bookmarkApi';
 import { useAuthStore } from '../../stores/authStore';
 import { ShareDialog } from '../../components/Shared/ShareDialog';
 import { ShareService } from '../../services/shareService';
+import { toast } from 'sonner';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -228,18 +229,30 @@ export const CoursesPage: React.FC = () => {
             enrollmentApi.getMyEnrollments()
           ]);
           
-          // Create a set of enrolled course IDs for quick lookup (exclude courses where user is teaching)
+          // Create a set of enrolled course IDs for quick lookup
+          // Only active/completed count as truly enrolled (not pending/approved/rejected/cancelled)
           const enrolledCourseIds = new Set(
             (enrollmentsResponse.enrollments || [])
-              .filter(enrolled => enrolled.Status !== 'teaching') // Exclude courses instructor is teaching
+              .filter(enrolled => enrolled.Status === 'active' || enrolled.Status === 'completed')
               .map(enrolled => enrolled.courseId)
           );
+          
+          // Build a map of enrollment statuses for non-active enrollments
+          const enrollmentStatusMap = new Map<string, string>();
+          (enrollmentsResponse.enrollments || []).forEach(enrolled => {
+            if (['pending', 'approved', 'suspended', 'cancelled', 'rejected'].includes(enrolled.Status)) {
+              enrollmentStatusMap.set(enrolled.courseId, enrolled.Status);
+            }
+          });
           
           // Update courses with both bookmark and enrollment status
           const coursesWithStatuses = uiCourses.map(course => ({
             ...course,
             isBookmarked: bookmarkStatuses[course.id] || false,
-            isEnrolled: enrolledCourseIds.has(course.id)
+            isEnrolled: enrolledCourseIds.has(course.id),
+            enrollmentStatus: enrolledCourseIds.has(course.id) 
+              ? 'active' as const 
+              : (enrollmentStatusMap.get(course.id) as any) || null
           }));
           
           // Apply sorting
@@ -461,9 +474,28 @@ export const CoursesPage: React.FC = () => {
     setEnrollingCourses(prev => new Set(prev).add(courseId));
     
     try {
-      await enrollmentApi.enrollInCourse(courseId);
+      const result = await enrollmentApi.enrollInCourse(courseId);
       
-      // Update the course in the state to reflect enrollment
+      // Check if enrollment is pending approval
+      if (result.status === 'pending' || result.code === 'ENROLLMENT_PENDING_APPROVAL') {
+        toast.success('Enrollment request submitted! Awaiting instructor approval.');
+        // Update card to show pending state immediately
+        setAllCourses(prev => prev.map(course => 
+          course.id === courseId 
+            ? { ...course, enrollmentStatus: 'pending' as any }
+            : course
+        ));
+        return;
+      }
+      
+      // Check if approved but needs payment (paid course with approval)
+      if (result.status === 'approved' || result.code === 'ENROLLMENT_APPROVED_PENDING_PAYMENT') {
+        toast.success('Your enrollment is approved! Redirecting to checkout...');
+        navigate(`/checkout/${courseId}`);
+        return;
+      }
+      
+      // Active enrollment success
       setAllCourses(prev => prev.map(course => 
         course.id === courseId 
           ? { ...course, isEnrolled: true }
@@ -501,6 +533,9 @@ export const CoursesPage: React.FC = () => {
           isExpectedError = true;
         } else if (errorData.code === 'ENROLLMENT_ALREADY_PENDING') {
           errorMessage = 'Your enrollment request is already pending approval.';
+          isExpectedError = true;
+        } else if (errorData.code === 'ENROLLMENT_SUSPENDED') {
+          errorMessage = 'Your enrollment has been suspended. Please contact the instructor.';
           isExpectedError = true;
         }
         

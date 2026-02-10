@@ -245,17 +245,84 @@ router.post('/courses/:courseId/enroll', authenticateToken, async (req: AuthRequ
       });
     }
 
-    // Get course details including prerequisites
+    // Get course details including prerequisites, enrollment controls, and verify published status
     const courseDetails = await db.query(`
-      SELECT Id, Title, Prerequisites FROM dbo.Courses
+      SELECT 
+        Id, 
+        Title, 
+        Prerequisites,
+        InstructorId,
+        Status,
+        IsPublished,
+        Price,
+        MaxEnrollment,
+        EnrollmentCount,
+        EnrollmentOpenDate,
+        EnrollmentCloseDate,
+        RequiresApproval
+      FROM dbo.Courses
       WHERE Id = @courseId
+        AND (Status = 'published' OR (Status IS NULL AND IsPublished = 1))
     `, { courseId });
 
     if (courseDetails.length === 0) {
-      return res.status(404).json({ error: 'Course not found' });
+      return res.status(404).json({ 
+        error: 'Course not found or not available for enrollment',
+        code: 'COURSE_NOT_FOUND' 
+      });
     }
 
     const courseData = courseDetails[0];
+
+    // Don't allow instructor to enroll in their own course
+    if (courseData.InstructorId === userId) {
+      return res.status(403).json({ 
+        error: 'Cannot enroll in your own course',
+        code: 'INSTRUCTOR_SELF_ENROLLMENT'
+      });
+    }
+
+    // ===== ENROLLMENT CONTROLS VALIDATION (Phase 2) =====
+    // These checks run BEFORE the price check so that a full/closed paid course
+    // returns ENROLLMENT_FULL instead of PAYMENT_REQUIRED (prevents useless checkout redirect)
+    
+    // 1. Check enrollment capacity
+    if (courseData.MaxEnrollment !== null && courseData.EnrollmentCount >= courseData.MaxEnrollment) {
+      return res.status(403).json({
+        error: 'This course has reached its maximum enrollment capacity',
+        code: 'ENROLLMENT_FULL',
+        maxEnrollment: courseData.MaxEnrollment,
+        currentEnrollment: courseData.EnrollmentCount
+      });
+    }
+
+    // 2. Check enrollment date range
+    const now = new Date();
+    if (courseData.EnrollmentOpenDate && new Date(courseData.EnrollmentOpenDate) > now) {
+      return res.status(403).json({
+        error: 'Enrollment for this course has not opened yet',
+        code: 'ENROLLMENT_NOT_OPEN',
+        enrollmentOpenDate: courseData.EnrollmentOpenDate
+      });
+    }
+
+    if (courseData.EnrollmentCloseDate && new Date(courseData.EnrollmentCloseDate) < now) {
+      return res.status(403).json({
+        error: 'Enrollment period for this course has closed',
+        code: 'ENROLLMENT_CLOSED',
+        enrollmentCloseDate: courseData.EnrollmentCloseDate
+      });
+    }
+
+    // 3. Prevent enrollment in paid courses without payment
+    if (courseData.Price > 0) {
+      return res.status(402).json({ 
+        error: 'This course requires payment. Please complete the checkout process.',
+        code: 'PAYMENT_REQUIRED',
+        price: courseData.Price,
+        checkoutUrl: `/checkout/${courseId}`
+      });
+    }
 
     // Check prerequisites if they exist
     if (courseData.Prerequisites) {
@@ -286,7 +353,8 @@ router.post('/courses/:courseId/enroll', authenticateToken, async (req: AuthRequ
           
           if (missingPrerequisites.length > 0) {
             return res.status(403).json({
-              error: 'PREREQUISITES_NOT_MET',
+              error: 'You must complete prerequisite courses before enrolling in this course',
+              code: 'PREREQUISITES_NOT_MET',
               message: 'You must complete prerequisite courses before enrolling in this course',
               missingPrerequisites: missingPrerequisites.map((p: any) => ({
                 id: p.Id,
@@ -315,6 +383,43 @@ router.post('/courses/:courseId/enroll', authenticateToken, async (req: AuthRequ
           code: 'ALREADY_ENROLLED',
           enrollmentId: existingEnrollment[0].Id
         });
+      } else if (status === 'pending') {
+        // Already has a pending enrollment request
+        return res.status(409).json({
+          error: 'Your enrollment request is already pending approval',
+          code: 'ENROLLMENT_ALREADY_PENDING',
+          enrollmentId: existingEnrollment[0].Id
+        });
+      } else if (status === 'rejected') {
+        // Previously rejected - allow re-enrollment by updating the existing record
+        const newStatus = courseData.RequiresApproval ? 'pending' : 'active';
+        await db.execute(`
+          UPDATE dbo.Enrollments
+          SET Status = @newStatus, EnrolledAt = @enrolledAt
+          WHERE Id = @enrollmentId
+        `, {
+          enrollmentId: existingEnrollment[0].Id,
+          enrolledAt: new Date().toISOString(),
+          newStatus
+        });
+
+        if (newStatus === 'active') {
+          // Increment enrollment count for auto-approved re-enrollment
+          await db.execute(`
+            UPDATE dbo.Courses SET EnrollmentCount = EnrollmentCount + 1 WHERE Id = @courseId
+          `, { courseId });
+        }
+
+        return res.status(200).json({
+          enrollmentId: existingEnrollment[0].Id,
+          courseId,
+          status: newStatus,
+          enrolledAt: new Date().toISOString(),
+          message: newStatus === 'pending' 
+            ? 'Your enrollment request has been resubmitted. Awaiting instructor approval.'
+            : 'Successfully re-enrolled in course',
+          code: newStatus === 'pending' ? 'ENROLLMENT_PENDING_APPROVAL' : 'RE_ENROLLED'
+        });
       } else if (status === 'completed') {
         // Student completed the course but can remain enrolled to access new content
         // Just return the existing enrollment
@@ -338,23 +443,7 @@ router.post('/courses/:courseId/enroll', authenticateToken, async (req: AuthRequ
           enrolledAt: new Date().toISOString()
         });
 
-        // Get course and user details for notifications
-        const course = await db.query(`
-          SELECT Title, InstructorId FROM dbo.Courses WHERE Id = @courseId
-        `, { courseId });
-
-        if (course.length === 0) {
-          // Course was deleted between checks - still return success for enrollment
-          return res.status(200).json({
-            enrollmentId: existingEnrollment[0].Id,
-            courseId,
-            status: 'active',
-            enrolledAt: new Date().toISOString(),
-            message: 'Successfully re-enrolled in course',
-            code: 'RE_ENROLLED'
-          });
-        }
-
+        // Get user details for notifications (already have course details from courseData)
         const userDetails = await db.query(`
           SELECT FirstName, LastName FROM dbo.Users WHERE Id = @userId
         `, { userId });
@@ -374,7 +463,7 @@ router.post('/courses/:courseId/enroll', authenticateToken, async (req: AuthRequ
                 userId: userId!,
                 type: 'course',
                 priority: 'high',
-                title: `Welcome Back to ${course[0].Title}!`,
+                title: `Welcome Back to ${courseData.Title}!`,
                 message: `You're re-enrolled! Continue your learning journey.`,
                 actionUrl: `/courses/${courseId}`,
                 actionText: 'Continue Learning'
@@ -388,14 +477,14 @@ router.post('/courses/:courseId/enroll', authenticateToken, async (req: AuthRequ
             // NotificationService already emits Socket.IO event, no need to emit again
 
             // Notify instructor: Re-enrollment alert
-            const instructorId = course[0].InstructorId;
+            const instructorId = courseData.InstructorId;
             const instructorNotificationId = await notificationService.createNotificationWithControls(
               {
                 userId: instructorId,
                 type: 'course',
                 priority: 'normal',
                 title: 'Student Re-enrolled',
-                message: `${studentName} re-enrolled in "${course[0].Title}"`,
+                message: `${studentName} re-enrolled in "${courseData.Title}"`,
                 actionUrl: `/instructor/students?courseId=${courseId}`,
                 actionText: 'View Students'
               },
@@ -425,43 +514,69 @@ router.post('/courses/:courseId/enroll', authenticateToken, async (req: AuthRequ
       }
     }
 
-    // Verify course exists and is published (not archived or deleted)
-    const course = await db.query(`
-      SELECT Id, Title, InstructorId, Price, IsPublished, Status, EnrollmentCount
-      FROM dbo.Courses
-      WHERE Id = @courseId
-        AND (Status = 'published' OR (Status IS NULL AND IsPublished = 1))
-    `, { courseId });
-
-    if (course.length === 0) {
-      return res.status(404).json({ 
-        error: 'Course not found or not available for enrollment',
-        code: 'COURSE_NOT_FOUND'
-      });
-    }
-
-    // Don't allow instructor to enroll in their own course
-    if (course[0].InstructorId === userId) {
-      return res.status(403).json({ 
-        error: 'Cannot enroll in your own course',
-        code: 'INSTRUCTOR_SELF_ENROLLMENT'
-      });
-    }
-
-    // Prevent enrollment in paid courses without payment
-    if (course[0].Price > 0) {
-      return res.status(402).json({ 
-        error: 'This course requires payment. Please complete the checkout process.',
-        code: 'PAYMENT_REQUIRED',
-        price: course[0].Price,
-        checkoutUrl: `/checkout/${courseId}`
-      });
-    }
-
     const enrollmentId = uuidv4();
-    const now = new Date().toISOString();
+    const nowIso = new Date().toISOString();
 
-    // Create enrollment
+    // 3. Check if manual approval is required (Phase 2)
+    if (courseData.RequiresApproval) {
+      // Create pending enrollment
+      await db.execute(`
+        INSERT INTO dbo.Enrollments (Id, UserId, CourseId, EnrolledAt, Status)
+        VALUES (@id, @userId, @courseId, @enrolledAt, @status)
+      `, {
+        id: enrollmentId,
+        userId,
+        courseId,
+        enrolledAt: nowIso,
+        status: 'pending'
+      });
+
+      // Send notification to instructor about pending enrollment
+      const io = req.app.get('io');
+      if (io) {
+        try {
+          const NotificationService = require('../services/NotificationService').NotificationService;
+          const notificationService = new NotificationService(io);
+
+          const userDetails = await db.query(`
+            SELECT FirstName, LastName FROM dbo.Users WHERE Id = @userId
+          `, { userId });
+          const studentName = userDetails.length > 0 
+            ? `${userDetails[0].FirstName} ${userDetails[0].LastName}` 
+            : 'A student';
+
+          await notificationService.createNotificationWithControls(
+            {
+              userId: courseData.InstructorId,
+              type: 'course',
+              priority: 'high',
+              title: 'New Enrollment Request',
+              message: `${studentName} requested to enroll in "${courseData.Title}"`,
+              actionUrl: `/instructor/students?courseId=${courseId}`,
+              actionText: 'Review Request'
+            },
+            {
+              category: 'course',
+              subcategory: 'EnrollmentRequest'
+            }
+          );
+        } catch (notifError) {
+          console.error('⚠️ Failed to send enrollment request notification:', notifError);
+        }
+      }
+
+      return res.status(202).json({
+        enrollmentId,
+        courseId,
+        courseTitle: courseData.Title,
+        status: 'pending',
+        enrolledAt: nowIso,
+        message: 'Your enrollment request has been submitted. Awaiting instructor approval.',
+        code: 'ENROLLMENT_PENDING_APPROVAL'
+      });
+    }
+
+    // Create active enrollment (auto-approved)
     await db.execute(`
       INSERT INTO dbo.Enrollments (Id, UserId, CourseId, EnrolledAt, Status)
       VALUES (@id, @userId, @courseId, @enrolledAt, @status)
@@ -469,7 +584,7 @@ router.post('/courses/:courseId/enroll', authenticateToken, async (req: AuthRequ
       id: enrollmentId,
       userId,
       courseId,
-      enrolledAt: now,
+      enrolledAt: nowIso,
       status: 'active'
     });
 
@@ -506,7 +621,7 @@ router.post('/courses/:courseId/enroll', authenticateToken, async (req: AuthRequ
             userId: userId!,
             type: 'course',
             priority: 'high',
-            title: `Welcome to ${course[0].Title}!`,
+            title: `Welcome to ${courseData.Title}!`,
             message: `You're now enrolled! Start with the first lesson and track your progress.`,
             actionUrl: `/courses/${courseId}`,
             actionText: 'Start Learning'
@@ -520,14 +635,14 @@ router.post('/courses/:courseId/enroll', authenticateToken, async (req: AuthRequ
         // NotificationService already emits Socket.IO event, no need to emit again
 
         // Notify instructor: New enrollment alert
-        const instructorId = course[0].InstructorId;
+        const instructorId = courseData.InstructorId;
         const instructorNotificationId = await notificationService.createNotificationWithControls(
           {
             userId: instructorId,
             type: 'course',
             priority: 'normal',
             title: 'New Student Enrolled',
-            message: `${studentName} enrolled in "${course[0].Title}"`,
+            message: `${studentName} enrolled in "${courseData.Title}"`,
             actionUrl: `/instructor/students?courseId=${courseId}`,
             actionText: 'View Students'
           },
@@ -549,10 +664,10 @@ router.post('/courses/:courseId/enroll', authenticateToken, async (req: AuthRequ
     res.status(201).json({
       enrollmentId,
       courseId,
-      courseTitle: course[0].Title,
+      courseTitle: courseData.Title,
       status: 'active',
-      enrolledAt: now,
-      message: `Successfully enrolled in "${course[0].Title}"`,
+      enrolledAt: nowIso,
+      message: `Successfully enrolled in "${courseData.Title}"`,
       code: 'ENROLLMENT_SUCCESS',
       nextSteps: {
         startLearning: `/courses/${courseId}/lessons`,

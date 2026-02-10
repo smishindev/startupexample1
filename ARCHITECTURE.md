@@ -162,11 +162,16 @@ GET    /api/instructor/courses/:id/students - Get students enrolled in course
 - Backend maps user-friendly names to database enums
 - 10 valid categories: programming, data_science, design, business, marketing, language, mathematics, science, arts, other
 
-### Enrollment & Prerequisites (updated Feb 7, 2026)
+### Enrollment, Prerequisites & Controls (updated Feb 10, 2026)
 ```
 POST   /api/enrollment/courses/:id/enroll  - Enroll in course
+                                            - Validates enrollment controls (capacity, dates, approval)
                                             - Validates prerequisites before enrollment
+                                            - Returns 403 ENROLLMENT_FULL if at capacity
+                                            - Returns 403 ENROLLMENT_NOT_OPEN if before open date
+                                            - Returns 403 ENROLLMENT_CLOSED if after close date
                                             - Returns 403 PREREQUISITES_NOT_MET if not completed
+                                            - Returns 202 with status='pending' if requires approval
                                             - Error includes: { error, message, missingPrerequisites: [{ id, title }] }
                                             - Only checks published prerequisites (ignores deleted)
                                             - Returns 409 if already enrolled
@@ -178,6 +183,27 @@ GET    /api/courses/:id/check-prerequisites - Check prerequisite completion stat
                                             - Prerequisites include: id, title, progress, isCompleted
                                             - Filters published courses only
                                             - Available to authenticated users
+```
+
+**Enrollment Validation Order (Feb 10, 2026):**
+```
+1. Check if user is course instructor (INSTRUCTOR_SELF_ENROLL error)
+2. Check enrollment capacity (MaxEnrollment vs EnrollmentCount)
+   - If full → 403 ENROLLMENT_FULL
+3. Check enrollment dates (EnrollmentOpenDate, EnrollmentCloseDate)
+   - If before open → 403 ENROLLMENT_NOT_OPEN
+   - If after close → 403 ENROLLMENT_CLOSED
+4. Check course price
+   - If price > 0 → 402 PAYMENT_REQUIRED (redirect to checkout)
+5. Check prerequisites
+   - If incomplete → 403 PREREQUISITES_NOT_MET
+6. Check existing enrollment
+   - If active → 409 ALREADY_ENROLLED
+   - If pending → 409 ENROLLMENT_ALREADY_PENDING
+   - If rejected/cancelled → Allow re-enrollment
+7. Check approval requirement
+   - If RequiresApproval=1 → Create status='pending', return 202
+   - Else → Create status='active', return 200
 ```
 
 **Prerequisite Validation Flow (Feb 7, 2026):**
@@ -204,9 +230,22 @@ POST /api/enrollment/courses/:id/enroll
 
 **Frontend Error Handling:**
 - EnrollmentError interface includes missingPrerequisites array
-- CoursesPage catches 403 and displays: "You must complete the following prerequisite course(s) before enrolling: [course names]"
+- CoursesPage catches 403 and displays appropriate error messages:
+  - ENROLLMENT_FULL: "This course has reached its maximum capacity"
+  - ENROLLMENT_CLOSED: "The enrollment period for this course has closed"
+  - ENROLLMENT_NOT_OPEN: "Enrollment for this course opens on [date]"
+  - PREREQUISITES_NOT_MET: "You must complete: [course names]"
+- CourseCard shows visual chips and disabled buttons for blocked enrollments
+- CourseDetailPage disables purchase button when enrollment blocked
 - Expected business logic errors don't spam console
 - Only unexpected technical errors logged
+
+**Paid Course Approval Workflow (Feb 10, 2026):**
+- Paid courses with RequiresApproval=1 show "Request Enrollment" button
+- Student clicks → POST /api/enrollment/enroll → status='pending' created (no payment)
+- Instructor receives notification → approves/rejects
+- If approved → student can proceed to payment (future: payment link in notification)
+- Backend payment endpoints validate approval status before charging
 
 ### Profile Management (added Dec 11, 2025)
 ```

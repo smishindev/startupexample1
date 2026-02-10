@@ -1,12 +1,110 @@
 # Mishin Learn Platform - Project Status & Memory
 
-**Last Updated**: February 7, 2026 - Course Prerequisites & Requirements System Complete 🎓  
+**Last Updated**: February 10, 2026 - Enrollment Controls UI/UX Complete 🎯  
 **Developer**: Sergey Mishin (s.mishin.dev@gmail.com)  
 **AI Assistant Context**: This file serves as project memory for continuity across chat sessions
 
 **Notification System Status**: 31/31 triggers implemented (100% complete) ✅  
 **Code Quality Status**: Phase 1 + Phase 2 Complete + Verified (Grade: A, 95/100) ✅  
-**Course Features**: Prerequisites & Learning Outcomes Implemented ✅
+**Course Features**: Prerequisites, Learning Outcomes, Enrollment Controls Implemented ✅  
+**Enrollment Controls**: Full UI/UX implementation with date awareness & paid course approval handling ✅
+
+---
+
+## 🎯 ENROLLMENT CONTROLS UI/UX (Latest - February 10, 2026)
+
+**Activity**: Completed frontend UI/UX for Phase 2 Enrollment Controls with full date awareness and paid course approval workflow
+
+**Status**: ✅ **Complete** - Full enforcement across all enrollment paths (cards, detail page, checkout)
+
+### **Features Implemented:**
+
+**1. CourseCard Date Awareness** ✅
+- Added `enrollmentOpenDate` and `enrollmentCloseDate` to Course interface
+- Button states: "Enroll Now", "Course Full", "Enrollment Closed", "Not Yet Open"
+- Visual chips with color coding:
+  - "Full" (red/error) - capacity reached
+  - "Closed" (orange/warning) - enrollment period ended
+  - "Not Open" (blue/info) - enrollment period hasn't started
+- Disabled button prevents card navigation (stopPropagation wrapper)
+- CoursesPage passes date fields from API to CourseCard
+
+**2. CourseDetailPage Bug Fix** ✅
+- **CRITICAL**: Fixed missing enrollment control data mapping from API
+- Interface had fields but realCourse mapping didn't populate them
+- Now correctly maps: MaxEnrollment, EnrollmentCount, EnrollmentOpenDate, EnrollmentCloseDate, RequiresApproval
+- Purchase button now properly disabled when enrollment is blocked
+- All enrollment control alerts working (capacity, dates, approval)
+
+**3. Paid Course Approval Workflow** ✅
+- Paid courses with `RequiresApproval` now show "Request Enrollment" button instead of "Purchase Course"
+- Button styled with orange gradient (hourglass icon)
+- Prevents payment before approval (security improvement)
+- Flow: Request → Pending → Instructor Approves → Payment link sent (future enhancement)
+- Backend creates pending enrollment, no payment charged
+
+**4. CourseSettingsEditor UX Improvements** ✅
+- Added clear "x" buttons to all three fields:
+  - Maximum Enrollment (clears to null/unlimited)
+  - Enrollment Open Date (clears to empty/immediate)
+  - Enrollment Close Date (clears to empty/no deadline)
+- Added "Clear All" buttons to Prerequisites and Learning Outcomes sections
+  - Always visible, disabled when empty, active/red when items exist
+- Reduced "Add" button size in Learning Outcomes (size="small", 80px width, 40px height)
+
+### **Files Modified:**
+
+**Frontend**:
+- `client/src/components/Course/CourseCard.tsx` - Date awareness, disabled states, chips
+- `client/src/pages/Course/CourseDetailPage.tsx` - Data mapping fix, approval workflow button
+- `client/src/pages/Courses/CoursesPage.tsx` - Pass enrollment dates to CourseCard
+- `client/src/components/Instructor/CourseSettingsEditor.tsx` - Clear buttons, UX polish
+
+**Backend**:
+- No changes (enrollment controls already existed, just UI implementation)
+
+### **Enrollment Flow Coverage:**
+
+All paths now enforce enrollment controls consistently:
+
+| Entry Point | Capacity Check | Date Check | Approval Check | Payment Block |
+|-------------|---------------|------------|----------------|---------------|
+| CourseCard "Enroll Now" | ✅ Disabled | ✅ Disabled | ⚠️ Shows alert on detail page | N/A (Free) |
+| CourseCard → Detail Page | ✅ Disabled | ✅ Disabled | ✅ Shows "Request Enrollment" | ✅ Blocks |
+| Detail Page "Enroll Now" | ✅ Disabled | ✅ Disabled | ⚠️ Shows alert | N/A (Free) |
+| Detail Page "Purchase Course" | ✅ Disabled | ✅ Disabled | ✅ Replaced with "Request" | ✅ Blocks |
+| Direct Checkout URL | ✅ Backend 403 | ✅ Backend 403 | ✅ Backend 403 | ✅ Blocks |
+
+### **Technical Details:**
+
+**Date Validation Logic**:
+```typescript
+const now = new Date();
+const isNotYetOpen = course.enrollmentOpenDate ? new Date(course.enrollmentOpenDate) > now : false;
+const isClosed = course.enrollmentCloseDate ? new Date(course.enrollmentCloseDate) < now : false;
+const isFull = course.maxEnrollment != null && course.enrolledStudents >= course.maxEnrollment;
+const isEnrollmentBlocked = isFull || isNotYetOpen || isClosed;
+```
+
+**Button Label Priority** (CourseCard):
+1. If `isEnrolling` → "Enrolling..."
+2. If `isFull` → "Course Full"
+3. If `isClosed` → "Enrollment Closed"
+4. If `isNotYetOpen` → "Not Yet Open"
+5. Else → "Enroll Now"
+
+**Paid Course Approval Flow**:
+- Student clicks "Request Enrollment" → `POST /api/enrollment/enroll`
+- Backend creates `status = 'pending'` enrollment (no payment)
+- Instructor gets notification → approves/rejects
+- If approved → student can purchase (payment link in notification - future)
+- Backend payment endpoints already validate approval status
+
+### **Future Enhancements:**
+
+- After instructor approves paid course enrollment, send notification with direct payment link
+- Show approval status badge on CourseCard ("Pending Approval")
+- Instructor dashboard widget for pending paid course enrollments
 
 ---
 

@@ -439,6 +439,24 @@ get_errors(filePaths=["path/to/modified/file.tsx"])
 - [x] TypeScript compilation: No errors ✅
 - [x] Backend API: All 6 endpoints working (GET, POST, DELETE, PATCH, batch) ✅
 
+**Enrollment Controls Testing Checklist (Feb 10, 2026):**
+- [x] CourseSettingsEditor: All 4 enrollment control fields with clear "x" buttons ✅
+- [x] CourseSettingsEditor: "Clear All" buttons on Prerequisites and Learning Outcomes ✅
+- [x] CourseCard: Shows "X/Y enrolled" when maxEnrollment set ✅
+- [x] CourseCard: Visual chips appear ("Full" red, "Closed" orange, "Not Open" blue) ✅
+- [x] CourseCard: Button shows correct label (Course Full, Enrollment Closed, Not Yet Open) ✅
+- [x] CourseCard: Disabled button doesn't navigate to detail page ✅
+- [x] CourseDetailPage: Enrollment control data properly loaded from API ✅
+- [x] CourseDetailPage: Purchase button disabled when enrollment blocked ✅
+- [x] CourseDetailPage: Capacity/date alerts shown when blocked ✅
+- [x] Paid course with approval: Shows "Request Enrollment" instead of "Purchase Course" ✅
+- [x] Request enrollment: Creates pending enrollment, no payment charged ✅
+- [x] Backend validation: All enrollment paths enforce controls (free, paid, checkout) ✅
+- [x] Date validation: Past close date blocks enrollment ✅
+- [x] Date validation: Future open date blocks enrollment ✅
+- [x] Capacity validation: At max enrollment blocks new enrollments ✅
+- [x] TypeScript compilation: No errors ✅
+
 ---
 
 ## ✅ PHASE 5: FINAL REVIEW (Before Submitting)

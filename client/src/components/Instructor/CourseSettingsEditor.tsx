@@ -15,13 +15,17 @@ import {
   Alert,
   CircularProgress,
   Divider,
-  Stack
+  Stack,
+  FormControlLabel,
+  Switch,
+  InputAdornment
 } from '@mui/material';
 import {
   Add as AddIcon,
   Delete as DeleteIcon,
   Save as SaveIcon,
-  Cancel as CancelIcon
+  Cancel as CancelIcon,
+  Clear as ClearIcon
 } from '@mui/icons-material';
 import { toast } from 'sonner';
 import { instructorApi, InstructorCourse } from '../../services/instructorApi';
@@ -37,6 +41,16 @@ export const CourseSettingsEditor: React.FC<CourseSettingsEditorProps> = ({ cour
   const [prerequisites, setPrerequisites] = useState<string[]>(course.prerequisites || []);
   const [learningOutcomes, setLearningOutcomes] = useState<string[]>(course.learningOutcomes || []);
   const [newOutcome, setNewOutcome] = useState('');
+  
+  // Enrollment Controls (Phase 2)
+  const [maxEnrollment, setMaxEnrollment] = useState<number | null>(course.maxEnrollment ?? null);
+  const [enrollmentOpenDate, setEnrollmentOpenDate] = useState<string>(
+    course.enrollmentOpenDate ? new Date(course.enrollmentOpenDate).toISOString().slice(0, 16) : ''
+  );
+  const [enrollmentCloseDate, setEnrollmentCloseDate] = useState<string>(
+    course.enrollmentCloseDate ? new Date(course.enrollmentCloseDate).toISOString().slice(0, 16) : ''
+  );
+  const [requiresApproval, setRequiresApproval] = useState(course.requiresApproval ?? false);
 
   // Load instructor's published courses for prerequisites selection
   useEffect(() => {
@@ -57,9 +71,22 @@ export const CourseSettingsEditor: React.FC<CourseSettingsEditorProps> = ({ cour
     try {
       setLoading(true);
       
+      console.log('💾 [CourseSettingsEditor] Saving with values:', {
+        maxEnrollment,
+        enrollmentOpenDate,
+        enrollmentCloseDate,
+        requiresApproval,
+        prerequisites,
+        learningOutcomes
+      });
+      
       await instructorApi.updateCourse(course.id, {
         prerequisites,
-        learningOutcomes: learningOutcomes.filter(o => o.trim().length > 0)
+        learningOutcomes: learningOutcomes.filter(o => o.trim().length > 0),
+        maxEnrollment,
+        enrollmentOpenDate: enrollmentOpenDate ? new Date(enrollmentOpenDate).toISOString() : null,
+        enrollmentCloseDate: enrollmentCloseDate ? new Date(enrollmentCloseDate).toISOString() : null,
+        requiresApproval
       });
 
       toast.success('Course settings updated successfully');
@@ -86,23 +113,59 @@ export const CourseSettingsEditor: React.FC<CourseSettingsEditorProps> = ({ cour
   const hasChanges = () => {
     const originalPrereqs = course.prerequisites || [];
     const originalOutcomes = course.learningOutcomes || [];
+    const originalMaxEnrollment = course.maxEnrollment ?? null;
+    const originalOpenDate = course.enrollmentOpenDate ? new Date(course.enrollmentOpenDate).toISOString().slice(0, 16) : '';
+    const originalCloseDate = course.enrollmentCloseDate ? new Date(course.enrollmentCloseDate).toISOString().slice(0, 16) : '';
+    const originalApproval = course.requiresApproval ?? false;
     
-    return JSON.stringify(prerequisites.sort()) !== JSON.stringify(originalPrereqs.sort()) ||
-           JSON.stringify(learningOutcomes.sort()) !== JSON.stringify(originalOutcomes.sort());
+    const hasPrereqChanges = JSON.stringify(prerequisites.sort()) !== JSON.stringify(originalPrereqs.sort());
+    const hasOutcomeChanges = JSON.stringify(learningOutcomes.sort()) !== JSON.stringify(originalOutcomes.sort());
+    const hasMaxEnrollmentChanges = maxEnrollment !== originalMaxEnrollment;
+    const hasOpenDateChanges = enrollmentOpenDate !== originalOpenDate;
+    const hasCloseDateChanges = enrollmentCloseDate !== originalCloseDate;
+    const hasApprovalChanges = requiresApproval !== originalApproval;
+    
+    const result = hasPrereqChanges || hasOutcomeChanges || hasMaxEnrollmentChanges || 
+                   hasOpenDateChanges || hasCloseDateChanges || hasApprovalChanges;
+    
+    console.log('🔍 [CourseSettingsEditor] hasChanges check:', {
+      result,
+      current: { maxEnrollment, enrollmentOpenDate, enrollmentCloseDate, requiresApproval },
+      original: { originalMaxEnrollment, originalOpenDate, originalCloseDate, originalApproval },
+      changes: { hasMaxEnrollmentChanges, hasOpenDateChanges, hasCloseDateChanges, hasApprovalChanges }
+    });
+    
+    return result;
   };
 
   const handleCancel = () => {
     setPrerequisites(course.prerequisites || []);
     setLearningOutcomes(course.learningOutcomes || []);
     setNewOutcome('');
+    setMaxEnrollment(course.maxEnrollment ?? null);
+    setEnrollmentOpenDate(course.enrollmentOpenDate ? new Date(course.enrollmentOpenDate).toISOString().slice(0, 16) : '');
+    setEnrollmentCloseDate(course.enrollmentCloseDate ? new Date(course.enrollmentCloseDate).toISOString().slice(0, 16) : '');
+    setRequiresApproval(course.requiresApproval ?? false);
   };
 
   return (
     <Box>
       <Paper elevation={2} sx={{ p: 3, mb: 3 }}>
-        <Typography variant="h6" gutterBottom>
-          Course Prerequisites
-        </Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0 }}>
+          <Typography variant="h6" gutterBottom sx={{ mb: 0 }}>
+            Course Prerequisites
+          </Typography>
+          <Button
+            size="small"
+            color="error"
+            disabled={prerequisites.length === 0}
+            startIcon={<ClearIcon />}
+            onClick={() => setPrerequisites([])}
+            data-testid="course-settings-clear-prerequisites-button"
+          >
+            Clear All
+          </Button>
+        </Box>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
           Select courses that students must complete before enrolling in this course.
           Students will not be able to enroll until all prerequisites are completed.
@@ -149,9 +212,21 @@ export const CourseSettingsEditor: React.FC<CourseSettingsEditorProps> = ({ cour
       </Paper>
 
       <Paper elevation={2} sx={{ p: 3 }}>
-        <Typography variant="h6" gutterBottom>
-          Learning Outcomes
-        </Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0 }}>
+          <Typography variant="h6" gutterBottom sx={{ mb: 0 }}>
+            Learning Outcomes
+          </Typography>
+          <Button
+            size="small"
+            color="error"
+            disabled={learningOutcomes.length === 0}
+            startIcon={<ClearIcon />}
+            onClick={() => setLearningOutcomes([])}
+            data-testid="course-settings-clear-outcomes-button"
+          >
+            Clear All
+          </Button>
+        </Box>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
           Define what students will be able to do after completing this course.
           These outcomes will be displayed on the course detail page.
@@ -176,10 +251,11 @@ export const CourseSettingsEditor: React.FC<CourseSettingsEditorProps> = ({ cour
           />
           <Button
             variant="contained"
+            size="small"
             onClick={handleAddOutcome}
             disabled={newOutcome.trim().length === 0}
             startIcon={<AddIcon />}
-            sx={{ minWidth: 100 }}
+            sx={{ minWidth: 80, height: 55, alignSelf: 'flex-start', mt: 1 }}
             data-testid="course-settings-add-outcome-button"
           >
             Add
@@ -215,6 +291,112 @@ export const CourseSettingsEditor: React.FC<CourseSettingsEditorProps> = ({ cour
               </React.Fragment>
             ))}
           </List>
+        )}
+      </Paper>
+
+      {/* Enrollment Controls Section (Phase 2) */}
+      <Paper elevation={2} sx={{ p: 3, mt: 3 }}>
+        <Typography variant="h6" gutterBottom>
+          Enrollment Controls
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+          Manage how students can enroll in your course
+        </Typography>
+
+        {/* Max Enrollment */}
+        <TextField
+          fullWidth
+          label="Maximum Enrollment"
+          type="number"
+          value={maxEnrollment ?? ''}
+          onChange={(e) => {
+            const val = e.target.value;
+            setMaxEnrollment(val === '' ? null : parseInt(val, 10));
+          }}
+          helperText="Leave empty for unlimited enrollment"
+          InputProps={{
+            inputProps: { min: 1 },
+            endAdornment: maxEnrollment != null ? (
+              <InputAdornment position="end">
+                <IconButton size="small" onClick={() => setMaxEnrollment(null)} aria-label="Clear max enrollment">
+                  <ClearIcon fontSize="small" />
+                </IconButton>
+              </InputAdornment>
+            ) : undefined
+          }}
+          sx={{ mb: 3 }}
+          data-testid="course-settings-max-enrollment-input"
+        />
+
+        {/* Enrollment Date Range */}
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 3 }}>
+          <TextField
+            fullWidth
+            label="Enrollment Open Date"
+            type="datetime-local"
+            value={enrollmentOpenDate}
+            onChange={(e) => setEnrollmentOpenDate(e.target.value)}
+            helperText="Leave empty for immediate enrollment"
+            InputLabelProps={{ shrink: true }}
+            InputProps={{
+              endAdornment: enrollmentOpenDate ? (
+                <InputAdornment position="end">
+                  <IconButton size="small" onClick={() => setEnrollmentOpenDate('')} aria-label="Clear open date">
+                    <ClearIcon fontSize="small" />
+                  </IconButton>
+                </InputAdornment>
+              ) : undefined
+            }}
+            data-testid="course-settings-enrollment-open-date"
+          />
+          
+          <TextField
+            fullWidth
+            label="Enrollment Close Date"
+            type="datetime-local"
+            value={enrollmentCloseDate}
+            onChange={(e) => setEnrollmentCloseDate(e.target.value)}
+            helperText="Leave empty for no deadline"
+            InputLabelProps={{ shrink: true }}
+            InputProps={{
+              endAdornment: enrollmentCloseDate ? (
+                <InputAdornment position="end">
+                  <IconButton size="small" onClick={() => setEnrollmentCloseDate('')} aria-label="Clear close date">
+                    <ClearIcon fontSize="small" />
+                  </IconButton>
+                </InputAdornment>
+              ) : undefined
+            }}
+            data-testid="course-settings-enrollment-close-date"
+          />
+        </Stack>
+
+        {/* Requires Approval */}
+        <FormControlLabel
+          control={
+            <Switch
+              checked={requiresApproval}
+              onChange={(e) => setRequiresApproval(e.target.checked)}
+              data-testid="course-settings-requires-approval-switch"
+            />
+          }
+          label="Require Manual Approval"
+        />
+        <Typography variant="caption" color="text.secondary" display="block" sx={{ ml: 4, mb: 3 }}>
+          Students must wait for your approval before accessing the course
+        </Typography>
+
+        {/* Visual Summary */}
+        {(maxEnrollment || enrollmentOpenDate || enrollmentCloseDate || requiresApproval) && (
+          <Alert severity="info" sx={{ mt: 2 }}>
+            <Typography variant="body2" fontWeight="bold">Active Enrollment Controls:</Typography>
+            <ul style={{ marginTop: 8, paddingLeft: 20, marginBottom: 0 }}>
+              {maxEnrollment && <li>Maximum {maxEnrollment} students</li>}
+              {enrollmentOpenDate && <li>Opens: {new Date(enrollmentOpenDate).toLocaleString()}</li>}
+              {enrollmentCloseDate && <li>Closes: {new Date(enrollmentCloseDate).toLocaleString()}</li>}
+              {requiresApproval && <li>Manual approval required</li>}
+            </ul>
+          </Alert>
         )}
       </Paper>
 

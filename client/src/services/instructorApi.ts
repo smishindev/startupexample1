@@ -76,6 +76,11 @@ export interface InstructorCourse {
   price: number;
   prerequisites?: string[];
   learningOutcomes?: string[];
+  // Enrollment Controls (Phase 2)
+  maxEnrollment?: number | null;
+  enrollmentOpenDate?: string | null;
+  enrollmentCloseDate?: string | null;
+  requiresApproval?: boolean;
 }
 
 export interface CoursesResponse {
@@ -120,10 +125,28 @@ export interface CourseFormData {
   whatYouWillLearn?: string[];
   prerequisites?: string[]; // Course IDs that must be completed first
   learningOutcomes?: string[]; // What students will learn
+  // Enrollment Controls (Phase 2)
+  maxEnrollment?: number | null;
+  enrollmentOpenDate?: string | null;
+  enrollmentCloseDate?: string | null;
+  requiresApproval?: boolean;
   isPublic?: boolean;
   allowComments?: boolean;
   certificateEnabled?: boolean;
   lessons?: CourseLesson[];
+}
+
+export interface PendingEnrollment {
+  EnrollmentId: string;
+  CourseId: string;
+  UserId: string;
+  EnrolledAt: string;
+  Status: string;
+  CourseTitle: string;
+  FirstName: string;
+  LastName: string;
+  Email: string;
+  ProfilePicture?: string;
 }
 
 export const instructorApi = {
@@ -237,6 +260,42 @@ export const instructorApi = {
       return response.data.assessments || [];
     } catch (error) {
       console.error('Failed to fetch pending assessments:', error);
+      throw error;
+    }
+  },
+
+  // ============= ENROLLMENT APPROVAL SYSTEM (Phase 2) =============
+  
+  // Get pending enrollments
+  getPendingEnrollments: async (courseId?: string): Promise<{ enrollments: PendingEnrollment[]; total: number }> => {
+    try {
+      const params = courseId ? { courseId } : {};
+      const response = await api.get('/instructor/enrollments/pending', { params });
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch pending enrollments:', error);
+      throw error;
+    }
+  },
+
+  // Approve an enrollment
+  approveEnrollment: async (enrollmentId: string): Promise<{ message: string; enrollmentId: string; studentName: string }> => {
+    try {
+      const response = await api.put(`/instructor/enrollments/${enrollmentId}/approve`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to approve enrollment:', error);
+      throw error;
+    }
+  },
+
+  // Reject an enrollment
+  rejectEnrollment: async (enrollmentId: string, reason?: string): Promise<{ message: string; enrollmentId: string; studentName: string }> => {
+    try {
+      const response = await api.put(`/instructor/enrollments/${enrollmentId}/reject`, { reason });
+      return response.data;
+    } catch (error) {
+      console.error('Failed to reject enrollment:', error);
       throw error;
     }
   }

@@ -66,7 +66,11 @@ router.get('/', async (req: any, res: any) => {
         u.FirstName as InstructorFirstName,
         u.LastName as InstructorLastName,
         u.Avatar as InstructorAvatar,
-        (SELECT COUNT(*) FROM Lessons l WHERE l.CourseId = c.Id) as LessonCount
+        (SELECT COUNT(*) FROM Lessons l WHERE l.CourseId = c.Id) as LessonCount,
+        c.MaxEnrollment,
+        c.EnrollmentOpenDate,
+        c.EnrollmentCloseDate,
+        c.RequiresApproval
       FROM Courses c
       INNER JOIN Users u ON c.InstructorId = u.Id
       ${whereClause}
@@ -92,6 +96,7 @@ router.get('/', async (req: any, res: any) => {
       ...course,
       Level: course.Level?.toLowerCase(), // Normalize level to lowercase
       Tags: course.Tags ? JSON.parse(course.Tags) : [],
+      RequiresApproval: Boolean(course.RequiresApproval), // Convert BIT to boolean
       Instructor: {
         Id: course.InstructorId, // Added instructor ID to response
         FirstName: course.InstructorFirstName,
@@ -183,6 +188,11 @@ router.get('/:id', async (req: any, res: any) => {
       Prerequisites: course.Prerequisites ? JSON.parse(course.Prerequisites) : [],
       LearningOutcomes: course.LearningOutcomes ? JSON.parse(course.LearningOutcomes) : [],
       Tags: course.Tags ? JSON.parse(course.Tags) : [],
+      // Enrollment Controls (Phase 2)
+      MaxEnrollment: course.MaxEnrollment,
+      EnrollmentOpenDate: course.EnrollmentOpenDate,
+      EnrollmentCloseDate: course.EnrollmentCloseDate,
+      RequiresApproval: Boolean(course.RequiresApproval), // Convert BIT to boolean
       Instructor: {
         Id: course.InstructorId,
         FirstName: course.InstructorFirstName,

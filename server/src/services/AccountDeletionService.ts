@@ -189,9 +189,9 @@ export class AccountDeletionService {
     const progressResult = await request.query('DELETE FROM dbo.UserProgress WHERE UserId = @userId');
     console.log(`✅ Deleted ${progressResult.rowsAffected[0]} user progress records`);
 
-    // 3. Delete office hours queue entries where user is instructor (CASCADE handles student entries)
-    await request.query('DELETE FROM dbo.OfficeHoursQueue WHERE InstructorId = @userId');
-    console.log('✅ Deleted office hours queue entries (as instructor)');
+    // 3. Delete office hours queue entries (both as instructor AND student)
+    const ohqResult = await request.query('DELETE FROM dbo.OfficeHoursQueue WHERE InstructorId = @userId OR StudentId = @userId');
+    console.log(`✅ Deleted ${ohqResult.rowsAffected[0]} office hours queue entries`);
 
     // 4. Delete chat-related data (NO ACTION constraints require manual deletion)
     // Delete read status records

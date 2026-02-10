@@ -69,6 +69,9 @@ const convertApiCourseToUiCourse = (apiCourse: ApiCourse, isBookmarked: boolean 
   isEnrolled: isEnrolled,
   isPopular: apiCourse.EnrollmentCount > 100,
   isNew: isNewCourse(apiCourse.CreatedAt),
+  maxEnrollment: apiCourse.MaxEnrollment ?? null,
+  enrollmentOpenDate: apiCourse.EnrollmentOpenDate ?? null,
+  enrollmentCloseDate: apiCourse.EnrollmentCloseDate ?? null,
 });
 
 // Helper function to format duration from minutes to readable format
@@ -485,6 +488,21 @@ export const CoursesPage: React.FC = () => {
           navigate(`/checkout/${courseId}`);
           return;
         }
+
+        // Enrollment controls (Phase 2)
+        if (errorData.code === 'ENROLLMENT_FULL') {
+          errorMessage = 'This course has reached its maximum enrollment capacity.';
+          isExpectedError = true;
+        } else if (errorData.code === 'ENROLLMENT_NOT_OPEN') {
+          errorMessage = 'Enrollment for this course has not opened yet.';
+          isExpectedError = true;
+        } else if (errorData.code === 'ENROLLMENT_CLOSED') {
+          errorMessage = 'The enrollment period for this course has closed.';
+          isExpectedError = true;
+        } else if (errorData.code === 'ENROLLMENT_ALREADY_PENDING') {
+          errorMessage = 'Your enrollment request is already pending approval.';
+          isExpectedError = true;
+        }
         
         if (errorData.code === 'ALREADY_ENROLLED') {
           // User is already enrolled, update the UI to reflect this
@@ -499,7 +517,7 @@ export const CoursesPage: React.FC = () => {
         }
         
         // Handle prerequisites not met
-        if (errorData.error === 'PREREQUISITES_NOT_MET' || errorData.status === 403) {
+        if (errorData.code === 'PREREQUISITES_NOT_MET') {
           if (errorData.missingPrerequisites && errorData.missingPrerequisites.length > 0) {
             const prereqList = errorData.missingPrerequisites
               .map((p: any) => p.title)

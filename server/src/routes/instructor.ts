@@ -95,6 +95,10 @@ router.get('/courses', authenticateToken, authorize(['instructor', 'admin']), as
         c.UpdatedAt as updatedAt,
         c.Prerequisites as prerequisites,
         c.LearningOutcomes as learningOutcomes,
+        c.MaxEnrollment as maxEnrollment,
+        c.EnrollmentOpenDate as enrollmentOpenDate,
+        c.EnrollmentCloseDate as enrollmentCloseDate,
+        c.RequiresApproval as requiresApproval,
         COUNT(DISTINCT l.Id) as lessons,
         ISNULL((SELECT SUM(Amount) FROM Transactions WHERE CourseId = c.Id AND Status = 'completed'), 0) as revenue
       FROM Courses c
@@ -118,7 +122,8 @@ router.get('/courses', authenticateToken, authorize(['instructor', 'admin']), as
 
     query += `
       GROUP BY c.Id, c.Title, c.Description, c.Thumbnail, c.Category, c.Level, c.Status, c.IsPublished, c.Price, 
-               c.Rating, c.EnrollmentCount, c.CreatedAt, c.UpdatedAt, c.Prerequisites, c.LearningOutcomes
+               c.Rating, c.EnrollmentCount, c.CreatedAt, c.UpdatedAt, c.Prerequisites, c.LearningOutcomes,
+               c.MaxEnrollment, c.EnrollmentOpenDate, c.EnrollmentCloseDate, c.RequiresApproval
       ORDER BY c.UpdatedAt DESC
       OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY
     `;
@@ -177,16 +182,25 @@ router.get('/courses', authenticateToken, authorize(['instructor', 'admin']), as
       
       const mappedCourse = {
         ...course,
-        category: course.category, // Explicitly include category
-        level: normalizedLevel, // Normalized level
-        status: courseStatus, // Use Status field or convert from IsPublished
+        category: course.category,
+        level: normalizedLevel,
+        status: courseStatus,
         progress: courseStatus === 'draft' ? Math.floor(Math.random() * 100) : 100,
         lastUpdated: course.updatedAt,
         prerequisites,
-        learningOutcomes
+        learningOutcomes,
+        // Enrollment controls: use null coalescing, don't fall back on 0/false
+        maxEnrollment: course.maxEnrollment ?? null,
+        enrollmentOpenDate: course.enrollmentOpenDate ?? null,
+        enrollmentCloseDate: course.enrollmentCloseDate ?? null,
+        requiresApproval: Boolean(course.requiresApproval) // BIT returns 0/1, convert to boolean
       };
-      // Remove uppercase Level if it exists to prevent confusion
+      // Remove unnecessary properties
       delete mappedCourse.Level;
+      delete mappedCourse.MaxEnrollment;
+      delete mappedCourse.EnrollmentOpenDate;
+      delete mappedCourse.EnrollmentCloseDate;
+      delete mappedCourse.RequiresApproval;
       return mappedCourse;
     });
 
@@ -281,12 +295,16 @@ router.post('/courses', authenticateToken, authorize(['instructor', 'admin']), a
         INSERT INTO Courses (
           Id, Title, Description, Thumbnail, Category, Level, Price, 
           InstructorId, IsPublished, 
-          Tags, Prerequisites, LearningOutcomes, CreatedAt, UpdatedAt
+          Tags, Prerequisites, LearningOutcomes,
+          MaxEnrollment, EnrollmentOpenDate, EnrollmentCloseDate, RequiresApproval,
+          CreatedAt, UpdatedAt
         )
         VALUES (
           @id, @title, @description, @thumbnail, @category, @level, @price,
           @instructorId, @isPublished,
-          @tags, @requirements, @whatYouWillLearn, GETDATE(), GETDATE()
+          @tags, @requirements, @whatYouWillLearn,
+          @maxEnrollment, @enrollmentOpenDate, @enrollmentCloseDate, @requiresApproval,
+          GETDATE(), GETDATE()
         )
       `, {
         id: courseId,
@@ -300,7 +318,11 @@ router.post('/courses', authenticateToken, authorize(['instructor', 'admin']), a
         isPublished: 0, // Start as draft (unpublished)
         tags: JSON.stringify(tags || []),
         requirements: JSON.stringify(requirements || []),
-        whatYouWillLearn: JSON.stringify(whatYouWillLearn || [])
+        whatYouWillLearn: JSON.stringify(whatYouWillLearn || []),
+        maxEnrollment: req.body.maxEnrollment || null,
+        enrollmentOpenDate: req.body.enrollmentOpenDate || null,
+        enrollmentCloseDate: req.body.enrollmentCloseDate || null,
+        requiresApproval: req.body.requiresApproval ? 1 : 0
       });
 
       // Create lessons if provided
@@ -406,9 +428,21 @@ router.put('/courses/:id', authenticateToken, authorize(['instructor', 'admin'])
       learningOutcomes
     } = req.body;
 
+    console.log('📝 [PUT /courses/:id] Request received:', {
+      courseId,
+      userId,
+      bodyKeys: Object.keys(req.body),
+      enrollmentControls: {
+        maxEnrollment: req.body.maxEnrollment,
+        enrollmentOpenDate: req.body.enrollmentOpenDate,
+        enrollmentCloseDate: req.body.enrollmentCloseDate,
+        requiresApproval: req.body.requiresApproval
+      }
+    });
+
     // Verify the course exists and belongs to this instructor
     const course = await db.query(`
-      SELECT Id FROM Courses 
+      SELECT Id FROM dbo.Courses 
       WHERE Id = @courseId AND InstructorId = @instructorId
     `, { courseId, instructorId: userId });
 
@@ -494,6 +528,60 @@ router.put('/courses/:id', authenticateToken, authorize(['instructor', 'admin'])
       params.learningOutcomes = JSON.stringify(learningOutcomes);
     }
 
+    // Enrollment Controls (Phase 2) - with validation
+    
+    // Validate date range if both dates are provided
+    if (req.body.enrollmentOpenDate && req.body.enrollmentCloseDate) {
+      const openDate = new Date(req.body.enrollmentOpenDate);
+      const closeDate = new Date(req.body.enrollmentCloseDate);
+      if (openDate >= closeDate) {
+        return res.status(400).json({ 
+          error: 'Enrollment open date must be before close date',
+          code: 'INVALID_DATE_RANGE'
+        });
+      }
+    }
+    
+    // Validate maxEnrollment against current enrollment count
+    if (req.body.maxEnrollment !== undefined) {
+      const maxEnrollment = req.body.maxEnrollment;
+      if (maxEnrollment !== null && (maxEnrollment < 1 || !Number.isInteger(maxEnrollment))) {
+        return res.status(400).json({ error: 'Max enrollment must be null or a positive integer' });
+      }
+      
+      // Check current enrollment count
+      if (maxEnrollment !== null) {
+        const currentCourse = await db.query(`
+          SELECT EnrollmentCount FROM dbo.Courses WHERE Id = @courseId
+        `, { courseId });
+        
+        const currentCount = currentCourse[0]?.EnrollmentCount || 0;
+        if (maxEnrollment < currentCount) {
+          return res.status(400).json({ 
+            error: `Cannot set max enrollment to ${maxEnrollment}. Course already has ${currentCount} enrolled students.`,
+            code: 'MAX_ENROLLMENT_TOO_LOW',
+            currentEnrollment: currentCount,
+            requestedMax: maxEnrollment
+          });
+        }
+      }
+      
+      updates.push('MaxEnrollment = @maxEnrollment');
+      params.maxEnrollment = maxEnrollment;
+    }
+    if (req.body.enrollmentOpenDate !== undefined) {
+      updates.push('EnrollmentOpenDate = @enrollmentOpenDate');
+      params.enrollmentOpenDate = req.body.enrollmentOpenDate;
+    }
+    if (req.body.enrollmentCloseDate !== undefined) {
+      updates.push('EnrollmentCloseDate = @enrollmentCloseDate');
+      params.enrollmentCloseDate = req.body.enrollmentCloseDate;
+    }
+    if (req.body.requiresApproval !== undefined) {
+      updates.push('RequiresApproval = @requiresApproval');
+      params.requiresApproval = req.body.requiresApproval ? 1 : 0;
+    }
+
     // Always update the UpdatedAt timestamp
     updates.push('UpdatedAt = GETDATE()');
 
@@ -503,11 +591,13 @@ router.put('/courses/:id', authenticateToken, authorize(['instructor', 'admin'])
     }
 
     // Execute the update
-    await db.query(`
-      UPDATE Courses 
+    console.log('🔄 [PUT /courses/:id] Updating course with params:', { courseId, updates: updates.join(', '), params });
+    const updateResult: any = await db.query(`
+      UPDATE dbo.Courses 
       SET ${updates.join(', ')}
       WHERE Id = @courseId AND InstructorId = @instructorId
     `, params);
+    console.log('✅ [PUT /courses/:id] Course updated successfully');
 
     res.json({ 
       message: 'Course updated successfully',
@@ -839,5 +929,246 @@ router.post(
     }
   }
 );
+
+// ============= ENROLLMENT APPROVAL SYSTEM (Phase 2) =============
+
+// Get pending enrollments for instructor's courses
+router.get('/enrollments/pending', authenticateToken, authorize(['instructor', 'admin']), async (req: AuthRequest, res) => {
+  try {
+    const userId = req.user!.userId;
+    const courseId = req.query.courseId as string | undefined;
+
+    let query = `
+      SELECT 
+        e.Id as EnrollmentId,
+        e.CourseId,
+        e.UserId,
+        e.EnrolledAt,
+        e.Status,
+        c.Title as CourseTitle,
+        u.FirstName,
+        u.LastName,
+        u.Email,
+        u.ProfilePicture
+      FROM dbo.Enrollments e
+      JOIN dbo.Courses c ON e.CourseId = c.Id
+      JOIN dbo.Users u ON e.UserId = u.Id
+      WHERE c.InstructorId = @instructorId 
+        AND e.Status = 'pending'
+    `;
+
+    const params: any = { instructorId: userId };
+
+    if (courseId) {
+      query += ' AND e.CourseId = @courseId';
+      params.courseId = courseId;
+    }
+
+    query += ' ORDER BY e.EnrolledAt DESC';
+
+    const pendingEnrollments = await db.query(query, params);
+
+    res.json({ 
+      enrollments: pendingEnrollments,
+      total: pendingEnrollments.length
+    });
+  } catch (error) {
+    console.error('Failed to fetch pending enrollments:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Approve a pending enrollment
+router.put('/enrollments/:enrollmentId/approve', authenticateToken, authorize(['instructor', 'admin']), async (req: AuthRequest, res) => {
+  try {
+    const userId = req.user!.userId;
+    const enrollmentId = req.params.enrollmentId;
+
+    // Verify enrollment exists, is pending, and belongs to instructor's course
+    const enrollment = await db.query(`
+      SELECT 
+        e.Id,
+        e.UserId,
+        e.CourseId,
+        e.Status,
+        c.Title as CourseTitle,
+        c.InstructorId,
+        c.MaxEnrollment,
+        c.EnrollmentCount,
+        u.FirstName,
+        u.LastName
+      FROM dbo.Enrollments e
+      JOIN dbo.Courses c ON e.CourseId = c.Id
+      JOIN dbo.Users u ON e.UserId = u.Id
+      WHERE e.Id = @enrollmentId
+    `, { enrollmentId });
+
+    if (enrollment.length === 0) {
+      return res.status(404).json({ error: 'Enrollment not found' });
+    }
+
+    const enrollmentData = enrollment[0];
+
+    // Verify instructor owns this course
+    if (enrollmentData.InstructorId !== userId) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    // Check if already processed
+    if (enrollmentData.Status !== 'pending') {
+      return res.status(400).json({ 
+        error: `Enrollment is already ${enrollmentData.Status}`,
+        code: 'ALREADY_PROCESSED'
+      });
+    }
+
+    // Check capacity (in case it changed since enrollment request)
+    if (enrollmentData.MaxEnrollment !== null && 
+        enrollmentData.EnrollmentCount >= enrollmentData.MaxEnrollment) {
+      return res.status(403).json({
+        error: 'Course has reached maximum capacity',
+        code: 'ENROLLMENT_FULL'
+      });
+    }
+
+    // Update enrollment status to active
+    await db.execute(`
+      UPDATE dbo.Enrollments 
+      SET Status = 'active'
+      WHERE Id = @enrollmentId
+    `, { enrollmentId });
+
+    // Increment enrollment count
+    await db.execute(`
+      UPDATE dbo.Courses 
+      SET EnrollmentCount = ISNULL(EnrollmentCount, 0) + 1
+      WHERE Id = @courseId
+    `, { courseId: enrollmentData.CourseId });
+
+    // Send notification to student
+    const io = req.app.get('io');
+    if (io) {
+      try {
+        const NotificationService = require('../services/NotificationService').NotificationService;
+        const notificationService = new NotificationService(io);
+
+        await notificationService.createNotificationWithControls(
+          {
+            userId: enrollmentData.UserId,
+            type: 'course',
+            priority: 'high',
+            title: 'Enrollment Approved! 🎉',
+            message: `Your enrollment in "${enrollmentData.CourseTitle}" has been approved. You can now access the course.`,
+            actionUrl: `/course/${enrollmentData.CourseId}`,
+            actionText: 'Go to Course'
+          },
+          {
+            category: 'course',
+            subcategory: 'EnrollmentApproved'
+          }
+        );
+      } catch (notifError) {
+        console.error('⚠️ Failed to send approval notification:', notifError);
+      }
+    }
+
+    res.json({ 
+      message: 'Enrollment approved successfully',
+      enrollmentId,
+      studentName: `${enrollmentData.FirstName} ${enrollmentData.LastName}`
+    });
+  } catch (error) {
+    console.error('Failed to approve enrollment:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Reject a pending enrollment
+router.put('/enrollments/:enrollmentId/reject', authenticateToken, authorize(['instructor', 'admin']), async (req: AuthRequest, res) => {
+  try {
+    const userId = req.user!.userId;
+    const enrollmentId = req.params.enrollmentId;
+    const reason = req.body.reason || 'Your enrollment request was not approved at this time.';
+
+    // Verify enrollment exists, is pending, and belongs to instructor's course
+    const enrollment = await db.query(`
+      SELECT 
+        e.Id,
+        e.UserId,
+        e.CourseId,
+        e.Status,
+        c.Title as CourseTitle,
+        c.InstructorId,
+        u.FirstName,
+        u.LastName
+      FROM dbo.Enrollments e
+      JOIN dbo.Courses c ON e.CourseId = c.Id
+      JOIN dbo.Users u ON e.UserId = u.Id
+      WHERE e.Id = @enrollmentId
+    `, { enrollmentId });
+
+    if (enrollment.length === 0) {
+      return res.status(404).json({ error: 'Enrollment not found' });
+    }
+
+    const enrollmentData = enrollment[0];
+
+    // Verify instructor owns this course
+    if (enrollmentData.InstructorId !== userId) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    // Check if already processed
+    if (enrollmentData.Status !== 'pending') {
+      return res.status(400).json({ 
+        error: `Enrollment is already ${enrollmentData.Status}`,
+        code: 'ALREADY_PROCESSED'
+      });
+    }
+
+    // Update enrollment status to rejected
+    await db.execute(`
+      UPDATE dbo.Enrollments 
+      SET Status = 'rejected'
+      WHERE Id = @enrollmentId
+    `, { enrollmentId });
+
+    // Send notification to student
+    const io = req.app.get('io');
+    if (io) {
+      try {
+        const NotificationService = require('../services/NotificationService').NotificationService;
+        const notificationService = new NotificationService(io);
+
+        await notificationService.createNotificationWithControls(
+          {
+            userId: enrollmentData.UserId,
+            type: 'course',
+            priority: 'medium',
+            title: 'Enrollment Request Update',
+            message: `Your enrollment request for "${enrollmentData.CourseTitle}" was not approved. ${reason}`,
+            actionUrl: `/courses`,
+            actionText: 'Browse Courses'
+          },
+          {
+            category: 'course',
+            subcategory: 'EnrollmentRejected'
+          }
+        );
+      } catch (notifError) {
+        console.error('⚠️ Failed to send rejection notification:', notifError);
+      }
+    }
+
+    res.json({ 
+      message: 'Enrollment rejected',
+      enrollmentId,
+      studentName: `${enrollmentData.FirstName} ${enrollmentData.LastName}`
+    });
+  } catch (error) {
+    console.error('Failed to reject enrollment:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
 
 export default router;

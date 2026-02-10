@@ -30,7 +30,10 @@ import {
   DialogContent,
   DialogActions,
   LinearProgress,
-  Alert
+  Alert,
+  Tabs,
+  Tab,
+  Badge
 } from '@mui/material';
 import {
   Search as SearchIcon,
@@ -40,11 +43,14 @@ import {
   TrendingUp as TrendingUpIcon,
   People as PeopleIcon,
   CheckCircle as CheckCircleIcon,
-  Schedule as ScheduleIcon
+  Schedule as ScheduleIcon,
+  Check as CheckIcon,
+  Close as CloseIcon
 } from '@mui/icons-material';
 import { HeaderV5 as Header } from '../../components/Navigation/HeaderV5';
 import { studentsApi, Student, StudentAnalytics, StudentFilters } from '../../services/studentsApi';
-import { instructorApi } from '../../services/instructorApi';
+import { instructorApi, PendingEnrollment } from '../../services/instructorApi';
+import { toast } from 'sonner';
 
 const StudentManagement: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -53,6 +59,11 @@ const StudentManagement: React.FC = () => {
   const [courses, setCourses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Tab state (Phase 2)
+  const [currentTab, setCurrentTab] = useState<'active' | 'pending'>('active');
+  const [pendingEnrollments, setPendingEnrollments] = useState<PendingEnrollment[]>([]);
+  const [pendingLoading, setPendingLoading] = useState(false);
   
   // Filters and pagination
   const [filters, setFilters] = useState<StudentFilters>({
@@ -71,6 +82,12 @@ const StudentManagement: React.FC = () => {
     message: '',
     type: 'message' as 'message' | 'announcement'
   });
+  
+  // Approval/Rejection dialog state (Phase 2)
+  const [actionDialogOpen, setActionDialogOpen] = useState(false);
+  const [actionType, setActionType] = useState<'approve' | 'reject'>('approve');
+  const [selectedEnrollment, setSelectedEnrollment] = useState<PendingEnrollment | null>(null);
+  const [rejectionReason, setRejectionReason] = useState('');
 
   // Set courseId from URL parameter and load data
   useEffect(() => {
@@ -88,8 +105,19 @@ const StudentManagement: React.FC = () => {
     // Only load if filters have been initialized (courseId set or confirmed no courseId)
     if (filters.courseId !== undefined) {
       loadData();
+      // Also reload pending enrollments if on pending tab
+      if (currentTab === 'pending') {
+        loadPendingEnrollments();
+      }
     }
   }, [filters]);
+
+  // Reload pending enrollments when switching to pending tab
+  useEffect(() => {
+    if (currentTab === 'pending') {
+      loadPendingEnrollments();
+    }
+  }, [currentTab]);
 
   const loadData = async () => {
     try {
@@ -168,11 +196,66 @@ const StudentManagement: React.FC = () => {
       setMessageForm({ subject: '', message: '', type: 'message' });
       setSelectedStudent(null);
       
-      // Show success message (you could use a snackbar here)
-      alert('Message sent successfully!');
+      toast.success('Message sent successfully!');
     } catch (err) {
       console.error('Error sending message:', err);
-      setError('Failed to send message');
+      toast.error('Failed to send message');
+    }
+  };
+
+  // ============= ENROLLMENT APPROVAL HANDLERS (Phase 2) =============
+  
+  const loadPendingEnrollments = async () => {
+    try {
+      setPendingLoading(true);
+      const result = await instructorApi.getPendingEnrollments(filters.courseId);
+      setPendingEnrollments(result.enrollments);
+    } catch (err) {
+      console.error('Error loading pending enrollments:', err);
+      toast.error('Failed to load pending enrollments');
+    } finally {
+      setPendingLoading(false);
+    }
+  };
+
+  const handleTabChange = (_event: React.SyntheticEvent, newValue: 'active' | 'pending') => {
+    setCurrentTab(newValue);
+    // useEffect will handle loading pending enrollments when tab changes
+  };
+
+  const handleApproveClick = (enrollment: PendingEnrollment) => {
+    setSelectedEnrollment(enrollment);
+    setActionType('approve');
+    setActionDialogOpen(true);
+  };
+
+  const handleRejectClick = (enrollment: PendingEnrollment) => {
+    setSelectedEnrollment(enrollment);
+    setActionType('reject');
+    setRejectionReason('');
+    setActionDialogOpen(true);
+  };
+
+  const handleConfirmAction = async () => {
+    if (!selectedEnrollment) return;
+
+    try {
+      if (actionType === 'approve') {
+        await instructorApi.approveEnrollment(selectedEnrollment.EnrollmentId);
+        toast.success(`Approved ${selectedEnrollment.FirstName} ${selectedEnrollment.LastName}'s enrollment`);
+      } else {
+        await instructorApi.rejectEnrollment(selectedEnrollment.EnrollmentId, rejectionReason);
+        toast.success(`Rejected ${selectedEnrollment.FirstName} ${selectedEnrollment.LastName}'s enrollment`);
+      }
+      
+      // Refresh pending enrollments
+      loadPendingEnrollments();
+      setActionDialogOpen(false);
+      setSelectedEnrollment(null);
+      setRejectionReason('');
+    } catch (err: any) {
+      console.error('Error processing enrollment:', err);
+      toast.error(err.response?.data?.error || 'Failed to process enrollment');
     }
   };
 
@@ -288,8 +371,35 @@ const StudentManagement: React.FC = () => {
         </Grid>
       )}
 
-      {/* Filters */}
-      <Paper sx={{ p: 2, mb: 3 }}>
+      {/* Tabs for Active Students vs Pending Enrollments (Phase 2) */}
+      <Paper sx={{ mb: 3 }}>
+        <Tabs 
+          value={currentTab} 
+          onChange={handleTabChange}
+          aria-label="student management tabs"
+        >
+          <Tab 
+            value="active" 
+            label="Active Students" 
+            data-testid="tab-active-students"
+          />
+          <Tab 
+            value="pending" 
+            label={
+              <Badge badgeContent={pendingEnrollments.length} color="error">
+                <span style={{ marginRight: pendingEnrollments.length > 0 ? 20 : 0 }}>
+                  Pending Approvals
+                </span>
+              </Badge>
+            }
+            data-testid="tab-pending-enrollments"
+          />
+        </Tabs>
+      </Paper>
+
+      {/* Filters - Only show for Active Students tab */}
+      {currentTab === 'active' && (
+        <Paper sx={{ p: 2, mb: 3 }}>
         <Grid container spacing={2} alignItems="center">
           <Grid item xs={12} sm={6} md={3}>
             <TextField
@@ -371,9 +481,11 @@ const StudentManagement: React.FC = () => {
           </Grid>
         </Grid>
       </Paper>
+      )}
 
-      {/* Students Table */}
-      <TableContainer component={Paper}>
+      {/* Students Table - Active Tab */}
+      {currentTab === 'active' && (
+        <TableContainer component={Paper}>
         <Table>
           <TableHead>
             <TableRow>
@@ -504,6 +616,114 @@ const StudentManagement: React.FC = () => {
           data-testid="student-management-pagination"
         />
       </TableContainer>
+      )}
+
+      {/* Pending Enrollments Table - Pending Tab (Phase 2) */}
+      {currentTab === 'pending' && (
+        <TableContainer component={Paper}>
+          {pendingLoading ? (
+            <Box sx={{ p: 4, textAlign: 'center' }}>
+              <LinearProgress />
+              <Typography variant="body2" color="textSecondary" sx={{ mt: 2 }}>
+                Loading pending enrollments...
+              </Typography>
+            </Box>
+          ) : (
+            <>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Student</TableCell>
+                    <TableCell>Course</TableCell>
+                    <TableCell>Requested</TableCell>
+                    <TableCell>Actions</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {pendingEnrollments.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={4} align="center">
+                        <Box py={6}>
+                          <CheckCircleIcon sx={{ fontSize: 60, color: 'success.main', mb: 2 }} />
+                          <Typography variant="h6" color="textSecondary" gutterBottom>
+                            No Pending Approvals
+                          </Typography>
+                          <Typography variant="body2" color="textSecondary">
+                            All enrollment requests have been processed
+                          </Typography>
+                        </Box>
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    pendingEnrollments.map((enrollment) => (
+                      <TableRow key={enrollment.EnrollmentId}>
+                        <TableCell>
+                          <Box display="flex" alignItems="center">
+                            <Avatar 
+                              src={enrollment.ProfilePicture || undefined}
+                              sx={{ mr: 2 }}
+                            >
+                              {enrollment.FirstName[0]}{enrollment.LastName[0]}
+                            </Avatar>
+                            <Box>
+                              <Typography variant="body1">
+                                {enrollment.FirstName} {enrollment.LastName}
+                              </Typography>
+                              <Typography variant="body2" color="textSecondary">
+                                {enrollment.Email}
+                              </Typography>
+                            </Box>
+                          </Box>
+                        </TableCell>
+                        
+                        <TableCell>
+                          <Typography variant="body2">
+                            {enrollment.CourseTitle}
+                          </Typography>
+                        </TableCell>
+                        
+                        <TableCell>
+                          <Typography variant="body2">
+                            {formatDate(enrollment.EnrolledAt)}
+                          </Typography>
+                          <Typography variant="caption" color="textSecondary">
+                            {Math.floor((Date.now() - new Date(enrollment.EnrolledAt).getTime()) / (1000 * 60 * 60 * 24))} days ago
+                          </Typography>
+                        </TableCell>
+                        
+                        <TableCell>
+                          <Box display="flex" gap={1}>
+                            <Button
+                              variant="contained"
+                              color="success"
+                              size="small"
+                              startIcon={<CheckIcon />}
+                              onClick={() => handleApproveClick(enrollment)}
+                              data-testid={`approve-enrollment-${enrollment.EnrollmentId}`}
+                            >
+                              Approve
+                            </Button>
+                            <Button
+                              variant="outlined"
+                              color="error"
+                              size="small"
+                              startIcon={<CloseIcon />}
+                              onClick={() => handleRejectClick(enrollment)}
+                              data-testid={`reject-enrollment-${enrollment.EnrollmentId}`}
+                            >
+                              Reject
+                            </Button>
+                          </Box>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </>
+          )}
+        </TableContainer>
+      )}
 
       {/* Action Menu */}
       <Menu
@@ -583,6 +803,65 @@ const StudentManagement: React.FC = () => {
           >
             Send
           </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Approval/Rejection Confirmation Dialog (Phase 2) */}
+        <Dialog 
+          open={actionDialogOpen} 
+          onClose={() => setActionDialogOpen(false)}
+          maxWidth="sm"
+          fullWidth
+        >
+          <DialogTitle>
+            {actionType === 'approve' ? 'Approve Enrollment' : 'Reject Enrollment'}
+          </DialogTitle>
+          <DialogContent>
+            {selectedEnrollment && (
+              <Box sx={{ pt: 1 }}>
+                <Alert severity={actionType === 'approve' ? 'info' : 'warning'} sx={{ mb: 2 }}>
+                  <Typography variant="body2">
+                    {actionType === 'approve' 
+                      ? `You are about to approve ${selectedEnrollment.FirstName} ${selectedEnrollment.LastName}'s enrollment in "${selectedEnrollment.CourseTitle}". They will receive access to the course immediately.`
+                      : `You are about to reject ${selectedEnrollment.FirstName} ${selectedEnrollment.LastName}'s enrollment request for "${selectedEnrollment.CourseTitle}". They will be notified of your decision.`
+                    }
+                  </Typography>
+                </Alert>
+                
+                {actionType === 'reject' && (
+                  <TextField
+                    fullWidth
+                    label="Rejection Reason (Optional)"
+                    multiline
+                    rows={3}
+                    value={rejectionReason}
+                    onChange={(e) => setRejectionReason(e.target.value)}
+                    placeholder="Provide a reason for rejection to help the student understand..."
+                    helperText="This message will be included in the notification sent to the student"
+                    data-testid="enrollment-rejection-reason-input"
+                  />
+                )}
+              </Box>
+            )}
+          </DialogContent>
+          <DialogActions>
+            <Button 
+              onClick={() => {
+                setActionDialogOpen(false);
+                setRejectionReason('');
+              }} 
+              data-testid="enrollment-action-cancel-button"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleConfirmAction}
+              variant="contained"
+              color={actionType === 'approve' ? 'success' : 'error'}
+              data-testid="enrollment-action-confirm-button"
+            >
+              {actionType === 'approve' ? 'Approve' : 'Reject'}
+            </Button>
           </DialogActions>
         </Dialog>
       </Container>

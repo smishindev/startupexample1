@@ -64,6 +64,7 @@ import { useAuthStore } from '../../stores/authStore';
 import { BookmarkApi } from '../../services/bookmarkApi';
 import { useShare } from '../../hooks/useShare';
 import { ShareService } from '../../services/shareService';
+import { toast } from 'sonner';
 
 interface Lesson {
   id: string;
@@ -122,6 +123,12 @@ interface CourseDetails {
   isBookmarked: boolean;
   progress: number;
   currentLesson?: string;
+  // Enrollment Controls (Phase 2) - matching backend response field names
+  MaxEnrollment?: number | null;
+  EnrollmentCount?: number;
+  EnrollmentOpenDate?: string | null;
+  EnrollmentCloseDate?: string | null;
+  RequiresApproval?: boolean;
 }
 
 export const CourseDetailPage: React.FC = () => {
@@ -324,6 +331,12 @@ export const CourseDetailPage: React.FC = () => {
               videoUrl: undefined,
             })),
           }] : [],
+          // Enrollment Controls (Phase 2)
+          MaxEnrollment: courseData.MaxEnrollment ?? null,
+          EnrollmentCount: courseData.EnrollmentCount ?? 0,
+          EnrollmentOpenDate: courseData.EnrollmentOpenDate ?? null,
+          EnrollmentCloseDate: courseData.EnrollmentCloseDate ?? null,
+          RequiresApproval: Boolean(courseData.RequiresApproval),
         };
         setCourse(realCourse);
         setLoading(false);
@@ -350,7 +363,15 @@ export const CourseDetailPage: React.FC = () => {
     try {
       const result = await enrollmentApi.enrollInCourse(courseId);
       
-      // Update both course state and enrollment status
+      // Check if enrollment is pending approval (Phase 2)
+      if (result.status === 'pending' || result.code === 'ENROLLMENT_PENDING_APPROVAL') {
+        toast.success('Enrollment request submitted! Awaiting instructor approval.');
+        // Don't mark as enrolled - just update UI state
+        setEnrollmentStatus({ isEnrolled: false, status: 'pending', enrolledAt: result.enrolledAt });
+        return;
+      }
+      
+      // Active enrollment success
       setCourse({ ...course, isEnrolled: true, progress: 0 });
       setEnrollmentStatus({ isEnrolled: true, status: result.status, enrolledAt: result.enrolledAt });
       
@@ -368,14 +389,29 @@ export const CourseDetailPage: React.FC = () => {
           setError('You are already enrolled in this course.');
           setCourse({ ...course, isEnrolled: true });
           setEnrollmentStatus({ ...enrollmentStatus, isEnrolled: true });
+        } else if (errorData.code === 'ENROLLMENT_ALREADY_PENDING') {
+          setError(null);
+          toast.info('Your enrollment request is already pending approval.');
         } else if (errorData.code === 'INSTRUCTOR_SELF_ENROLLMENT') {
           setError('Instructors cannot enroll in their own courses.');
         } else if (errorData.code === 'COURSE_NOT_PUBLISHED') {
           setError('This course is not available for enrollment at this time.');
-        } else if (errorData.error === 'PREREQUISITES_NOT_MET') {
+        } else if (errorData.code === 'PREREQUISITES_NOT_MET') {
           setError(
             `You must complete these prerequisite courses first: ${errorData.missingPrerequisites?.map((p: any) => p.title).join(', ')}`
           );
+        } else if (errorData.code === 'ENROLLMENT_FULL') {
+          setError(`This course has reached its maximum capacity of ${errorData.maxEnrollment} students.`);
+        } else if (errorData.code === 'ENROLLMENT_NOT_OPEN') {
+          const openDate = new Date(errorData.enrollmentOpenDate).toLocaleDateString();
+          setError(`Enrollment opens on ${openDate}.`);
+        } else if (errorData.code === 'ENROLLMENT_CLOSED') {
+          const closeDate = new Date(errorData.enrollmentCloseDate).toLocaleDateString();
+          setError(`Enrollment period ended on ${closeDate}.`);
+        } else if (errorData.code === 'ENROLLMENT_PENDING_APPROVAL') {
+          setError(null);
+          toast.success('Enrollment request submitted! Awaiting instructor approval.');
+          // Note: Enrollment is pending, so we don't mark as enrolled yet
         } else {
           setError(errorData.message || 'Failed to enroll in course. Please try again.');
         }
@@ -385,6 +421,27 @@ export const CourseDetailPage: React.FC = () => {
     } finally {
       setIsEnrolling(false);
     }
+  };
+
+  // Helper function to check if enrollment is disabled (Phase 2)
+  const isEnrollmentDisabled = () => {
+    if (!course) return true;
+    
+    // Check capacity
+    if (course.MaxEnrollment && (course.EnrollmentCount ?? 0) >= course.MaxEnrollment) {
+      return true;
+    }
+    
+    // Check enrollment dates
+    const now = new Date();
+    if (course.EnrollmentOpenDate && new Date(course.EnrollmentOpenDate) > now) {
+      return true;
+    }
+    if (course.EnrollmentCloseDate && new Date(course.EnrollmentCloseDate) < now) {
+      return true;
+    }
+    
+    return false;
   };
 
   const handlePurchase = () => {
@@ -1127,6 +1184,49 @@ export const CourseDetailPage: React.FC = () => {
                   </Box>
                 )}
 
+                {/* Enrollment Status Information (Phase 2) */}
+                {course && !course.isEnrolled && !enrollmentStatus?.isInstructor && (
+                  <Box sx={{ mb: 2 }}>
+                    {/* Capacity Display */}
+                    {course.MaxEnrollment && (
+                      <Alert 
+                        severity={(course.EnrollmentCount ?? 0) >= course.MaxEnrollment * 0.9 ? 'warning' : 'info'}
+                        sx={{ mb: 1 }}
+                      >
+                        <Typography variant="body2">
+                          <strong>{course.EnrollmentCount ?? 0}</strong> / <strong>{course.MaxEnrollment}</strong> seats filled
+                          {(course.EnrollmentCount ?? 0) >= course.MaxEnrollment && ' - Course is full'}
+                        </Typography>
+                      </Alert>
+                    )}
+                    
+                    {/* Enrollment Dates */}
+                    {(course.EnrollmentOpenDate || course.EnrollmentCloseDate) && (
+                      <Alert severity="info" sx={{ mb: 1 }}>
+                        {course.EnrollmentOpenDate && new Date(course.EnrollmentOpenDate) > new Date() && (
+                          <Typography variant="body2">
+                            📅 Enrollment opens: {new Date(course.EnrollmentOpenDate).toLocaleDateString()}
+                          </Typography>
+                        )}
+                        {course.EnrollmentCloseDate && (
+                          <Typography variant="body2">
+                            📅 Enrollment closes: {new Date(course.EnrollmentCloseDate).toLocaleDateString()}
+                          </Typography>
+                        )}
+                      </Alert>
+                    )}
+                    
+                    {/* Approval Required */}
+                    {course.RequiresApproval && (
+                      <Alert severity="warning" sx={{ mb: 1 }}>
+                        <Typography variant="body2">
+                          ⏳ This course requires instructor approval before you can access it
+                        </Typography>
+                      </Alert>
+                    )}
+                  </Box>
+                )}
+
                 {/* Action Buttons */}
                 {enrollmentStatus?.isInstructor ? (
                   <Button
@@ -1181,34 +1281,90 @@ export const CourseDetailPage: React.FC = () => {
                   >
                     Continue Learning
                   </Button>
-                ) : course.price > 0 ? (
-                  <Button
-                    fullWidth
-                    variant="contained"
-                    size="large"
-                    onClick={handlePurchase}
-                    startIcon={<ShoppingCart />}
-                    data-testid="course-purchase-button"
-                    sx={{ 
-                      mb: 2,
-                      py: 2,
-                      fontSize: '1.1rem',
-                      fontWeight: 700,
-                      borderRadius: 2,
-                      textTransform: 'none',
-                      background: 'linear-gradient(90deg, #667eea 0%, #764ba2 100%)',
-                      '&:hover': {
-                        background: 'linear-gradient(90deg, #5568d3 0%, #65408b 100%)',
-                      }
-                    }}
+                ) : course.price > 0 && course.RequiresApproval ? (
+                  // Paid course with approval required: request approval first, pay later
+                  <Tooltip
+                    title={
+                      isEnrollmentDisabled()
+                        ? 'Enrollment is not available at this time'
+                        : 'Instructor must approve your enrollment before you can purchase'
+                    }
+                    arrow
                   >
-                    Purchase Course - {formatCurrency(course.price)}
-                  </Button>
+                    <span>
+                      <Button
+                        fullWidth
+                        variant="contained"
+                        size="large"
+                        onClick={handleEnroll}
+                        disabled={isEnrolling || isEnrollmentDisabled()}
+                        startIcon={isEnrolling ? <CircularProgress size={20} color="inherit" /> : <HourglassEmpty />}
+                        data-testid="course-request-enrollment-button"
+                        sx={{ 
+                          mb: 2,
+                          py: 2,
+                          fontSize: '1.1rem',
+                          fontWeight: 700,
+                          borderRadius: 2,
+                          textTransform: 'none',
+                          background: 'linear-gradient(90deg, #f59e0b 0%, #d97706 100%)',
+                          '&:hover': {
+                            background: 'linear-gradient(90deg, #d97706 0%, #b45309 100%)',
+                          },
+                          '&.Mui-disabled': {
+                            background: 'rgba(0,0,0,0.12)'
+                          }
+                        }}
+                      >
+                        {isEnrolling ? 'Requesting...' : `Request Enrollment - ${formatCurrency(course.price)}`}
+                      </Button>
+                    </span>
+                  </Tooltip>
+                ) : course.price > 0 ? (
+                  <Tooltip
+                    title={
+                      isEnrollmentDisabled()
+                        ? 'Enrollment is not available at this time'
+                        : ''
+                    }
+                    arrow
+                  >
+                    <span>
+                      <Button
+                        fullWidth
+                        variant="contained"
+                        size="large"
+                        onClick={handlePurchase}
+                        disabled={isEnrollmentDisabled()}
+                        startIcon={<ShoppingCart />}
+                        data-testid="course-purchase-button"
+                        sx={{ 
+                          mb: 2,
+                          py: 2,
+                          fontSize: '1.1rem',
+                          fontWeight: 700,
+                          borderRadius: 2,
+                          textTransform: 'none',
+                          background: 'linear-gradient(90deg, #667eea 0%, #764ba2 100%)',
+                          '&:hover': {
+                            background: 'linear-gradient(90deg, #5568d3 0%, #65408b 100%)',
+                          },
+                          '&.Mui-disabled': {
+                            background: 'rgba(0,0,0,0.12)'
+                          }
+                        }}
+                      >
+                        Purchase Course - {formatCurrency(course.price)}
+                      </Button>
+                    </span>
+                  </Tooltip>
                 ) : (
                   <Tooltip 
                     title={
                       prerequisiteCheck && !prerequisiteCheck.canEnroll
                         ? 'Complete all prerequisite courses before enrolling'
+                        : isEnrollmentDisabled()
+                        ? 'Enrollment is not available at this time'
                         : ''
                     }
                     arrow
@@ -1219,7 +1375,7 @@ export const CourseDetailPage: React.FC = () => {
                         variant="contained"
                         size="large"
                         onClick={handleEnroll}
-                        disabled={isEnrolling || (prerequisiteCheck ? !prerequisiteCheck.canEnroll : false)}
+                        disabled={isEnrolling || (prerequisiteCheck ? !prerequisiteCheck.canEnroll : false) || isEnrollmentDisabled()}
                         data-testid="course-enroll-button"
                         sx={{ 
                           mb: 2,

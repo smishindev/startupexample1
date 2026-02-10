@@ -163,11 +163,7 @@ class EnrollmentApi {
       if (error.response?.data) {
         const errorData = error.response.data as EnrollmentError;
         throw new Error(JSON.stringify({
-          error: errorData.error,
-          code: errorData.code,
-          message: errorData.message,
-          enrollmentId: errorData.enrollmentId,
-          missingPrerequisites: errorData.missingPrerequisites,
+          ...errorData, // Forward all error fields (including Phase 2: maxEnrollment, enrollmentOpenDate, etc.)
           status: error.response.status
         }));
       }

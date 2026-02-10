@@ -43,7 +43,7 @@ router.post('/create-payment-intent', authenticateToken, async (req: Request, re
 
     // Verify course exists
     const courses = await db.query(
-      `SELECT Id, Title, Price FROM dbo.Courses WHERE Id = @courseId`,
+      `SELECT Id, Title, Price, MaxEnrollment, EnrollmentOpenDate, EnrollmentCloseDate FROM dbo.Courses WHERE Id = @courseId`,
       { courseId }
     );
 
@@ -78,6 +78,41 @@ router.post('/create-payment-intent', authenticateToken, async (req: Request, re
       return res.status(400).json({ 
         success: false, 
         message: 'Already enrolled in this course' 
+      });
+    }
+
+    // ===== ENROLLMENT CONTROLS VALIDATION (Phase 2) =====
+    // Check capacity
+    if (course.MaxEnrollment !== null && course.MaxEnrollment !== undefined) {
+      const enrollmentCount = await db.query(
+        `SELECT COUNT(*) as count FROM dbo.Enrollments WHERE CourseId = @courseId AND Status IN ('active', 'completed')`,
+        { courseId }
+      );
+      const currentCount = enrollmentCount[0]?.count || 0;
+      if (currentCount >= course.MaxEnrollment) {
+        console.warn(`[${requestId}] Course full:`, { courseId, currentCount, max: course.MaxEnrollment });
+        return res.status(403).json({
+          success: false,
+          message: 'This course has reached its maximum enrollment capacity',
+          code: 'ENROLLMENT_FULL'
+        });
+      }
+    }
+
+    // Check enrollment date range
+    const now = new Date();
+    if (course.EnrollmentOpenDate && new Date(course.EnrollmentOpenDate) > now) {
+      return res.status(403).json({
+        success: false,
+        message: 'Enrollment for this course has not opened yet',
+        code: 'ENROLLMENT_NOT_OPEN'
+      });
+    }
+    if (course.EnrollmentCloseDate && new Date(course.EnrollmentCloseDate) < now) {
+      return res.status(403).json({
+        success: false,
+        message: 'Enrollment period for this course has closed',
+        code: 'ENROLLMENT_CLOSED'
       });
     }
 
@@ -425,6 +460,22 @@ router.post('/confirm-enrollment', authenticateToken, async (req: Request, res: 
         success: false, 
         message: 'Payment is not completed yet.' 
       });
+    }
+
+    // Check enrollment controls before confirming
+    const courseCheck = await db.query(
+      `SELECT MaxEnrollment, EnrollmentCount FROM dbo.Courses WHERE Id = @courseId`,
+      { courseId }
+    );
+    if (courseCheck.length > 0 && courseCheck[0].MaxEnrollment !== null) {
+      const currentCount = courseCheck[0].EnrollmentCount || 0;
+      if (currentCount >= courseCheck[0].MaxEnrollment) {
+        return res.status(403).json({
+          success: false,
+          message: 'This course has reached its maximum enrollment capacity. Please contact support for a refund.',
+          code: 'ENROLLMENT_FULL'
+        });
+      }
     }
 
     // Create enrollment if it doesn't exist

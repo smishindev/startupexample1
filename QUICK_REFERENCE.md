@@ -1,6 +1,116 @@
 # 🚀 Quick Reference - Development Workflow
 
-**Last Updated**: February 7, 2026 - Course Prerequisites System + Code Quality Phase 2 Complete ✅
+**Last Updated**: February 10, 2026 - Enrollment Controls UI/UX Complete ✅
+
+---
+
+## 🎯 Enrollment Controls (Added Feb 10, 2026)
+
+**Manage course capacity, enrollment timing, and approval requirements**
+
+### Quick Usage - Instructor
+```typescript
+// Navigate to course Settings tab
+navigate(`/instructor/courses/${courseId}/edit?tab=3`);
+
+// CourseSettingsEditor form fields:
+// - Maximum Enrollment (number, nullable) - NULL = unlimited
+// - Enrollment Open Date (datetime-local, nullable) - NULL = always open
+// - Enrollment Close Date (datetime-local, nullable) - NULL = never closes
+// - Requires Approval (checkbox) - Creates pending enrollments
+```
+
+### Quick Usage - Student
+```typescript
+// Check if enrollment is available
+const course = await coursesApi.getCourse(courseId);
+
+// Check capacity
+if (course.MaxEnrollment && course.EnrollmentCount >= course.MaxEnrollment) {
+  // Course is full
+}
+
+// Check dates
+const now = new Date();
+if (course.EnrollmentOpenDate && new Date(course.EnrollmentOpenDate) > now) {
+  // Enrollment not yet open
+}
+if (course.EnrollmentCloseDate && new Date(course.EnrollmentCloseDate) < now) {
+  // Enrollment has closed
+}
+
+// Enroll (will be blocked by backend if controls prevent it)
+try {
+  const result = await enrollmentApi.enrollInCourse(courseId);
+  if (result.status === 'pending') {
+    // Requires approval - awaiting instructor decision
+  }
+} catch (error) {
+  // Possible errors:
+  // - 403 ENROLLMENT_FULL
+  // - 403 ENROLLMENT_NOT_OPEN
+  // - 403 ENROLLMENT_CLOSED
+}
+```
+
+### API Behavior
+```
+POST /api/enrollment/courses/:id/enroll
+  Validation order:
+    1. Instructor self-enroll check
+    2. Capacity (MaxEnrollment vs EnrollmentCount)
+    3. Date range (EnrollmentOpenDate, EnrollmentCloseDate)
+    4. Price check (free vs paid)
+    5. Prerequisites
+    6. Existing enrollment
+    7. Approval requirement (creates status='pending' if RequiresApproval=1)
+
+GET /api/courses/:id
+  Returns: MaxEnrollment, EnrollmentCount, EnrollmentOpenDate, 
+           EnrollmentCloseDate, RequiresApproval
+```
+
+### Frontend Components
+```typescript
+// CourseCard - Shows capacity and date status
+interface Course {
+  maxEnrollment?: number | null;
+  enrolledStudents: number;
+  enrollmentOpenDate?: string | null;
+  enrollmentCloseDate?: string | null;
+}
+
+// Button states:
+// "Enroll Now" (enabled)
+// "Course Full" (disabled, red chip)
+// "Enrollment Closed" (disabled, orange chip)
+// "Not Yet Open" (disabled, blue chip)
+
+// CourseDetailPage - Blocks purchase/enrollment
+const isEnrollmentDisabled = () => {
+  return isFull || isNotYetOpen || isClosed;
+};
+
+// For paid courses with approval:
+// Shows "Request Enrollment" button instead of "Purchase Course"
+// Creates pending enrollment, no payment until approved
+```
+
+### Database Schema
+```sql
+-- Courses table
+MaxEnrollment INT NULL              -- NULL = unlimited
+EnrollmentOpenDate DATETIME2 NULL   -- NULL = always open
+EnrollmentCloseDate DATETIME2 NULL  -- NULL = never closes
+RequiresApproval BIT NOT NULL DEFAULT 0  -- 1 = creates pending enrollments
+```
+
+### Features
+- **UI Polish**: Clear "x" buttons on all fields, "Clear All" buttons for lists
+- **Visual Feedback**: Color-coded chips (Full/Closed/Not Open), disabled buttons with stopPropagation
+- **Consistency**: All enrollment paths enforce controls (cards, detail page, checkout)
+- **Paid Course Safety**: Approval required before payment for RequiresApproval courses
+- **Error Handling**: User-friendly messages with specific error codes
 
 ---
 

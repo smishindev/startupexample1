@@ -454,6 +454,14 @@ router.delete('/:id', authenticateToken, async (req: Request, res: Response) => 
       return res.status(403).json({ error: 'Access denied - not course instructor' });
     }
 
+    // Delete related records that have NO ACTION constraints (SQL Server cascade path limitations)
+    // 1. Delete user progress records for this lesson
+    await db.execute('DELETE FROM dbo.UserProgress WHERE LessonId = @id', { id });
+    
+    // 2. Delete tutoring sessions that reference this lesson
+    await db.execute('DELETE FROM dbo.TutoringSessions WHERE LessonId = @id', { id });
+
+    // 3. Finally, delete the lesson itself
     await db.execute('DELETE FROM dbo.Lessons WHERE Id = @id', { id });
 
     res.json({ message: 'Lesson deleted successfully' });

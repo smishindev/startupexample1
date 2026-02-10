@@ -8,8 +8,8 @@
 ## 🎓 Course Prerequisites & Settings Components (Added Feb 7, 2026)
 
 ### CourseSettingsEditor
-**Path**: `client/src/components/Instructor/CourseSettingsEditor.tsx` (242 lines)  
-**Purpose**: Instructor UI for managing course prerequisites and learning outcomes
+**Path**: `client/src/components/Instructor/CourseSettingsEditor.tsx` (427 lines)  
+**Purpose**: Instructor UI for managing course prerequisites, learning outcomes, and enrollment controls
 
 **Features**:
 1. **Prerequisites Management**
@@ -18,14 +18,25 @@
    - Loads published courses only
    - Visual Chip components with delete functionality
    - React key prop best practices (extracted from spread)
+   - "Clear All" button (always visible, disabled when empty)
 
 2. **Learning Outcomes Management**
    - Dynamic list with add/remove buttons
    - 200 character limit per outcome (inline validation)
    - Empty outcome prevention
    - Automatic cleanup of empty entries
+   - "Clear All" button (always visible, disabled when empty)
+   - Compact "Add" button (size="small", 80px width)
 
-3. **Form Management**
+3. **Enrollment Controls (Phase 2)**
+   - Maximum Enrollment with clear "x" button
+   - Enrollment Open Date (datetime-local) with clear "x" button
+   - Enrollment Close Date (datetime-local) with clear "x" button
+   - Requires Approval toggle switch
+   - Visual summary alert showing active controls
+   - All clear buttons use InputAdornment with IconButton
+
+4. **Form Management**
    - Change detection (dirty state tracking)
    - Save/Cancel buttons with confirmation
    - Toast notifications (success/error)
@@ -38,6 +49,31 @@
   <Autocomplete
     multiple
     options={availableCourses}
+    renderInput={...}
+    renderTags={...}
+  />
+  <Button onClick={() => setPrerequisites([])} disabled={empty}>Clear All</Button>
+  
+  {/* Learning Outcomes Section */}
+  <TextField value={newOutcome} />
+  <Button onClick={handleAddOutcome} size="small">Add</Button>
+  <Button onClick={() => setLearningOutcomes([])} disabled={empty}>Clear All</Button>
+  <List>...</List>
+  
+  {/* Enrollment Controls Section */}
+  <TextField label="Maximum Enrollment" type="number" 
+    InputProps={{ endAdornment: <IconButton onClick={clear}><ClearIcon /></IconButton> }} />
+  <TextField label="Enrollment Open Date" type="datetime-local"
+    InputProps={{ endAdornment: <IconButton onClick={clear}><ClearIcon /></IconButton> }} />
+  <TextField label="Enrollment Close Date" type="datetime-local"
+    InputProps={{ endAdornment: <IconButton onClick={clear}><ClearIcon /></IconButton> }} />
+  <Switch checked={requiresApproval} />
+  <Alert>Active controls summary</Alert>
+  
+  <Button onClick={handleSave}>Save</Button>
+  <Button onClick={handleCancel}>Cancel</Button>
+</Box>
+```
     value={prerequisites}
     onChange={handlePrerequisitesChange}
     renderTags={(value, getTagProps) => {
@@ -2202,7 +2238,7 @@ const courses = await instructorApi.getCourses(); // Filtered by req.user.userId
 ## 🧩 REUSABLE COMPONENTS
 
 ### CourseCard (CRITICAL - SHARED)
-**Path**: `client/src/components/Course/CourseCard.tsx`  
+**Path**: `client/src/components/Course/CourseCard.tsx` (743 lines)  
 **Purpose**: Reusable course card component displayed across multiple pages
 
 **Props**:
@@ -2214,6 +2250,25 @@ interface CourseCardProps {
   onBookmark?: (courseId: string, isBookmarked: boolean) => void;
   showEnrollButton?: boolean;
   showBookmarkButton?: boolean;
+  currentUserId?: string; // To detect instructor ownership
+  isEnrolling?: boolean; // Disable button during enrollment
+}
+
+interface Course {
+  // Core fields
+  id: string;
+  title: string;
+  thumbnail: string;
+  price: number;
+  rating: number;
+  enrolledStudents: number;
+  
+  // Enrollment Controls (Phase 2)
+  maxEnrollment?: number | null;
+  enrollmentOpenDate?: string | null;
+  enrollmentCloseDate?: string | null;
+  
+  // Other fields...
 }
 ```
 
@@ -2234,15 +2289,33 @@ interface CourseCardProps {
 - Colored level badge (green/orange/red)
 - Price or "FREE" display
 - Rating with star icon
-- Enrollment count
+- Enrollment count (with "X/Y enrolled" when capacity set)
 - Bookmark button (optional)
-- Enroll button (optional)
+- Enroll button (optional, with enrollment controls)
+
+**Enrollment Controls (Phase 2)** ✅:
+- Date awareness: checks `enrollmentOpenDate` and `enrollmentCloseDate`
+- Capacity check: shows "X/Y enrolled" when `maxEnrollment` is set
+- Visual chips:
+  - "Full" (red) - when at capacity
+  - "Closed" (orange) - when enrollment period has ended
+  - "Not Open" (blue) - when enrollment period hasn't started
+- Button states:
+  - "Enrolling..." - during enrollment request
+  - "Course Full" - when at capacity (disabled)
+  - "Enrollment Closed" - when past close date (disabled)
+  - "Not Yet Open" - when before open date (disabled)
+  - "Enroll Now" - when available (enabled)
+- Disabled button wrapped in `<span onClick={stopPropagation}>` to prevent card navigation
+- Instructor's own courses show "Manage" button instead
 
 **Common Issues**:
 - **Gradient not showing**: Check `getCategoryGradient()` function in `courseHelpers.ts`
 - **Category showing snake_case**: Check `formatCategory()` call
 - **Level badge wrong color**: Check `getLevelColor()` function
 - **Duplicate badges**: Should have category on thumbnail, level in info section only
+- **Disabled button navigates**: Ensure `stopPropagation` wrapper is present
+- **Enrollment dates not working**: Verify `enrollmentOpenDate`/`enrollmentCloseDate` passed from parent
 
 **WARNING**: This component is used in 4+ places. Changes here affect multiple pages!
 

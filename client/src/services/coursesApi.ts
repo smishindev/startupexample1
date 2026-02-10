@@ -32,6 +32,11 @@ export interface Course {
   CreatedAt: string;
   UpdatedAt: string;
   LessonCount: number;
+  // Enrollment Controls (Phase 2)
+  MaxEnrollment?: number | null;
+  EnrollmentOpenDate?: string | null;
+  EnrollmentCloseDate?: string | null;
+  RequiresApproval?: boolean;
   Instructor: {
     Id: string; // Added instructor ID
     FirstName: string;
@@ -43,6 +48,7 @@ export interface Course {
 export interface CourseDetail extends Course {
   Prerequisites: string[];
   LearningOutcomes: string[];
+  // MaxEnrollment, EnrollmentOpenDate, EnrollmentCloseDate, RequiresApproval inherited from Course
   Instructor: {
     Id: string;
     FirstName: string;

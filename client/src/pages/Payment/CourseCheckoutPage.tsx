@@ -223,6 +223,21 @@ const CourseCheckoutPage: React.FC = () => {
               errorMessage = 'Please log in to continue with your purchase.';
               setTimeout(() => navigate('/login'), 2000);
               break;
+            case 403: {
+              // Enrollment controls block (capacity, dates, etc.)
+              const code = err.response.data?.code;
+              if (code === 'ENROLLMENT_FULL') {
+                errorMessage = 'This course has reached its maximum enrollment capacity.';
+              } else if (code === 'ENROLLMENT_NOT_OPEN') {
+                errorMessage = 'Enrollment for this course has not opened yet.';
+              } else if (code === 'ENROLLMENT_CLOSED') {
+                errorMessage = 'The enrollment period for this course has closed.';
+              } else {
+                errorMessage = err.response.data?.message || 'You are not able to enroll in this course at this time.';
+              }
+              setTimeout(() => navigate(`/course/${courseId}`), 3000);
+              break;
+            }
             case 404:
               errorMessage = 'Course not found. It may have been removed or is no longer available.';
               break;

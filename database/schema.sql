@@ -106,6 +106,11 @@ CREATE TABLE dbo.Courses (
     EnrollmentCount INT NOT NULL DEFAULT 0,
     Prerequisites NVARCHAR(MAX) NULL, -- JSON array of prerequisite course IDs (e.g., ["uuid1", "uuid2"])
     LearningOutcomes NVARCHAR(MAX) NULL, -- JSON array of learning outcome strings (e.g., ["Understand React", "Build apps"])
+    -- Enrollment Controls (Phase 2 - Feb 8, 2026)
+    MaxEnrollment INT NULL, -- NULL = unlimited, > 0 = capacity limit
+    EnrollmentOpenDate DATETIME2 NULL, -- NULL = always open, set date = enrollment opens at this time
+    EnrollmentCloseDate DATETIME2 NULL, -- NULL = never closes, set date = enrollment closes at this time
+    RequiresApproval BIT NOT NULL DEFAULT 0, -- 0 = auto-enroll, 1 = requires manual instructor approval
     Tags NVARCHAR(MAX) NULL, -- JSON array
     IsPublished BIT NOT NULL DEFAULT 0, -- Kept for backward compatibility
     Status NVARCHAR(20) NOT NULL DEFAULT 'draft' CHECK (Status IN ('draft', 'published', 'archived', 'deleted')),
@@ -135,7 +140,7 @@ CREATE TABLE dbo.Enrollments (
     CourseId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Courses(Id) ON DELETE CASCADE,
     EnrolledAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
     CompletedAt DATETIME2 NULL,
-    Status NVARCHAR(20) NOT NULL DEFAULT 'active' CHECK (Status IN ('active', 'completed', 'suspended', 'cancelled')),
+    Status NVARCHAR(20) NOT NULL DEFAULT 'active' CHECK (Status IN ('pending', 'active', 'completed', 'suspended', 'cancelled', 'rejected')),
     UNIQUE(UserId, CourseId)
 );
 
@@ -353,9 +358,9 @@ CREATE TABLE dbo.OfficeHours (
 -- Office Hours Queue Table
 CREATE TABLE dbo.OfficeHoursQueue (
     Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
-    InstructorId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id) ON DELETE CASCADE,
-    StudentId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id) ON DELETE CASCADE,
-    ScheduleId UNIQUEIDENTIFIER NULL FOREIGN KEY REFERENCES dbo.OfficeHours(Id),
+    InstructorId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id) ON DELETE NO ACTION,
+    StudentId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id) ON DELETE NO ACTION,
+    ScheduleId UNIQUEIDENTIFIER NULL FOREIGN KEY REFERENCES dbo.OfficeHours(Id) ON DELETE SET NULL,
     Status NVARCHAR(20) NOT NULL DEFAULT 'waiting' CHECK (Status IN ('waiting', 'admitted', 'completed', 'cancelled')),
     Question NVARCHAR(500) NULL,
     JoinedQueueAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
@@ -364,11 +369,13 @@ CREATE TABLE dbo.OfficeHoursQueue (
 );
 
 -- Tutoring Sessions Table
+-- NOTE: LessonId uses NO ACTION to avoid multiple cascade paths from Users→TutoringSessions
+-- Lesson deletion must manually check/delete tutoring sessions first
 CREATE TABLE dbo.TutoringSessions (
     Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
     UserId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id) ON DELETE CASCADE,
     CourseId UNIQUEIDENTIFIER NULL FOREIGN KEY REFERENCES dbo.Courses(Id) ON DELETE SET NULL,
-    LessonId UNIQUEIDENTIFIER NULL FOREIGN KEY REFERENCES dbo.Lessons(Id) ON DELETE CASCADE,
+    LessonId UNIQUEIDENTIFIER NULL FOREIGN KEY REFERENCES dbo.Lessons(Id) ON DELETE NO ACTION,
     Title NVARCHAR(255) NOT NULL,
     Context NVARCHAR(MAX) NULL, -- JSON object for session context
     Status NVARCHAR(20) NOT NULL DEFAULT 'active' CHECK (Status IN ('active', 'completed', 'cancelled')),

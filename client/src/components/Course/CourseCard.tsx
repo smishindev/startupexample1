@@ -50,6 +50,10 @@ export interface Course {
   isEnrolled?: boolean;
   isPopular?: boolean;
   isNew?: boolean;
+  // Enrollment Controls (Phase 2)
+  maxEnrollment?: number | null;
+  enrollmentOpenDate?: string | null;
+  enrollmentCloseDate?: string | null;
 }
 
 interface CourseCardProps {
@@ -77,6 +81,22 @@ export const CourseCard: React.FC<CourseCardProps> = ({
 
   // Check if current user is the instructor of this course
   const isInstructor = currentUserId && course.instructor.id === currentUserId;
+
+  // Enrollment control checks
+  const isFull = course.maxEnrollment != null && course.enrolledStudents >= course.maxEnrollment;
+  const now = new Date();
+  const isNotYetOpen = course.enrollmentOpenDate ? new Date(course.enrollmentOpenDate) > now : false;
+  const isClosed = course.enrollmentCloseDate ? new Date(course.enrollmentCloseDate) < now : false;
+  const isEnrollmentBlocked = isFull || isNotYetOpen || isClosed;
+
+  const getEnrollButtonLabel = () => {
+    if (isEnrolling) return 'Enrolling...';
+    if (isFull) return 'Course Full';
+    if (isClosed) return 'Enrollment Closed';
+    if (isNotYetOpen) return 'Not Yet Open';
+    return 'Enroll Now';
+  };
+
 
   const handleBookmarkClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -473,10 +493,21 @@ export const CourseCard: React.FC<CourseCardProps> = ({
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
             <People sx={{ fontSize: 16, color: 'text.secondary', mr: 0.5 }} />
             <Typography variant="body2" color="text.secondary">
-              {course.enrolledStudents > 0 
-                ? `${course.enrolledStudents.toLocaleString()} enrolled`
-                : 'Be the first!'}
+              {course.maxEnrollment
+                ? `${course.enrolledStudents}/${course.maxEnrollment} enrolled`
+                : course.enrolledStudents > 0 
+                  ? `${course.enrolledStudents.toLocaleString()} enrolled`
+                  : 'Be the first!'}
             </Typography>
+            {course.maxEnrollment && course.enrolledStudents >= course.maxEnrollment && (
+              <Chip label="Full" size="small" color="error" sx={{ ml: 0.5, height: 20, fontSize: '0.65rem', fontWeight: 700 }} />
+            )}
+            {isClosed && (
+              <Chip label="Closed" size="small" color="warning" sx={{ ml: 0.5, height: 20, fontSize: '0.65rem', fontWeight: 700 }} />
+            )}
+            {isNotYetOpen && (
+              <Chip label="Not Open" size="small" color="info" sx={{ ml: 0.5, height: 20, fontSize: '0.65rem', fontWeight: 700 }} />
+            )}
           </Box>
         </Box>
 
@@ -645,30 +676,36 @@ export const CourseCard: React.FC<CourseCardProps> = ({
               Manage
             </Button>
           ) : !course.isEnrolled ? (
-            <Button
-              variant="contained"
-              size="small"
-              onClick={handleEnrollClick}
-              disabled={isEnrolling}
-              startIcon={isEnrolling ? <CircularProgress size={16} color="inherit" /> : null}
-              data-testid={`course-card-enroll-button-${course.id}`}
-              sx={{
-                textTransform: 'none',
-                fontWeight: 'bold',
-                px: 3,
-                py: 0.75,
-                borderRadius: 2,
-                background: `linear-gradient(45deg, ${theme.palette.primary.main} 30%, ${theme.palette.primary.dark} 90%)`,
-                boxShadow: '0 3px 5px 2px rgba(33, 150, 243, .3)',
-                transition: 'all 0.2s ease',
-                '&:hover': {
-                  transform: 'translateY(-2px)',
-                  boxShadow: '0 6px 10px 4px rgba(33, 150, 243, .3)',
-                },
-              }}
-            >
-              {isEnrolling ? 'Enrolling...' : 'Enroll Now'}
-            </Button>
+            <span onClick={(e) => e.stopPropagation()}>
+              <Button
+                variant="contained"
+                size="small"
+                onClick={handleEnrollClick}
+                disabled={isEnrolling || isEnrollmentBlocked}
+                startIcon={isEnrolling ? <CircularProgress size={16} color="inherit" /> : null}
+                data-testid={`course-card-enroll-button-${course.id}`}
+                sx={{
+                  textTransform: 'none',
+                  fontWeight: 'bold',
+                  px: 3,
+                  py: 0.75,
+                  borderRadius: 2,
+                  background: isEnrollmentBlocked
+                    ? undefined
+                    : `linear-gradient(45deg, ${theme.palette.primary.main} 30%, ${theme.palette.primary.dark} 90%)`,
+                  boxShadow: isEnrollmentBlocked
+                    ? 'none'
+                    : '0 3px 5px 2px rgba(33, 150, 243, .3)',
+                  transition: 'all 0.2s ease',
+                  '&:hover': {
+                    transform: 'translateY(-2px)',
+                    boxShadow: '0 6px 10px 4px rgba(33, 150, 243, .3)',
+                  },
+                }}
+              >
+                {getEnrollButtonLabel()}
+              </Button>
+            </span>
           ) : variant === 'enrolled' ? (
             <Button
               variant="outlined"

@@ -50,6 +50,18 @@
 - [ ] Identified all pages that use this component
 
 **Recent Additions to Check:**
+- [x] **Certificate Settings - Phase 3** - PRODUCTION READY (Feb 11, 2026) 🎓
+  - Instructors can enable/disable certificates per course
+  - Optional custom certificate title (200 char limit)
+  - 4 visual templates: classic (navy blue), modern (teal), elegant (purple), minimal (gray)
+  - Database: 3 new Courses columns (CertificateEnabled BIT, CertificateTitle NVARCHAR(200), CertificateTemplate NVARCHAR(50))
+  - Backend: instructor.ts GET/PUT, progress.ts guard, CertificateService custom title, CertificatePdfService absolute positioning
+  - Frontend: CourseSettingsEditor full UI (toggle, title input, visual card selector)
+  - PDF Generation Fix: Replaced moveDown() with absolute Y positioning to guarantee single-page layout
+  - Certificate Guard: progress.ts checks CertificateEnabled before issuance at 100% completion
+  - Completion notification always sent (outside guard scope)
+  - Files: 9 modified (schema.sql, instructor.ts, courses.ts, progress.ts, CertificateService.ts, CertificatePdfService.ts, instructorApi.ts, coursesApi.ts, CourseSettingsEditor.tsx, CourseDetailPage.tsx)
+  - Status: 0 TypeScript errors, all templates single-page, settings persist correctly
 - [x] **GDPR-Compliant Data Export System** - PRODUCTION READY (Feb 6, 2026) 📦
   - Complete user data portability with async processing
   - Data collection from 20+ tables (profile, enrollments, progress, certificates, transactions, chat, AI, comments, bookmarks)

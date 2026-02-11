@@ -193,6 +193,8 @@ router.get('/:id', async (req: any, res: any) => {
       EnrollmentOpenDate: course.EnrollmentOpenDate,
       EnrollmentCloseDate: course.EnrollmentCloseDate,
       RequiresApproval: Boolean(course.RequiresApproval), // Convert BIT to boolean
+      // Certificate Settings (Phase 3)
+      CertificateEnabled: course.CertificateEnabled !== undefined ? Boolean(course.CertificateEnabled) : true,
       Instructor: {
         Id: course.InstructorId,
         FirstName: course.InstructorFirstName,

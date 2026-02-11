@@ -7,13 +7,224 @@
 **Notification System Status**: 31/31 triggers implemented (100% complete) ✅  
 **Enrollment Notifications**: Dedicated toggles for Suspended/Cancelled (no longer piggyback on Rejected) ✅  
 **Code Quality Status**: Phase 1 + Phase 2 Complete + Verified (Grade: A, 95/100) ✅  
-**Course Features**: Prerequisites, Learning Outcomes, Enrollment Controls Implemented ✅  
+**Course Features**: Prerequisites, Learning Outcomes, Enrollment Controls, Certificate Settings Implemented ✅  
 **Enrollment Controls**: Full end-to-end approval → payment flow for paid courses ✅  
+**Certificate Settings**: Enable/disable certificates, custom titles, 4 visual templates (Phase 3 Complete) ✅  
 **Payment Security**: Transaction-based verification prevents all payment bypass scenarios ✅
 
 ---
 
-## 🔒 PAYMENT SECURITY ENHANCEMENTS (Latest - February 11, 2026)
+## 🎓 CERTIFICATE SETTINGS - PHASE 3 (Latest - February 11, 2026)
+
+**Activity**: Implemented Phase 3 Certificate Settings - instructors can customize certificate issuance per course
+
+**Status**: ✅ **Complete** - Full end-to-end implementation with database, backend, frontend, and PDF generation
+
+### **Features Implemented:**
+
+**1. Enable/Disable Certificates:**
+- Instructors can toggle certificate issuance on/off per course
+- Default: Enabled (CertificateEnabled = 1)
+- When disabled, students don't receive certificates at 100% completion
+- Course completion notification still sent regardless
+
+**2. Custom Certificate Title:**
+- Optional custom title field (200 char limit)
+- Defaults to course title if not set
+- Displayed prominently on PDF certificate
+
+**3. Visual Templates (4 Options):**
+- **Classic**: Navy blue (#1a237e) with sharp serif font, double border
+- **Modern**: Teal (#00838f) with clean sans-serif, single border
+- **Elegant**: Purple (#4a148c) with decorative script, ornate border
+- **Minimal**: Gray (#37474f) with minimalist design, thin border
+- Each template has distinct color scheme and typography
+
+### **Implementation Details:**
+
+**Database Schema Changes (schema.sql):**
+```sql
+-- Added 3 new columns to Courses table (lines 115-117)
+CertificateEnabled BIT NOT NULL DEFAULT 1,
+CertificateTitle NVARCHAR(200) NULL,
+CertificateTemplate NVARCHAR(50) NOT NULL DEFAULT 'classic' 
+  CHECK (CertificateTemplate IN ('classic', 'modern', 'elegant', 'minimal'))
+```
+
+**Backend Changes (4 files):**
+- **instructor.ts** (1239 lines):
+  - GET route: Include 3 certificate columns in SELECT + GROUP BY + mapping (lines 103-105, 130, 214-217)
+  - PUT route: Validate certificateEnabled (BIT), certificateTitle (200 char limit), certificateTemplate (whitelist) (lines 599-620)
+- **courses.ts** (452 lines):
+  - GET /:id: Added CertificateEnabled to public course response (line 197)
+- **progress.ts** (854 lines):
+  - Certificate guard: Query CertificateEnabled from Courses table (lines 348-398)
+  - Skip certificate issuance if disabled, but always send completion notification
+  - Completion notification outside guard scope
+- **CertificateService.ts** (362 lines):
+  - Query custom title and template from Courses table (lines 123-126)
+  - Use custom title: `courseInfo[0].CertificateTitle || courseInfo[0].Title` (line 166)
+  - Separate template query for PDF generation (lines 239-249)
+- **CertificatePdfService.ts** (435 lines):
+  - 4 template color schemes defined (lines 38-82)
+  - **CRITICAL FIX**: Replaced all `moveDown()` with absolute Y positioning (lines 177-330)
+  - Fixed multi-page PDF bug caused by PDFKit cursor inheritance
+  - Every element uses explicit `(x, y, { width })` coordinates
+  - Guarantees single-page layout for all templates
+
+**Frontend Changes (4 files):**
+- **instructorApi.ts** (310 lines):
+  - Added certificate fields to InstructorCourse and CourseFormData interfaces (lines 86-88, 139-140)
+- **coursesApi.ts** (254 lines):
+  - Added CertificateEnabled to Course interface (line 41)
+- **CourseSettingsEditor.tsx** (568 lines):
+  - 3 state variables: certificateEnabled, certificateTitle, certificateTemplate (lines 60-62)
+  - handleSave sends all 3 fields (lines 97-101)
+  - hasChanges compares all 3 fields (lines 132-144)
+  - handleCancel resets all 3 fields (lines 168-170)
+  - Full UI section (lines 426-547):
+    - Toggle switch for certificateEnabled
+    - TextField for certificateTitle with 200 char counter
+    - Visual template card selector (4 cards with preview styling)
+- **CourseDetailPage.tsx** (1681 lines):
+  - Changed certificate: `courseData.CertificateEnabled !== undefined ? Boolean(courseData.CertificateEnabled) : true` (line 317)
+
+### **Certificate Settings UI:**
+
+**Location**: `/instructor/courses/{courseId}/edit?tab=3`
+
+**Components**:
+```tsx
+// Toggle Switch
+<FormControlLabel
+  control={<Switch checked={certificateEnabled} />}
+  label="Enable certificates for this course"
+/>
+
+// Custom Title Input
+<TextField
+  label="Certificate Title (Optional)"
+  value={certificateTitle}
+  helperText={`${certificateTitle.length}/200 characters`}
+  inputProps={{ maxLength: 200 }}
+/>
+
+// Template Selector (4 visual cards)
+<Grid container spacing={2}>
+  {templates.map(template => (
+    <Grid item xs={12} sm={6}>
+      <Card 
+        onClick={() => setCertificateTemplate(template.id)}
+        sx={{ 
+          border: selected ? '3px solid primary' : '1px solid gray',
+          backgroundColor: template.color,
+          cursor: 'pointer'
+        }}
+      >
+        <Typography>{template.name}</Typography>
+        <Typography variant="caption">{template.description}</Typography>
+      </Card>
+    </Grid>
+  ))}
+</Grid>
+```
+
+### **PDF Generation Bug Fix:**
+
+**Problem**: Minimal template generated 9-page PDFs instead of 1
+- Root cause: PDFKit's `moveDown()` combined with absolute-positioned text caused cursor inheritance
+- After `doc.text('Instructor:', rightColumnX, detailsStartY)`, internal cursor `doc.x` stayed at `rightColumnX`
+- Subsequent `doc.text(str, { align: 'center' })` inherited narrow width, causing text wrapping and page overflow
+- Minimal template worse due to smaller title font (38pt vs 48pt) creating different moveDown cascade
+
+**Solution**: Complete layout rewrite with absolute positioning
+- Replaced ALL `moveDown()` calls with calculated Y coordinates
+- Every `doc.text()` now uses explicit `(x, y, { width: contentWidth })` format
+- Calculated positions: logoY=65, subtitleY=90, certTitleY=125, lineY (varies by template), footer=pageHeight-145
+- Guarantees single-page output by eliminating cursor-based flow
+
+### **Database Flow:**
+
+```
+STUDENT COMPLETES COURSE (100% progress):
+  → progress.ts checks CertificateEnabled from Courses table
+  → If disabled:
+     - Skip CertificateService.issueCertificate()
+     - Still send course completion notification
+  → If enabled:
+     - Issue certificate with custom title and template
+     - CertificateService queries CertificateTitle and CertificateTemplate
+     - Passes to CertificatePdfService with template parameter
+     - PDF generated with absolute positioning (single page)
+
+INSTRUCTOR EDITS SETTINGS:
+  → Navigate to /instructor/courses/:id/edit?tab=3
+  → CourseSettingsEditor loads course data
+  → Edit certificateEnabled, certificateTitle, certificateTemplate
+  → PUT /instructor/courses/:id with all 3 fields
+  → Backend validates:
+     - certificateEnabled: Convert to BIT (1/0)
+     - certificateTitle: Length <= 200 chars
+     - certificateTemplate: Must be classic/modern/elegant/minimal
+  → Database UPDATE Courses SET CertificateEnabled=?, CertificateTitle=?, CertificateTemplate=?
+```
+
+### **Files Modified (9 total):**
+
+**Backend:**
+1. `database/schema.sql` (1171 lines) — 3 new columns
+2. `server/src/routes/instructor.ts` (1239 lines) — GET/PUT handlers
+3. `server/src/routes/courses.ts` (452 lines) — Public GET includes CertificateEnabled
+4. `server/src/routes/progress.ts` (854 lines) — Certificate issuance guard
+5. `server/src/services/CertificateService.ts` (362 lines) — Custom title + template query
+6. `server/src/services/CertificatePdfService.ts` (435 lines) — 4 templates + absolute positioning fix
+
+**Frontend:**
+7. `client/src/services/instructorApi.ts` (310 lines) — Interface updates
+8. `client/src/services/coursesApi.ts` (254 lines) — Interface update
+9. `client/src/components/Instructor/CourseSettingsEditor.tsx` (568 lines) — Full UI
+10. `client/src/pages/Course/CourseDetailPage.tsx` (1681 lines) — CertificateEnabled usage
+
+### **Testing:**
+- ✅ TypeScript compilation: 0 errors across all 10 files
+- ✅ Database schema: Executed successfully on fresh database
+- ✅ Settings save/load: All 3 fields persist correctly
+- ✅ PDF generation: All 4 templates produce single-page certificates
+- ✅ Certificate guard: Disabled courses skip issuance, notifications still sent
+- ✅ Custom title: Falls back to course title when NULL
+- ✅ Template validation: Backend rejects invalid template names
+
+### **Technical Debt Resolved:**
+- ✅ Removed dead variable: `certificateTemplate` in `CertificateService.issueCertificate()` (unused, PDF generation queries separately)
+- ✅ Fixed PDFKit layout issues: Absolute positioning eliminates all cursor inheritance bugs
+- ✅ Server restart required: Settings weren't saving initially due to old code running (nodemon issue)
+
+### **User Experience:**
+
+**Before Phase 3:**
+- All courses issued certificates automatically
+- No customization options
+- Single default certificate design
+
+**After Phase 3:**
+- Instructors control certificate issuance per course
+- Optional custom titles for specialized programs
+- 4 professional templates matching course branding
+- Visual template selector with color previews
+- Character counter for title field (200 max)
+- Change detection prevents accidental navigation
+
+### **Production Readiness:**
+✅ Database defaults prevent NULL errors (CertificateEnabled=1, CertificateTemplate='classic')  
+✅ Backend validation prevents malformed data (length checks, whitelist, BIT conversion)  
+✅ Frontend validation provides immediate feedback (character counter, visual selection)  
+✅ PDF generation guaranteed single-page for all templates (absolute positioning)  
+✅ Certificate guard scoped correctly (only affects issuance, not completion notification)  
+✅ All changes reviewed for bugs/inconsistencies - zero issues found  
+
+---
+
+## 🔒 PAYMENT SECURITY ENHANCEMENTS (February 11, 2026)
 
 **Activity**: Enhanced payment verification for instructor-initiated enrollment status changes to prevent payment bypass
 

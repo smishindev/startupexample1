@@ -81,6 +81,10 @@ export interface InstructorCourse {
   enrollmentOpenDate?: string | null;
   enrollmentCloseDate?: string | null;
   requiresApproval?: boolean;
+  // Certificate Settings (Phase 3)
+  certificateEnabled?: boolean;
+  certificateTitle?: string | null;
+  certificateTemplate?: string;
 }
 
 export interface CoursesResponse {
@@ -133,6 +137,8 @@ export interface CourseFormData {
   isPublic?: boolean;
   allowComments?: boolean;
   certificateEnabled?: boolean;
+  certificateTitle?: string | null;
+  certificateTemplate?: string;
   lessons?: CourseLesson[];
 }
 

@@ -314,7 +314,7 @@ export const CourseDetailPage: React.FC = () => {
           tags: courseData.Tags || [],
           lastUpdated: courseData.UpdatedAt ? courseData.UpdatedAt.split('T')[0] : new Date().toISOString().split('T')[0],
           language: 'English',
-          certificate: false,
+          certificate: courseData.CertificateEnabled !== undefined ? Boolean(courseData.CertificateEnabled) : true,
           isEnrolled: (enrollmentStatusData?.isEnrolled) || false,
           isBookmarked: false,
           progress: realProgress,

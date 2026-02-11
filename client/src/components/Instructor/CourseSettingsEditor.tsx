@@ -18,7 +18,11 @@ import {
   Stack,
   FormControlLabel,
   Switch,
-  InputAdornment
+  InputAdornment,
+  Radio,
+  RadioGroup,
+  FormControl,
+  FormLabel
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -51,6 +55,11 @@ export const CourseSettingsEditor: React.FC<CourseSettingsEditorProps> = ({ cour
     course.enrollmentCloseDate ? new Date(course.enrollmentCloseDate).toISOString().slice(0, 16) : ''
   );
   const [requiresApproval, setRequiresApproval] = useState(course.requiresApproval ?? false);
+
+  // Certificate Settings (Phase 3)
+  const [certificateEnabled, setCertificateEnabled] = useState(course.certificateEnabled ?? true);
+  const [certificateTitle, setCertificateTitle] = useState<string>(course.certificateTitle || '');
+  const [certificateTemplate, setCertificateTemplate] = useState<string>(course.certificateTemplate || 'classic');
 
   // Load instructor's published courses for prerequisites selection
   useEffect(() => {
@@ -86,7 +95,10 @@ export const CourseSettingsEditor: React.FC<CourseSettingsEditorProps> = ({ cour
         maxEnrollment,
         enrollmentOpenDate: enrollmentOpenDate ? new Date(enrollmentOpenDate).toISOString() : null,
         enrollmentCloseDate: enrollmentCloseDate ? new Date(enrollmentCloseDate).toISOString() : null,
-        requiresApproval
+        requiresApproval,
+        certificateEnabled,
+        certificateTitle: certificateTitle.trim() || null,
+        certificateTemplate
       });
 
       toast.success('Course settings updated successfully');
@@ -117,6 +129,9 @@ export const CourseSettingsEditor: React.FC<CourseSettingsEditorProps> = ({ cour
     const originalOpenDate = course.enrollmentOpenDate ? new Date(course.enrollmentOpenDate).toISOString().slice(0, 16) : '';
     const originalCloseDate = course.enrollmentCloseDate ? new Date(course.enrollmentCloseDate).toISOString().slice(0, 16) : '';
     const originalApproval = course.requiresApproval ?? false;
+    const originalCertEnabled = course.certificateEnabled ?? true;
+    const originalCertTitle = course.certificateTitle || '';
+    const originalCertTemplate = course.certificateTemplate || 'classic';
     
     const hasPrereqChanges = JSON.stringify(prerequisites.sort()) !== JSON.stringify(originalPrereqs.sort());
     const hasOutcomeChanges = JSON.stringify(learningOutcomes.sort()) !== JSON.stringify(originalOutcomes.sort());
@@ -124,15 +139,19 @@ export const CourseSettingsEditor: React.FC<CourseSettingsEditorProps> = ({ cour
     const hasOpenDateChanges = enrollmentOpenDate !== originalOpenDate;
     const hasCloseDateChanges = enrollmentCloseDate !== originalCloseDate;
     const hasApprovalChanges = requiresApproval !== originalApproval;
+    const hasCertEnabledChanges = certificateEnabled !== originalCertEnabled;
+    const hasCertTitleChanges = certificateTitle !== originalCertTitle;
+    const hasCertTemplateChanges = certificateTemplate !== originalCertTemplate;
     
     const result = hasPrereqChanges || hasOutcomeChanges || hasMaxEnrollmentChanges || 
-                   hasOpenDateChanges || hasCloseDateChanges || hasApprovalChanges;
+                   hasOpenDateChanges || hasCloseDateChanges || hasApprovalChanges ||
+                   hasCertEnabledChanges || hasCertTitleChanges || hasCertTemplateChanges;
     
     console.log('🔍 [CourseSettingsEditor] hasChanges check:', {
       result,
-      current: { maxEnrollment, enrollmentOpenDate, enrollmentCloseDate, requiresApproval },
-      original: { originalMaxEnrollment, originalOpenDate, originalCloseDate, originalApproval },
-      changes: { hasMaxEnrollmentChanges, hasOpenDateChanges, hasCloseDateChanges, hasApprovalChanges }
+      current: { maxEnrollment, enrollmentOpenDate, enrollmentCloseDate, requiresApproval, certificateEnabled, certificateTitle, certificateTemplate },
+      original: { originalMaxEnrollment, originalOpenDate, originalCloseDate, originalApproval, originalCertEnabled, originalCertTitle, originalCertTemplate },
+      changes: { hasMaxEnrollmentChanges, hasOpenDateChanges, hasCloseDateChanges, hasApprovalChanges, hasCertEnabledChanges, hasCertTitleChanges, hasCertTemplateChanges }
     });
     
     return result;
@@ -146,6 +165,9 @@ export const CourseSettingsEditor: React.FC<CourseSettingsEditorProps> = ({ cour
     setEnrollmentOpenDate(course.enrollmentOpenDate ? new Date(course.enrollmentOpenDate).toISOString().slice(0, 16) : '');
     setEnrollmentCloseDate(course.enrollmentCloseDate ? new Date(course.enrollmentCloseDate).toISOString().slice(0, 16) : '');
     setRequiresApproval(course.requiresApproval ?? false);
+    setCertificateEnabled(course.certificateEnabled ?? true);
+    setCertificateTitle(course.certificateTitle || '');
+    setCertificateTemplate(course.certificateTemplate || 'classic');
   };
 
   return (
@@ -396,6 +418,124 @@ export const CourseSettingsEditor: React.FC<CourseSettingsEditorProps> = ({ cour
               {enrollmentCloseDate && <li>Closes: {new Date(enrollmentCloseDate).toLocaleString()}</li>}
               {requiresApproval && <li>Manual approval required</li>}
             </ul>
+          </Alert>
+        )}
+      </Paper>
+
+      {/* Certificate Settings Section (Phase 3) */}
+      <Paper elevation={2} sx={{ p: 3, mt: 3 }}>
+        <Typography variant="h6" gutterBottom>
+          Certificate Settings
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+          Configure completion certificates for this course
+        </Typography>
+
+        {/* Enable/Disable Certificates */}
+        <FormControlLabel
+          control={
+            <Switch
+              checked={certificateEnabled}
+              onChange={(e) => setCertificateEnabled(e.target.checked)}
+              data-testid="course-settings-certificate-enabled-switch"
+            />
+          }
+          label="Enable Certificates"
+        />
+        <Typography variant="caption" color="text.secondary" display="block" sx={{ ml: 4, mb: 3 }}>
+          Students will receive a certificate when they complete this course
+        </Typography>
+
+        {/* Custom Certificate Title */}
+        <TextField
+          fullWidth
+          label="Custom Certificate Title"
+          value={certificateTitle}
+          onChange={(e) => setCertificateTitle(e.target.value)}
+          placeholder={course.title || 'Uses course title by default'}
+          disabled={!certificateEnabled}
+          inputProps={{ maxLength: 200 }}
+          helperText={`${certificateTitle.length}/200 characters. Leave empty to use course title.`}
+          InputProps={{
+            endAdornment: certificateTitle ? (
+              <InputAdornment position="end">
+                <IconButton size="small" onClick={() => setCertificateTitle('')} aria-label="Clear certificate title">
+                  <ClearIcon fontSize="small" />
+                </IconButton>
+              </InputAdornment>
+            ) : undefined
+          }}
+          sx={{ mb: 3 }}
+          data-testid="course-settings-certificate-title-input"
+        />
+
+        {/* Certificate Template Selection */}
+        <FormControl disabled={!certificateEnabled} sx={{ mb: 2 }}>
+          <FormLabel sx={{ mb: 1, fontWeight: 600 }}>Certificate Template</FormLabel>
+          <RadioGroup
+            value={certificateTemplate}
+            onChange={(e) => setCertificateTemplate(e.target.value)}
+            data-testid="course-settings-certificate-template-radio"
+          >
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.5 }}>
+              {[
+                { value: 'classic', label: 'Classic', desc: 'Traditional academic style with blue/purple tones', color: '#667eea' },
+                { value: 'modern', label: 'Modern', desc: 'Clean design with indigo gradient accents', color: '#6366f1' },
+                { value: 'elegant', label: 'Elegant', desc: 'Ornate borders with warm gold/brown tones', color: '#92400e' },
+                { value: 'minimal', label: 'Minimal', desc: 'Simple and clean monochrome design', color: '#18181b' }
+              ].map((tpl) => (
+                <Paper
+                  key={tpl.value}
+                  variant="outlined"
+                  sx={{
+                    p: 2,
+                    cursor: certificateEnabled ? 'pointer' : 'default',
+                    border: certificateTemplate === tpl.value ? `2px solid ${tpl.color}` : '1px solid',
+                    borderColor: certificateTemplate === tpl.value ? tpl.color : 'divider',
+                    bgcolor: certificateTemplate === tpl.value ? `${tpl.color}08` : 'background.paper',
+                    opacity: certificateEnabled ? 1 : 0.5,
+                    transition: 'all 0.2s',
+                    '&:hover': certificateEnabled ? { borderColor: tpl.color, bgcolor: `${tpl.color}05` } : {}
+                  }}
+                  onClick={() => certificateEnabled && setCertificateTemplate(tpl.value)}
+                  data-testid={`course-settings-certificate-template-${tpl.value}`}
+                >
+                  <FormControlLabel
+                    value={tpl.value}
+                    control={<Radio size="small" sx={{ '&.Mui-checked': { color: tpl.color } }} />}
+                    label={
+                      <Box>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Typography variant="subtitle2">{tpl.label}</Typography>
+                          <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: tpl.color }} />
+                        </Box>
+                        <Typography variant="caption" color="text.secondary">
+                          {tpl.desc}
+                        </Typography>
+                      </Box>
+                    }
+                    sx={{ m: 0, width: '100%' }}
+                  />
+                </Paper>
+              ))}
+            </Box>
+          </RadioGroup>
+        </FormControl>
+
+        {/* Visual Summary */}
+        {certificateEnabled && (
+          <Alert severity="info" sx={{ mt: 2 }}>
+            <Typography variant="body2" fontWeight="bold">Certificate Configuration:</Typography>
+            <ul style={{ marginTop: 8, paddingLeft: 20, marginBottom: 0 }}>
+              <li>Title: {certificateTitle.trim() || course.title || '(Course title)'}</li>
+              <li>Template: {certificateTemplate.charAt(0).toUpperCase() + certificateTemplate.slice(1)}</li>
+            </ul>
+          </Alert>
+        )}
+
+        {!certificateEnabled && (
+          <Alert severity="warning" sx={{ mt: 2 }}>
+            Certificates are disabled. Students will not receive a certificate upon completing this course.
           </Alert>
         )}
       </Paper>

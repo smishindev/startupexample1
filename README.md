@@ -46,10 +46,11 @@ An innovative EdTech startup providing personalized learning experiences through
   - **Course Details**: Edit metadata (title, description, category, level, price, thumbnail)
   - **Lesson Details**: Manage curriculum and lessons
   - **Assessments**: Configure course assessments
-  - **Settings**: Course prerequisites, learning outcomes, and enrollment controls (Feb 10, 2026) ✅
+  - **Settings**: Course prerequisites, learning outcomes, enrollment controls, and certificate settings (Feb 11, 2026) ✅
     - **Prerequisites**: Multi-select prerequisite courses with autocomplete search
     - **Learning Outcomes**: Dynamic learning outcomes list with inline validation (200 char limit)
     - **Enrollment Controls**: Maximum enrollment capacity, enrollment date windows, manual approval requirement
+    - **Certificate Settings (Phase 3 - NEW)**: Enable/disable certificates, custom certificate title (200 chars), 4 visual templates (classic/modern/elegant/minimal)
     - Change detection and save confirmation
     - Visual chips with delete functionality
     - Clear "x" buttons on all input fields for easy reset

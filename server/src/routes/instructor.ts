@@ -99,6 +99,9 @@ router.get('/courses', authenticateToken, authorize(['instructor', 'admin']), as
         c.EnrollmentOpenDate as enrollmentOpenDate,
         c.EnrollmentCloseDate as enrollmentCloseDate,
         c.RequiresApproval as requiresApproval,
+        c.CertificateEnabled as certificateEnabled,
+        c.CertificateTitle as certificateTitle,
+        c.CertificateTemplate as certificateTemplate,
         COUNT(DISTINCT l.Id) as lessons,
         ISNULL((SELECT SUM(Amount) FROM Transactions WHERE CourseId = c.Id AND Status = 'completed'), 0) as revenue
       FROM Courses c
@@ -123,7 +126,8 @@ router.get('/courses', authenticateToken, authorize(['instructor', 'admin']), as
     query += `
       GROUP BY c.Id, c.Title, c.Description, c.Thumbnail, c.Category, c.Level, c.Status, c.IsPublished, c.Price, 
                c.Rating, c.EnrollmentCount, c.CreatedAt, c.UpdatedAt, c.Prerequisites, c.LearningOutcomes,
-               c.MaxEnrollment, c.EnrollmentOpenDate, c.EnrollmentCloseDate, c.RequiresApproval
+               c.MaxEnrollment, c.EnrollmentOpenDate, c.EnrollmentCloseDate, c.RequiresApproval,
+               c.CertificateEnabled, c.CertificateTitle, c.CertificateTemplate
       ORDER BY c.UpdatedAt DESC
       OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY
     `;
@@ -193,7 +197,11 @@ router.get('/courses', authenticateToken, authorize(['instructor', 'admin']), as
         maxEnrollment: course.maxEnrollment ?? null,
         enrollmentOpenDate: course.enrollmentOpenDate ?? null,
         enrollmentCloseDate: course.enrollmentCloseDate ?? null,
-        requiresApproval: Boolean(course.requiresApproval) // BIT returns 0/1, convert to boolean
+        requiresApproval: Boolean(course.requiresApproval), // BIT returns 0/1, convert to boolean
+        // Certificate Settings (Phase 3)
+        certificateEnabled: course.certificateEnabled !== undefined ? Boolean(course.certificateEnabled) : true,
+        certificateTitle: course.certificateTitle ?? null,
+        certificateTemplate: course.certificateTemplate || 'classic'
       };
       // Remove unnecessary properties
       delete mappedCourse.Level;
@@ -201,6 +209,9 @@ router.get('/courses', authenticateToken, authorize(['instructor', 'admin']), as
       delete mappedCourse.EnrollmentOpenDate;
       delete mappedCourse.EnrollmentCloseDate;
       delete mappedCourse.RequiresApproval;
+      delete mappedCourse.CertificateEnabled;
+      delete mappedCourse.CertificateTitle;
+      delete mappedCourse.CertificateTemplate;
       return mappedCourse;
     });
 
@@ -580,6 +591,27 @@ router.put('/courses/:id', authenticateToken, authorize(['instructor', 'admin'])
     if (req.body.requiresApproval !== undefined) {
       updates.push('RequiresApproval = @requiresApproval');
       params.requiresApproval = req.body.requiresApproval ? 1 : 0;
+    }
+
+    // Certificate Settings (Phase 3)
+    if (req.body.certificateEnabled !== undefined) {
+      updates.push('CertificateEnabled = @certificateEnabled');
+      params.certificateEnabled = req.body.certificateEnabled ? 1 : 0;
+    }
+    if (req.body.certificateTitle !== undefined) {
+      if (req.body.certificateTitle !== null && req.body.certificateTitle.length > 200) {
+        return res.status(400).json({ error: 'Certificate title must be 200 characters or less' });
+      }
+      updates.push('CertificateTitle = @certificateTitle');
+      params.certificateTitle = req.body.certificateTitle || null;
+    }
+    if (req.body.certificateTemplate !== undefined) {
+      const validTemplates = ['classic', 'modern', 'elegant', 'minimal'];
+      if (!validTemplates.includes(req.body.certificateTemplate)) {
+        return res.status(400).json({ error: `Invalid certificate template. Must be one of: ${validTemplates.join(', ')}` });
+      }
+      updates.push('CertificateTemplate = @certificateTemplate');
+      params.certificateTemplate = req.body.certificateTemplate;
     }
 
     // Always update the UpdatedAt timestamp

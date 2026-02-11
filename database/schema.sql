@@ -111,6 +111,10 @@ CREATE TABLE dbo.Courses (
     EnrollmentOpenDate DATETIME2 NULL, -- NULL = always open, set date = enrollment opens at this time
     EnrollmentCloseDate DATETIME2 NULL, -- NULL = never closes, set date = enrollment closes at this time
     RequiresApproval BIT NOT NULL DEFAULT 0, -- 0 = auto-enroll, 1 = requires manual instructor approval
+    -- Certificate Settings (Phase 3 - Feb 11, 2026)
+    CertificateEnabled BIT NOT NULL DEFAULT 1, -- 1 = issue certificates on completion, 0 = no certificates
+    CertificateTitle NVARCHAR(200) NULL, -- NULL = use course title on certificate
+    CertificateTemplate NVARCHAR(50) NOT NULL DEFAULT 'classic' CHECK (CertificateTemplate IN ('classic', 'modern', 'elegant', 'minimal')),
     Tags NVARCHAR(MAX) NULL, -- JSON array
     IsPublished BIT NOT NULL DEFAULT 0, -- Kept for backward compatibility
     Status NVARCHAR(20) NOT NULL DEFAULT 'draft' CHECK (Status IN ('draft', 'published', 'archived', 'deleted')),

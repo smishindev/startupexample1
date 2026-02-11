@@ -37,6 +37,8 @@ export interface Course {
   EnrollmentOpenDate?: string | null;
   EnrollmentCloseDate?: string | null;
   RequiresApproval?: boolean;
+  // Certificate Settings (Phase 3)
+  CertificateEnabled?: boolean;
   Instructor: {
     Id: string; // Added instructor ID
     FirstName: string;

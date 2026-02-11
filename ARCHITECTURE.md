@@ -130,13 +130,13 @@ pending → processing → completed → expired (7 days)
 - Frontend: SettingsPage export UI with status polling
 - Database: DataExportRequests table (14 columns, 3 indexes)
 
-### Instructor Course Management (updated Feb 7, 2026)
+### Instructor Course Management (updated Feb 11, 2026)
 ```
 GET    /api/instructor/courses         - Get instructor's courses with pagination
                                         - Query params: status (all/published/draft), page, limit
                                         - Returns: { courses: [], pagination: {} }
                                         - Level field: lowercase 'level'
-                                        - NOW INCLUDES: Prerequisites and LearningOutcomes arrays
+                                        - NOW INCLUDES: Prerequisites, LearningOutcomes, and Certificate settings
 
 POST   /api/instructor/courses         - Create new course
                                         - Validates & normalizes level to lowercase
@@ -148,8 +148,10 @@ PUT    /api/instructor/courses/:id     - Update course details
                                         - Dynamic updates (only changed fields)
                                         - Normalizes level to lowercase
                                         - Maps category names to database values
-                                        - NOW ACCEPTS: prerequisites[] and learningOutcomes[] arrays
-                                        - Stores as JSON in NVARCHAR(MAX) columns
+                                        - NOW ACCEPTS: prerequisites[], learningOutcomes[], certificateEnabled, certificateTitle, certificateTemplate
+                                        - Stores prerequisites/outcomes as JSON in NVARCHAR(MAX) columns
+                                        - Validates certificateTemplate (classic/modern/elegant/minimal)
+                                        - Validates certificateTitle (200 char max)
                                         - Returns: { message, courseId }
 
 GET    /api/instructor/stats           - Get instructor dashboard statistics
@@ -161,6 +163,15 @@ GET    /api/instructor/courses/:id/students - Get students enrolled in course
 - **LearningOutcomes Storage**: NVARCHAR(MAX) JSON array of outcome strings
 - **Validation**: Prerequisites must be published courses only
 - **Format**: Backend stores JSON strings, API returns parsed arrays
+
+**Certificate Settings (Phase 3 - Added Feb 11, 2026):**
+- **CertificateEnabled**: BIT (1=enabled, 0=disabled), defaults to 1
+- **CertificateTitle**: NVARCHAR(200), nullable, defaults to course title if NULL
+- **CertificateTemplate**: NVARCHAR(50), CHECK constraint (classic/modern/elegant/minimal), defaults to 'classic'
+- **Validation**: Backend validates template against whitelist, converts enabled to BIT
+- **Format**: All courses return certificate settings in GET responses
+- **PDF Generation**: CertificatePdfService uses absolute Y positioning (4 template color schemes)
+- **Issuance Guard**: progress.ts checks CertificateEnabled before issuing at 100% completion
 
 **Level Field Normalization (Critical Fix - Jan 14, 2026):**
 - **Database**: Stores lowercase (beginner, intermediate, advanced, expert)

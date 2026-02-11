@@ -121,6 +121,8 @@ export class CertificateService {
     const courseInfo = await this.db.query(`
       SELECT 
         c.Title,
+        c.CertificateTitle,
+        c.CertificateTemplate,
         ISNULL(u.FirstName + ' ' + u.LastName, 
                CASE 
                  WHEN u.FirstName IS NOT NULL THEN u.FirstName
@@ -158,6 +160,9 @@ export class CertificateService {
     const completionDate = progressInfo[0]?.CompletedAt || new Date().toISOString();
     const finalScore = scoreInfo[0]?.AvgScore || null;
     const totalHoursSpent = progressInfo[0]?.TimeSpent || 0;
+    
+    // Use custom certificate title if set, otherwise fall back to course title
+    const certificateTitle = courseInfo[0].CertificateTitle || courseInfo[0].Title;
 
     // Generate certificate
     const certificateId = uuidv4();
@@ -182,7 +187,7 @@ export class CertificateService {
       certificateNumber,
       studentName,
       studentEmail: userInfo[0].Email,
-      courseTitle: courseInfo[0].Title,
+      courseTitle: certificateTitle,
       instructorName: courseInfo[0].InstructorName,
       completionDate,
       finalScore,
@@ -230,10 +235,22 @@ export class CertificateService {
 
   /**
    * Generate PDF for a certificate (private helper)
+   * Looks up the course's certificate template setting for styling
    */
   private async generatePdfForCertificate(certificate: Certificate): Promise<void> {
     try {
       console.log(`📄 Generating PDF for certificate: ${certificate.CertificateNumber}`);
+      
+      // Look up certificate template from course settings
+      let template = 'classic';
+      try {
+        const courseSettings = await this.db.query(`
+          SELECT CertificateTemplate FROM dbo.Courses WHERE Id = @courseId
+        `, { courseId: certificate.CourseId });
+        template = courseSettings[0]?.CertificateTemplate || 'classic';
+      } catch (e) {
+        console.log('⚠️ Could not fetch certificate template, using classic');
+      }
       
       const pdfPath = await certificatePdfService.generateCertificatePdf({
         certificateNumber: certificate.CertificateNumber,
@@ -243,7 +260,8 @@ export class CertificateService {
         completionDate: new Date(certificate.CompletionDate),
         finalScore: certificate.FinalScore ?? undefined,
         totalHoursSpent: certificate.TotalHoursSpent,
-        verificationCode: certificate.VerificationCode
+        verificationCode: certificate.VerificationCode,
+        template
       });
 
       // Update certificate with PDF path

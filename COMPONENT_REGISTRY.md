@@ -5,11 +5,11 @@
 
 ---
 
-## 🎓 Course Prerequisites & Settings Components (Added Feb 7, 2026)
+## 🎓 Course Prerequisites & Settings Components (Added Feb 7, 2026, Updated Feb 11, 2026)
 
 ### CourseSettingsEditor
-**Path**: `client/src/components/Instructor/CourseSettingsEditor.tsx` (427 lines)  
-**Purpose**: Instructor UI for managing course prerequisites, learning outcomes, and enrollment controls
+**Path**: `client/src/components/Instructor/CourseSettingsEditor.tsx` (568 lines)  
+**Purpose**: Instructor UI for managing course prerequisites, learning outcomes, enrollment controls, and certificate settings
 
 **Features**:
 1. **Prerequisites Management**
@@ -36,8 +36,19 @@
    - Visual summary alert showing active controls
    - All clear buttons use InputAdornment with IconButton
 
-4. **Form Management**
-   - Change detection (dirty state tracking)
+4. **Certificate Settings (Phase 3 - Added Feb 11, 2026)**
+   - Toggle switch to enable/disable certificate issuance
+   - Optional custom certificate title field (200 char limit with counter)
+   - Visual template selector with 4 card options:
+     - **Classic**: Navy blue (#1a237e) with serif font
+     - **Modern**: Teal (#00838f) with sans-serif
+     - **Elegant**: Purple (#4a148c) with script font
+     - **Minimal**: Gray (#37474f) minimalist design
+   - Selected card has 3px primary border, unselected have 1px gray
+   - Each card displays template color, name, and description
+
+5. **Form Management**
+   - Change detection (dirty state tracking) - includes all certificate fields
    - Save/Cancel buttons with confirmation
    - Toast notifications (success/error)
    - Loading states during save
@@ -116,6 +127,9 @@
 const [prerequisites, setPrerequisites] = useState<InstructorCourse[]>([]);
 const [learningOutcomes, setLearningOutcomes] = useState<string[]>(['']);
 const [availableCourses, setAvailableCourses] = useState<InstructorCourse[]>([]);
+const [certificateEnabled, setCertificateEnabled] = useState<boolean>(true);
+const [certificateTitle, setCertificateTitle] = useState<string>('');
+const [certificateTemplate, setCertificateTemplate] = useState<string>('classic');
 const [hasChanges, setHasChanges] = useState(false);
 const [saving, setSaving] = useState(false);
 ```
@@ -125,6 +139,8 @@ const [saving, setSaving] = useState(false);
 - Learning Outcomes: Max 200 chars each, no empty strings
 - Cannot select current course as prerequisite
 - Only published courses available as prerequisites
+- Certificate Title: Max 200 characters, optional (nullable)
+- Certificate Template: Must be one of: classic, modern, elegant, minimal
 
 **Used By**:
 - `CourseEditPage.tsx` (Settings tab - index 3)

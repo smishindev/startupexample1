@@ -346,6 +346,18 @@ router.post('/lessons/:lessonId/complete', authenticateToken, async (req: AuthRe
 
           // Issue certificate and send notification at 100% completion
           if (milestone === 100) {
+            // Check if certificates are enabled for this course
+            const courseSettings = await db.query(`
+              SELECT CertificateEnabled FROM dbo.Courses WHERE Id = @courseId
+            `, { courseId });
+            
+            const certificateEnabled = courseSettings[0]?.CertificateEnabled !== undefined 
+              ? Boolean(courseSettings[0].CertificateEnabled) 
+              : true; // Default to true for backward compatibility
+            
+            if (!certificateEnabled) {
+              console.log(`ℹ️ Certificates disabled for course ${courseId}, skipping certificate issuance`);
+            } else {
             // ISSUE CERTIFICATE FIRST
             const certificateService = new CertificateService();
             
@@ -377,8 +389,9 @@ router.post('/lessons/:lessonId/complete', authenticateToken, async (req: AuthRe
               console.error('⚠️ Failed to issue certificate or send notification:', certError);
               // Non-blocking - course completion still succeeds
             }
+            } // end if (certificateEnabled)
             
-            // Send course completion congratulations
+            // Send course completion congratulations (always, regardless of certificate setting)
             await notificationService.createNotificationWithControls(
               {
                 userId: userId!,

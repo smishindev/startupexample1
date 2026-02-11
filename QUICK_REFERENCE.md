@@ -4,7 +4,86 @@
 
 ---
 
-## 🎯 Enrollment Controls (Added Feb 10, 2026)
+## � Certificate Settings - Phase 3 (Added Feb 11, 2026)
+
+**Customize certificate issuance per course**
+
+### Quick Usage - Instructor
+```typescript
+// Navigate to course Settings tab
+navigate(`/instructor/courses/${courseId}/edit?tab=3`);
+
+// CourseSettingsEditor form fields:
+// - Certificate Enabled (toggle) - Enable/disable certificate issuance
+// - Certificate Title (text, 200 char) - Optional custom title (defaults to course title)
+// - Certificate Template (visual cards) - 4 templates: classic, modern, elegant, minimal
+```
+
+### Templates
+```typescript
+const TEMPLATES = {
+  classic: { color: '#1a237e', name: 'Classic', description: 'Traditional navy blue with sharp serif font' },
+  modern: { color: '#00838f', name: 'Modern', description: 'Clean teal with sans-serif typography' },
+  elegant: { color: '#4a148c', name: 'Elegant', description: 'Purple with decorative script font' },
+  minimal: { color: '#37474f', name: 'Minimal', description: 'Minimalist gray design' }
+};
+```
+
+### API Behavior
+```
+PUT /api/instructor/courses/:id
+  Body: { certificateEnabled, certificateTitle, certificateTemplate }
+  Validation:
+    - certificateEnabled: Converted to BIT (1/0)
+    - certificateTitle: Max 200 characters, nullable
+    - certificateTemplate: Must be one of: classic|modern|elegant|minimal
+
+GET /api/courses/:id
+  Returns: { ...course, CertificateEnabled: boolean }
+
+Certificate Issuance Flow (progress.ts):
+  - Student reaches 100% course completion
+  - Query CertificateEnabled from Courses table
+  - If disabled: Skip certificate issuance
+  - If enabled: Issue with custom title and template
+  - Always send course completion notification (outside guard)
+```
+
+### Frontend Components
+```typescript
+// CourseSettingsEditor - Certificate Settings UI
+interface CertificateSettings {
+  certificateEnabled: boolean;
+  certificateTitle: string;
+  certificateTemplate: 'classic' | 'modern' | 'elegant' | 'minimal';
+}
+
+// Visual template selector with 4 cards showing color previews
+// Selected card has 3px primary border, others 1px gray
+// Character counter shows "X/200 characters" below title field
+```
+
+### Database Schema
+```sql
+-- Courses table (3 new columns)
+CertificateEnabled BIT NOT NULL DEFAULT 1,
+CertificateTitle NVARCHAR(200) NULL,
+CertificateTemplate NVARCHAR(50) NOT NULL DEFAULT 'classic' 
+  CHECK (CertificateTemplate IN ('classic', 'modern', 'elegant', 'minimal'))
+```
+
+### PDF Generation
+```typescript
+// CertificatePdfService.ts
+// - 4 template color schemes with distinct typography
+// - Absolute Y positioning (no moveDown()) guarantees single-page layout
+// - Custom title: courseInfo.CertificateTitle || courseInfo.Title
+// - Template queried separately from database for PDF generation
+```
+
+---
+
+## �🎯 Enrollment Controls (Added Feb 10, 2026)
 
 **Manage course capacity, enrollment timing, and approval requirements**
 

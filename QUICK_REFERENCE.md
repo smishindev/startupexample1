@@ -76,6 +76,15 @@ PUT /api/instructor/enrollments/:id/approve
   - Paid course: sets status='approved', sends notification with checkout link
   - EnrollmentCount incremented AFTER payment for paid courses
 
+PUT /api/students/:studentId/enrollment/:enrollmentId (Updated Feb 11, 2026)
+  - SECURITY: Payment verification for paid courses
+  - Queries Transactions table for completed payments
+  - Blocks approved→active if no payment (400 PAYMENT_REQUIRED)
+  - Allows cancelled→active if payment exists (re-activation)
+  - Allows approved→active if payment exists (webhook recovery)
+  - Overrides pending/cancelled/rejected→active to 'approved' if no payment
+  - Returns status in response for frontend feedback
+
 GET /api/courses/:id
   Returns: MaxEnrollment, EnrollmentCount, EnrollmentOpenDate, 
            EnrollmentCloseDate, RequiresApproval

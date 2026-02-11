@@ -733,6 +733,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({
             />
           ) : course.enrollmentStatus === 'cancelled' ? (
             <Chip
+              icon={<Block sx={{ fontSize: '1rem' }} />}
               label="Cancelled"
               size="small"
               data-testid={`course-card-cancelled-chip-${course.id}`}
@@ -742,10 +743,12 @@ export const CourseCard: React.FC<CourseCardProps> = ({
                 fontWeight: 'bold',
                 px: 0.5,
                 fontSize: '0.8rem',
+                '& .MuiChip-icon': { color: 'white' },
               }}
             />
           ) : course.enrollmentStatus === 'rejected' ? (
             <Chip
+              icon={<Block sx={{ fontSize: '1rem' }} />}
               label="Rejected"
               size="small"
               data-testid={`course-card-rejected-chip-${course.id}`}
@@ -755,6 +758,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({
                 fontWeight: 'bold',
                 px: 0.5,
                 fontSize: '0.8rem',
+                '& .MuiChip-icon': { color: 'white' },
               }}
             />
           ) : !course.isEnrolled ? (

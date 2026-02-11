@@ -125,9 +125,10 @@ export const studentsApi = {
   updateEnrollmentStatus: async (
     studentId: string, 
     enrollmentId: string, 
-    status: 'active' | 'completed' | 'suspended' | 'cancelled'
-  ): Promise<void> => {
-    await api.put(`/students/${studentId}/enrollment/${enrollmentId}`, { status });
+    status: 'active' | 'completed' | 'suspended' | 'cancelled' | 'approved'
+  ): Promise<{ message: string; status?: string }> => {
+    const response = await api.put(`/students/${studentId}/enrollment/${enrollmentId}`, { status });
+    return response.data;
   },
 
   // Send message to students

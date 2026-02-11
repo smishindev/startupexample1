@@ -164,16 +164,26 @@ const StudentManagement: React.FC = () => {
 
   const handleStatusUpdate = async (student: Student, newStatus: string) => {
     try {
-      await studentsApi.updateEnrollmentStatus(
+      const result = await studentsApi.updateEnrollmentStatus(
         student.id,
         student.enrollment.id,
         newStatus as any
       );
+      
+      // If backend overrode the status (e.g., paid course: active → approved)
+      if (result.status && result.status !== newStatus) {
+        toast.info(`Status set to "${result.status}" — student must complete payment before activation.`);
+      } else {
+        toast.success(result.message || `Student status updated to ${result.status || newStatus}`);
+      }
+      
       loadData(); // Refresh data
       setAnchorEl(null);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error updating status:', err);
-      setError('Failed to update student status');
+      const errorMsg = err?.response?.data?.error || 'Failed to update student status';
+      toast.error(errorMsg);
+      setAnchorEl(null);
     }
   };
 

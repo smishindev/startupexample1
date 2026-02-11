@@ -251,17 +251,52 @@ router.put('/:studentId/enrollment/:enrollmentId', authenticateToken, async (req
 
     // Skip if status is already the same (no-op)
     if (enrollment.CurrentStatus === status) {
-      return res.json({ message: `Enrollment is already ${status}` });
+      return res.json({ message: `Enrollment is already ${status}`, status });
+    }
+
+    // SECURITY: Prevent bypassing payment for paid courses
+    // For paid courses, only allow direct 'active' when the student has already paid.
+    // suspended/completed = definitely paid. For other statuses, check for a completed transaction.
+    const isPaidCourse = enrollment.Price && parseFloat(enrollment.Price) > 0;
+    let finalStatus = status;
+
+    if (status === 'active' && isPaidCourse) {
+      const definitelyPaidStatuses = ['suspended', 'completed']; // Student already paid in these states
+      if (!definitelyPaidStatuses.includes(enrollment.CurrentStatus)) {
+        // Check if student has a completed payment (covers: approved w/ webhook failure,
+        // cancelled after paying, rejected edge cases)
+        const paymentCheck = await db.query(`
+          SELECT COUNT(*) as count FROM dbo.Transactions
+          WHERE UserId = @userId AND CourseId = @courseId AND Status = 'completed'
+        `, { userId: enrollment.UserId, courseId: enrollment.CourseId });
+
+        const hasCompletedPayment = paymentCheck[0]?.count > 0;
+
+        if (hasCompletedPayment) {
+          // Student previously paid — allow direct activation
+          console.log(`✅ Paid course: allowing 'active' for enrollment ${enrollmentId} — previous payment found (was ${enrollment.CurrentStatus})`);
+        } else if (enrollment.CurrentStatus === 'approved') {
+          // 'approved' means instructor approved but student hasn't paid — block entirely
+          return res.status(400).json({ 
+            error: 'Cannot activate a paid enrollment manually. The student must complete payment first.',
+            code: 'PAYMENT_REQUIRED'
+          });
+        } else {
+          // pending, cancelled, rejected with no payment — override to 'approved' so student must pay
+          finalStatus = 'approved';
+          console.log(`⚠️ Paid course: overriding 'active' → 'approved' for enrollment ${enrollmentId} (no payment found, was ${enrollment.CurrentStatus})`);
+        }
+      }
     }
 
     // Update enrollment status
     await db.execute(
-      'UPDATE dbo.Enrollments SET Status = @status WHERE Id = @enrollmentId',
-      { status, enrollmentId }
+      'UPDATE dbo.Enrollments SET Status = @finalStatus WHERE Id = @enrollmentId',
+      { finalStatus, enrollmentId }
     );
 
     // Manage EnrollmentCount: increment when transitioning to 'active' from a never-counted status
-    if (status === 'active' && ['pending', 'approved'].includes(enrollment.CurrentStatus)) {
+    if (finalStatus === 'active' && ['pending', 'approved'].includes(enrollment.CurrentStatus)) {
       await db.execute(
         'UPDATE dbo.Courses SET EnrollmentCount = ISNULL(EnrollmentCount, 0) + 1 WHERE Id = @courseId',
         { courseId: enrollment.CourseId }
@@ -269,7 +304,7 @@ router.put('/:studentId/enrollment/:enrollmentId', authenticateToken, async (req
     }
 
     // Send notification to student for status changes
-    if (['active', 'approved', 'suspended', 'cancelled'].includes(status)) {
+    if (['active', 'approved', 'suspended', 'cancelled'].includes(finalStatus)) {
       const io = req.app.get('io');
       if (io) {
         try {
@@ -283,9 +318,7 @@ router.put('/:studentId/enrollment/:enrollmentId', authenticateToken, async (req
           let actionText = '';
           let subcategory = '';
 
-          const isPaidCourse = enrollment.Price && parseFloat(enrollment.Price) > 0;
-
-          switch (status) {
+          switch (finalStatus) {
             case 'active':
               title = 'Enrollment Activated! 🎉';
               message = `Your enrollment in "${enrollment.CourseTitle}" has been activated. You can now access the course.`;
@@ -343,8 +376,8 @@ router.put('/:studentId/enrollment/:enrollmentId', authenticateToken, async (req
       }
     }
 
-    console.log(`[STUDENT API] Updated enrollment ${enrollmentId} status to ${status}`);
-    res.json({ message: 'Enrollment status updated successfully' });
+    console.log(`[STUDENT API] Updated enrollment ${enrollmentId} status to ${finalStatus}`);
+    res.json({ message: 'Enrollment status updated successfully', status: finalStatus });
   } catch (error) {
     console.error('[STUDENT API] Error updating enrollment:', error);
     res.status(500).json({ error: 'Failed to update enrollment status' });

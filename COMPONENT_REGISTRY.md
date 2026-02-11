@@ -1,6 +1,6 @@
 # Mishin Learn Platform - Component Registry
 
-**Last Updated**: February 7, 2026 - Course Prerequisites System + TypeScript Type System Enhanced 📦  
+**Last Updated**: February 11, 2026 - Payment Security + UI Consistency 🔒  
 **Purpose**: Quick reference for all major components, their dependencies, and relationships
 
 ---
@@ -2238,7 +2238,7 @@ const courses = await instructorApi.getCourses(); // Filtered by req.user.userId
 ## 🧩 REUSABLE COMPONENTS
 
 ### CourseCard (CRITICAL - SHARED)
-**Path**: `client/src/components/Course/CourseCard.tsx` (743 lines)  
+**Path**: `client/src/components/Course/CourseCard.tsx` (835 lines)  
 **Purpose**: Reusable course card component displayed across multiple pages
 
 **Props**:
@@ -2268,7 +2268,7 @@ interface Course {
   enrollmentOpenDate?: string | null;
   enrollmentCloseDate?: string | null;
   
-  // Enrollment Status (Feb 10, 2026) ⭐ NEW
+  // Enrollment Status (Feb 10-11, 2026) ⭐ UPDATED
   isEnrolled?: boolean;
   enrollmentStatus?: 'active' | 'completed' | 'pending' | 'approved' | 'suspended' | 'cancelled' | 'rejected' | null;
   
@@ -2296,13 +2296,14 @@ interface Course {
 - Enrollment count (with "X/Y enrolled" when capacity set)
 - Bookmark button (optional)
 - Enroll button (optional, with enrollment controls)
-- **Enrollment Status Chips** (Feb 10, 2026) ⭐ NEW:
+- **Enrollment Status Chips** (Feb 10-11, 2026) ⭐ UPDATED:
   - "Pending Approval" (orange, HourglassEmpty icon)
   - "Suspended" (red, Block icon)
-  - "Cancelled" (gray)
-  - "Rejected" (red)
+  - "Cancelled" (gray, Block icon) ← Feb 11: Added icon
+  - "Rejected" (red, Block icon) ← Feb 11: Added icon
   - Chips appear based on `enrollmentStatus` prop
   - Prevents "Enroll Now" button from showing for blocked enrollments
+  - Visual consistency: All blocked status chips use Block icon
 
 **Enrollment Controls (Phase 2)** ✅:
 - Date awareness: checks `enrollmentOpenDate` and `enrollmentCloseDate`

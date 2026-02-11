@@ -115,7 +115,10 @@ An innovative EdTech startup providing personalized learning experiences through
   - **ShowProgress**: Enforced with 403 errors, instructor override for enrolled students
   - **AllowMessages**: Stored (not enforced - chat system disabled)
 - **User Profile Management** - Comprehensive profile with 5 tabs (personal info, password, billing, preferences, account info) ✅
-- **Payment System** - Stripe integration with secure checkout, professional invoice PDFs, production-ready error handling, enhanced refund UI, **database-level duplicate prevention** (Phases 1-6 Complete - 100%) ✅
+- **Payment System** - Stripe integration with secure checkout, professional invoice PDFs, production-ready error handling, enhanced refund UI, **database-level duplicate prevention**, **transaction-based payment verification** (Phases 1-6 Complete - 100%) ✅
+  - **Payment Security** (Feb 11, 2026): Instructor status changes verify completed transactions to prevent bypass scenarios
+  - **Webhook Recovery**: Manual activation allowed when payment exists but webhook failed
+  - **Re-activation Support**: Cancelled students who paid can be reactivated by instructor
 - **Notification Preferences** - **Hybrid 3-level control system** with Global→Category→Subcategory toggles, 68 database columns (includes dedicated EnrollmentSuspended/Cancelled toggles - Feb 10, 2026), separate in-app/email controls, quiet hours, email digest options (FULLY IMPLEMENTED with dedicated /settings/notifications page - Dec 29, 2025) ✅
 - **Bookmark System** - Save and organize favorite courses with cross-page synchronization (FULLY FUNCTIONAL - Dec 18, 2025) ✅
 - **Avatar Upload** - Image upload with automatic processing and optimization ✅

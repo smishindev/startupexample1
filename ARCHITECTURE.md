@@ -23,6 +23,19 @@ Type Safety: 85% (30+ interfaces in types/database.ts)
 - **Frontend Dev**: `http://localhost:5173`
 - **NEVER CHANGE THESE** - CORS configured for these exact ports
 
+### Payment Security (Updated Feb 11, 2026)
+```
+Instructor Status Change Flow:
+  PUT /api/students/:studentId/enrollment/:enrollmentId
+  → Payment verification for paid courses:
+     1. Status-based check: suspended/completed = definitely paid
+     2. Transaction check: Query Transactions table for completed payments
+     3. Decision: Allow, Block (400), or Override to 'approved'
+  → Prevents ALL payment bypass scenarios
+  → Enables webhook failure recovery (if payment exists)
+  → Dependency: Transactions table (UserId, CourseId, Status columns)
+```
+
 ---
 
 ## 🔌 API ENDPOINTS

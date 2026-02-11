@@ -1,6 +1,6 @@
 # Mishin Learn Platform - Project Status & Memory
 
-**Last Updated**: February 10, 2026 - Enrollment Notifications Enhancement + Bug Fixes 🐛  
+**Last Updated**: February 11, 2026 - Payment Security Enhancements 🔒  
 **Developer**: Sergey Mishin (s.mishin.dev@gmail.com)  
 **AI Assistant Context**: This file serves as project memory for continuity across chat sessions
 
@@ -8,11 +8,154 @@
 **Enrollment Notifications**: Dedicated toggles for Suspended/Cancelled (no longer piggyback on Rejected) ✅  
 **Code Quality Status**: Phase 1 + Phase 2 Complete + Verified (Grade: A, 95/100) ✅  
 **Course Features**: Prerequisites, Learning Outcomes, Enrollment Controls Implemented ✅  
-**Enrollment Controls**: Full end-to-end approval → payment flow for paid courses ✅
+**Enrollment Controls**: Full end-to-end approval → payment flow for paid courses ✅  
+**Payment Security**: Transaction-based verification prevents all payment bypass scenarios ✅
 
 ---
 
-## � ENROLLMENT NOTIFICATION ENHANCEMENTS (Latest - February 10, 2026)
+## 🔒 PAYMENT SECURITY ENHANCEMENTS (Latest - February 11, 2026)
+
+**Activity**: Enhanced payment verification for instructor-initiated enrollment status changes to prevent payment bypass
+
+**Status**: ✅ **Complete** - Transaction-based verification with comprehensive edge case handling
+
+### **Problem Solved:**
+
+**1. Payment Bypass via Cancelled→Active:**
+- Instructor could activate a cancelled enrollment on a paid course without verifying payment
+- Example: Student requests enrollment → instructor approves → student ignores payment → enrollment cancelled → instructor "Activate" → bypasses payment
+- Old guard only checked status (`suspended`/`completed` = paid), not actual payment records
+
+**2. Payment Bypass via Rejected→Active:**
+- Similar issue for rejected enrollments that never had payment
+- Instructor could manually activate without payment verification
+
+**3. Webhook Recovery Edge Case:**
+- If payment webhook failed but Transactions table shows `completed`, enrollment stuck in `approved`
+- Instructor couldn't manually activate even though student paid
+- Old guard blocked ALL `approved→active` transitions
+
+**4. No-op Toast Misleading:**
+- Clicking "Activate" on already-active student showed success toast
+- Message: "Student status updated to active" (wrong - nothing changed)
+- Backend returned correct message but frontend ignored it
+
+### **Solution Implemented:**
+
+**Payment Verification Logic (students.ts lines 257-291):**
+```typescript
+// Query Transactions table for completed payments
+const paymentCheck = await db.query(`
+  SELECT COUNT(*) as count FROM dbo.Transactions
+  WHERE UserId = @userId AND CourseId = @courseId AND Status = 'completed'
+`, { userId: enrollment.UserId, courseId: enrollment.CourseId });
+
+const hasCompletedPayment = paymentCheck[0]?.count > 0;
+
+// Decision tree:
+if (status === 'active' && isPaidCourse) {
+  if (['suspended', 'completed'].includes(currentStatus)) {
+    // Definitely paid - allow
+  } else if (hasCompletedPayment) {
+    // Transaction found - allow (covers: cancelled after paying, webhook failures)
+  } else if (currentStatus === 'approved') {
+    // No payment found - block with 400 PAYMENT_REQUIRED
+  } else {
+    // pending/cancelled/rejected with no payment - override to 'approved'
+  }
+}
+```
+
+**Status Transition Matrix:**
+
+| From Status | Has Payment? | Result |
+|-------------|--------------|--------|
+| `suspended` | (skip check) | Allow `active` - definitely paid |
+| `completed` | (skip check) | Allow `active` - definitely paid |
+| `approved` | Yes | Allow `active` - webhook recovery |
+| `approved` | No | **400 PAYMENT_REQUIRED** |
+| `pending` | Yes | Allow `active` - previously paid |
+| `pending` | No | Override to `approved` |
+| `cancelled` | Yes | Allow `active` - re-activation after payment |
+| `cancelled` | No | Override to `approved` |
+| `rejected` | Yes | Allow `active` - edge case |
+| `rejected` | No | Override to `approved` |
+
+**Frontend Improvements (StudentManagement.tsx line 176):**
+```typescript
+// Old: Always showed generic success message
+toast.success(`Student status updated to ${result.status || newStatus}`);
+
+// New: Uses backend message for better feedback
+toast.success(result.message || `Student status updated to ${result.status || newStatus}`);
+// Now shows: "Enrollment is already active" (no-op case)
+//         or "Enrollment status updated successfully" (success case)
+```
+
+**UI Consistency (CourseCard.tsx lines 736-773):**
+```typescript
+// Added Block icon to cancelled and rejected chips for visual consistency
+<Chip
+  icon={<Block sx={{ fontSize: '1rem' }} />}  // Was missing
+  label="Cancelled"
+  sx={{ '& .MuiChip-icon': { color: 'white' } }}  // Icon styling
+/>
+
+<Chip
+  icon={<Block sx={{ fontSize: '1rem' }} />}  // Was missing
+  label="Rejected"
+  sx={{ '& .MuiChip-icon': { color: 'white' } }}  // Icon styling
+/>
+```
+
+### **Files Modified:**
+
+1. **server/src/routes/students.ts** (492 lines)
+   - Added Transactions table query for payment verification (lines 269-272)
+   - Restructured payment guard with Transaction check (lines 257-291)
+   - Added `status` field to no-op response (line 255)
+
+2. **client/src/pages/Instructor/StudentManagement.tsx** (886 lines)
+   - Updated toast to use `result.message` from backend (line 176)
+   - Provides accurate feedback for no-op, override, and error cases
+
+3. **client/src/components/Course/CourseCard.tsx** (835 lines)
+   - Added `Block` icon to cancelled chip (lines 739-752)
+   - Added `Block` icon to rejected chip (lines 754-767)
+   - Visual consistency with suspended chip (already had icon)
+
+### **Security Benefits:**
+
+✅ **Closes ALL payment bypass scenarios** - Transaction table is source of truth  
+✅ **Webhook failure recovery** - Instructors can activate when payment exists  
+✅ **Re-activation support** - Cancelled students who paid can be reactivated  
+✅ **Clear feedback** - Info toast when status overridden, error toast when blocked  
+✅ **Zero false positives** - Status-based check supplemented with payment verification  
+
+### **Testing Scenarios:**
+
+```
+✅ Paid course, pending→active, no payment → Overridden to approved
+✅ Paid course, approved→active, no payment → 400 PAYMENT_REQUIRED
+✅ Paid course, cancelled→active, has payment → Allowed (re-activation)
+✅ Paid course, cancelled→active, no payment → Overridden to approved
+✅ Paid course, approved→active, has payment → Allowed (webhook recovery)
+✅ Paid course, suspended→active → Allowed (no check needed)
+✅ Free course, any→active → Allowed (no payment required)
+✅ Already active→active → No-op with clear message
+```
+
+### **Database Dependency:**
+
+**students.ts now depends on Transactions table:**
+- Query: `SELECT COUNT(*) FROM dbo.Transactions WHERE UserId = ? AND CourseId = ? AND Status = 'completed'`
+- Columns used: `UserId`, `CourseId`, `Status`
+- Performance: Simple COUNT with indexed columns (UserId + CourseId composite index on Transactions table)
+- No schema changes required (Transactions table already exists)
+
+---
+
+## 🔐 ENROLLMENT NOTIFICATION ENHANCEMENTS (February 10, 2026)
 
 **Activity**: Added dedicated notification preference toggles for enrollment suspension and cancellation events + fixed critical priority constraint bugs
 

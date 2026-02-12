@@ -136,6 +136,7 @@ export const InstructorDashboard: React.FC = () => {
   };
 
   const handleCourseMenuOpen = (event: React.MouseEvent<HTMLElement>, courseId: string) => {
+    event.stopPropagation();
     setAnchorEl(event.currentTarget);
     setSelectedCourse(courseId);
   };
@@ -446,8 +447,7 @@ export const InstructorDashboard: React.FC = () => {
             return courses;
           })().map((course) => (
             <Grid item xs={12} sm={6} md={4} key={course.id}>
-              <Card 
-                sx={{ 
+              <Card                 onClick={() => navigate(`/instructor/courses/${course.id}/edit`)}                sx={{ 
                   height: '100%', 
                   display: 'flex', 
                   flexDirection: 'column',
@@ -672,7 +672,10 @@ export const InstructorDashboard: React.FC = () => {
                     <Button
                       size="small"
                       startIcon={<EditIcon />}
-                      onClick={() => navigate(`/instructor/courses/${course.id}/edit`)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/instructor/courses/${course.id}/edit`);
+                      }}
                       fullWidth
                       data-testid={`instructor-course-edit-button-${course.id}`}
                     >
@@ -681,7 +684,10 @@ export const InstructorDashboard: React.FC = () => {
                     <Button
                       size="small"
                       startIcon={<VisibilityIcon />}
-                      onClick={() => navigate(`/courses/${course.id}`)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/courses/${course.id}`);
+                      }}
                       variant="outlined"
                       fullWidth
                       data-testid={`instructor-course-preview-button-${course.id}`}
@@ -693,7 +699,10 @@ export const InstructorDashboard: React.FC = () => {
                     <Button
                       size="small"
                       startIcon={<AnalyticsIcon />}
-                      onClick={() => navigate(`/instructor/analytics?courseId=${course.id}`)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/instructor/analytics?courseId=${course.id}`);
+                      }}
                       variant="outlined"
                       fullWidth
                       data-testid={`instructor-course-analytics-button-${course.id}`}
@@ -703,7 +712,10 @@ export const InstructorDashboard: React.FC = () => {
                     <Button
                       size="small"
                       startIcon={<PeopleIcon />}
-                      onClick={() => navigate(`/instructor/students?courseId=${course.id}`)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/instructor/students?courseId=${course.id}`);
+                      }}
                       variant="outlined"
                       fullWidth
                       data-testid={`instructor-course-students-button-${course.id}`}

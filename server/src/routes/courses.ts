@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { authenticateToken } from '../middleware/auth';
+import { authenticateToken, optionalAuth } from '../middleware/auth';
 import { DatabaseService } from '../services/DatabaseService';
 
 const router = Router();
@@ -20,7 +20,8 @@ router.get('/', async (req: any, res: any) => {
     const offset = (parseInt(page) - 1) * parseInt(limit);
 
     // Use Status field if it exists, fallback to IsPublished
-    let whereClause = "WHERE (c.Status = 'published' OR (c.Status IS NULL AND c.IsPublished = 1))";
+    // Only show public courses in catalog (unlisted courses hidden)
+    let whereClause = "WHERE (c.Status = 'published' OR (c.Status IS NULL AND c.IsPublished = 1)) AND ISNULL(c.Visibility, 'public') = 'public'";
     const params: any = {};
 
     // Add search filter
@@ -134,9 +135,10 @@ router.get('/', async (req: any, res: any) => {
 });
 
 // Get course by ID with detailed information
-router.get('/:id', async (req: any, res: any) => {
+router.get('/:id', optionalAuth, async (req: any, res: any) => {
   try {
     const { id } = req.params;
+    const userId = req.user?.userId || null;
 
     const query = `
       SELECT 
@@ -152,10 +154,16 @@ router.get('/:id', async (req: any, res: any) => {
          WHERE c2.InstructorId = c.InstructorId AND e2.Status IN ('active', 'completed')) as InstructorStudentCount
       FROM Courses c
       INNER JOIN Users u ON c.InstructorId = u.Id
-      WHERE c.Id = @id AND (c.Status = 'published' OR (c.Status IS NULL AND c.IsPublished = 1))
+      WHERE c.Id = @id AND (
+        (c.Status = 'published' OR (c.Status IS NULL AND c.IsPublished = 1))
+        OR (c.InstructorId = @userId AND (c.Status IS NULL OR c.Status != 'deleted'))
+      )
     `;
+    // Note: Unlisted courses are accessible via direct link (no Visibility filter here)
+    // Only the catalog listing filters by Visibility = 'public'
+    // Instructors can view their own courses regardless of status (draft, published, etc.)
 
-    const result = await db.query(query, { id });
+    const result = await db.query(query, { id, userId });
 
     if (result.length === 0) {
       return res.status(404).json({ error: 'Course not found' });
@@ -211,12 +219,103 @@ router.get('/:id', async (req: any, res: any) => {
     delete courseData.InstructorLastName;
     delete courseData.InstructorAvatar;
     delete courseData.InstructorEmail;
+    // Strip internal fields from public response (security)
+    delete courseData.PreviewToken;
+    delete courseData.InstructorId;
+    delete courseData.PasswordHash;
+    delete courseData.IsPublished;
+    delete courseData.Visibility;
 
     res.json(courseData);
 
   } catch (error) {
     console.error('Error fetching course:', error);
     res.status(500).json({ error: 'Failed to fetch course' });
+  }
+});
+
+// Preview a course by preview token (no auth required, works for any status)
+router.get('/:id/preview/:token', async (req: any, res: any) => {
+  try {
+    const { id, token } = req.params;
+
+    // Validate UUID format to prevent SQL conversion errors
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(token)) {
+      return res.status(404).json({ error: 'Course not found or invalid preview link' });
+    }
+
+    const query = `
+      SELECT 
+        c.*,
+        u.FirstName as InstructorFirstName,
+        u.LastName as InstructorLastName,
+        u.Avatar as InstructorAvatar,
+        u.Email as InstructorEmail,
+        (SELECT COUNT(*) FROM Enrollments e WHERE e.CourseId = c.Id AND e.Status IN ('active', 'completed')) as ActiveEnrollmentCount
+      FROM Courses c
+      INNER JOIN Users u ON c.InstructorId = u.Id
+      WHERE c.Id = @id AND c.PreviewToken = @token
+        AND (c.Status IS NULL OR c.Status != 'deleted')
+    `;
+
+    const result = await db.query(query, { id, token });
+
+    if (result.length === 0) {
+      return res.status(404).json({ error: 'Course not found or invalid preview link' });
+    }
+
+    const course = result[0];
+
+    // Get lessons for this course
+    const lessons = await db.query(`
+      SELECT Id, Title, Description, OrderIndex, Duration, IsRequired
+      FROM Lessons
+      WHERE CourseId = @courseId
+      ORDER BY OrderIndex
+    `, { courseId: id });
+
+    const courseData = {
+      ...course,
+      Level: course.Level?.toLowerCase(),
+      EnrollmentCount: course.ActiveEnrollmentCount || 0,
+      Prerequisites: course.Prerequisites ? JSON.parse(course.Prerequisites) : [],
+      LearningOutcomes: course.LearningOutcomes ? JSON.parse(course.LearningOutcomes) : [],
+      Tags: course.Tags ? JSON.parse(course.Tags) : [],
+      MaxEnrollment: course.MaxEnrollment,
+      EnrollmentOpenDate: course.EnrollmentOpenDate,
+      EnrollmentCloseDate: course.EnrollmentCloseDate,
+      RequiresApproval: Boolean(course.RequiresApproval),
+      CertificateEnabled: course.CertificateEnabled !== undefined ? Boolean(course.CertificateEnabled) : true,
+      IsPreview: true,
+      Status: course.Status,
+      Instructor: {
+        Id: course.InstructorId,
+        FirstName: course.InstructorFirstName,
+        LastName: course.InstructorLastName,
+        Avatar: course.InstructorAvatar,
+        Email: course.InstructorEmail
+      },
+      Lessons: lessons
+    };
+
+    // Cleanup temp fields
+    delete courseData.ActiveEnrollmentCount;
+    delete courseData.InstructorFirstName;
+    delete courseData.InstructorLastName;
+    delete courseData.InstructorAvatar;
+    delete courseData.InstructorEmail;
+    // Strip internal fields from preview response (security)
+    delete courseData.PreviewToken;
+    delete courseData.InstructorId;
+    delete courseData.PasswordHash;
+    delete courseData.IsPublished;
+    delete courseData.Visibility;
+
+    res.json(courseData);
+  } catch (error) {
+    console.error('Error fetching course preview:', error);
+    res.status(500).json({ error: 'Failed to fetch course preview' });
   }
 });
 
@@ -360,6 +459,7 @@ router.get('/meta/categories', async (req: any, res: any) => {
         GROUP BY CourseId
       ) e ON c.Id = e.CourseId
       WHERE (c.Status = 'published' OR (c.Status IS NULL AND c.IsPublished = 1))
+        AND ISNULL(c.Visibility, 'public') = 'public'
       GROUP BY c.Category
       ORDER BY Count DESC
     `;
@@ -396,6 +496,7 @@ router.get('/meta/levels', async (req: any, res: any) => {
         GROUP BY CourseId
       ) e ON c.Id = e.CourseId
       WHERE (c.Status = 'published' OR (c.Status IS NULL AND c.IsPublished = 1))
+        AND ISNULL(c.Visibility, 'public') = 'public'
       GROUP BY c.Level
       ORDER BY Count DESC
     `;
@@ -430,6 +531,7 @@ router.get('/meta/stats', async (req: any, res: any) => {
       FROM Courses c
       INNER JOIN Users u ON c.InstructorId = u.Id
       WHERE (c.Status = 'published' OR (c.Status IS NULL AND c.IsPublished = 1))
+        AND ISNULL(c.Visibility, 'public') = 'public'
     `;
 
     const result = await db.query(query);

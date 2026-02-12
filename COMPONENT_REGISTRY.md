@@ -1,15 +1,15 @@
 # Mishin Learn Platform - Component Registry
 
-**Last Updated**: February 11, 2026 - Payment Security + UI Consistency 🔒  
+**Last Updated**: February 12, 2026 - Advanced Visibility Features (Phase 4) 🔍  
 **Purpose**: Quick reference for all major components, their dependencies, and relationships
 
 ---
 
-## 🎓 Course Prerequisites & Settings Components (Added Feb 7, 2026, Updated Feb 11, 2026)
+## 🎓 Course Prerequisites & Settings Components (Added Feb 7, 2026, Updated Feb 12, 2026)
 
 ### CourseSettingsEditor
 **Path**: `client/src/components/Instructor/CourseSettingsEditor.tsx` (568 lines)  
-**Purpose**: Instructor UI for managing course prerequisites, learning outcomes, enrollment controls, and certificate settings
+**Purpose**: Instructor UI for managing course prerequisites, learning outcomes, enrollment controls, certificate settings, and visibility/preview features
 
 **Features**:
 1. **Prerequisites Management**
@@ -47,8 +47,26 @@
    - Selected card has 3px primary border, unselected have 1px gray
    - Each card displays template color, name, and description
 
-5. **Form Management**
-   - Change detection (dirty state tracking) - includes all certificate fields
+5. **Advanced Visibility (Phase 4 - Added Feb 12, 2026)**
+   - **Visibility Radio Buttons**:
+     - Public: Visible in catalog and search results (default)
+     - Unlisted: Hidden from catalog, accessible via direct link only
+     - Icons: PublicIcon for public, LinkIcon for unlisted
+     - Descriptions explain behavior to instructors
+   - **Direct Link Display** (unlisted + published courses only):
+     - Shows full course URL with copy button
+     - Alert with info severity
+     - Only displayed when visibility='unlisted' AND status='published'
+   - **Preview Token Management**:
+     - Generate preview token button (if no token exists)
+     - Preview URL display with copy button (if token exists)
+     - Regenerate token button with confirmation dialog
+     - Warning: Regeneration invalidates old preview links
+     - Preview URLs: `/courses/{id}/preview/{token}`
+     - Used for sharing draft courses before publication
+
+6. **Form Management**
+   - Change detection (dirty state tracking) - includes visibility and previewToken fields
    - Save/Cancel buttons with confirmation
    - Toast notifications (success/error)
    - Loading states during save
@@ -120,7 +138,8 @@
 
 **API Calls**:
 - GET `/api/instructor/courses?status=published` - Load available prerequisites
-- PUT `/api/instructor/courses/:id` - Save prerequisites and learning outcomes
+- PUT `/api/instructor/courses/:id` - Save prerequisites, learning outcomes, enrollment controls, certificate settings, and visibility
+- POST `/api/instructor/courses/:id/preview-token` - Generate new preview token (UUID)
 
 **State Management**:
 ```typescript
@@ -130,8 +149,11 @@ const [availableCourses, setAvailableCourses] = useState<InstructorCourse[]>([])
 const [certificateEnabled, setCertificateEnabled] = useState<boolean>(true);
 const [certificateTitle, setCertificateTitle] = useState<string>('');
 const [certificateTemplate, setCertificateTemplate] = useState<string>('classic');
+const [visibility, setVisibility] = useState<'public' | 'unlisted'>('public');
+const [previewToken, setPreviewToken] = useState<string | null>(null);
 const [hasChanges, setHasChanges] = useState(false);
 const [saving, setSaving] = useState(false);
+const [generatingToken, setGeneratingToken] = useState(false);
 ```
 
 **Validation Rules**:
@@ -141,6 +163,8 @@ const [saving, setSaving] = useState(false);
 - Only published courses available as prerequisites
 - Certificate Title: Max 200 characters, optional (nullable)
 - Certificate Template: Must be one of: classic, modern, elegant, minimal
+- Visibility: Must be 'public' or 'unlisted'
+- Preview Token: UUID format (generated server-side)
 
 **Used By**:
 - `CourseEditPage.tsx` (Settings tab - index 3)

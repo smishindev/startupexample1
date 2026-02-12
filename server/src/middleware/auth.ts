@@ -136,6 +136,58 @@ export const authenticateToken = async (
   }
 };
 
+// Optional authentication middleware - parses JWT if present, but does not reject unauthenticated requests
+export const optionalAuth = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const authHeader = req.headers.authorization;
+    const token = authHeader && authHeader.split(' ')[1];
+
+    if (!token) {
+      // No token - proceed without user context
+      next();
+      return;
+    }
+
+    const secret = process.env.JWT_SECRET;
+    if (!secret) {
+      next();
+      return;
+    }
+
+    const decoded = jwt.verify(token, secret) as TokenPayload;
+
+    const db = DatabaseService.getInstance();
+    try {
+      const users = await db.query(
+        'SELECT Id, Email, Username, FirstName, LastName, Role, IsActive FROM dbo.Users WHERE Id = @userId AND IsActive = 1',
+        { userId: decoded.userId }
+      );
+
+      if (users.length > 0) {
+        req.user = {
+          userId: decoded.userId,
+          email: decoded.email,
+          role: users[0].Role
+        };
+      }
+    } catch (dbError) {
+      // If DB check fails, use token data
+      req.user = {
+        userId: decoded.userId,
+        email: decoded.email,
+        role: decoded.role
+      };
+    }
+  } catch {
+    // Token invalid/expired - proceed without user context
+  }
+  next();
+};
+
 // Role-based authorization middleware
 export const authorize = (roles: string[]) => {
   return (req: AuthRequest, res: Response, next: NextFunction): void => {

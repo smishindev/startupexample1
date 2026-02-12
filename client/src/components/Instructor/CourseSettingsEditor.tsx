@@ -22,14 +22,20 @@ import {
   Radio,
   RadioGroup,
   FormControl,
-  FormLabel
+  FormLabel,
+  Tooltip
 } from '@mui/material';
 import {
   Add as AddIcon,
   Delete as DeleteIcon,
   Save as SaveIcon,
   Cancel as CancelIcon,
-  Clear as ClearIcon
+  Clear as ClearIcon,
+  ContentCopy as CopyIcon,
+  Refresh as RefreshIcon,
+  Visibility as VisibilityIcon,
+  VisibilityOff as VisibilityOffIcon,
+  Link as LinkIcon
 } from '@mui/icons-material';
 import { toast } from 'sonner';
 import { instructorApi, InstructorCourse } from '../../services/instructorApi';
@@ -60,6 +66,12 @@ export const CourseSettingsEditor: React.FC<CourseSettingsEditorProps> = ({ cour
   const [certificateEnabled, setCertificateEnabled] = useState(course.certificateEnabled ?? true);
   const [certificateTitle, setCertificateTitle] = useState<string>(course.certificateTitle || '');
   const [certificateTemplate, setCertificateTemplate] = useState<string>(course.certificateTemplate || 'classic');
+
+  // Advanced Visibility (Phase 4)
+  const [visibility, setVisibility] = useState<'public' | 'unlisted'>(course.visibility || 'public');
+  const [previewToken, setPreviewToken] = useState<string | null>(course.previewToken || null);
+  const [generatingToken, setGeneratingToken] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   // Load instructor's published courses for prerequisites selection
   useEffect(() => {
@@ -98,7 +110,8 @@ export const CourseSettingsEditor: React.FC<CourseSettingsEditorProps> = ({ cour
         requiresApproval,
         certificateEnabled,
         certificateTitle: certificateTitle.trim() || null,
-        certificateTemplate
+        certificateTemplate,
+        visibility
       });
 
       toast.success('Course settings updated successfully');
@@ -142,16 +155,18 @@ export const CourseSettingsEditor: React.FC<CourseSettingsEditorProps> = ({ cour
     const hasCertEnabledChanges = certificateEnabled !== originalCertEnabled;
     const hasCertTitleChanges = certificateTitle !== originalCertTitle;
     const hasCertTemplateChanges = certificateTemplate !== originalCertTemplate;
+    const hasVisibilityChanges = visibility !== (course.visibility || 'public');
     
     const result = hasPrereqChanges || hasOutcomeChanges || hasMaxEnrollmentChanges || 
                    hasOpenDateChanges || hasCloseDateChanges || hasApprovalChanges ||
-                   hasCertEnabledChanges || hasCertTitleChanges || hasCertTemplateChanges;
+                   hasCertEnabledChanges || hasCertTitleChanges || hasCertTemplateChanges ||
+                   hasVisibilityChanges;
     
     console.log('🔍 [CourseSettingsEditor] hasChanges check:', {
       result,
-      current: { maxEnrollment, enrollmentOpenDate, enrollmentCloseDate, requiresApproval, certificateEnabled, certificateTitle, certificateTemplate },
+      current: { maxEnrollment, enrollmentOpenDate, enrollmentCloseDate, requiresApproval, certificateEnabled, certificateTitle, certificateTemplate, visibility },
       original: { originalMaxEnrollment, originalOpenDate, originalCloseDate, originalApproval, originalCertEnabled, originalCertTitle, originalCertTemplate },
-      changes: { hasMaxEnrollmentChanges, hasOpenDateChanges, hasCloseDateChanges, hasApprovalChanges, hasCertEnabledChanges, hasCertTitleChanges, hasCertTemplateChanges }
+      changes: { hasMaxEnrollmentChanges, hasOpenDateChanges, hasCloseDateChanges, hasApprovalChanges, hasCertEnabledChanges, hasCertTitleChanges, hasCertTemplateChanges, hasVisibilityChanges }
     });
     
     return result;
@@ -168,6 +183,7 @@ export const CourseSettingsEditor: React.FC<CourseSettingsEditorProps> = ({ cour
     setCertificateEnabled(course.certificateEnabled ?? true);
     setCertificateTitle(course.certificateTitle || '');
     setCertificateTemplate(course.certificateTemplate || 'classic');
+    setVisibility(course.visibility || 'public');
   };
 
   return (
@@ -537,6 +553,203 @@ export const CourseSettingsEditor: React.FC<CourseSettingsEditorProps> = ({ cour
           <Alert severity="warning" sx={{ mt: 2 }}>
             Certificates are disabled. Students will not receive a certificate upon completing this course.
           </Alert>
+        )}
+      </Paper>
+
+      {/* Advanced Visibility Section (Phase 4) */}
+      <Paper elevation={2} sx={{ p: 3, mt: 3 }}>
+        <Typography variant="h6" gutterBottom>
+          Advanced Visibility
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+          Control how your course appears in the catalog and who can access it
+        </Typography>
+
+        {/* Course Visibility */}
+        <FormControl sx={{ mb: 3 }}>
+          <FormLabel sx={{ mb: 1, fontWeight: 600 }}>Course Visibility</FormLabel>
+          <RadioGroup
+            value={visibility}
+            onChange={(e) => setVisibility(e.target.value as 'public' | 'unlisted')}
+            data-testid="course-settings-visibility-radio"
+          >
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+              <Paper
+                variant="outlined"
+                sx={{
+                  p: 2,
+                  cursor: 'pointer',
+                  border: visibility === 'public' ? '2px solid' : '1px solid',
+                  borderColor: visibility === 'public' ? 'primary.main' : 'divider',
+                  bgcolor: visibility === 'public' ? 'primary.50' : 'background.paper',
+                  transition: 'all 0.2s',
+                  '&:hover': { borderColor: 'primary.main' }
+                }}
+                onClick={() => setVisibility('public')}
+                data-testid="course-settings-visibility-public"
+              >
+                <FormControlLabel
+                  value="public"
+                  control={<Radio size="small" />}
+                  label={
+                    <Box>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <VisibilityIcon fontSize="small" color="action" />
+                        <Typography variant="subtitle2">Public</Typography>
+                      </Box>
+                      <Typography variant="caption" color="text.secondary">
+                        Course appears in the catalog and search results. Anyone can find and enroll.
+                      </Typography>
+                    </Box>
+                  }
+                  sx={{ m: 0, width: '100%' }}
+                />
+              </Paper>
+              <Paper
+                variant="outlined"
+                sx={{
+                  p: 2,
+                  cursor: 'pointer',
+                  border: visibility === 'unlisted' ? '2px solid' : '1px solid',
+                  borderColor: visibility === 'unlisted' ? 'warning.main' : 'divider',
+                  bgcolor: visibility === 'unlisted' ? 'warning.50' : 'background.paper',
+                  transition: 'all 0.2s',
+                  '&:hover': { borderColor: 'warning.main' }
+                }}
+                onClick={() => setVisibility('unlisted')}
+                data-testid="course-settings-visibility-unlisted"
+              >
+                <FormControlLabel
+                  value="unlisted"
+                  control={<Radio size="small" color="warning" />}
+                  label={
+                    <Box>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <VisibilityOffIcon fontSize="small" color="action" />
+                        <Typography variant="subtitle2">Unlisted</Typography>
+                      </Box>
+                      <Typography variant="caption" color="text.secondary">
+                        Course is hidden from the catalog but accessible via direct link. Share the URL with specific students.
+                      </Typography>
+                    </Box>
+                  }
+                  sx={{ m: 0, width: '100%' }}
+                />
+              </Paper>
+            </Box>
+          </RadioGroup>
+        </FormControl>
+
+        {visibility === 'unlisted' && course.status === 'published' && (
+          <Alert severity="info" sx={{ mb: 2 }}>
+            <Typography variant="body2">
+              This published course is unlisted. Students can only access it via direct link:
+            </Typography>
+            <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+              <TextField
+                size="small"
+                fullWidth
+                value={`${window.location.origin}/courses/${course.id}`}
+                InputProps={{ readOnly: true }}
+                sx={{ bgcolor: 'background.paper' }}
+              />
+              <IconButton
+                size="small"
+                onClick={() => {
+                  navigator.clipboard.writeText(`${window.location.origin}/courses/${course.id}`);
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 2000);
+                  toast.success('Direct link copied!');
+                }}
+              >
+                <CopyIcon fontSize="small" />
+              </IconButton>
+            </Box>
+          </Alert>
+        )}
+
+        {/* Preview Link for Draft Courses */}
+        <Divider sx={{ my: 3 }} />
+        <Typography variant="subtitle1" fontWeight={600} gutterBottom>
+          Preview Link
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          Generate a shareable preview link so others can view this course even if it{"'s"} not published yet. Anyone with this link can see the course details.
+        </Typography>
+
+        {previewToken ? (
+          <Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+              <LinkIcon fontSize="small" color="primary" />
+              <Typography variant="body2" fontWeight={500}>Active preview link:</Typography>
+            </Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <TextField
+                size="small"
+                fullWidth
+                value={`${window.location.origin}/courses/${course.id}/preview/${previewToken}`}
+                InputProps={{ readOnly: true }}
+                sx={{ bgcolor: 'action.hover' }}
+                data-testid="course-settings-preview-link"
+              />
+              <Tooltip title={copied ? 'Copied!' : 'Copy link'}>
+                <IconButton
+                  size="small"
+                  onClick={() => {
+                    navigator.clipboard.writeText(`${window.location.origin}/courses/${course.id}/preview/${previewToken}`);
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 2000);
+                    toast.success('Preview link copied!');
+                  }}
+                  data-testid="course-settings-copy-preview-link"
+                >
+                  <CopyIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Generate new link (old link will stop working)">
+                <IconButton
+                  size="small"
+                  onClick={async () => {
+                    try {
+                      setGeneratingToken(true);
+                      const result = await instructorApi.generatePreviewToken(course.id);
+                      setPreviewToken(result.previewToken);
+                      toast.success('New preview link generated');
+                    } catch {
+                      toast.error('Failed to generate preview link');
+                    } finally {
+                      setGeneratingToken(false);
+                    }
+                  }}
+                  disabled={generatingToken}
+                  data-testid="course-settings-regenerate-preview-token"
+                >
+                  {generatingToken ? <CircularProgress size={18} /> : <RefreshIcon fontSize="small" />}
+                </IconButton>
+              </Tooltip>
+            </Box>
+          </Box>
+        ) : (
+          <Button
+            variant="outlined"
+            startIcon={generatingToken ? <CircularProgress size={18} /> : <LinkIcon />}
+            onClick={async () => {
+              try {
+                setGeneratingToken(true);
+                const result = await instructorApi.generatePreviewToken(course.id);
+                setPreviewToken(result.previewToken);
+                toast.success('Preview link generated!');
+              } catch {
+                toast.error('Failed to generate preview link');
+              } finally {
+                setGeneratingToken(false);
+              }
+            }}
+            disabled={generatingToken}
+            data-testid="course-settings-generate-preview-token"
+          >
+            {generatingToken ? 'Generating...' : 'Generate Preview Link'}
+          </Button>
         )}
       </Paper>
 

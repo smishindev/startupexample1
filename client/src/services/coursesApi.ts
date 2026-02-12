@@ -50,6 +50,9 @@ export interface Course {
 export interface CourseDetail extends Course {
   Prerequisites: string[];
   LearningOutcomes: string[];
+  // Preview flag (Phase 4)
+  IsPreview?: boolean;
+  Status?: string;
   // MaxEnrollment, EnrollmentOpenDate, EnrollmentCloseDate, RequiresApproval inherited from Course
   Instructor: {
     Id: string;
@@ -142,6 +145,11 @@ class CoursesApi {
 
   async getCourse(id: string): Promise<CourseDetail> {
     const response = await api.get(`/api/courses/${id}`);
+    return response.data;
+  }
+
+  async getCoursePreview(id: string, token: string): Promise<CourseDetail> {
+    const response = await api.get(`/api/courses/${id}/preview/${token}`);
     return response.data;
   }
 

@@ -19,7 +19,7 @@ export class ShareService {
    * Generate shareable URL for a course
    */
   static generateCourseUrl(courseId: string): string {
-    return `${this.baseUrl}/courses/${courseId}/preview`;
+    return `${this.baseUrl}/courses/${courseId}`;
   }
 
   /**

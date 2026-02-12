@@ -1,6 +1,6 @@
 # Mishin Learn Platform - System Architecture
 
-**Last Updated**: February 7, 2026 - Code Quality Phase 2 Complete + Bug Fixes ✅  
+**Last Updated**: February 12, 2026 - Advanced Visibility Features (Phase 4) + Code Quality Phase 2 Complete ✅  
 **Purpose**: Understanding system components, data flows, and dependencies
 
 ---
@@ -130,13 +130,13 @@ pending → processing → completed → expired (7 days)
 - Frontend: SettingsPage export UI with status polling
 - Database: DataExportRequests table (14 columns, 3 indexes)
 
-### Instructor Course Management (updated Feb 11, 2026)
+### Instructor Course Management (updated Feb 12, 2026)
 ```
 GET    /api/instructor/courses         - Get instructor's courses with pagination
                                         - Query params: status (all/published/draft), page, limit
                                         - Returns: { courses: [], pagination: {} }
                                         - Level field: lowercase 'level'
-                                        - NOW INCLUDES: Prerequisites, LearningOutcomes, and Certificate settings
+                                        - NOW INCLUDES: Prerequisites, LearningOutcomes, Certificate settings, Visibility, PreviewToken
 
 POST   /api/instructor/courses         - Create new course
                                         - Validates & normalizes level to lowercase
@@ -148,11 +148,17 @@ PUT    /api/instructor/courses/:id     - Update course details
                                         - Dynamic updates (only changed fields)
                                         - Normalizes level to lowercase
                                         - Maps category names to database values
-                                        - NOW ACCEPTS: prerequisites[], learningOutcomes[], certificateEnabled, certificateTitle, certificateTemplate
+                                        - NOW ACCEPTS: prerequisites[], learningOutcomes[], certificateEnabled, certificateTitle, certificateTemplate, visibility
                                         - Stores prerequisites/outcomes as JSON in NVARCHAR(MAX) columns
                                         - Validates certificateTemplate (classic/modern/elegant/minimal)
                                         - Validates certificateTitle (200 char max)
+                                        - Validates visibility ('public' | 'unlisted')
                                         - Returns: { message, courseId }
+
+POST   /api/instructor/courses/:id/preview-token  - Generate preview token for draft courses
+                                        - Generates UUID token via SQL NEWID()
+                                        - Returns: { token: UUID }
+                                        - Used for sharing draft courses before publication
 
 GET    /api/instructor/stats           - Get instructor dashboard statistics
 GET    /api/instructor/courses/:id/students - Get students enrolled in course
@@ -172,6 +178,27 @@ GET    /api/instructor/courses/:id/students - Get students enrolled in course
 - **Format**: All courses return certificate settings in GET responses
 - **PDF Generation**: CertificatePdfService uses absolute Y positioning (4 template color schemes)
 - **Issuance Guard**: progress.ts checks CertificateEnabled before issuing at 100% completion
+
+**Advanced Visibility Features (Phase 4 - Added Feb 12, 2026):**
+- **Visibility**: NVARCHAR(20), CHECK constraint ('public' | 'unlisted'), defaults to 'public'
+  - Public courses: Appear in catalog, searchable by all users
+  - Unlisted courses: Hidden from catalog, only accessible via direct link `/courses/{id}`
+  - Catalog filters by Visibility='public' to exclude unlisted courses
+  - Meta endpoints (stats, categories, levels) also filter by Visibility='public'
+- **PreviewToken**: UNIQUEIDENTIFIER NULL, generated via SQL NEWID()
+  - Allows sharing draft/unpublished courses via `/courses/{id}/preview/{token}`
+  - UUID format validation on preview endpoint
+  - Used for getting feedback before publication
+  - Can be regenerated (invalidates old links)
+- **optionalAuth Middleware**: Parses JWT if present, doesn't reject unauthenticated requests
+  - Enables dual access patterns (authenticated vs anonymous)
+  - Used on GET /api/courses/:id to allow instructor access to own drafts
+  - Sets req.user if valid token, otherwise undefined
+- **Course Access Control**:
+  - Public: Anyone can access published courses via regular URL
+  - Instructors: Can view own draft courses via regular URL (WHERE InstructorId = @userId)
+  - Preview Mode: Anyone with token can view draft courses via preview URL
+  - Frontend blocks all interactive actions in preview mode (enroll, purchase, bookmark, share)
 
 **Level Field Normalization (Critical Fix - Jan 14, 2026):**
 - **Database**: Stores lowercase (beginner, intermediate, advanced, expert)
@@ -270,6 +297,91 @@ POST /api/enrollment/courses/:id/enroll
 - Instructor receives notification → approves/rejects
 - If approved → student can proceed to payment (future: payment link in notification)
 - Backend payment endpoints validate approval status before charging
+
+### Public Course Endpoints with Visibility & Preview (added Feb 12, 2026)
+```
+GET    /api/courses/                    - Get public course catalog
+                                        - Filters by: Visibility = 'public' AND published = 1
+                                        - Unlisted courses NOT returned (even if published)
+                                        - Returns: { courses: [], pagination: {} }
+                                        - Query params: page, limit, category, level, search
+
+GET    /api/courses/:id                - Get course by ID (uses optionalAuth middleware)
+                                        - Public Access: WHERE published = 1 AND Status != 'deleted'
+                                        - Instructor Access: WHERE (published OR (InstructorId = @userId AND Status != 'deleted'))
+                                        - Allows instructors to view own draft courses via regular URL
+                                        - Does NOT filter by visibility (unlisted courses accessible via direct link)
+                                        - Strips internal fields: PreviewToken, InstructorId, PasswordHash, IsPublished, Visibility
+                                        - Returns 404 for deleted courses or unpublished non-owned courses
+
+GET    /api/courses/:id/preview/:token - Preview course with preview token
+                                        - UUID validation via regex: ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$
+                                        - WHERE PreviewToken = @token AND Status != 'deleted'
+                                        - Works for ANY course status (draft, published, unlisted)
+                                        - Returns course data + IsPreview: true, Status: string
+                                        - Strips same internal fields as regular endpoint
+                                        - Returns 404 for invalid/missing token or deleted courses
+                                        - Frontend uses IsPreview flag to block interactive actions
+
+GET    /api/courses/categories         - Get course categories with counts
+                                        - Filters by: Visibility = 'public' AND published = 1
+                                        - Unlisted courses excluded from category stats
+
+GET    /api/courses/levels             - Get course levels with counts
+                                        - Filters by: Visibility = 'public' AND published = 1
+                                        - Unlisted courses excluded from level stats
+
+GET    /api/courses/stats              - Get platform statistics
+                                        - Filters by: Visibility = 'public' AND published = 1
+                                        - Unlisted courses excluded from total course count
+```
+
+**Course Visibility Behavior:**
+```
+VISIBILITY='public' + published=1:
+  - Appears in catalog (GET /courses)
+  - Counted in stats/categories/levels
+  - Accessible via direct link (/courses/{id})
+
+VISIBILITY='unlisted' + published=1:
+  - Hidden from catalog (NOT in GET /courses)
+  - NOT counted in stats/categories/levels
+  - Accessible ONLY via direct link (/courses/{id})
+  - For sharing courses with select audiences without public listing
+
+ANY STATUS + PreviewToken:
+  - Accessible via preview URL (/courses/{id}/preview/{token})
+  - Works for draft, published, public, unlisted courses
+  - Frontend blocks enrollment, purchasing, bookmarking, sharing
+  - Yellow banner: "You are viewing a preview of this course"
+  - Conditional text: " This course is not yet published" (when status !== 'published')
+
+UNPUBLISHED + instructor owns:
+  - Accessible via regular URL (/courses/{id})
+  - Blue banner: "This course is currently **{status}**. Only you (the instructor) can see it"
+  - Full functionality available to instructor
+```
+
+**optionalAuth Middleware (Feb 12, 2026):**
+```typescript
+// Parses JWT if present, sets req.user, but doesn't reject unauthenticated requests
+export function optionalAuth(req: Request, res: Response, next: NextFunction) {
+  const authHeader = req.headers.authorization;
+  if (authHeader?.startsWith('Bearer ')) {
+    const token = authHeader.substring(7);
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET);
+      req.user = decoded; // Set user if valid token
+    } catch {
+      // Invalid token: continue without user (don't reject)
+    }
+  }
+  next(); // Always continue, authenticated or not
+}
+
+// Used for endpoints that behave differently for authenticated vs anonymous:
+// - GET /api/courses/:id - Instructors can view own drafts, others see published only
+```
 
 ### Profile Management (added Dec 11, 2025)
 ```

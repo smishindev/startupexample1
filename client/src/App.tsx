@@ -250,7 +250,7 @@ function App() {
         
         {/* Unified Course Detail Route - public, works for everyone */}
         <Route path="/courses/:courseId" element={<CourseDetailPage />} />
-        <Route path="/courses/:courseId/preview" element={<CourseDetailPage />} />
+        <Route path="/courses/:courseId/preview/:previewToken" element={<CourseDetailPage />} />
         
         {/* Public Certificate Route - shareable, no authentication required */}
         <Route path="/certificate/:verificationCode" element={<PublicCertificatePage />} />

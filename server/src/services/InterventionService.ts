@@ -81,7 +81,7 @@ export class InterventionService {
               riskFactors,
               interventions
             },
-            actionUrl: `/courses/${record.CourseId}/preview`,
+            actionUrl: `/courses/${record.CourseId}`,
             actionText: 'View Course',
             relatedEntityId: record.CourseId,
             relatedEntityType: 'course'
@@ -182,7 +182,7 @@ export class InterventionService {
               progress: record.OverallProgress,
               daysSinceAccess: record.DaysSinceAccess
             },
-            actionUrl: `/courses/${record.CourseId}/preview`,
+            actionUrl: `/courses/${record.CourseId}`,
             actionText: 'Resume Learning',
             relatedEntityId: record.CourseId,
             relatedEntityType: 'course',
@@ -346,7 +346,7 @@ export class InterventionService {
                 progress: record.OverallProgress,
                 avgScore: record.AvgScore
               },
-              actionUrl: `/courses/${record.CourseId}/preview`,
+              actionUrl: `/courses/${record.CourseId}`,
               actionText: 'View Course',
               relatedEntityId: record.CourseId,
               relatedEntityType: 'course'

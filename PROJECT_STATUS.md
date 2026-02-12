@@ -1,20 +1,305 @@
 # Mishin Learn Platform - Project Status & Memory
 
-**Last Updated**: February 11, 2026 - Payment Security Enhancements 🔒  
+**Last Updated**: February 12, 2026 - Advanced Visibility Features (Phase 4) 🔍  
 **Developer**: Sergey Mishin (s.mishin.dev@gmail.com)  
 **AI Assistant Context**: This file serves as project memory for continuity across chat sessions
 
 **Notification System Status**: 31/31 triggers implemented (100% complete) ✅  
 **Enrollment Notifications**: Dedicated toggles for Suspended/Cancelled (no longer piggyback on Rejected) ✅  
 **Code Quality Status**: Phase 1 + Phase 2 Complete + Verified (Grade: A, 95/100) ✅  
-**Course Features**: Prerequisites, Learning Outcomes, Enrollment Controls, Certificate Settings Implemented ✅  
+**Course Features**: Prerequisites, Learning Outcomes, Enrollment Controls, Certificate Settings, Visibility & Preview Implemented ✅  
 **Enrollment Controls**: Full end-to-end approval → payment flow for paid courses ✅  
 **Certificate Settings**: Enable/disable certificates, custom titles, 4 visual templates (Phase 3 Complete) ✅  
+**Advanced Visibility**: Preview links for draft courses, unlisted courses, preview mode security (Phase 4 Complete) ✅  
 **Payment Security**: Transaction-based verification prevents all payment bypass scenarios ✅
 
 ---
 
-## 🎓 CERTIFICATE SETTINGS - PHASE 3 (Latest - February 11, 2026)
+## 🔍 ADVANCED VISIBILITY FEATURES - PHASE 4 (Latest - February 12, 2026)
+
+**Activity**: Implemented Phase 4 Advanced Visibility - instructors can control course visibility and share preview links for draft courses
+
+**Status**: ✅ **Complete** - Full end-to-end implementation with database, middleware, backend routes, and frontend UI with comprehensive security
+
+### **Features Implemented:**
+
+**1. Course Visibility Control:**
+- **Public Courses**: Appear in public catalog, searchable by all users (default)
+- **Unlisted Courses**: Hidden from catalog, only accessible via direct link
+- Unlisted courses do NOT inflate public course statistics
+- Published unlisted courses accessible at `/courses/{id}` for users with the link
+- Draft courses never appear in catalog regardless of visibility setting
+
+**2. Preview Links for Draft Courses:**
+- Instructors can generate preview tokens (UUID) for unpublished courses
+- Preview URL: `/courses/{id}/preview/{token}`
+- Allows sharing draft courses with select individuals before publication
+- Preview mode displays prominent warning banner
+- **All interactive actions blocked in preview**: enrollment, purchasing, bookmarking, sharing
+- Preview links work for ANY course status (draft, published, unlisted)
+- Invalid or missing tokens return 404 with clear error messages
+
+**3. Instructor Draft Access:**
+- Instructors can view their own draft courses via regular URL `/courses/{id}`
+- Blue info banner shows: "This course is currently **{status}**. Only you (the instructor) can see it."
+- Full functionality available to instructors (edit, preview, manage)
+- Non-instructors cannot access unpublished courses without preview token
+
+### **Implementation Details:**
+
+**Database Schema Changes (schema.sql):**
+```sql
+-- Added 2 new columns to Courses table
+Visibility NVARCHAR(20) NOT NULL DEFAULT 'public' 
+  CHECK (Visibility IN ('public', 'unlisted')),
+PreviewToken UNIQUEIDENTIFIER NULL
+```
+
+**Backend Changes (3 files):**
+- **auth.ts** (middleware):
+  - Added `optionalAuth` middleware that parses JWT if present but doesn't reject unauthenticated requests
+  - Used for endpoints that behave differently for authenticated vs anonymous users
+  - Sets `req.user` if valid token, otherwise leaves undefined
+
+- **courses.ts** (452 lines):
+  - `GET /`: Catalog endpoint now filters by `Visibility = 'public'`
+  - `GET /:id`: Uses `optionalAuth`, allows instructors to view own drafts via `(published OR (InstructorId = @userId AND Status != 'deleted'))`
+  - `GET /:id/preview/:token`: New preview endpoint with UUID validation, WHERE `PreviewToken = @token AND Status != 'deleted'`, returns `IsPreview: true`
+  - All meta endpoints (categories, levels, stats): Filter by `Visibility = 'public'`
+  - Strips internal fields from responses: PreviewToken, InstructorId, PasswordHash, IsPublished, Visibility
+
+- **instructor.ts** (1239 lines):
+  - GET route: Returns visibility and previewToken fields
+  - PUT route: Validates visibility ('public' | 'unlisted')
+  - POST `/courses/:id/preview-token`: Generates new UUID preview token
+
+**Frontend Changes (5 files):**
+- **instructorApi.ts** (310 lines):
+  - Added visibility and previewToken to InstructorCourse and CourseFormData interfaces
+  - Added `generatePreviewToken(courseId)` method
+
+- **coursesApi.ts** (254 lines):
+  - Added IsPreview and Status to CourseDetail interface
+  - Added `getCoursePreview(id, token)` method
+
+- **CourseSettingsEditor.tsx** (568 lines):
+  - Radio button group for visibility selection (public/unlisted with icons/descriptions)
+  - Direct link display with copy button for unlisted+published courses
+  - Preview section: generate/copy/regenerate token buttons
+  - Confirmation dialog for token regeneration (invalidates old links)
+
+- **CourseDetailPage.tsx** (1736 lines):
+  - Extracts `previewToken` from `useParams<{ courseId: string; previewToken?: string }>()`
+  - `isPreviewMode = !!previewToken`
+  - Calls `getCoursePreview()` vs `getCourse()` based on mode
+  - **Yellow warning banner** for preview mode: "You are viewing a preview of this course." + conditional " This course is not yet published." (only when status !== 'published')
+  - **Blue info banner** for instructors viewing own draft courses: "This course is currently **{status}**. Only you (the instructor) can see it."
+  - **Preview mode security guards** (4 handlers):
+    - `handleEnroll`: Returns early with toast "Enrollment is not available in preview mode"
+    - `handlePurchase`: Returns early with toast "Purchasing is not available in preview mode"
+    - `handleBookmark`: Returns early with toast "Bookmarking is not available in preview mode"
+    - `handleShare`: Returns early with toast "Sharing is not available in preview mode"
+
+- **App.tsx**:
+  - Two routes: `/courses/:courseId` (regular) and `/courses/:courseId/preview/:previewToken` (preview)
+
+- **shareService.ts**:
+  - `generateCourseUrl()` returns `/courses/${courseId}` (no /preview suffix, generates public URL)
+
+### **Course Visibility UI:**
+
+**Location**: `/instructor/courses/{courseId}/edit?tab=3`
+
+**Visibility Section**:
+```tsx
+<RadioGroup value={visibility}>
+  <FormControlLabel 
+    value="public" 
+    control={<Radio />}
+    label={
+      <Box>
+        <Typography variant="subtitle1">
+          <PublicIcon /> Public
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          Visible in course catalog and search results
+        </Typography>
+      </Box>
+    }
+  />
+  
+  <FormControlLabel 
+    value="unlisted" 
+    control={<Radio />}
+    label={
+      <Box>
+        <Typography variant="subtitle1">
+          <LinkIcon /> Unlisted
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          Only accessible via direct link (hidden from catalog)
+        </Typography>
+      </Box>
+    }
+  />
+</RadioGroup>
+
+{/* Direct Link for unlisted+published courses */}
+{visibility === 'unlisted' && status === 'published' && (
+  <Alert severity="info">
+    <Typography>Direct link: {courseUrl}</Typography>
+    <Button onClick={handleCopyDirectLink}>Copy Link</Button>
+  </Alert>
+)}
+```
+
+**Preview Section**:
+```tsx
+<Box>
+  {previewToken ? (
+    // Show preview link with copy/regenerate buttons
+    <Alert severity="success">
+      <Typography>Preview URL: {previewUrl}</Typography>
+      <Button onClick={handleCopyPreviewLink}>Copy Preview Link</Button>
+      <Button onClick={handleRegenerateToken}>Regenerate Token</Button>
+    </Alert>
+  ) : (
+    // Show generate button
+    <Button onClick={handleGeneratePreviewToken}>
+      Generate Preview Link
+    </Button>
+  )}
+</Box>
+```
+
+### **Database Flow:**
+
+```
+STUDENT VIEWS PUBLIC CATALOG:
+  → GET /api/courses/
+  → WHERE Visibility = 'public' AND published = 1
+  → Unlisted courses NOT returned
+
+STUDENT ACCESSES UNLISTED COURSE:
+  → Navigate to /courses/{id} (received link from instructor)
+  → GET /api/courses/:id with optionalAuth
+  → WHERE published = 1 (no visibility filter on detail endpoint)
+  → Course details returned (access granted)
+
+STUDENT ACCESSES DRAFT PREVIEW:
+  → Navigate to /courses/{id}/preview/{token}
+  → GET /api/courses/:id/preview/:token
+  → UUID regex validation on token
+  → WHERE PreviewToken = @token AND Status != 'deleted'
+  → Returns course data + IsPreview: true
+  → Frontend blocks all interactive actions
+
+INSTRUCTOR VIEWS OWN DRAFT:
+  → Navigate to /courses/{id}
+  → GET /api/courses/:id with optionalAuth
+  → WHERE (published OR (InstructorId = @userId AND Status != 'deleted'))
+  → Course details returned
+  → Blue info banner: "This course is currently **draft**. Only you can see it."
+
+INSTRUCTOR MANAGES VISIBILITY:
+  → Navigate to /instructor/courses/:id/edit?tab=3
+  → CourseSettingsEditor loads visibility from course data
+  → Edit visibility radio (public/unlisted)
+  → PUT /instructor/courses/:id with visibility field
+  → Backend validates: 'public' | 'unlisted'
+  → Database UPDATE Courses SET Visibility = @visibility
+
+INSTRUCTOR GENERATES PREVIEW TOKEN:
+  → Click "Generate Preview Link" button
+  → POST /instructor/courses/:id/preview-token
+  → Backend: UPDATE Courses SET PreviewToken = NEWID()
+  → Returns new token UUID
+  → Frontend displays preview URL with copy button
+```
+
+### **Files Modified (12 total):**
+
+**Backend:**
+1. `database/schema.sql` (1171 lines) — 2 new columns (Visibility, PreviewToken)
+2. `server/src/middleware/auth.ts` — New `optionalAuth` middleware
+3. `server/src/routes/courses.ts` (452 lines) — Visibility filter, preview endpoint, optionalAuth usage
+4. `server/src/routes/instructor.ts` (1239 lines) — Visibility in GET/PUT, preview token generation endpoint
+5. `server/src/routes/enrollment.ts` — Fixed courseDetail URL to `/courses/${courseId}`
+6. `server/src/services/InterventionService.ts` — Fixed 3 notification actionUrl values
+
+**Frontend:**
+7. `client/src/services/instructorApi.ts` (310 lines) — Interface updates + generatePreviewToken method
+8. `client/src/services/coursesApi.ts` (254 lines) — Interface updates + getCoursePreview method
+9. `client/src/components/Instructor/CourseSettingsEditor.tsx` (568 lines) — Full visibility + preview UI
+10. `client/src/pages/Course/CourseDetailPage.tsx` (1736 lines) — Preview mode detection, banners, security guards
+11. `client/src/App.tsx` — Two routes for regular + preview modes
+12. `client/src/services/shareService.ts` — Returns public URL (no /preview suffix)
+
+### **Security Review (18 Issues Fixed):**
+
+**Initial Implementation Issues (Rounds 1-4):**
+1. PreviewToken leaked in public course responses
+2. URL regex parsing instead of proper useParams
+3. Generic error messages for invalid previews
+4. Internal fields leaked (InstructorId, PasswordHash, IsPublished, Visibility)
+5. Unlisted courses inflated public course statistics
+6. InstructorDashboard preview broken for drafts
+7. ShareService returned stale preview URLs
+8. Orphaned route `/courses/:courseId/preview` without token parameter
+9. enrollment.ts had stale URL format
+10. InterventionService had 3 stale notification URLs
+11. Unused AuthRequest import in courses.ts
+12. No draft indicator for instructors viewing own courses
+13. Invalid UUID preview token returned 500 instead of 404
+14. Instructors could view deleted courses via preview
+15. Preview banner hardcoded "not yet published" for all courses
+
+**User-Reported Edge Cases (Rounds 5-7):**
+16. `handlePurchase`: No preview guard — student could initiate checkout from preview page
+17. `handleBookmark`: No preview guard — student could bookmark draft course (dead bookmark)
+18. `handleShare`: No preview guard — student could generate public URL for unpublished course (404 link)
+
+**Final Verification**: All remaining handlers reviewed — only safe navigation callbacks remain
+
+### **Testing:**
+- ✅ TypeScript compilation: 0 errors across all 12 files
+- ✅ Database schema: Executed successfully on fresh database
+- ✅ Visibility filter: Unlisted courses hidden from catalog
+- ✅ Direct link access: Unlisted courses accessible at `/courses/{id}`
+- ✅ Preview token generation: UUID tokens generated and persisted
+- ✅ Preview mode detection: `isPreviewMode` correctly set from URL params
+- ✅ Preview banners: Warning banner for preview, info banner for instructors
+- ✅ Preview security: All 4 interactive actions properly blocked
+- ✅ UUID validation: Invalid tokens return 404 with clear message
+- ✅ Instructor access: Drafts accessible to owners via regular URL
+- ✅ Deleted course protection: Status != 'deleted' filter on all routes
+
+### **User Experience:**
+
+**Before Phase 4:**
+- All courses public or unpublished (binary visibility)
+- No way to share draft courses for feedback
+- Courses either in catalog or completely hidden
+
+**After Phase 4:**
+- **Instructors**: Fine-grained visibility control (public/unlisted), shareable preview links for drafts
+- **Students**: Clear visual feedback in preview mode, all actions appropriately disabled
+- **Public**: Only public courses visible in catalog, stats not inflated by unlisted courses
+- **Preview Recipients**: Can view draft courses safely without risk of accidental enrollments/purchases
+
+### **Production Readiness:**
+✅ Database defaults prevent NULL errors (Visibility='public', PreviewToken=NULL)  
+✅ Backend validation prevents malformed data (visibility whitelist, UUID regex)  
+✅ Frontend security guards prevent all interactive actions in preview mode  
+✅ optionalAuth middleware enables dual authenticated/anonymous access patterns  
+✅ Clear user feedback with prominent banners and toast notifications  
+✅ All 18 security issues found and fixed through systematic review  
+✅ 0 TypeScript errors on both server and client  
+✅ Comprehensive edge case coverage (purchase, bookmark, share guards)  
+
+---
+
+## 🎓 CERTIFICATE SETTINGS - PHASE 3 (February 11, 2026)
 
 **Activity**: Implemented Phase 3 Certificate Settings - instructors can customize certificate issuance per course
 

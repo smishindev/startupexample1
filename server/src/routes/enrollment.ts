@@ -743,7 +743,7 @@ router.post('/courses/:courseId/enroll', authenticateToken, async (req: AuthRequ
       nextSteps: {
         startLearning: `/courses/${courseId}/lessons`,
         viewProgress: `/my-learning`,
-        courseDetail: `/courses/${courseId}/preview`
+        courseDetail: `/courses/${courseId}`
       }
     });
 

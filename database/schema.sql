@@ -115,6 +115,9 @@ CREATE TABLE dbo.Courses (
     CertificateEnabled BIT NOT NULL DEFAULT 1, -- 1 = issue certificates on completion, 0 = no certificates
     CertificateTitle NVARCHAR(200) NULL, -- NULL = use course title on certificate
     CertificateTemplate NVARCHAR(50) NOT NULL DEFAULT 'classic' CHECK (CertificateTemplate IN ('classic', 'modern', 'elegant', 'minimal')),
+    -- Advanced Visibility (Phase 4 - Feb 12, 2026)
+    Visibility NVARCHAR(20) NOT NULL DEFAULT 'public' CHECK (Visibility IN ('public', 'unlisted')), -- public = in catalog, unlisted = only via direct link
+    PreviewToken UNIQUEIDENTIFIER NULL, -- Shareable token for previewing draft/unpublished courses
     Tags NVARCHAR(MAX) NULL, -- JSON array
     IsPublished BIT NOT NULL DEFAULT 0, -- Kept for backward compatibility
     Status NVARCHAR(20) NOT NULL DEFAULT 'draft' CHECK (Status IN ('draft', 'published', 'archived', 'deleted')),

@@ -2,7 +2,7 @@
 
 **Purpose**: Systematic checklist to follow before implementing changes  
 **Goal**: Reduce errors, missing considerations, and broken functionality  
-**Last Updated**: February 7, 2026 - Code Quality Standards Added
+**Last Updated**: February 12, 2026 - Advanced Visibility Features (Phase 4) Added
 
 ---
 
@@ -50,6 +50,23 @@
 - [ ] Identified all pages that use this component
 
 **Recent Additions to Check:**
+- [x] **Advanced Visibility - Phase 4** - PRODUCTION READY (Feb 12, 2026) 🔍
+  - Course visibility control: Public (in catalog) vs Unlisted (direct link only)
+  - Preview links for draft courses with UUID tokens
+  - Instructors can share unpublished courses for feedback via preview URLs
+  - Preview mode security: All interactive actions blocked (enroll, purchase, bookmark, share)
+  - Instructor draft access: View own drafts via regular URL with info banner
+  - Database: 2 new Courses columns (Visibility NVARCHAR(20), PreviewToken UNIQUEIDENTIFIER)
+  - Backend: optionalAuth middleware, preview endpoint with UUID validation, visibility filtering
+  - Frontend: CourseSettingsEditor visibility UI (radio, direct link, preview tokens), CourseDetailPage preview mode with banners + guards
+  - Catalog filtering: Unlisted courses hidden from GET /courses/, excluded from stats
+  - Direct access: Unlisted courses accessible at /courses/{id} with direct link
+  - Preview access: All courses accessible at /courses/{id}/preview/{token}
+  - Routes: App.tsx has 2 routes (regular + preview with token)
+  - ShareService: Generates public URLs (no /preview suffix)
+  - Files: 12 modified (schema.sql, auth.ts, courses.ts, instructor.ts, enrollment.ts, InterventionService.ts, instructorApi.ts, coursesApi.ts, CourseSettingsEditor.tsx, CourseDetailPage.tsx, App.tsx, shareService.ts)
+  - Security Review: 18 issues fixed (preview token leaks, interactive action guards, UUID validation, deleted course protection)
+  - Status: 0 TypeScript errors, all edge cases tested, comprehensive security review complete
 - [x] **Certificate Settings - Phase 3** - PRODUCTION READY (Feb 11, 2026) 🎓
   - Instructors can enable/disable certificates per course
   - Optional custom certificate title (200 char limit)

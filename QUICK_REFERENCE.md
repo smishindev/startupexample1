@@ -1,6 +1,123 @@
-# 🚀 Quick Reference - Development Workflow
+﻿# 🚀 Quick Reference - Development Workflow
 
-**Last Updated**: February 10, 2026 - Enrollment Notification Enhancements + Bug Fixes 🐛
+**Last Updated**: February 12, 2026 - Advanced Visibility Features (Phase 4) 🐛
+
+
+## Advanced Visibility - Phase 4 (Added Feb 12, 2026)
+
+**Control course visibility and share preview links for draft courses**
+
+### Quick Usage - Instructor
+```typescript
+// Navigate to course Settings tab
+navigate(`/instructor/courses/$\{courseId\}/edit?tab=3`);
+
+// CourseSettingsEditor visibility section:
+// - Visibility radio: public (in catalog) or unlisted (direct link only)
+// - Direct link display for unlisted+published courses with copy button
+// - Preview token section: generate/copy/regenerate preview links
+
+// Share preview link for draft course:
+// 1. Click "Generate Preview Link" button
+// 2. Copy preview URL: /courses/\{id\}/preview/\{token\}
+// 3. Share with select individuals for feedback
+// Preview links work for any course status (draft, published, unlisted)
+```
+
+### Visibility Options
+```typescript
+const VISIBILITY = \{
+  public: \{
+    icon: 'PublicIcon',
+    label: 'Public',
+    description: 'Visible in course catalog and search results'
+  \},
+  unlisted: \{
+    icon: 'LinkIcon',
+    label: 'Unlisted',
+    description: 'Only accessible via direct link (hidden from catalog)'
+  \}
+\};
+
+// Public courses: Appear in GET /api/courses/, counted in stats
+// Unlisted courses: Hidden from catalog, accessible at /courses/\{id\} with direct link
+```
+
+### API Behavior
+```
+PUT /api/instructor/courses/:id
+  Body: \{ visibility: 'public' | 'unlisted' \}
+  Validation: Must be one of: 'public', 'unlisted'
+
+POST /api/instructor/courses/:id/preview-token
+  Generates UUID token via SQL NEWID()
+  Returns: \{ token: UUID \}
+  Use: Share draft courses before publication
+
+GET /api/courses/
+  WHERE Visibility = 'public' AND published = 1
+   Unlisted courses NOT returned (even if published)
+
+GET /api/courses/:id (optionalAuth middleware)
+  Public: WHERE published = 1 AND Status != 'deleted'
+  Instructor: WHERE (published OR (InstructorId = @userId AND Status != 'deleted'))
+   NO visibility filter (unlisted accessible via direct link)
+   Instructors can view own drafts via regular URL
+
+GET /api/courses/:id/preview/:token
+  WHERE PreviewToken = @token AND Status != 'deleted'
+  Returns: course data + IsPreview: true, Status: string
+  Works for ANY status (draft, published, unlisted)
+```
+
+### Frontend Components
+```typescript
+// CourseSettingsEditor - Visibility + Preview UI
+interface VisibilitySettings \{
+  visibility: 'public' | 'unlisted';
+  previewToken: string | null;
+\}
+
+// CourseDetailPage - Preview mode detection
+const \{ courseId, previewToken \} = useParams<\{ courseId: string; previewToken?: string \}>();
+const isPreviewMode = !!previewToken;
+
+// Preview mode banners:
+// - Yellow warning banner: "You are viewing a preview of this course" + conditional "not yet published"
+// - Blue info banner for instructors: "This course is currently **\{status\}**. Only you can see it"
+
+// Preview mode security guards (all return early with toast):
+if (isPreviewMode) \{
+  handleEnroll: "Enrollment is not available in preview mode"
+  handlePurchase: "Purchasing is not available in preview mode"
+  handleBookmark: "Bookmarking is not available in preview mode"
+  handleShare: "Sharing is not available in preview mode"
+\}
+```
+
+### Routes
+```typescript
+<Route path="/courses/:courseId" element=\{<CourseDetailPage />\} />
+<Route path="/courses/:courseId/preview/:previewToken" element=\{<CourseDetailPage />\} />
+```
+
+### Database Schema
+```sql
+-- Courses table (2 new columns)
+Visibility NVARCHAR(20) NOT NULL DEFAULT 'public' 
+  CHECK (Visibility IN ('public', 'unlisted')),
+PreviewToken UNIQUEIDENTIFIER NULL
+```
+
+### Features
+- **Fine-Grained Visibility**: Public (in catalog) vs Unlisted (direct link only)
+- **Draft Preview Sharing**: UUID tokens for sharing unpublished courses
+- **Instructor Draft Access**: View own drafts via regular URL with info banner
+- **Preview Mode Security**: All interactive actions blocked (enroll, purchase, bookmark, share)
+- **UUID Validation**: Invalid tokens return 404 with clear error messages
+- **Token Regeneration**: Invalidates old preview links for security
+- **No Stats Inflation**: Unlisted courses excluded from catalog/stats
+- **optionalAuth Middleware**: Dual authenticated/anonymous access patterns
 
 ---
 

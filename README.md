@@ -4,7 +4,7 @@
 
 An innovative EdTech startup providing personalized learning experiences through AI tutoring, adaptive content delivery, and comprehensive progress analytics.
 
-**Last Major Update**: February 7, 2026 - Code Quality Phase 2 Complete + Production-Ready ✅  
+**Last Major Update**: February 12, 2026 - Advanced Visibility Features (Phase 4) Complete ✅  
 **Code Quality**: Grade A (95/100) - 85% type safety, 70% logging coverage, 0 TypeScript errors
 
 ## 🚀 Features
@@ -46,11 +46,18 @@ An innovative EdTech startup providing personalized learning experiences through
   - **Course Details**: Edit metadata (title, description, category, level, price, thumbnail)
   - **Lesson Details**: Manage curriculum and lessons
   - **Assessments**: Configure course assessments
-  - **Settings**: Course prerequisites, learning outcomes, enrollment controls, and certificate settings (Feb 11, 2026) ✅
+  - **Settings**: Course prerequisites, learning outcomes, enrollment controls, certificate settings, and visibility controls (Phase 4 - Feb 12, 2026) ✅
     - **Prerequisites**: Multi-select prerequisite courses with autocomplete search
     - **Learning Outcomes**: Dynamic learning outcomes list with inline validation (200 char limit)
     - **Enrollment Controls**: Maximum enrollment capacity, enrollment date windows, manual approval requirement
-    - **Certificate Settings (Phase 3 - NEW)**: Enable/disable certificates, custom certificate title (200 chars), 4 visual templates (classic/modern/elegant/minimal)
+    - **Certificate Settings (Phase 3)**: Enable/disable certificates, custom certificate title (200 chars), 4 visual templates (classic/modern/elegant/minimal)
+    - **Advanced Visibility (Phase 4 - NEW)**: 
+      - **Public/Unlisted Control**: Toggle course visibility in catalog (public) vs direct-link-only access (unlisted)
+      - **Preview Links**: Generate UUID tokens to share draft/unpublished courses for early feedback
+      - **Preview Mode Security**: All interactive actions (enroll, purchase, bookmark, share) blocked in preview mode
+      - **Instructor Draft Access**: View own draft courses via regular URL with status banner
+      - **Direct Link Sharing**: Unlisted published courses hidden from catalog but accessible via direct link
+      - **Token Management**: Generate, copy, and regenerate preview tokens with invalidation warnings
     - Change detection and save confirmation
     - Visual chips with delete functionality
     - Clear "x" buttons on all input fields for easy reset

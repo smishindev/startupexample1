@@ -102,6 +102,8 @@ router.get('/courses', authenticateToken, authorize(['instructor', 'admin']), as
         c.CertificateEnabled as certificateEnabled,
         c.CertificateTitle as certificateTitle,
         c.CertificateTemplate as certificateTemplate,
+        c.Visibility as visibility,
+        c.PreviewToken as previewToken,
         COUNT(DISTINCT l.Id) as lessons,
         ISNULL((SELECT SUM(Amount) FROM Transactions WHERE CourseId = c.Id AND Status = 'completed'), 0) as revenue
       FROM Courses c
@@ -127,7 +129,8 @@ router.get('/courses', authenticateToken, authorize(['instructor', 'admin']), as
       GROUP BY c.Id, c.Title, c.Description, c.Thumbnail, c.Category, c.Level, c.Status, c.IsPublished, c.Price, 
                c.Rating, c.EnrollmentCount, c.CreatedAt, c.UpdatedAt, c.Prerequisites, c.LearningOutcomes,
                c.MaxEnrollment, c.EnrollmentOpenDate, c.EnrollmentCloseDate, c.RequiresApproval,
-               c.CertificateEnabled, c.CertificateTitle, c.CertificateTemplate
+               c.CertificateEnabled, c.CertificateTitle, c.CertificateTemplate,
+               c.Visibility, c.PreviewToken
       ORDER BY c.UpdatedAt DESC
       OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY
     `;
@@ -201,7 +204,10 @@ router.get('/courses', authenticateToken, authorize(['instructor', 'admin']), as
         // Certificate Settings (Phase 3)
         certificateEnabled: course.certificateEnabled !== undefined ? Boolean(course.certificateEnabled) : true,
         certificateTitle: course.certificateTitle ?? null,
-        certificateTemplate: course.certificateTemplate || 'classic'
+        certificateTemplate: course.certificateTemplate || 'classic',
+        // Advanced Visibility (Phase 4)
+        visibility: course.visibility || 'public',
+        previewToken: course.previewToken || null
       };
       // Remove unnecessary properties
       delete mappedCourse.Level;
@@ -614,6 +620,16 @@ router.put('/courses/:id', authenticateToken, authorize(['instructor', 'admin'])
       params.certificateTemplate = req.body.certificateTemplate;
     }
 
+    // Advanced Visibility (Phase 4)
+    if (req.body.visibility !== undefined) {
+      const validVisibilities = ['public', 'unlisted'];
+      if (!validVisibilities.includes(req.body.visibility)) {
+        return res.status(400).json({ error: `Invalid visibility. Must be one of: ${validVisibilities.join(', ')}` });
+      }
+      updates.push('Visibility = @visibility');
+      params.visibility = req.body.visibility;
+    }
+
     // Always update the UpdatedAt timestamp
     updates.push('UpdatedAt = GETDATE()');
 
@@ -637,6 +653,40 @@ router.put('/courses/:id', authenticateToken, authorize(['instructor', 'admin'])
     });
   } catch (error) {
     console.error('Failed to update course:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Generate or regenerate a preview token for a course
+router.post('/courses/:id/preview-token', authenticateToken, authorize(['instructor', 'admin']), async (req: AuthRequest, res) => {
+  try {
+    const userId = req.user!.userId;
+    const courseId = req.params.id;
+
+    // Verify the course exists and belongs to this instructor
+    const course = await db.query(`
+      SELECT Id FROM dbo.Courses 
+      WHERE Id = @courseId AND InstructorId = @instructorId
+    `, { courseId, instructorId: userId });
+
+    if (!course || course.length === 0) {
+      return res.status(404).json({ error: 'Course not found or access denied' });
+    }
+
+    const previewToken = uuidv4();
+
+    await db.query(`
+      UPDATE dbo.Courses 
+      SET PreviewToken = @previewToken, UpdatedAt = GETDATE()
+      WHERE Id = @courseId AND InstructorId = @instructorId
+    `, { courseId, instructorId: userId, previewToken });
+
+    res.json({
+      message: 'Preview token generated successfully',
+      previewToken
+    });
+  } catch (error) {
+    console.error('Failed to generate preview token:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

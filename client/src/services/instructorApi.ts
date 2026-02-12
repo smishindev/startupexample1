@@ -85,6 +85,9 @@ export interface InstructorCourse {
   certificateEnabled?: boolean;
   certificateTitle?: string | null;
   certificateTemplate?: string;
+  // Advanced Visibility (Phase 4)
+  visibility?: 'public' | 'unlisted';
+  previewToken?: string | null;
 }
 
 export interface CoursesResponse {
@@ -139,6 +142,8 @@ export interface CourseFormData {
   certificateEnabled?: boolean;
   certificateTitle?: string | null;
   certificateTemplate?: string;
+  // Advanced Visibility (Phase 4)
+  visibility?: 'public' | 'unlisted';
   lessons?: CourseLesson[];
 }
 
@@ -302,6 +307,17 @@ export const instructorApi = {
       return response.data;
     } catch (error) {
       console.error('Failed to reject enrollment:', error);
+      throw error;
+    }
+  },
+
+  // Generate or regenerate preview token for a course
+  generatePreviewToken: async (courseId: string): Promise<{ message: string; previewToken: string }> => {
+    try {
+      const response = await api.post(`/instructor/courses/${courseId}/preview-token`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to generate preview token:', error);
       throw error;
     }
   }

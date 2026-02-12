@@ -129,12 +129,17 @@ interface CourseDetails {
   EnrollmentOpenDate?: string | null;
   EnrollmentCloseDate?: string | null;
   RequiresApproval?: boolean;
+  // Advanced Visibility (Phase 4)
+  status?: string;
 }
 
 export const CourseDetailPage: React.FC = () => {
-  const { courseId } = useParams<{ courseId: string }>();
+  const { courseId, previewToken } = useParams<{ courseId: string; previewToken?: string }>();
   const navigate = useNavigate();
   const { user } = useAuthStore();
+
+  // Preview mode when a preview token is present in the URL
+  const isPreviewMode = !!previewToken;
   
   // Use CourseDetails type (original interface) but populate with real API data
   const [course, setCourse] = useState<CourseDetails | null>(null);
@@ -244,10 +249,12 @@ export const CourseDetailPage: React.FC = () => {
       
       try {
         setLoading(true);
-        // Use real API call to get actual course data
+        // Use preview API if preview token is present, otherwise normal API
         const [courseData, enrollmentStatusData] = await Promise.all([
-          coursesApi.getCourse(courseId),
-          user ? coursesApi.getEnrollmentStatus(courseId) : Promise.resolve(null)
+          isPreviewMode && previewToken
+            ? coursesApi.getCoursePreview(courseId, previewToken)
+            : coursesApi.getCourse(courseId),
+          user && !isPreviewMode ? coursesApi.getEnrollmentStatus(courseId) : Promise.resolve(null)
         ]);
         console.log('Real course data:', courseData);
         console.log('Enrollment status:', enrollmentStatusData);
@@ -343,19 +350,30 @@ export const CourseDetailPage: React.FC = () => {
           EnrollmentOpenDate: courseData.EnrollmentOpenDate ?? null,
           EnrollmentCloseDate: courseData.EnrollmentCloseDate ?? null,
           RequiresApproval: Boolean(courseData.RequiresApproval),
+          // Advanced Visibility (Phase 4)
+          status: courseData.Status,
         };
         setCourse(realCourse);
         setLoading(false);
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error fetching course:', error);
+        if (isPreviewMode) {
+          setError('Invalid or expired preview link. The course owner may have regenerated the link.');
+        } else {
+          setError(error.response?.status === 404 ? 'Course not found' : 'Failed to load course');
+        }
         setLoading(false);
       }
     };
 
     fetchCourse();
-  }, [courseId, user]);
+  }, [courseId, previewToken, user]);
 
   const handleEnroll = async () => {
+    if (isPreviewMode) {
+      toast.info('Enrollment is not available in preview mode');
+      return;
+    }
     if (!user) {
       navigate('/login');
       return;
@@ -467,6 +485,10 @@ export const CourseDetailPage: React.FC = () => {
   };
 
   const handlePurchase = () => {
+    if (isPreviewMode) {
+      toast.info('Purchasing is not available in preview mode');
+      return;
+    }
     if (!user) {
       navigate('/login');
       return;
@@ -492,6 +514,10 @@ export const CourseDetailPage: React.FC = () => {
   };
 
   const handleBookmark = async () => {
+    if (isPreviewMode) {
+      toast.info('Bookmarking is not available in preview mode');
+      return;
+    }
     if (!user) {
       setSnackbar({
         open: true,
@@ -534,6 +560,10 @@ export const CourseDetailPage: React.FC = () => {
   };
 
   const handleShare = () => {
+    if (isPreviewMode) {
+      toast.info('Sharing is not available in preview mode');
+      return;
+    }
     openShareDialog();
   };
 
@@ -604,6 +634,39 @@ export const CourseDetailPage: React.FC = () => {
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', bgcolor: 'background.default' }}>
       <Header />
+
+      {/* Preview Banner */}
+      {isPreviewMode && (
+        <Alert
+          severity="warning"
+          variant="filled"
+          sx={{
+            borderRadius: 0,
+            justifyContent: 'center',
+            '& .MuiAlert-message': { textAlign: 'center', width: '100%' }
+          }}
+        >
+          <Typography variant="body1" fontWeight={600}>
+            You are viewing a preview of this course.{course?.status && course.status !== 'published' ? ' This course is not yet published.' : ''}
+          </Typography>
+        </Alert>
+      )}
+
+      {/* Instructor draft/unpublished indicator */}
+      {!isPreviewMode && course?.status && course.status !== 'published' && (
+        <Alert
+          severity="info"
+          sx={{
+            borderRadius: 0,
+            justifyContent: 'center',
+            '& .MuiAlert-message': { textAlign: 'center', width: '100%' }
+          }}
+        >
+          <Typography variant="body1" fontWeight={600}>
+            This course is currently <strong>{course.status}</strong>. Only you (the instructor) can see it. Publish it to make it available to students.
+          </Typography>
+        </Alert>
+      )}
       
       {/* Hero Section with Course Title & Key Info */}
       <Box sx={{ 

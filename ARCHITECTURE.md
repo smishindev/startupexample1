@@ -1,6 +1,6 @@
 # Mishin Learn Platform - System Architecture
 
-**Last Updated**: February 12, 2026 - Advanced Visibility Features (Phase 4) + Code Quality Phase 2 Complete ✅  
+**Last Updated**: February 13, 2026 - Real-time Course Updates 🔄  
 **Purpose**: Understanding system components, data flows, and dependencies
 
 ---
@@ -660,15 +660,17 @@ POST   /api/email-unsubscribe/resubscribe - Resubscribe to emails
 - **Unsubscribe**: One-click token-based unsubscribe with database tracking
 - **Templates**: Beautiful HTML emails with type-specific styling (progress, course, system, social, assessment)
 
-**Socket.IO Architecture (Updated February 2, 2026):**
-- **Emission Pattern**: ALL socket events emit exclusively from route handlers
-- **Service Layer**: Pure data operations, NO socket emissions
-- **Broadcasting**: Global `io.emit()` strategy (not room-based)
-- **Event Types**: 20+ unique events across features
+**Socket.IO Architecture (Updated February 13, 2026):**
+- **Emission Pattern**: ALL socket events emit exclusively from route handlers (after res.json())
+- **Service Layer**: Pure data operations, NO socket emissions (exception: CourseEventService)
+- **Broadcasting**: Room-based strategy (`course-{id}`, `courses-catalog`, `user-{id}`)
+- **Event Types**: 23+ unique events across features
 - **Critical Fix**: Removed duplicate emissions from all service classes
 - **Example**: Study Groups emits 6 events (member-joined, member-left, member-promoted, member-removed, group-created, group-deleted)
 - **Pattern**: Routes get `io` instance from `req.app.get('io')`, emit after successful DB operation
 - **Services**: Return data only, add comment `// Note: Socket event is emitted in the route handler, not here`
+- **Course Updates**: Centralized CourseEventService with 500ms debounce batches rapid mutations
+- **Rooms Auto-Join**: Users join `courses-catalog` on connect, enrolled users join `course-{courseId}` rooms
 
 **Notification Triggers (22/31 Active - February 2, 2026):**
 - ✅ **Lesson Completion**: Student progress update + instructor milestones (25%, 50%, 75%, 100%) - Dec 29, 2025

@@ -3,6 +3,7 @@ import { authenticateToken, authorize, AuthRequest } from '../middleware/auth';
 import { DatabaseService } from '../services/DatabaseService';
 import { SettingsService } from '../services/SettingsService';
 import { NotificationService } from '../services/NotificationService';
+import { CourseEventService } from '../services/CourseEventService';
 import { triggerAtRiskDetection } from '../services/NotificationScheduler';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -651,6 +652,21 @@ router.put('/courses/:id', authenticateToken, authorize(['instructor', 'admin'])
       message: 'Course updated successfully',
       courseId 
     });
+
+    // Emit real-time course update events (after response sent, isolated try-catch)
+    try {
+      const changedFields = Object.keys(req.body).filter(k => k !== 'courseId');
+      const courseEventService = CourseEventService.getInstance();
+      courseEventService.emitCourseUpdated(courseId, changedFields);
+
+      // If catalog-visible fields changed, also notify the catalog room
+      const catalogFields = ['title', 'description', 'category', 'level', 'price', 'thumbnail', 'visibility'];
+      if (changedFields.some(f => catalogFields.includes(f))) {
+        courseEventService.emitCourseCatalogChanged('updated', courseId);
+      }
+    } catch (emitError) {
+      console.error('[Instructor] Failed to emit course update event:', emitError);
+    }
   } catch (error) {
     console.error('Failed to update course:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -776,6 +792,17 @@ router.post('/courses/:id/publish', authenticateToken, authorize(['instructor', 
       courseId,
       alreadyPublished: isAlreadyPublished
     });
+
+    // Emit real-time catalog change event for publish (after response sent, isolated try-catch)
+    if (!isAlreadyPublished) {
+      try {
+        const courseEventService = CourseEventService.getInstance();
+        courseEventService.emitCourseCatalogChanged('published', courseId);
+        courseEventService.emitCourseUpdated(courseId, ['status', 'isPublished']);
+      } catch (emitError) {
+        console.error('[Instructor] Failed to emit publish event:', emitError);
+      }
+    }
   } catch (error) {
     console.error('Failed to publish course:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -1191,6 +1218,15 @@ router.put('/enrollments/:enrollmentId/approve', authenticateToken, authorize(['
       status: newStatus,
       studentName: `${enrollmentData.FirstName} ${enrollmentData.LastName}`
     });
+
+    // Emit real-time enrollment count change (after response sent, isolated try-catch)
+    if (!isPaidCourse) {
+      try {
+        CourseEventService.getInstance().emitEnrollmentCountChanged(enrollmentData.CourseId);
+      } catch (emitError) {
+        console.error('[Instructor] Failed to emit enrollment count event:', emitError);
+      }
+    }
   } catch (error) {
     console.error('Failed to approve enrollment:', error);
     res.status(500).json({ error: 'Internal server error' });

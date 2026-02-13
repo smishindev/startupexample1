@@ -61,6 +61,9 @@ export const setupSocketHandlers = (io: Server) => {
       const userRoom = `user-${socket.userId}`;
       socket.join(userRoom);
       logger.info(`✅ [Socket.IO] User ${socket.userId} joined room: "${userRoom}"`);
+
+      // Join the courses-catalog room for real-time catalog updates
+      socket.join('courses-catalog');
       
       // Set user online presence
       PresenceService.setUserOnline(socket.userId).catch(err => {

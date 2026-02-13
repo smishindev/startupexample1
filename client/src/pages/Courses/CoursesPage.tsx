@@ -33,6 +33,7 @@ import { BookmarkApi } from '../../services/bookmarkApi';
 import { useAuthStore } from '../../stores/authStore';
 import { ShareDialog } from '../../components/Shared/ShareDialog';
 import { ShareService } from '../../services/shareService';
+import { useCatalogRealtimeUpdates } from '../../hooks/useCatalogRealtimeUpdates';
 import { toast } from 'sonner';
 
 interface TabPanelProps {
@@ -193,6 +194,14 @@ export const CoursesPage: React.FC = () => {
       loadBookmarkedCourses();
     }
   }, [tabValue, isAuthenticated]);
+
+  // Real-time catalog updates: refresh silently when instructor changes course data
+  useCatalogRealtimeUpdates(() => {
+    loadCourses(true); // Use search loading (lighter) instead of full page loading spinner
+    loadCategories();
+    loadLevels();
+    loadOverallStats();
+  });
 
   const loadCourses = async (isSearch = false) => {
     try {

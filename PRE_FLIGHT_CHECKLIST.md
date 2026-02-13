@@ -2,7 +2,7 @@
 
 **Purpose**: Systematic checklist to follow before implementing changes  
 **Goal**: Reduce errors, missing considerations, and broken functionality  
-**Last Updated**: February 12, 2026 - Advanced Visibility Features (Phase 4) Added
+**Last Updated**: February 13, 2026 - Real-time Course Updates Complete 🔄
 
 ---
 
@@ -50,6 +50,24 @@
 - [ ] Identified all pages that use this component
 
 **Recent Additions to Check:**
+- [x] **Real-time Course Updates - Phase 5** - PRODUCTION READY (Feb 13, 2026) 🔄
+  - Automatic page refreshes when instructors edit courses (no manual refresh needed)
+  - Socket.IO room-based broadcasting: `course-{courseId}` + `courses-catalog`
+  - Users auto-join `courses-catalog` room on socket connect
+  - Enrolled users auto-join `course-{courseId}` rooms (existing + immediate on new enrollment)
+  - Backend: CourseEventService singleton with 500ms debounce batches rapid edits
+  - 18 emit sites across 7 files (all after res.json() in isolated try-catch)
+  - 3 event types: `course:updated`, `course:catalog-changed`, `course:enrollment-changed`
+  - Frontend: useCourseRealtimeUpdates (300ms debounce), useCatalogRealtimeUpdates (500ms debounce)
+  - Silent refetch UX: Shows spinner ONLY on initial load or course navigation (not on real-time updates)
+  - CourseDetailPage: `isInitialLoad = !course || course.id !== courseId` (fixes stale data on navigation)
+  - CoursesPage: Uses `loadCourses(true)` for lighter "search-loading" instead of full spinner
+  - Reconnection-safe: `onConnect`/`offConnect` pattern survives socket reconnects
+  - Memory-leak-safe: Complete cleanup on unmount (listeners + debounce timers)
+  - Stale closure prevention: `onUpdateRef.current` pattern always calls latest callback
+  - Bug fixes: 6 issues (emit before response, stale course on navigation, loop-wrapping try-catch)
+  - Files: 16 total (3 new: CourseEventService.ts, useCourseRealtimeUpdates.ts, useCatalogRealtimeUpdates.ts; 13 modified)
+  - Status: 0 TypeScript errors (server + client), all emit sites verified, comprehensive review complete
 - [x] **Advanced Visibility - Phase 4** - PRODUCTION READY (Feb 12, 2026) 🔍
   - Course visibility control: Public (in catalog) vs Unlisted (direct link only)
   - Preview links for draft courses with UUID tokens

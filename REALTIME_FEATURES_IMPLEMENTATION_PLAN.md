@@ -1,8 +1,8 @@
 # Real-time Features Implementation Plan
 
 **Created**: November 27, 2025  
-**Last Updated**: February 5, 2026  
-**Status**: Phase 1 Complete ✅ | Phase 2 Complete ✅ | Integration Complete ✅ | Notifications ✅ | Chat System ✅
+**Last Updated**: February 13, 2026  
+**Status**: Phase 1 Complete ✅ | Phase 2 Complete ✅ | Integration Complete ✅ | Notifications ✅ | Chat System ✅ | Course Updates ✅
 
 ---
 
@@ -131,6 +131,21 @@
 - ✅ Instant badge count updates
 
 **Status**: Fully functional and production-ready
+
+**4. Real-time Course Updates** ✅ **COMPLETED** - February 13, 2026
+- ✅ CourseEventService centralized event broadcaster
+- ✅ 18 backend emit sites (after res.json(), isolated try-catch)
+- ✅ Server-side 500ms debounce batches rapid edits
+- ✅ Frontend hooks: useCourseRealtimeUpdates (300ms debounce), useCatalogRealtimeUpdates (500ms debounce)
+- ✅ Room-based broadcasting: `course-{id}` + `courses-catalog`
+- ✅ Users auto-join `courses-catalog` room on socket connect
+- ✅ Enrolled users auto-join `course-{id}` rooms (existing + new enrollments)
+- ✅ Silent refetch UX (no spinner on real-time updates, preserves scroll)
+- ✅ CourseDetailPage + CoursesPage integration
+- ✅ 6 bugs fixed during implementation review
+- ✅ 0 TypeScript errors (server + client)
+- **Events**: `course:updated`, `course:catalog-changed`, `course:enrollment-changed`
+- **Use Case**: Instructor edits course → Student page updates instantly without manual refresh
 
 ---
 

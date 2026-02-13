@@ -169,6 +169,7 @@ import { PresenceService } from './services/PresenceService';
 import { OfficeHoursService } from './services/OfficeHoursService';
 import { StudyGroupService } from './services/StudyGroupService';
 import { CommentService } from './services/CommentService';
+import { CourseEventService } from './services/CourseEventService';
 
 const notificationService = new NotificationService(io);
 const commentService = new CommentService();
@@ -177,6 +178,7 @@ PresenceService.setSocketIO(io);
 OfficeHoursService.setSocketIO(io);
 StudyGroupService.setSocketIO(io);
 commentService.setSocketIO(io);
+CourseEventService.setSocketIO(io);
 
 app.set('notificationService', notificationService);
 

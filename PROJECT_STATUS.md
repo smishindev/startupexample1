@@ -1,6 +1,6 @@
 # Mishin Learn Platform - Project Status & Memory
 
-**Last Updated**: February 12, 2026 - Advanced Visibility Features (Phase 4) 🔍  
+**Last Updated**: February 13, 2026 - Real-time Course Updates 🔄  
 **Developer**: Sergey Mishin (s.mishin.dev@gmail.com)  
 **AI Assistant Context**: This file serves as project memory for continuity across chat sessions
 
@@ -11,11 +11,149 @@
 **Enrollment Controls**: Full end-to-end approval → payment flow for paid courses ✅  
 **Certificate Settings**: Enable/disable certificates, custom titles, 4 visual templates (Phase 3 Complete) ✅  
 **Advanced Visibility**: Preview links for draft courses, unlisted courses, preview mode security (Phase 4 Complete) ✅  
+**Real-time Course Updates**: Automatic page refreshes when instructors edit courses (February 13, 2026) ✅  
 **Payment Security**: Transaction-based verification prevents all payment bypass scenarios ✅
 
 ---
 
-## 🔍 ADVANCED VISIBILITY FEATURES - PHASE 4 (Latest - February 12, 2026)
+## � REAL-TIME COURSE UPDATES - PHASE 5 (Latest - February 13, 2026)
+
+**Activity**: Implemented real-time course updates via Socket.IO — students/visitors see course changes instantly without manual refresh
+
+**Status**: ✅ **Complete** - Full end-to-end implementation with centralized event service, 18 backend emit sites, 2 frontend hooks, silent refetch UX
+
+### **Problem Solved:**
+Before: http://localhost:5173/courses and http://localhost:5173/courses/[id] did NOT reflect real-time changes. When instructors edited course metadata, added lessons, or changed enrollment counts, students had to manually refresh to see updates.
+
+After: All course pages automatically update within seconds of instructor changes. Uses Socket.IO room-based broadcasting with debouncing to batch rapid edits.
+
+### **Implementation Summary:**
+
+**Backend (11 files modified/created):**
+1. **CourseEventService.ts** (NEW - 212 lines):
+   - Singleton service for centralized course event broadcasting
+   - 500ms server-side debounce batches rapid mutations per course
+   - 3 event types: `course:updated`, `course:catalog-changed`, `course:enrollment-changed`
+   - Emits to rooms: `course-{courseId}` + `courses-catalog` (chained .to() deduplicates)
+   - `destroy()` method flushes pending events on shutdown
+   - `joinUserToCourseRoom()` adds users to course rooms immediately after enrollment
+
+2. **sockets.ts**: Users auto-join `courses-catalog` room on socket connect
+
+3. **index.ts**: Registered `CourseEventService.setSocketIO(io)` alongside other services
+
+4. **Route files** (instructor.ts, lessons.ts, enrollment.ts, students.ts, payments.ts):
+   - 18 total emit sites across 5 route handlers
+   - Pattern: `res.json()` FIRST, then emit in isolated try-catch
+   - Emits AFTER response prevents "headers already sent" crashes
+   - Isolated try-catch prevents emit failures from crashing routes or triggering Stripe retries
+
+5. **Service files** (StripeService.ts, CourseManagementService.ts):
+   - StripeService: 3 webhook emit sites (each in own try-catch)
+   - CourseManagementService: Loop-level try-catch on archive/delete (one failure won't skip remaining emits)
+
+**Frontend (5 files modified/created):**
+1. **useCourseRealtimeUpdates.ts** (NEW - 112 lines):
+   - Listens for `course:updated` + `course:enrollment-changed`
+   - Filters by `courseId` (only triggers for current course)
+   - 300ms client-side debounce
+   - `onConnect`/`offConnect` pattern survives reconnections
+   - `removeListeners()` before `setupListeners()` prevents duplicates
+   - Complete cleanup on unmount (listeners + debounce timer)
+
+2. **useCatalogRealtimeUpdates.ts** (NEW - 104 lines):
+   - Listens for `course:catalog-changed` + `course:enrollment-changed`
+   - No courseId filter (all catalog events)
+   - 500ms client-side debounce
+   - Same reconnection/cleanup pattern as course hook
+
+3. **socketService.ts**:
+   - Fixed `onConnect()` — now persists callback AND calls immediately if already connected
+   - connectCallbacks array survives reconnections
+   - Removed dead wrapper methods (onCourseUpdated, etc. with dangerous blanket .off())
+
+4. **CourseDetailPage.tsx**:
+   - Added `realtimeRefetchCounter` state (incremented by hook → triggers useEffect)
+   - **Silent refetch**: `isInitialLoad = !course || course.id !== courseId`
+   - Shows spinner ONLY on initial load or course navigation
+   - Real-time updates swap data silently (no spinner, scroll preserved)
+   - Error handling: initial load shows errors, real-time failures silently keep existing data
+
+5. **CoursesPage.tsx**:
+   - Uses `loadCourses(true)` for lighter "search-loading" instead of full page spinner
+   - Catalog hook triggers 4 concurrent API calls (courses, categories, levels, stats)
+
+### **Event Flow Examples:**
+
+**Instructor edits course title:**
+```
+1. PUT /api/instructor/courses/:id { Title: 'New Title' }
+2. DB update succeeds
+3. res.json({ success: true }) ← response sent
+4. CourseEventService.emitCourseUpdated(courseId, ['title'])
+   ↓ (500ms debounce batches rapid edits)
+5. io.to(`course-${courseId}`).to('courses-catalog').emit('course:updated', {...})
+6. Frontend: useCourseRealtimeUpdates receives event
+   ↓ (300ms client debounce)
+7. setRealtimeRefetchCounter(prev => prev + 1)
+8. fetchCourse useEffect re-runs (isInitialLoad = false)
+9. Data swaps silently — no spinner, scroll preserved ✅
+```
+
+**Instructor creates lesson:**
+```
+1. POST /api/lessons/ { CourseId, Title, Description }
+2. DB insert succeeds
+3. res.status(201).json(lesson) ← response sent
+4. CourseEventService.emitCourseUpdated(courseId, ['lessons'])
+5. Enrolled students see lesson appear instantly in CourseDetailPage
+```
+
+**Student enrolls in course:**
+```
+1. POST /api/enrollment/enroll { courseId }
+2. DB insert, increment EnrollmentCount
+3. res.status(201).json({ enrollmentId, ... }) ← response sent
+4. CourseEventService.emitEnrollmentCountChanged(courseId)
+5. CourseEventService.joinUserToCourseRoom(userId, courseId) ← immediate room join
+6. Catalog pages see enrollment count update
+7. Student now receives future course:updated events (already in room)
+```
+
+### **Debouncing Strategy:**
+- **Problem**: Instructor saves 10 times in 3 seconds
+- **Solution**: 500ms server debounce + 300ms/500ms client debounce
+- **Result**: 10 saves → 1 server event → 1 client refetch (after 800ms total)
+- **Benefit**: Batches rapid mutations, reduces API load, smooth UX
+
+### **Bug Fixes (6 issues found during review):**
+1. **enrollment.ts L420**: Emit BEFORE res.json() (approved→active free course) → FIXED
+2. **enrollment.ts L447**: Emit BEFORE res.json() (rejected→active re-enrollment) → FIXED
+3. **students.ts L305**: Emit 77 lines BEFORE res.json() → FIXED (used flag pattern)
+4. **CourseDetailPage.tsx L255**: `isInitialLoad = !course` fails on navigation (shows stale data from previous course) → FIXED (added `|| course.id !== courseId`)
+5. **CourseManagementService.ts L166**: Try-catch wraps entire archive loop (one failure skips rest) → FIXED (per-iteration try-catch)
+6. **CourseManagementService.ts L393**: Same loop issue in soft delete → FIXED
+
+### **TypeScript Compilation:**
+- Server: 0 errors ✅
+- Client: 0 errors ✅
+
+### **Files Changed (16 total):**
+- **NEW**: CourseEventService.ts, useCourseRealtimeUpdates.ts, useCatalogRealtimeUpdates.ts
+- **Modified Backend**: sockets.ts, index.ts, instructor.ts, lessons.ts, enrollment.ts, students.ts, payments.ts, StripeService.ts, CourseManagementService.ts
+- **Modified Frontend**: socketService.ts, CourseDetailPage.tsx, CoursesPage.tsx
+
+### **Testing Recommendations:**
+1. Instructor edits course title → Student on CourseDetailPage sees instant update (no spinner)
+2. Instructor creates lesson → Student sees lesson appear in course content list
+3. Student enrolls → Catalog page enrollment count increments automatically
+4. Instructor rapidly edits course 10 times → Only 1-2 refetches (debouncing works)
+5. Student on Course A navigates to Course B → Shows spinner (isInitialLoad = true)
+6. Student on Course A receives real-time update → Silent data swap (isInitialLoad = false)
+
+---
+
+## 🔍 ADVANCED VISIBILITY FEATURES - PHASE 4 (February 12, 2026)
 
 **Activity**: Implemented Phase 4 Advanced Visibility - instructors can control course visibility and share preview links for draft courses
 

@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { authenticateToken, AuthRequest } from '../middleware/auth';
 import { DatabaseService } from '../services/DatabaseService';
 import { NotificationService } from '../services/NotificationService';
+import { CourseEventService } from '../services/CourseEventService';
 
 const router = Router();
 const db = DatabaseService.getInstance();
@@ -416,13 +417,15 @@ router.post('/courses/:courseId/enroll', authenticateToken, async (req: AuthRequ
           await db.execute(`
             UPDATE dbo.Courses SET EnrollmentCount = EnrollmentCount + 1 WHERE Id = @courseId
           `, { courseId });
-          return res.status(200).json({
+          res.status(200).json({
             enrollmentId: existingEnrollment[0].Id,
             courseId,
             status: 'active',
             message: 'Successfully enrolled in course',
             code: 'ENROLLMENT_SUCCESS'
           });
+          try { CourseEventService.getInstance().emitEnrollmentCountChanged(courseId); } catch (e) { console.error('[Enrollment] Emit failed:', e); }
+          return;
         }
       } else if (status === 'rejected') {
         // Previously rejected - allow re-enrollment by updating the existing record
@@ -444,7 +447,7 @@ router.post('/courses/:courseId/enroll', authenticateToken, async (req: AuthRequ
           `, { courseId });
         }
 
-        return res.status(200).json({
+        res.status(200).json({
           enrollmentId: existingEnrollment[0].Id,
           courseId,
           status: newStatus,
@@ -454,6 +457,12 @@ router.post('/courses/:courseId/enroll', authenticateToken, async (req: AuthRequ
             : 'Successfully re-enrolled in course',
           code: newStatus === 'pending' ? 'ENROLLMENT_PENDING_APPROVAL' : 'RE_ENROLLED'
         });
+
+        // Emit after response sent
+        if (newStatus === 'active') {
+          try { CourseEventService.getInstance().emitEnrollmentCountChanged(courseId); } catch (e) { console.error('[Enrollment] Emit failed:', e); }
+        }
+        return;
       } else if (status === 'completed') {
         // Student completed the course but can remain enrolled to access new content
         // Just return the existing enrollment
@@ -572,7 +581,7 @@ router.post('/courses/:courseId/enroll', authenticateToken, async (req: AuthRequ
           console.warn('⚠️ Socket.IO not available, skipping real-time re-enrollment notifications');
         }
 
-        return res.status(reactivateStatus === 'pending' ? 202 : 200).json({
+        res.status(reactivateStatus === 'pending' ? 202 : 200).json({
           enrollmentId: existingEnrollment[0].Id,
           courseId,
           status: reactivateStatus,
@@ -582,6 +591,12 @@ router.post('/courses/:courseId/enroll', authenticateToken, async (req: AuthRequ
             : 'Successfully re-enrolled in course',
           code: reactivateStatus === 'pending' ? 'ENROLLMENT_PENDING_APPROVAL' : 'RE_ENROLLED'
         });
+
+        // Emit real-time enrollment count change (after response sent)
+        if (reactivateStatus === 'active') {
+          try { CourseEventService.getInstance().emitEnrollmentCountChanged(courseId); } catch (e) { console.error('[Enrollment] Emit failed:', e); }
+        }
+        return;
       }
     }
 
@@ -746,6 +761,15 @@ router.post('/courses/:courseId/enroll', authenticateToken, async (req: AuthRequ
         courseDetail: `/courses/${courseId}`
       }
     });
+
+    // Emit real-time enrollment count change + join user to course room (after response sent)
+    try {
+      const courseEventService = CourseEventService.getInstance();
+      courseEventService.emitEnrollmentCountChanged(courseId);
+      await courseEventService.joinUserToCourseRoom(userId!, courseId);
+    } catch (emitError) {
+      console.error('[Enrollment] Failed to emit enrollment event:', emitError);
+    }
 
   } catch (error) {
     console.error('Error enrolling in course:', error);

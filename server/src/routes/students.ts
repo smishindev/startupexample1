@@ -2,6 +2,7 @@ import express from 'express';
 import { authenticateToken } from '../middleware/auth';
 import { DatabaseService } from '../services/DatabaseService';
 import { SettingsService } from '../services/SettingsService';
+import { CourseEventService } from '../services/CourseEventService';
 
 const router = express.Router();
 const db = DatabaseService.getInstance();
@@ -296,11 +297,13 @@ router.put('/:studentId/enrollment/:enrollmentId', authenticateToken, async (req
     );
 
     // Manage EnrollmentCount: increment when transitioning to 'active' from a never-counted status
+    let enrollmentCountChanged = false;
     if (finalStatus === 'active' && ['pending', 'approved'].includes(enrollment.CurrentStatus)) {
       await db.execute(
         'UPDATE dbo.Courses SET EnrollmentCount = ISNULL(EnrollmentCount, 0) + 1 WHERE Id = @courseId',
         { courseId: enrollment.CourseId }
       );
+      enrollmentCountChanged = true;
     }
 
     // Send notification to student for status changes
@@ -378,6 +381,11 @@ router.put('/:studentId/enrollment/:enrollmentId', authenticateToken, async (req
 
     console.log(`[STUDENT API] Updated enrollment ${enrollmentId} status to ${finalStatus}`);
     res.json({ message: 'Enrollment status updated successfully', status: finalStatus });
+
+    // Emit real-time enrollment count change (after response sent, isolated try-catch)
+    if (enrollmentCountChanged) {
+      try { CourseEventService.getInstance().emitEnrollmentCountChanged(enrollment.CourseId); } catch (e) { console.error('[Students] Emit failed:', e); }
+    }
   } catch (error) {
     console.error('[STUDENT API] Error updating enrollment:', error);
     res.status(500).json({ error: 'Failed to update enrollment status' });

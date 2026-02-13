@@ -206,15 +206,14 @@ class SocketService {
 
   // Connection lifecycle listeners
   onConnect(callback: () => void): void {
-    // If already connected, call immediately
+    // Always persist for future reconnections
+    this.connectCallbacks.push(callback);
+    
+    // If already connected, also call immediately
     if (this.isConnected()) {
       console.log('[SocketService] Already connected, executing callback immediately');
-      callback();
-      return;
+      try { callback(); } catch (e) { console.error('Error in connect callback:', e); }
     }
-    
-    // Otherwise, register for future connection
-    this.connectCallbacks.push(callback);
   }
 
   offConnect(callback: () => void): void {
@@ -350,6 +349,10 @@ class SocketService {
       console.warn(`[SocketService] Cannot emit "${event}" - socket not connected`);
     }
   }
+
+  // ========================================
+  // Generic socket event methods
+  // ========================================
 
   on(event: string, callback: (...args: any[]) => void): void {
     if (this.socket) {

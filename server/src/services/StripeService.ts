@@ -1,6 +1,7 @@
 import Stripe from 'stripe';
 import { DatabaseService } from './DatabaseService';
 import InvoicePdfService from './InvoicePdfService';
+import { CourseEventService } from './CourseEventService';
 import { logger } from '../utils/logger';
 import { Transaction } from '../types/database';
 
@@ -272,6 +273,7 @@ export class StripeService {
             `UPDATE dbo.Courses SET EnrollmentCount = ISNULL(EnrollmentCount, 0) + 1 WHERE Id = @courseId`,
             { courseId }
           );
+          try { CourseEventService.getInstance().emitEnrollmentCountChanged(courseId); } catch (e) { logger.warn('[StripeService] Socket emit failed:', e); }
           logger.info(`✅ Approved enrollment activated for user ${userId}, course ${courseId}`);
         } else if (existingStatus === 'active' || existingStatus === 'completed') {
           logger.info(`ℹ️ User ${userId} already enrolled (${existingStatus}) in course ${courseId}, skipping`);
@@ -289,6 +291,7 @@ export class StripeService {
             `UPDATE dbo.Courses SET EnrollmentCount = ISNULL(EnrollmentCount, 0) + 1 WHERE Id = @courseId`,
             { courseId }
           );
+          try { CourseEventService.getInstance().emitEnrollmentCountChanged(courseId); } catch (e) { logger.warn('[StripeService] Socket emit failed:', e); }
           logger.info(`✅ Enrollment reactivated for user ${userId}, course ${courseId}`);
         }
       } else {
@@ -303,6 +306,7 @@ export class StripeService {
           `UPDATE dbo.Courses SET EnrollmentCount = ISNULL(EnrollmentCount, 0) + 1 WHERE Id = @courseId`,
           { courseId }
         );
+        try { CourseEventService.getInstance().emitEnrollmentCountChanged(courseId); } catch (e) { logger.warn('[StripeService] Socket emit failed:', e); }
         logger.info(`✅ Enrollment created for user ${userId}, course ${courseId}`);
       }
 

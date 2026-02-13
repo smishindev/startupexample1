@@ -4,7 +4,7 @@
 
 An innovative EdTech startup providing personalized learning experiences through AI tutoring, adaptive content delivery, and comprehensive progress analytics.
 
-**Last Major Update**: February 12, 2026 - Advanced Visibility Features (Phase 4) Complete ✅  
+**Last Major Update**: February 13, 2026 - Real-time Course Updates Complete ✅  
 **Code Quality**: Grade A (95/100) - 85% type safety, 70% logging coverage, 0 TypeScript errors
 
 ## 🚀 Features
@@ -85,6 +85,17 @@ An innovative EdTech startup providing personalized learning experiences through
 - **Analytics Dashboard** - Course performance metrics and insights
 
 ### Advanced Features
+- **Real-time Course Updates** - Automatic page refreshes when instructors edit courses (February 13, 2026) 🔄
+  - **Silent Refetch UX**: Students see updates instantly without loading spinners or scroll disruption
+  - **Debouncing Strategy**: 500ms server + 300ms/500ms client debouncing batches rapid edits (10 saves → 1 refetch)
+  - **Room-based Broadcasting**: Socket.IO rooms (`course-{id}`, `courses-catalog`) for efficient targeted updates
+  - **Auto-Join Rooms**: Users join `courses-catalog` on connect, enrolled users join `course-{id}` rooms immediately
+  - **Event Types**: `course:updated` (metadata/lessons), `course:catalog-changed` (publish/unpublish), `course:enrollment-changed` (count)
+  - **Frontend Hooks**: `useCourseRealtimeUpdates` (detail page), `useCatalogRealtimeUpdates` (catalog page)
+  - **Reconnection-Safe**: `onConnect`/`offConnect` pattern survives socket reconnections
+  - **Memory-Leak-Safe**: Complete cleanup on unmount, stale closure prevention
+  - **Backend Architecture**: CourseEventService singleton, 18 emit sites (all after res.json(), isolated try-catch)
+  - Files: 16 total (3 new, 13 modified), 0 TypeScript errors
 - **Real-time Collaboration** - Live sessions, chat, and peer learning ✅
 - **Direct Messaging System** - Real-time chat with conversation management, soft delete, automatic restoration, typing indicators, read receipts, and privacy controls (February 5, 2026) 💬
   - **User Search**: Find and message any user with debounced search

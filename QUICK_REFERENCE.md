@@ -1,7 +1,77 @@
 ﻿# 🚀 Quick Reference - Development Workflow
 
-**Last Updated**: February 12, 2026 - Advanced Visibility Features (Phase 4) 🐛
+**Last Updated**: February 13, 2026 - Real-time Course Updates 🔄
 
+
+## Real-time Course Updates (Added Feb 13, 2026)
+
+**Automatic page refreshes when instructors edit courses — no manual refresh needed**
+
+### Events Broadcasted
+```typescript
+// Server emits (CourseEventService):
+'course:updated'             // Course metadata or lessons changed
+'course:catalog-changed'     // Catalog-visible changes (publish, unpublish, delete)
+'course:enrollment-changed'  // Enrollment count changed
+
+// Rooms:
+`course-{courseId}`    // Enrolled students + instructors
+`courses-catalog`      // All authenticated users (auto-joined on connect)
+```
+
+### Frontend Integration
+```typescript
+// CourseDetailPage - Silent refetch on updates
+import { useCourseRealtimeUpdates } from '../hooks/useCourseRealtimeUpdates';
+
+useCourseRealtimeUpdates(courseId, () => {
+  setRealtimeRefetchCounter(prev => prev + 1); // Triggers refetch
+});
+
+// CoursesPage - Lighter search-loading on catalog changes
+import { useCatalogRealtimeUpdates } from '../hooks/useCatalogRealtimeUpdates';
+
+useCatalogRealtimeUpdates(() => {
+  loadCourses(true); // true = search-loading, not full spinner
+  loadCategories();
+  loadLevels();
+});
+```
+
+### Debouncing Strategy
+- **Server**: 500ms debounce per course (batches rapid edits)
+- **CourseDetailPage**: 300ms client debounce
+- **CoursesPage**: 500ms client debounce
+- **Result**: 10 rapid instructor saves → 1 update event → 1 frontend refetch
+
+### Silent Refetch Pattern
+```typescript
+// Shows loading spinner ONLY on initial load or course navigation
+const isInitialLoad = !course || course.id !== courseId;
+if (isInitialLoad) {
+  setLoading(true);
+}
+// Real-time updates swap data silently (no spinner, preserves scroll)
+```
+
+### Backend Architecture
+```typescript
+// All emit sites follow this pattern:
+res.json({ success: true }); // Response sent FIRST
+
+try { // Isolated try-catch (won't crash route or trigger Stripe retry)
+  CourseEventService.getInstance().emitCourseUpdated(courseId, ['title', 'description']);
+} catch (e) {
+  console.error('[Route] Emit failed:', e);
+}
+```
+
+### Files Modified (16 files)
+- **New**: CourseEventService.ts, useCourseRealtimeUpdates.ts, useCatalogRealtimeUpdates.ts
+- **Backend**: sockets.ts, index.ts, instructor.ts, lessons.ts, enrollment.ts, students.ts, payments.ts, StripeService.ts, CourseManagementService.ts
+- **Frontend**: socketService.ts, CourseDetailPage.tsx, CoursesPage.tsx
+
+---
 
 ## Advanced Visibility - Phase 4 (Added Feb 12, 2026)
 

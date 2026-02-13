@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -63,6 +63,7 @@ import type { PrerequisiteCheck } from '../../services/coursesApi';
 import { useAuthStore } from '../../stores/authStore';
 import { BookmarkApi } from '../../services/bookmarkApi';
 import { useShare } from '../../hooks/useShare';
+import { useCourseRealtimeUpdates } from '../../hooks/useCourseRealtimeUpdates';
 import { ShareService } from '../../services/shareService';
 import { toast } from 'sonner';
 
@@ -158,6 +159,9 @@ export const CourseDetailPage: React.FC = () => {
   const [prerequisiteCheck, setPrerequisiteCheck] = useState<PrerequisiteCheck | null>(null);
   const [loadingPrerequisites, setLoadingPrerequisites] = useState(false);
 
+  // Real-time refetch trigger: incremented by socket events to re-run fetchCourse
+  const [realtimeRefetchCounter, setRealtimeRefetchCounter] = useState(0);
+
   const { openShareDialog, ShareDialogComponent } = useShare({
     contentType: 'course',
     contentId: course?.id || '',
@@ -247,8 +251,12 @@ export const CourseDetailPage: React.FC = () => {
     const fetchCourse = async () => {
       if (!courseId) return;
       
+      // Show loading spinner on initial load or when navigating to a different course
+      const isInitialLoad = !course || course.id !== courseId;
       try {
-        setLoading(true);
+        if (isInitialLoad) {
+          setLoading(true);
+        }
         // Use preview API if preview token is present, otherwise normal API
         const [courseData, enrollmentStatusData] = await Promise.all([
           isPreviewMode && previewToken
@@ -354,20 +362,30 @@ export const CourseDetailPage: React.FC = () => {
           status: courseData.Status,
         };
         setCourse(realCourse);
-        setLoading(false);
+        if (isInitialLoad) {
+          setLoading(false);
+        }
       } catch (error: any) {
         console.error('Error fetching course:', error);
-        if (isPreviewMode) {
-          setError('Invalid or expired preview link. The course owner may have regenerated the link.');
-        } else {
-          setError(error.response?.status === 404 ? 'Course not found' : 'Failed to load course');
+        if (isInitialLoad) {
+          if (isPreviewMode) {
+            setError('Invalid or expired preview link. The course owner may have regenerated the link.');
+          } else {
+            setError(error.response?.status === 404 ? 'Course not found' : 'Failed to load course');
+          }
+          setLoading(false);
         }
-        setLoading(false);
+        // On real-time refetch failure, silently keep the existing course data
       }
     };
 
     fetchCourse();
-  }, [courseId, previewToken, user]);
+  }, [courseId, previewToken, user, realtimeRefetchCounter]);
+
+  // Real-time course updates: refresh when instructor changes course data or lessons
+  useCourseRealtimeUpdates(courseId, useCallback(() => {
+    setRealtimeRefetchCounter(prev => prev + 1);
+  }, []));
 
   const handleEnroll = async () => {
     if (isPreviewMode) {

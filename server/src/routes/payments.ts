@@ -4,6 +4,7 @@ import { DatabaseService } from '../services/DatabaseService';
 import EmailService from '../services/EmailService';
 import { AuthRequest, authenticateToken } from '../middleware/auth';
 import InvoicePdfService from '../services/InvoicePdfService';
+import { CourseEventService } from '../services/CourseEventService';
 import path from 'path';
 
 const router = express.Router();
@@ -526,6 +527,8 @@ router.post('/confirm-enrollment', authenticateToken, async (req: Request, res: 
       { userId, courseId }
     );
 
+    let enrollmentCountChanged = false;
+
     if (existingEnrollment.length > 0) {
       const enrollmentStatus = existingEnrollment[0].Status;
       if (enrollmentStatus === 'active' || enrollmentStatus === 'completed') {
@@ -545,6 +548,7 @@ router.post('/confirm-enrollment', authenticateToken, async (req: Request, res: 
           `UPDATE dbo.Courses SET EnrollmentCount = ISNULL(EnrollmentCount, 0) + 1 WHERE Id = @courseId`,
           { courseId }
         );
+        enrollmentCountChanged = true;
         console.log(`✅ Enrollment activated (was ${enrollmentStatus}) for user ${userId} in course ${courseId}`);
       }
     } else {
@@ -559,6 +563,7 @@ router.post('/confirm-enrollment', authenticateToken, async (req: Request, res: 
         `UPDATE dbo.Courses SET EnrollmentCount = ISNULL(EnrollmentCount, 0) + 1 WHERE Id = @courseId`,
         { courseId }
       );
+      enrollmentCountChanged = true;
       console.log(`✅ Enrollment created for user ${userId} in course ${courseId}`);
     }
 
@@ -569,6 +574,15 @@ router.post('/confirm-enrollment', authenticateToken, async (req: Request, res: 
       success: true,
       message: 'Enrollment confirmed',
     });
+
+    // Emit real-time enrollment count change (after response sent, isolated try-catch)
+    if (enrollmentCountChanged) {
+      try {
+        CourseEventService.getInstance().emitEnrollmentCountChanged(courseId);
+      } catch (emitError) {
+        console.error('[Payments] Failed to emit enrollment count event:', emitError);
+      }
+    }
   } catch (error) {
     console.error('❌ Error confirming enrollment:', error);
     res.status(500).json({ 

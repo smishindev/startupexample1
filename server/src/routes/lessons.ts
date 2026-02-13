@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { authenticateToken } from '../middleware/auth';
 import { DatabaseService } from '../services/DatabaseService';
 import { NotificationService } from '../services/NotificationService';
+import { CourseEventService } from '../services/CourseEventService';
 import { v4 as uuidv4 } from 'uuid';
 
 const router = Router();
@@ -333,6 +334,13 @@ router.post('/', authenticateToken, async (req: Request, res: Response) => {
     };
 
     res.status(201).json(lesson);
+
+    // Emit real-time course update event (after response sent, isolated try-catch)
+    try {
+      CourseEventService.getInstance().emitCourseUpdated(courseId, ['lessons']);
+    } catch (emitError) {
+      console.error('[Lessons] Failed to emit course update event:', emitError);
+    }
   } catch (error) {
     console.error('Error creating lesson:', error);
     res.status(500).json({ error: 'Failed to create lesson' });
@@ -430,6 +438,13 @@ router.put('/:id', authenticateToken, async (req: Request, res: Response) => {
     };
 
     res.json(lesson);
+
+    // Emit real-time course update event (after response sent, isolated try-catch)
+    try {
+      CourseEventService.getInstance().emitCourseUpdated(currentLesson.CourseId, ['lessons']);
+    } catch (emitError) {
+      console.error('[Lessons] Failed to emit course update event:', emitError);
+    }
   } catch (error) {
     console.error('Error updating lesson:', error);
     res.status(500).json({ error: 'Failed to update lesson' });
@@ -442,9 +457,9 @@ router.delete('/:id', authenticateToken, async (req: Request, res: Response) => 
     const { id } = req.params;
     const userId = (req as any).user.userId;
 
-    // Verify user owns the course
+    // Verify user owns the course and get courseId
     const courseCheck = await db.query(
-      `SELECT l.Id FROM dbo.Lessons l
+      `SELECT l.Id, l.CourseId FROM dbo.Lessons l
        INNER JOIN dbo.Courses c ON l.CourseId = c.Id
        WHERE l.Id = @id AND c.InstructorId = @userId`,
       { id, userId }
@@ -453,6 +468,8 @@ router.delete('/:id', authenticateToken, async (req: Request, res: Response) => 
     if (!courseCheck.length) {
       return res.status(403).json({ error: 'Access denied - not course instructor' });
     }
+
+    const lessonCourseId = courseCheck[0].CourseId;
 
     // Delete related records that have NO ACTION constraints (SQL Server cascade path limitations)
     // 1. Delete user progress records for this lesson
@@ -465,6 +482,13 @@ router.delete('/:id', authenticateToken, async (req: Request, res: Response) => 
     await db.execute('DELETE FROM dbo.Lessons WHERE Id = @id', { id });
 
     res.json({ message: 'Lesson deleted successfully' });
+
+    // Emit real-time course update event (after response sent, isolated try-catch)
+    try {
+      CourseEventService.getInstance().emitCourseUpdated(lessonCourseId, ['lessons']);
+    } catch (emitError) {
+      console.error('[Lessons] Failed to emit course update event:', emitError);
+    }
   } catch (error) {
     console.error('Error deleting lesson:', error);
     res.status(500).json({ error: 'Failed to delete lesson' });
@@ -501,6 +525,13 @@ router.post('/reorder', authenticateToken, async (req: Request, res: Response) =
     }
 
     res.json({ message: 'Lessons reordered successfully' });
+
+    // Emit real-time course update event (after response sent, isolated try-catch)
+    try {
+      CourseEventService.getInstance().emitCourseUpdated(courseId, ['lessons']);
+    } catch (emitError) {
+      console.error('[Lessons] Failed to emit course update event:', emitError);
+    }
   } catch (error) {
     console.error('Error reordering lessons:', error);
     res.status(500).json({ error: 'Failed to reorder lessons' });

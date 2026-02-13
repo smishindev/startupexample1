@@ -1,6 +1,7 @@
 import sql from 'mssql';
 import { DatabaseService } from './DatabaseService';
 import { NotificationService } from './NotificationService';
+import { CourseEventService } from './CourseEventService';
 import EmailService from './EmailService';
 import { Server as SocketIOServer } from 'socket.io';
 
@@ -160,6 +161,16 @@ export class CourseManagementService {
       await transaction.commit();
 
       const archivedCount = archiveResult.rowsAffected[0] || 0;
+
+      // Emit real-time catalog change events for each archived course
+      const courseEventService = CourseEventService.getInstance();
+      for (const course of coursesToArchive.recordset) {
+        try {
+          courseEventService.emitCourseCatalogChanged('removed', course.Id);
+        } catch (emitError) {
+          console.error('[CourseManagement] Failed to emit archive event:', emitError);
+        }
+      }
 
       // Send notifications to affected students (non-blocking)
       this.notifyStudentsOfArchive(instructorId, coursesToArchive.recordset).catch(err => {
@@ -355,7 +366,17 @@ export class CourseManagementService {
   async softDeleteCourses(instructorId: string): Promise<{ success: boolean; deletedCount: number }> {
     const request = await this.db.getRequest();
 
-    const result = await request
+    // Query course IDs BEFORE deleting so we know exactly which ones were affected
+    const coursesToDelete = await request
+      .input('instructorIdPre', sql.UniqueIdentifier, instructorId)
+      .query(`
+        SELECT Id FROM dbo.Courses
+        WHERE InstructorId = @instructorIdPre
+          AND Status != 'deleted'
+      `);
+
+    const request2 = await this.db.getRequest();
+    const result = await request2
       .input('instructorId', sql.UniqueIdentifier, instructorId)
       .query(`
         UPDATE dbo.Courses
@@ -366,6 +387,18 @@ export class CourseManagementService {
       `);
 
     const deletedCount = result.rowsAffected[0] || 0;
+
+    // Emit catalog change events only for the courses just deleted
+    if (deletedCount > 0) {
+      const courseEventService = CourseEventService.getInstance();
+      for (const course of coursesToDelete.recordset) {
+        try {
+          courseEventService.emitCourseCatalogChanged('removed', course.Id);
+        } catch (emitError) {
+          console.error('[CourseManagement] Failed to emit catalog change event:', emitError);
+        }
+      }
+    }
 
     return {
       success: true,

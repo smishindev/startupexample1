@@ -1,7 +1,149 @@
 # Mishin Learn Platform - Component Registry
 
-**Last Updated**: February 12, 2026 - Advanced Visibility Features (Phase 4) 🔍  
+**Last Updated**: February 13, 2026 - Real-time Course Updates 🔄  
 **Purpose**: Quick reference for all major components, their dependencies, and relationships
+
+---
+
+## 🔄 Real-time Course Update Hooks (Added February 13, 2026)
+
+### useCourseRealtimeUpdates
+**Path**: `client/src/hooks/useCourseRealtimeUpdates.ts` (112 lines)  
+**Purpose**: Listen for real-time course data changes and trigger page refresh
+
+**Features**:
+- Listens to Socket.IO events: `course:updated`, `course:enrollment-changed`
+- Filters events by `courseId` (only triggers for current course)
+- 300ms client-side debounce (batches rapid server events)
+- Reconnection-safe: Uses `socketService.onConnect()`/`offConnect()` pattern
+- Memory-leak-safe: Complete cleanup on unmount (listeners + debounce timer)
+- Stale closure prevention: `onUpdateRef.current` always calls latest callback
+
+**Usage**:
+```tsx
+import { useCourseRealtimeUpdates } from '../hooks/useCourseRealtimeUpdates';
+
+const CourseDetailPage = () => {
+  const { courseId } = useParams();
+  const [realtimeRefetchCounter, setRealtimeRefetchCounter] = useState(0);
+  
+  // Hook increments counter → triggers fetchCourse useEffect
+  useCourseRealtimeUpdates(courseId, useCallback(() => {
+    setRealtimeRefetchCounter(prev => prev + 1);
+  }, []));
+  
+  useEffect(() => {
+    fetchCourse(); // Re-runs when realtimeRefetchCounter changes
+  }, [courseId, user, realtimeRefetchCounter]);
+};
+```
+
+**Architecture**:
+```typescript
+const onUpdateRef = useRef(onUpdate);           // Stable reference to callback
+const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+const listenersRef = useRef({ ... });           // Track handlers for cleanup
+
+const setupListeners = () => {
+  removeListeners();                            // Prevent duplicates on reconnect
+  const handleCourseUpdated = (data) => {
+    if (data.courseId === courseId) {           // Filter by courseId
+      triggerUpdate();                          // Debounced
+    }
+  };
+  socket.on('course:updated', handleCourseUpdated);
+  socket.on('course:enrollment-changed', handleEnrollmentChanged);
+  listenersRef.current = { handleCourseUpdated, handleEnrollmentChanged };
+};
+
+socketService.onConnect(setupListeners);        // Survives reconnections
+
+return () => {
+  socketService.offConnect(setupListeners);     // Remove reconnect handler
+  removeListeners();                            // Remove socket listeners
+  clearTimeout(debounceTimerRef.current);       // Clear pending debounce
+};
+```
+
+### useCatalogRealtimeUpdates
+**Path**: `client/src/hooks/useCatalogRealtimeUpdates.ts` (104 lines)  
+**Purpose**: Listen for catalog-level changes and trigger page refresh
+
+**Features**:
+- Listens to: `course:catalog-changed`, `course:enrollment-changed`
+- No courseId filter (all catalog events trigger refresh)
+- 500ms client-side debounce (heavier than course hook)
+- Same reconnection-safe + memory-leak-safe patterns as course hook
+
+**Usage**:
+```tsx
+import { useCatalogRealtimeUpdates } from '../hooks/useCatalogRealtimeUpdates';
+
+const CoursesPage = () => {
+  useCatalogRealtimeUpdates(() => {
+    loadCourses(true);      // true = "search-loading" (lighter spinner)
+    loadCategories();
+    loadLevels();
+    loadOverallStats();
+  });
+};
+```
+
+### CourseEventService (Backend)
+**Path**: `server/src/services/CourseEventService.ts` (212 lines)  
+**Purpose**: Centralized real-time event broadcaster for all course changes
+
+**Features**:
+- **Singleton Pattern**: Private constructor, getInstance()
+- **500ms Server Debounce**: Batches rapid mutations per course
+- **3 Event Types**:
+  - `course:updated`: Metadata or lessons changed
+  - `course:catalog-changed`: Catalog visibility changes (publish, unpublish, delete)
+  - `course:enrollment-changed`: Enrollment count changed
+- **Room Strategy**: Emits to `course-{courseId}` + `courses-catalog` (chained .to() deduplicates)
+- **Graceful Shutdown**: `destroy()` flushes pending debounced events
+- **Dynamic Room Join**: `joinUserToCourseRoom()` uses fetchSockets() to join all user's sockets
+
+**Usage Pattern** (ALL route handlers follow this):
+```typescript
+import { CourseEventService } from '../services/CourseEventService';
+
+router.put('/courses/:id', async (req, res) => {
+  // 1. Perform DB operation
+  await db.execute('UPDATE Courses SET Title = @title WHERE Id = @id');
+  
+  // 2. Send HTTP response FIRST
+  res.json({ success: true, message: 'Course updated' });
+  
+  // 3. Emit socket event AFTER response (isolated try-catch)
+  try {
+    const courseEventService = CourseEventService.getInstance();
+    courseEventService.emitCourseUpdated(courseId, ['title']);
+  } catch (emitError) {
+    console.error('[Instructor] Failed to emit course update:', emitError);
+  }
+});
+```
+
+**Why This Pattern?**
+- Emit AFTER res.json() prevents "Cannot set headers after they are sent" crashes
+- Isolated try-catch prevents emit failures from crashing routes
+- Isolated try-catch prevents Stripe webhook retries on socket failures
+
+**Emit Sites (18 total across 7 files):**
+- instructor.ts: 3 sites (course update, publish, enrollment approval)
+- lessons.ts: 4 sites (create, update, delete, reorder)
+- enrollment.ts: 4 sites (free course activation, re-enrollment, reactivation, new enrollment)
+- students.ts: 1 site (enrollment status change)
+- payments.ts: 1 site (payment confirmation)
+- StripeService.ts: 3 sites (webhook handlers)
+- CourseManagementService.ts: 2 sites (archive loop, delete loop)
+
+**Dependencies**:
+- Socket.IO instance set via `CourseEventService.setSocketIO(io)` in index.ts
+- Logger for structured logging
+
+---
 
 ---
 

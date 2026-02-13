@@ -18,17 +18,14 @@ import {
   CircularProgress,
   Alert,
   Pagination,
-  Card,
-  CardContent,
-  Rating,
   Snackbar,
 } from '@mui/material';
-import { Search, FilterList, TrendingUp } from '@mui/icons-material';
+import { Search } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { HeaderV5 as Header } from '../../components/Navigation/HeaderV5';
 import { CourseCard, Course } from '../../components/Course/CourseCard';
 import { enrollmentApi } from '../../services/enrollmentApi';
-import { coursesApi, Course as ApiCourse, CourseFilters, CourseCategory, CourseLevel } from '../../services/coursesApi';
+import { coursesApi, Course as ApiCourse, CourseFilters } from '../../services/coursesApi';
 import { BookmarkApi } from '../../services/bookmarkApi';
 import { useAuthStore } from '../../stores/authStore';
 import { ShareDialog } from '../../components/Shared/ShareDialog';
@@ -122,15 +119,7 @@ export const CoursesPage: React.FC = () => {
   const [enrolledCourses, setEnrolledCourses] = useState<Course[]>([]);
   const [bookmarkedCourses, setBookmarkedCourses] = useState<Course[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
-  const [categoryStats, setCategoryStats] = useState<CourseCategory[]>([]);
   const [levels, setLevels] = useState<string[]>([]);
-  const [levelStats, setLevelStats] = useState<CourseLevel[]>([]);
-  const [overallStats, setOverallStats] = useState({
-    TotalCourses: 0,
-    FreeCourses: 0,
-    TotalStudents: 0,
-    TotalCategories: 0,
-  });
   const [loading, setLoading] = useState(true);
   const [searchLoading, setSearchLoading] = useState(false);
   const [bookmarksLoading, setBookmarksLoading] = useState(false);
@@ -181,7 +170,6 @@ export const CoursesPage: React.FC = () => {
       if (!isSearch) {
         loadCategories();
         loadLevels();
-        loadOverallStats();
       }
     }, 100);
     
@@ -200,7 +188,6 @@ export const CoursesPage: React.FC = () => {
     loadCourses(true); // Use search loading (lighter) instead of full page loading spinner
     loadCategories();
     loadLevels();
-    loadOverallStats();
   });
 
   const loadCourses = async (isSearch = false) => {
@@ -295,7 +282,6 @@ export const CoursesPage: React.FC = () => {
       const categoriesData = await coursesApi.getCategories();
       const categoryNames = categoriesData.map(cat => formatCategory(cat.Category));
       setCategories(categoryNames);
-      setCategoryStats(categoriesData);
     } catch (err) {
       console.error('Error loading categories:', err);
     }
@@ -306,18 +292,8 @@ export const CoursesPage: React.FC = () => {
       const levelsData = await coursesApi.getLevels();
       const levelNames = levelsData.map(level => level.Level);
       setLevels(levelNames);
-      setLevelStats(levelsData);
     } catch (err) {
       console.error('Error loading levels:', err);
-    }
-  };
-
-  const loadOverallStats = async () => {
-    try {
-      const statsData = await coursesApi.getStats();
-      setOverallStats(statsData);
-    } catch (err) {
-      console.error('Error loading overall stats:', err);
     }
   };
 
@@ -724,159 +700,10 @@ export const CoursesPage: React.FC = () => {
 
         {/* All Courses Tab */}
         <TabPanel value={tabValue} index={0}>
-          {/* Simplified Course Overview - Only show when meaningful stats exist */}
-          {!loading && overallStats.TotalCourses > 0 && (
-            <Paper sx={{ p: 3, mb: 4, background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 3 }}>
-                <Box>
-                  <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 1 }}>
-                    Explore Our Course Catalog
-                  </Typography>
-                  <Typography variant="body1" sx={{ opacity: 0.9 }}>
-                    {overallStats.TotalCourses} courses across {overallStats.TotalCategories} categories
-                    {overallStats.FreeCourses > 0 && ` • ${overallStats.FreeCourses} free courses available`}
-                  </Typography>
-                </Box>
-                {overallStats.TotalStudents > 0 && (
-                  <Box sx={{ textAlign: 'center', px: 3, py: 2, bgcolor: 'rgba(255,255,255,0.2)', borderRadius: 2 }}>
-                    <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
-                      {overallStats.TotalStudents.toLocaleString()}
-                    </Typography>
-                    <Typography variant="body2">
-                      {overallStats.TotalStudents === 1 ? 'Student' : 'Students'} Enrolled
-                    </Typography>
-                  </Box>
-                )}
-              </Box>
-            </Paper>
-          )}
-
-          {/* Category Statistics */}
-          {categoryStats.length > 0 && (
-            <Paper sx={{ p: 3, mb: 4 }}>
-              <Typography variant="h6" sx={{ mb: 3 }}>
-                Course Categories
-              </Typography>
-              <Grid container spacing={2}>
-                {categoryStats.map((stat, index) => (
-                  <Grid item xs={12} sm={6} md={3} key={index}>
-                    <Card 
-                      sx={{ 
-                        cursor: 'pointer',
-                        transition: 'all 0.2s',
-                        '&:hover': {
-                          transform: 'translateY(-2px)',
-                          boxShadow: 3,
-                        },
-                        ...(selectedCategory === stat.Category.toLowerCase().replace(' ', '_') && {
-                          bgcolor: 'primary.50',
-                          borderColor: 'primary.main',
-                          borderWidth: 2,
-                        })
-                      }}
-                      onClick={() => setSelectedCategory(
-                        selectedCategory === stat.Category.toLowerCase().replace(' ', '_') 
-                          ? '' 
-                          : stat.Category.toLowerCase().replace(' ', '_')
-                      )}
-                    >
-                      <CardContent sx={{ textAlign: 'center', py: 2 }}>
-                        <Typography variant="h6" color="primary.main" sx={{ fontWeight: 'bold' }}>
-                          {stat.Count}
-                        </Typography>
-                        <Typography variant="body2" sx={{ mb: 1 }}>
-                          {formatCategory(stat.Category)}
-                        </Typography>
-                        {(stat.AverageRating > 0 || stat.AverageEnrollments > 0) && (
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
-                            {stat.AverageRating > 0 && (
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                <Rating value={stat.AverageRating} precision={0.1} readOnly size="small" />
-                                <Typography variant="caption">
-                                  {stat.AverageRating.toFixed(1)}
-                                </Typography>
-                              </Box>
-                            )}
-                            {stat.AverageEnrollments > 0 && (
-                              <Typography variant="caption" color="text.secondary">
-                                ~{Math.round(stat.AverageEnrollments)} enrolled
-                              </Typography>
-                            )}
-                          </Box>
-                        )}
-                      </CardContent>
-                    </Card>
-                  </Grid>
-                ))}
-              </Grid>
-            </Paper>
-          )}
-
-          {/* Level Statistics */}
-          {levelStats.length > 0 && (
-            <Paper sx={{ p: 3, mb: 4 }}>
-              <Typography variant="h6" sx={{ mb: 3 }}>
-                Course Levels
-              </Typography>
-              <Grid container spacing={2}>
-                {levelStats.map((stat, index) => (
-                  <Grid item xs={12} sm={4} md={4} key={index}>
-                    <Card 
-                      sx={{ 
-                        cursor: 'pointer',
-                        transition: 'all 0.2s',
-                        '&:hover': {
-                          transform: 'translateY(-2px)',
-                          boxShadow: 3,
-                        },
-                        ...(selectedLevel === stat.Level && {
-                          bgcolor: 'primary.50',
-                          borderColor: 'primary.main',
-                          borderWidth: 2,
-                        })
-                      }}
-                      onClick={() => setSelectedLevel(
-                        selectedLevel === stat.Level 
-                          ? '' 
-                          : stat.Level
-                      )}
-                    >
-                      <CardContent sx={{ textAlign: 'center', py: 2 }}>
-                        <Typography variant="h6" color="primary.main" sx={{ fontWeight: 'bold' }}>
-                          {stat.Count}
-                        </Typography>
-                        <Typography variant="body2" sx={{ mb: 1 }}>
-                          {stat.Level}
-                        </Typography>
-                        {(stat.AverageRating > 0 || stat.AverageEnrollments > 0) && (
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
-                            {stat.AverageRating > 0 && (
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                <Rating value={stat.AverageRating} precision={0.1} readOnly size="small" />
-                                <Typography variant="caption">
-                                  {stat.AverageRating.toFixed(1)}
-                                </Typography>
-                              </Box>
-                            )}
-                            {stat.AverageEnrollments > 0 && (
-                              <Typography variant="caption" color="text.secondary">
-                                ~{Math.round(stat.AverageEnrollments)} enrolled
-                              </Typography>
-                            )}
-                          </Box>
-                        )}
-                      </CardContent>
-                    </Card>
-                  </Grid>
-                ))}
-              </Grid>
-            </Paper>
-          )}
-
           {/* Search and Filters */}
           <Paper sx={{ p: 3, mb: 4 }}>
             <Grid container spacing={3} alignItems="center">
-              <Grid item xs={12} md={4}>
+              <Grid item xs={12} md={5}>
                 <TextField
                   fullWidth
                   placeholder="Search courses..."
@@ -893,7 +720,7 @@ export const CoursesPage: React.FC = () => {
                 />
               </Grid>
               
-              <Grid item xs={12} sm={6} md={2}>
+              <Grid item xs={12} sm={6} md={3}>
                 <FormControl fullWidth>
                   <InputLabel>Category</InputLabel>
                   <Select
@@ -948,18 +775,6 @@ export const CoursesPage: React.FC = () => {
                   </Select>
                 </FormControl>
               </Grid>
-
-              <Grid item xs={12} sm={6} md={2}>
-                <Button
-                  fullWidth
-                  variant="outlined"
-                  startIcon={<FilterList />}
-                  sx={{ height: 56 }}
-                  data-testid="courses-filters-button"
-                >
-                  Filters
-                </Button>
-              </Grid>
             </Grid>
 
             {/* Active Filters */}
@@ -1005,26 +820,6 @@ export const CoursesPage: React.FC = () => {
                 <Typography variant="h6">
                   {allCourses.length} courses found
                 </Typography>
-                {overallStats.TotalStudents === 0 && allCourses.length > 0 && (
-                  <Box 
-                    sx={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      gap: 1,
-                      px: 2,
-                      py: 1,
-                      bgcolor: 'success.50',
-                      borderRadius: 1,
-                      border: '1px solid',
-                      borderColor: 'success.200',
-                    }}
-                  >
-                    <TrendingUp sx={{ color: 'success.main', fontSize: 20 }} />
-                    <Typography variant="body2" color="success.dark" sx={{ fontWeight: 600 }}>
-                      Fresh courses! Be among the first to enroll
-                    </Typography>
-                  </Box>
-                )}
                 {searchLoading && (
                   <CircularProgress size={20} sx={{ ml: 2 }} />
                 )}

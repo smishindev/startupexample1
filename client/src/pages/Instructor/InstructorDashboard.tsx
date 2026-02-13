@@ -37,8 +37,6 @@ import {
   Settings as SettingsIcon,
   Publish as PublishIcon,
   Drafts as DraftIcon,
-  NotificationImportant as InterventionIcon,
-  VideoLibrary as VideoLibraryIcon,
   PlayCircleOutline
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
@@ -337,58 +335,6 @@ export const InstructorDashboard: React.FC = () => {
           </Card>
         </Grid>
       </Grid>
-
-      {/* Quick Actions */}
-      <Paper sx={{ p: 3, mb: 4 }}>
-        <Typography variant="h6" gutterBottom>
-          Quick Actions
-        </Typography>
-        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-          <Button 
-            variant="contained" 
-            startIcon={<AddIcon />}
-            onClick={() => setCreateDialogOpen(true)}
-            data-testid="instructor-create-new-course-button"
-          >
-            Create New Course
-          </Button>
-          <Button 
-            variant="outlined" 
-            startIcon={<AnalyticsIcon />}
-            onClick={() => navigate('/instructor/analytics-hub')}
-            color="primary"
-            data-testid="instructor-analytics-hub-button"
-          >
-            Analytics Hub
-          </Button>
-          <Button 
-            variant="outlined" 
-            startIcon={<VideoLibraryIcon />}
-            onClick={() => navigate('/instructor/video-analytics')}
-            color="primary"
-            data-testid="instructor-video-analytics-button"
-          >
-            Video Analytics
-          </Button>
-          <Button 
-            variant="outlined" 
-            startIcon={<InterventionIcon />}
-            onClick={() => navigate('/instructor/interventions')}
-            color="error"
-            data-testid="instructor-intervention-dashboard-button"
-          >
-            Intervention Dashboard
-          </Button>
-          <Button 
-            variant="outlined" 
-            startIcon={<SettingsIcon />}
-            onClick={() => navigate('/instructor/settings')}
-            data-testid="instructor-settings-button"
-          >
-            Settings
-          </Button>
-        </Box>
-      </Paper>
 
       {/* Courses Grid */}
       <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

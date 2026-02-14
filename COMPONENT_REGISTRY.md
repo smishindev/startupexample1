@@ -1613,12 +1613,19 @@ onMemberRemoved: (data) => {
 - **Students**: → `/instructor/students?courseId=:id` (query param)
 
 **Features**:
-- Course filtering (All/Published/Draft)
+- Course filtering (All/Published/Draft/Archived)
 - Course search by title
 - Pagination (12 courses per page)
 - Real-time stats display (students, lessons, revenue, rating)
 - Level badges with color coding (beginner=green, intermediate=orange, advanced=red, expert=dark red)
-- Status indicators (draft/published)
+- Status indicators (draft/published/archived)
+- **Pending Enrollment Approvals** section (Feb 14, 2026):
+  - Displays up to 4 pending enrollments with approve/reject quick actions
+  - Real-time updates via `useCatalogRealtimeUpdates` hook
+  - Relative timestamps ("3 minutes ago") auto-refresh every 60 seconds
+- **Real-time Updates** (Feb 14, 2026):
+  - Pending approvals count updates instantly when students request enrollment
+  - Stats refresh silently when enrollment status changes
 
 **Status**: ✅ Production-ready
 

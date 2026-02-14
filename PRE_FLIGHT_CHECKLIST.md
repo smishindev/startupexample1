@@ -69,7 +69,7 @@
   - Users auto-join `courses-catalog` room on socket connect
   - Enrolled users auto-join `course-{courseId}` rooms (existing + immediate on new enrollment)
   - Backend: CourseEventService singleton with 500ms debounce batches rapid edits
-  - 18 emit sites across 7 files (all after res.json() in isolated try-catch)
+  - 21 emit sites across 8 files (all after res.json() in isolated try-catch)
   - 3 event types: `course:updated`, `course:catalog-changed`, `course:enrollment-changed`
   - Frontend: useCourseRealtimeUpdates (300ms debounce), useCatalogRealtimeUpdates (500ms debounce)
   - Silent refetch UX: Shows spinner ONLY on initial load or course navigation (not on real-time updates)
@@ -79,7 +79,10 @@
   - Memory-leak-safe: Complete cleanup on unmount (listeners + debounce timers)
   - Stale closure prevention: `onUpdateRef.current` pattern always calls latest callback
   - Bug fixes: 6 issues (emit before response, stale course on navigation, loop-wrapping try-catch)
-  - Files: 16 total (3 new: CourseEventService.ts, useCourseRealtimeUpdates.ts, useCatalogRealtimeUpdates.ts; 13 modified)
+  - **Enrollment Real-time Enhancements (Feb 14, 2026)**: Pending approvals, approve/reject actions, timestamp auto-refresh
+  - 5 enrollment emit sites: 3 for pending creation (enroll + 2 re-enroll paths), 2 for approve/reject
+  - InstructorDashboard: 60-second interval auto-refreshes "Requested X mins ago" timestamps
+  - Files: 19 total (3 new services/hooks; 16 modified routes/pages including enrollment.ts, instructor.ts, InstructorDashboard.tsx)
   - Status: 0 TypeScript errors (server + client), all emit sites verified, comprehensive review complete
 - [x] **Advanced Visibility - Phase 4** - PRODUCTION READY (Feb 12, 2026) 🔍
   - Course visibility control: Public (in catalog) vs Unlisted (direct link only)

@@ -62,12 +62,27 @@ GET    /api/terms/:documentType/:version     - Get specific document version
 // Server emits (CourseEventService):
 'course:updated'             // Course metadata or lessons changed
 'course:catalog-changed'     // Catalog-visible changes (publish, unpublish, delete)
-'course:enrollment-changed'  // Enrollment count changed
+'course:enrollment-changed'  // Enrollment count changed (includes pending approvals, approve/reject - Feb 14)
 
 // Rooms:
 `course-{courseId}`    // Enrolled students + instructors
 `courses-catalog`      // All authenticated users (auto-joined on connect)
 ```
+
+### Enrollment Real-time Updates (Feb 14, 2026)
+**Pending approvals and status changes update instantly**
+- When student requests enrollment → Instructor dashboard shows new pending approval (no refresh)
+- When instructor approves/rejects → Student's course card status updates instantly
+- "Requested X minutes ago" timestamps auto-refresh every 60 seconds
+- 5 total emit sites in enrollment flow:
+  - `POST /api/enrollment/enroll` → emits when creating pending enrollment
+  - `POST /api/enrollment/re-enroll` → emits when re-enrolling from rejected/cancelled (if pending created)
+  - `POST /api/instructor/courses/:id/enrollments/:enrollmentId/approve` → emits for all course types
+  - `POST /api/instructor/courses/:id/enrollments/:enrollmentId/reject` → emits on rejection
+  - `POST /api/courses/:id/checkout/confirm` → emits on completed payment (existing)
+- Frontend: InstructorDashboard uses `useCatalogRealtimeUpdates` to refresh pending list + stats
+- Frontend: CoursesPage uses `useCatalogRealtimeUpdates` to refresh enrollment statuses
+- Pattern: Silent refetch on emit (loadPendingEnrollments, loadStats, loadCourses with search-loading)
 
 ### Frontend Integration
 ```typescript

@@ -678,7 +678,7 @@ POST   /api/email-unsubscribe/resubscribe - Resubscribe to emails
 - **Unsubscribe**: One-click token-based unsubscribe with database tracking
 - **Templates**: Beautiful HTML emails with type-specific styling (progress, course, system, social, assessment)
 
-**Socket.IO Architecture (Updated February 13, 2026):**
+**Socket.IO Architecture (Updated February 14, 2026):**
 - **Emission Pattern**: ALL socket events emit exclusively from route handlers (after res.json())
 - **Service Layer**: Pure data operations, NO socket emissions (exception: CourseEventService)
 - **Broadcasting**: Room-based strategy (`course-{id}`, `courses-catalog`, `user-{id}`)
@@ -689,6 +689,7 @@ POST   /api/email-unsubscribe/resubscribe - Resubscribe to emails
 - **Services**: Return data only, add comment `// Note: Socket event is emitted in the route handler, not here`
 - **Course Updates**: Centralized CourseEventService with 500ms debounce batches rapid mutations
 - **Rooms Auto-Join**: Users join `courses-catalog` on connect, enrolled users join `course-{courseId}` rooms
+- **Enrollment Real-time (Feb 14)**: 5 emit sites for pending approvals, approve/reject actions → instant dashboard updates
 
 **Notification Triggers (22/31 Active - February 2, 2026):**
 - ✅ **Lesson Completion**: Student progress update + instructor milestones (25%, 50%, 75%, 100%) - Dec 29, 2025

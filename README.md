@@ -97,12 +97,13 @@ An innovative EdTech startup providing personalized learning experiences through
   - **Debouncing Strategy**: 500ms server + 300ms/500ms client debouncing batches rapid edits (10 saves → 1 refetch)
   - **Room-based Broadcasting**: Socket.IO rooms (`course-{id}`, `courses-catalog`) for efficient targeted updates
   - **Auto-Join Rooms**: Users join `courses-catalog` on connect, enrolled users join `course-{id}` rooms immediately
-  - **Event Types**: `course:updated` (metadata/lessons), `course:catalog-changed` (publish/unpublish), `course:enrollment-changed` (count)
+  - **Event Types**: `course:updated` (metadata/lessons), `course:catalog-changed` (publish/unpublish), `course:enrollment-changed` (count + status)
   - **Frontend Hooks**: `useCourseRealtimeUpdates` (detail page), `useCatalogRealtimeUpdates` (catalog page)
   - **Reconnection-Safe**: `onConnect`/`offConnect` pattern survives socket reconnections
   - **Memory-Leak-Safe**: Complete cleanup on unmount, stale closure prevention
-  - **Backend Architecture**: CourseEventService singleton, 18 emit sites (all after res.json(), isolated try-catch)
-  - Files: 16 total (3 new, 13 modified), 0 TypeScript errors
+  - **Backend Architecture**: CourseEventService singleton, 21 emit sites (all after res.json(), isolated try-catch)
+  - **Enrollment Enhancements (Feb 14)**: Pending approvals, approve/reject actions update dashboards instantly, timestamps auto-refresh every 60s
+  - Files: 19 total (3 new services/hooks, 16 modified routes/pages)
 - **Real-time Collaboration** - Live sessions, chat, and peer learning ✅
 - **Direct Messaging System** - Real-time chat with conversation management, soft delete, automatic restoration, typing indicators, read receipts, and privacy controls (February 5, 2026) 💬
   - **User Search**: Find and message any user with debounced search

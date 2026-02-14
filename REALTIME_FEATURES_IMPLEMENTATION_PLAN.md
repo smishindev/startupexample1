@@ -132,9 +132,9 @@
 
 **Status**: Fully functional and production-ready
 
-**4. Real-time Course Updates** ✅ **COMPLETED** - February 13, 2026
+**4. Real-time Course Updates** ✅ **COMPLETED** - February 13, 2026 (Enhanced February 14, 2026)
 - ✅ CourseEventService centralized event broadcaster
-- ✅ 18 backend emit sites (after res.json(), isolated try-catch)
+- ✅ 21 backend emit sites (after res.json(), isolated try-catch)
 - ✅ Server-side 500ms debounce batches rapid edits
 - ✅ Frontend hooks: useCourseRealtimeUpdates (300ms debounce), useCatalogRealtimeUpdates (500ms debounce)
 - ✅ Room-based broadcasting: `course-{id}` + `courses-catalog`
@@ -144,8 +144,12 @@
 - ✅ CourseDetailPage + CoursesPage integration
 - ✅ 6 bugs fixed during implementation review
 - ✅ 0 TypeScript errors (server + client)
+- ✅ **Enrollment Approval Events** (Feb 14): Pending enrollments, approve/reject now emit `course:enrollment-changed`
 - **Events**: `course:updated`, `course:catalog-changed`, `course:enrollment-changed`
-- **Use Case**: Instructor edits course → Student page updates instantly without manual refresh
+- **Use Cases**: 
+  - Instructor edits course → Student page updates instantly without manual refresh
+  - Student requests enrollment → Instructor dashboard "Pending Approvals" updates in real-time
+  - Instructor approves/rejects → Student's course card status changes instantly
 
 ---
 

@@ -1,6 +1,6 @@
 # Mishin Learn Platform - Project Status & Memory
 
-**Last Updated**: February 14, 2026 - Terms of Service, Privacy Policy & Refund Policy 📜  
+**Last Updated**: February 14, 2026 - Real-time Enrollment Updates ⚡  
 **Developer**: Sergey Mishin (s.mishin.dev@gmail.com)  
 **AI Assistant Context**: This file serves as project memory for continuity across chat sessions
 
@@ -12,6 +12,7 @@
 **Certificate Settings**: Enable/disable certificates, custom titles, 4 visual templates (Phase 3 Complete) ✅  
 **Advanced Visibility**: Preview links for draft courses, unlisted courses, preview mode security (Phase 4 Complete) ✅  
 **Real-time Course Updates**: Automatic page refreshes when instructors edit courses (February 13, 2026) ✅  
+**Real-time Enrollment Updates**: Pending approvals, approve/reject actions update dashboards instantly (February 14, 2026) ✅  
 **Terms & Legal Compliance**: Database-driven TOS, Privacy Policy & Refund Policy with acceptance tracking (February 14, 2026) ✅
 
 ---
@@ -83,7 +84,50 @@ After: Complete legal compliance system. Registration requires TOS + Privacy Pol
 
 ---
 
-## � REAL-TIME COURSE UPDATES - PHASE 5 (Latest - February 13, 2026)
+## 📊 REAL-TIME ENROLLMENT UPDATES - PHASE 6 (Latest - February 14, 2026)
+
+**Activity**: Enhanced real-time enrollment approval system and instructor dashboard UX
+
+**Status**: ✅ **Complete** - Pending enrollments, approve/reject now emit real-time events; instructor dashboard timestamps auto-refresh
+
+### **Problem Solved:**
+Before: Instructor dashboard "Pending Approvals" count only updated on page refresh. When students requested enrollment or instructors approved/rejected, the dashboard didn't reflect changes in real-time. Relative timestamps ("3 minutes ago") were stale and never updated.
+
+After: Dashboard updates instantly when students request enrollment. Approve/reject actions trigger immediate status updates on student course cards. Timestamps refresh every 60 seconds automatically.
+
+### **Implementation Summary:**
+
+**Backend (2 files modified):**
+1. **enrollment.ts**:
+   - Added `emitEnrollmentCountChanged` after new pending enrollment creation
+   - Added emit after re-enrollment from rejected status (both active and pending)
+   - Added emit after re-enrollment from cancelled status (both active and pending)
+   - Total: 3 new emit sites for pending enrollment paths
+
+2. **instructor.ts**:
+   - Approve handler: Removed `if (!isPaidCourse)` guard — now always emits for both free and paid courses
+   - Reject handler: Added `emitEnrollmentCountChanged` call (was missing entirely)
+   - Total: 2 emit sites fixed/added
+
+**Frontend (1 file modified):**
+1. **InstructorDashboard.tsx**:
+   - Added `setTick` state (increments every 60 seconds)
+   - Added `useEffect` with `setInterval` to trigger re-renders
+   - Relative timestamps from `formatDistanceToNow` now recompute automatically
+   - No loading spinners — seamless UX
+
+### **Event Flow:**
+1. Student: POST /api/enrollment/enroll → `pending` enrollment created
+2. Backend: `emitEnrollmentCountChanged(courseId)` after response sent
+3. Socket.IO: `course:enrollment-changed` event → `courses-catalog` room
+4. Instructor Dashboard: `useCatalogRealtimeUpdates` hook fires → `loadStats(true)` + `loadPendingEnrollments()`
+5. UI: Pending count badge updates, enrollment card appears instantly
+
+**Result**: Instructor dashboard is now fully real-time for enrollment workflows. Zero manual refresh needed.
+
+---
+
+## 📊 REAL-TIME COURSE UPDATES - PHASE 5 (February 13, 2026)
 
 **Activity**: Implemented real-time course updates via Socket.IO — students/visitors see course changes instantly without manual refresh
 

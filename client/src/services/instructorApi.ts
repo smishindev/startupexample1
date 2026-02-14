@@ -50,12 +50,13 @@ export interface InstructorStats {
   totalCourses: number;
   publishedCourses: number;
   draftCourses: number;
+  archivedCourses: number;
   totalStudents: number;
   totalEnrollments: number;
   avgRating: number;
   totalRevenue: number;
-  monthlyGrowth: number;
   completionRate: number;
+  pendingEnrollments: number;
 }
 
 export interface InstructorCourse {

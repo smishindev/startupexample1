@@ -5,6 +5,7 @@ import { SettingsService } from '../services/SettingsService';
 import { NotificationService } from '../services/NotificationService';
 import { CourseEventService } from '../services/CourseEventService';
 import { triggerAtRiskDetection } from '../services/NotificationScheduler';
+import { logger } from '../utils/logger';
 import { v4 as uuidv4 } from 'uuid';
 
 const router = express.Router();
@@ -16,54 +17,78 @@ router.get('/stats', authenticateToken, authorize(['instructor', 'admin']), asyn
   try {
     const userId = req.user!.userId;
     
-    // Get instructor courses stats (exclude deleted courses)
-    const courseStats = await db.query(`
+    // Run all stats queries in parallel for performance
+    const [courseStats, revenueStats, studentStats, completionStats, pendingStats] = await Promise.all([
+      db.query(`
       SELECT 
         COUNT(*) as totalCourses,
         SUM(CASE WHEN Status = 'published' OR (Status IS NULL AND IsPublished = 1) THEN 1 ELSE 0 END) as publishedCourses,
         SUM(CASE WHEN Status = 'draft' OR (Status IS NULL AND IsPublished = 0) THEN 1 ELSE 0 END) as draftCourses,
         SUM(CASE WHEN Status = 'archived' THEN 1 ELSE 0 END) as archivedCourses,
-        AVG(CAST(Rating as FLOAT)) as avgRating
+        AVG(CASE WHEN Rating > 0 THEN CAST(Rating as FLOAT) END) as avgRating
       FROM Courses 
       WHERE InstructorId = @instructorId
         AND (Status IS NULL OR Status != 'deleted')
-    `, { instructorId: userId });
-
-    // Calculate revenue from completed transactions
-    const revenueStats = await db.query(`
+    `, { instructorId: userId }),
+      db.query(`
       SELECT 
         ISNULL(SUM(t.Amount), 0) as totalRevenue
       FROM Transactions t
       INNER JOIN Courses c ON t.CourseId = c.Id
       WHERE c.InstructorId = @instructorId 
         AND t.Status = 'completed'
-    `, { instructorId: userId });
-
-    // Get total students enrolled
-    const studentStats = await db.query(`
+    `, { instructorId: userId }),
+      db.query(`
       SELECT 
         COUNT(DISTINCT e.UserId) as totalStudents,
         COUNT(*) as totalEnrollments
       FROM Enrollments e
       INNER JOIN Courses c ON e.CourseId = c.Id
       WHERE c.InstructorId = @instructorId
-    `, { instructorId: userId });
+        AND e.Status IN ('active', 'completed')
+        AND (c.Status IS NULL OR c.Status != 'deleted')
+    `, { instructorId: userId }),
+      db.query(`
+      SELECT 
+        COUNT(*) as totalEnrolled,
+        SUM(CASE WHEN cp.OverallProgress >= 100 THEN 1 ELSE 0 END) as totalCompleted
+      FROM Enrollments e
+      INNER JOIN Courses c ON e.CourseId = c.Id
+      LEFT JOIN CourseProgress cp ON cp.UserId = e.UserId AND cp.CourseId = e.CourseId
+      WHERE c.InstructorId = @instructorId
+        AND e.Status IN ('active', 'completed')
+        AND (c.Status IS NULL OR c.Status != 'deleted')
+    `, { instructorId: userId }),
+      db.query(`
+      SELECT COUNT(*) as pendingEnrollments
+      FROM Enrollments e
+      INNER JOIN Courses c ON e.CourseId = c.Id
+      WHERE c.InstructorId = @instructorId
+        AND e.Status = 'pending'
+        AND (c.Status IS NULL OR c.Status != 'deleted')
+    `, { instructorId: userId })
+    ]);
+
+    const totalEnrolled = completionStats[0]?.totalEnrolled || 0;
+    const totalCompleted = completionStats[0]?.totalCompleted || 0;
+    const completionRate = totalEnrolled > 0 ? Math.round((totalCompleted / totalEnrolled) * 100) : 0;
 
     const stats = {
       totalCourses: courseStats[0]?.totalCourses || 0,
       publishedCourses: courseStats[0]?.publishedCourses || 0,
       draftCourses: courseStats[0]?.draftCourses || 0,
+      archivedCourses: courseStats[0]?.archivedCourses || 0,
       totalStudents: studentStats[0]?.totalStudents || 0,
       totalEnrollments: studentStats[0]?.totalEnrollments || 0,
       avgRating: courseStats[0]?.avgRating || 0,
       totalRevenue: revenueStats[0]?.totalRevenue || 0,
-      monthlyGrowth: 0, // TODO: Calculate from historical data
-      completionRate: 0 // TODO: Calculate from course progress data
+      completionRate,
+      pendingEnrollments: pendingStats[0]?.pendingEnrollments || 0
     };
 
     res.json(stats);
   } catch (error) {
-    console.error('Failed to fetch instructor stats:', error);
+    logger.error('Failed to fetch instructor stats', { error, userId: req.user?.userId });
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -136,11 +161,12 @@ router.get('/courses', authenticateToken, authorize(['instructor', 'admin']), as
       OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY
     `;
 
-    // Get total count for pagination
+    // Get total count for pagination (must also exclude deleted courses)
     let countQuery = `
       SELECT COUNT(DISTINCT c.Id) as total
       FROM Courses c
       WHERE c.InstructorId = @instructorId
+        AND (c.Status IS NULL OR c.Status != 'deleted')
     `;
     
     if (status) {
@@ -155,8 +181,6 @@ router.get('/courses', authenticateToken, authorize(['instructor', 'admin']), as
       db.query(query, params),
       db.query(countQuery, { instructorId: userId, ...params })
     ]);
-
-    console.log('[INSTRUCTOR API] First course from DB:', result[0]);
 
     const courses = result.map((course: any) => {
       // Normalize level to lowercase (must be done AFTER spreading to override capital Level)
@@ -177,7 +201,7 @@ router.get('/courses', authenticateToken, authorize(['instructor', 'admin']), as
           prerequisites = JSON.parse(course.prerequisites);
         }
       } catch (e) {
-        console.error('Failed to parse prerequisites:', e);
+        logger.warn('Failed to parse prerequisites', { error: e });
       }
       
       try {
@@ -185,7 +209,7 @@ router.get('/courses', authenticateToken, authorize(['instructor', 'admin']), as
           learningOutcomes = JSON.parse(course.learningOutcomes);
         }
       } catch (e) {
-        console.error('Failed to parse learningOutcomes:', e);
+        logger.warn('Failed to parse learningOutcomes', { error: e });
       }
       
       const mappedCourse = {
@@ -193,7 +217,16 @@ router.get('/courses', authenticateToken, authorize(['instructor', 'admin']), as
         category: course.category,
         level: normalizedLevel,
         status: courseStatus,
-        progress: courseStatus === 'draft' ? Math.floor(Math.random() * 100) : 100,
+        progress: (() => {
+          if (courseStatus !== 'draft') return 100;
+          let p = 0;
+          if (course.description && course.description.trim().length > 10) p += 20;
+          if (course.thumbnail) p += 20;
+          const lessonCount = parseInt(course.lessons) || 0;
+          if (lessonCount > 0) p += 30;
+          if (lessonCount >= 3) p += 30;
+          return p;
+        })(),
         lastUpdated: course.updatedAt,
         prerequisites,
         learningOutcomes,
@@ -225,9 +258,6 @@ router.get('/courses', authenticateToken, authorize(['instructor', 'admin']), as
     const totalCourses = countResult[0]?.total || 0;
     const totalPages = Math.ceil(totalCourses / limitNum);
 
-    console.log('[INSTRUCTOR API] First mapped course:', courses[0]);
-    console.log('[INSTRUCTOR API] Pagination:', { page: pageNum, limit: limitNum, total: totalCourses, totalPages });
-
     res.json({
       courses,
       pagination: {
@@ -238,7 +268,7 @@ router.get('/courses', authenticateToken, authorize(['instructor', 'admin']), as
       }
     });
   } catch (error) {
-    console.error('Failed to fetch instructor courses:', error);
+    logger.error('Failed to fetch instructor courses', { error, userId: req.user?.userId });
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -421,11 +451,11 @@ router.post('/courses', authenticateToken, authorize(['instructor', 'admin']), a
       });
     } catch (transactionError) {
       // If any part fails, the course creation should fail
-      console.error('Transaction failed during course creation:', transactionError);
+      logger.error('Transaction failed during course creation', { error: transactionError });
       throw transactionError;
     }
   } catch (error) {
-    console.error('Failed to create course:', error);
+    logger.error('Failed to create course', { error });
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -445,18 +475,6 @@ router.put('/courses/:id', authenticateToken, authorize(['instructor', 'admin'])
       prerequisites,
       learningOutcomes
     } = req.body;
-
-    console.log('📝 [PUT /courses/:id] Request received:', {
-      courseId,
-      userId,
-      bodyKeys: Object.keys(req.body),
-      enrollmentControls: {
-        maxEnrollment: req.body.maxEnrollment,
-        enrollmentOpenDate: req.body.enrollmentOpenDate,
-        enrollmentCloseDate: req.body.enrollmentCloseDate,
-        requiresApproval: req.body.requiresApproval
-      }
-    });
 
     // Verify the course exists and belongs to this instructor
     const course = await db.query(`
@@ -640,13 +658,11 @@ router.put('/courses/:id', authenticateToken, authorize(['instructor', 'admin'])
     }
 
     // Execute the update
-    console.log('🔄 [PUT /courses/:id] Updating course with params:', { courseId, updates: updates.join(', '), params });
     const updateResult: any = await db.query(`
       UPDATE dbo.Courses 
       SET ${updates.join(', ')}
       WHERE Id = @courseId AND InstructorId = @instructorId
     `, params);
-    console.log('✅ [PUT /courses/:id] Course updated successfully');
 
     res.json({ 
       message: 'Course updated successfully',
@@ -665,10 +681,10 @@ router.put('/courses/:id', authenticateToken, authorize(['instructor', 'admin'])
         courseEventService.emitCourseCatalogChanged('updated', courseId);
       }
     } catch (emitError) {
-      console.error('[Instructor] Failed to emit course update event:', emitError);
+      logger.error('Failed to emit course update event', { error: emitError });
     }
   } catch (error) {
-    console.error('Failed to update course:', error);
+    logger.error('Failed to update course', { error });
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -702,7 +718,7 @@ router.post('/courses/:id/preview-token', authenticateToken, authorize(['instruc
       previewToken
     });
   } catch (error) {
-    console.error('Failed to generate preview token:', error);
+    logger.error('Failed to generate preview token', { error });
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -777,11 +793,11 @@ router.post('/courses/:id/publish', authenticateToken, authorize(['instructor', 
               // NotificationService already emits Socket.IO event, no need to emit again
             }
           } catch (notifError) {
-            console.error('⚠️ Failed to send course publish notifications:', notifError);
+            logger.error('Failed to send course publish notifications', { error: notifError });
             // Don't block publish operation on notification failure
           }
         } else {
-          console.warn('⚠️ Socket.IO not available, skipping real-time course publish notifications');
+          logger.warn('Socket.IO not available, skipping real-time course publish notifications');
         }
       }
     }
@@ -800,11 +816,11 @@ router.post('/courses/:id/publish', authenticateToken, authorize(['instructor', 
         courseEventService.emitCourseCatalogChanged('published', courseId);
         courseEventService.emitCourseUpdated(courseId, ['status', 'isPublished']);
       } catch (emitError) {
-        console.error('[Instructor] Failed to emit publish event:', emitError);
+        logger.error('Failed to emit publish event', { error: emitError });
       }
     }
   } catch (error) {
-    console.error('Failed to publish course:', error);
+    logger.error('Failed to publish course', { error });
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -877,11 +893,11 @@ router.get('/at-risk-students', authenticateToken, authorize(['instructor', 'adm
       res.json({ students: filteredStudents });
     } catch (queryError: any) {
       // SQL error (likely column mismatch) - return empty array
-      console.log('StudentRiskAssessment table structure mismatch - returning empty array');
+      logger.info('StudentRiskAssessment table structure mismatch - returning empty array');
       return res.json({ students: [] });
     }
   } catch (error) {
-    console.error('Failed to fetch at-risk students:', error);
+    logger.error('Failed to fetch at-risk students', { error });
     res.json({ students: [] });
   }
 });
@@ -927,7 +943,7 @@ router.get('/low-progress-students', authenticateToken, authorize(['instructor',
 
     res.json({ students: filteredStudents });
   } catch (error) {
-    console.error('Failed to fetch low progress students:', error);
+    logger.error('Failed to fetch low progress students', { error });
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -1006,11 +1022,11 @@ router.get('/pending-assessments', authenticateToken, authorize(['instructor', '
       res.json({ assessments: result });
     } catch (queryError: any) {
       // SQL error (likely column mismatch) - return empty array
-      console.log('Assessment table structure mismatch - returning empty array');
+      logger.info('Assessment table structure mismatch - returning empty array');
       return res.json({ assessments: [] });
     }
   } catch (error) {
-    console.error('Failed to fetch pending assessments:', error);
+    logger.error('Failed to fetch pending assessments', { error });
     res.json({ assessments: [] });
   }
 });
@@ -1030,7 +1046,7 @@ router.post(
         data: result
       });
     } catch (error) {
-      console.error('Failed to trigger at-risk detection:', error);
+      logger.error('Failed to trigger at-risk detection', { error });
       res.status(500).json({
         success: false,
         message: 'Failed to trigger at-risk detection'
@@ -1058,7 +1074,7 @@ router.get('/enrollments/pending', authenticateToken, authorize(['instructor', '
         u.FirstName,
         u.LastName,
         u.Email,
-        u.ProfilePicture
+        u.Avatar as ProfilePicture
       FROM dbo.Enrollments e
       JOIN dbo.Courses c ON e.CourseId = c.Id
       JOIN dbo.Users u ON e.UserId = u.Id
@@ -1082,7 +1098,7 @@ router.get('/enrollments/pending', authenticateToken, authorize(['instructor', '
       total: pendingEnrollments.length
     });
   } catch (error) {
-    console.error('Failed to fetch pending enrollments:', error);
+    logger.error('Failed to fetch pending enrollments', { error, userId: req.user?.userId });
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -1167,7 +1183,6 @@ router.put('/enrollments/:enrollmentId/approve', authenticateToken, authorize(['
     const io = req.app.get('io');
     if (io) {
       try {
-        const NotificationService = require('../services/NotificationService').NotificationService;
         const notificationService = new NotificationService(io);
 
         if (isPaidCourse) {
@@ -1206,7 +1221,7 @@ router.put('/enrollments/:enrollmentId/approve', authenticateToken, authorize(['
           );
         }
       } catch (notifError) {
-        console.error('⚠️ Failed to send approval notification:', notifError);
+        logger.error('Failed to send approval notification', { error: notifError });
       }
     }
 
@@ -1219,16 +1234,15 @@ router.put('/enrollments/:enrollmentId/approve', authenticateToken, authorize(['
       studentName: `${enrollmentData.FirstName} ${enrollmentData.LastName}`
     });
 
-    // Emit real-time enrollment count change (after response sent, isolated try-catch)
-    if (!isPaidCourse) {
-      try {
-        CourseEventService.getInstance().emitEnrollmentCountChanged(enrollmentData.CourseId);
-      } catch (emitError) {
-        console.error('[Instructor] Failed to emit enrollment count event:', emitError);
-      }
+    // Emit real-time enrollment change (after response sent, isolated try-catch)
+    // Always emit — student's course page needs to refresh regardless of paid/free
+    try {
+      CourseEventService.getInstance().emitEnrollmentCountChanged(enrollmentData.CourseId);
+    } catch (emitError) {
+      logger.error('Failed to emit enrollment count event', { error: emitError });
     }
   } catch (error) {
-    console.error('Failed to approve enrollment:', error);
+    logger.error('Failed to approve enrollment', { error });
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -1287,7 +1301,6 @@ router.put('/enrollments/:enrollmentId/reject', authenticateToken, authorize(['i
     const io = req.app.get('io');
     if (io) {
       try {
-        const NotificationService = require('../services/NotificationService').NotificationService;
         const notificationService = new NotificationService(io);
 
         await notificationService.createNotificationWithControls(
@@ -1306,7 +1319,7 @@ router.put('/enrollments/:enrollmentId/reject', authenticateToken, authorize(['i
           }
         );
       } catch (notifError) {
-        console.error('⚠️ Failed to send rejection notification:', notifError);
+        logger.error('Failed to send rejection notification', { error: notifError });
       }
     }
 
@@ -1315,8 +1328,15 @@ router.put('/enrollments/:enrollmentId/reject', authenticateToken, authorize(['i
       enrollmentId,
       studentName: `${enrollmentData.FirstName} ${enrollmentData.LastName}`
     });
+
+    // Emit real-time enrollment change so student's course page refreshes (after response sent)
+    try {
+      CourseEventService.getInstance().emitEnrollmentCountChanged(enrollmentData.CourseId);
+    } catch (emitError) {
+      logger.error('Failed to emit enrollment change event', { error: emitError });
+    }
   } catch (error) {
-    console.error('Failed to reject enrollment:', error);
+    logger.error('Failed to reject enrollment', { error });
     res.status(500).json({ error: 'Internal server error' });
   }
 });

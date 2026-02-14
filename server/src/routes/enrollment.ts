@@ -458,10 +458,8 @@ router.post('/courses/:courseId/enroll', authenticateToken, async (req: AuthRequ
           code: newStatus === 'pending' ? 'ENROLLMENT_PENDING_APPROVAL' : 'RE_ENROLLED'
         });
 
-        // Emit after response sent
-        if (newStatus === 'active') {
-          try { CourseEventService.getInstance().emitEnrollmentCountChanged(courseId); } catch (e) { console.error('[Enrollment] Emit failed:', e); }
-        }
+        // Emit after response sent (active = enrollment count changed, pending = pending count changed)
+        try { CourseEventService.getInstance().emitEnrollmentCountChanged(courseId); } catch (e) { console.error('[Enrollment] Emit failed:', e); }
         return;
       } else if (status === 'completed') {
         // Student completed the course but can remain enrolled to access new content
@@ -592,10 +590,8 @@ router.post('/courses/:courseId/enroll', authenticateToken, async (req: AuthRequ
           code: reactivateStatus === 'pending' ? 'ENROLLMENT_PENDING_APPROVAL' : 'RE_ENROLLED'
         });
 
-        // Emit real-time enrollment count change (after response sent)
-        if (reactivateStatus === 'active') {
-          try { CourseEventService.getInstance().emitEnrollmentCountChanged(courseId); } catch (e) { console.error('[Enrollment] Emit failed:', e); }
-        }
+        // Emit real-time enrollment change (after response sent — covers both active and pending)
+        try { CourseEventService.getInstance().emitEnrollmentCountChanged(courseId); } catch (e) { console.error('[Enrollment] Emit failed:', e); }
         return;
       }
     }
@@ -651,7 +647,7 @@ router.post('/courses/:courseId/enroll', authenticateToken, async (req: AuthRequ
         }
       }
 
-      return res.status(202).json({
+      res.status(202).json({
         enrollmentId,
         courseId,
         courseTitle: courseData.Title,
@@ -660,6 +656,10 @@ router.post('/courses/:courseId/enroll', authenticateToken, async (req: AuthRequ
         message: 'Your enrollment request has been submitted. Awaiting instructor approval.',
         code: 'ENROLLMENT_PENDING_APPROVAL'
       });
+
+      // Notify instructor dashboard in real-time (pending count changed)
+      try { CourseEventService.getInstance().emitEnrollmentCountChanged(courseId); } catch (e) { console.error('[Enrollment] Emit failed:', e); }
+      return;
     }
 
     // Create active enrollment (auto-approved)

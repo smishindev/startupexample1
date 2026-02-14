@@ -19,7 +19,7 @@ import {
   TrendingUp as TrendingUpIcon,
   EmojiObjects as EmojiObjectsIcon,
 } from '@mui/icons-material'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link as RouterLink } from 'react-router-dom'
 
 const LandingPage: React.FC = () => {
   const navigate = useNavigate()
@@ -354,6 +354,37 @@ const LandingPage: React.FC = () => {
           <Typography variant="body2" color="text.secondary">
             © 2024 Mishin Learn. All rights reserved. Built with ❤️ for learners everywhere.
           </Typography>
+          <Box sx={{ mt: 1, display: 'flex', justifyContent: 'center', gap: 2 }}>
+            <Typography
+              component={RouterLink}
+              to="/terms"
+              variant="body2"
+              color="text.secondary"
+              sx={{ textDecoration: 'none', '&:hover': { textDecoration: 'underline', color: 'primary.main' } }}
+            >
+              Terms of Service
+            </Typography>
+            <Typography variant="body2" color="text.secondary">|</Typography>
+            <Typography
+              component={RouterLink}
+              to="/privacy"
+              variant="body2"
+              color="text.secondary"
+              sx={{ textDecoration: 'none', '&:hover': { textDecoration: 'underline', color: 'primary.main' } }}
+            >
+              Privacy Policy
+            </Typography>
+            <Typography variant="body2" color="text.secondary">|</Typography>
+            <Typography
+              component={RouterLink}
+              to="/refund-policy"
+              variant="body2"
+              color="text.secondary"
+              sx={{ textDecoration: 'none', '&:hover': { textDecoration: 'underline', color: 'primary.main' } }}
+            >
+              Refund Policy
+            </Typography>
+          </Box>
         </Container>
       </Box>
     </Box>

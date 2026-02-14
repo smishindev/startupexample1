@@ -188,6 +188,57 @@ export const optionalAuth = async (
   next();
 };
 
+// Terms acceptance check middleware - ensures user has accepted latest active terms
+export const requireTermsAcceptance = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    if (!req.user) {
+      next(); // Let authenticateToken handle this
+      return;
+    }
+
+    const db = DatabaseService.getInstance();
+    const userId = req.user.userId;
+
+    // Get count of active terms versions that require acceptance (excludes informational docs like refund_policy)
+    const activeTerms = await db.query(
+      `SELECT COUNT(*) as total FROM dbo.TermsVersions WHERE IsActive = 1 AND DocumentType IN ('terms_of_service', 'privacy_policy')`
+    );
+
+    // Get count of user's acceptances of active terms that require acceptance
+    const acceptedTerms = await db.query(
+      `SELECT COUNT(*) as accepted
+       FROM dbo.UserTermsAcceptance uta
+       INNER JOIN dbo.TermsVersions tv ON uta.TermsVersionId = tv.Id
+       WHERE uta.UserId = @userId AND tv.IsActive = 1 AND tv.DocumentType IN ('terms_of_service', 'privacy_policy')`,
+      { userId }
+    );
+
+    const totalActive = activeTerms[0]?.total || 0;
+    const totalAccepted = acceptedTerms[0]?.accepted || 0;
+
+    if (totalActive > 0 && totalAccepted < totalActive) {
+      res.status(403).json({
+        success: false,
+        error: {
+          code: 'TERMS_NOT_ACCEPTED',
+          message: 'You must accept the latest terms of service and privacy policy to continue'
+        }
+      });
+      return;
+    }
+
+    next();
+  } catch (error) {
+    logger.warn('Terms acceptance check failed, allowing request to proceed', error);
+    // Don't block users if the check fails
+    next();
+  }
+};
+
 // Role-based authorization middleware
 export const authorize = (roles: string[]) => {
   return (req: AuthRequest, res: Response, next: NextFunction): void => {

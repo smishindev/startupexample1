@@ -1,6 +1,6 @@
 # Mishin Learn Platform - System Architecture
 
-**Last Updated**: February 13, 2026 - Real-time Course Updates 🔄  
+**Last Updated**: February 14, 2026 - Terms of Service, Privacy Policy & Refund Policy 📜  
 **Purpose**: Understanding system components, data flows, and dependencies
 
 ---
@@ -39,6 +39,24 @@ Instructor Status Change Flow:
 ---
 
 ## 🔌 API ENDPOINTS
+
+### Terms & Legal Compliance (added Feb 14, 2026)
+```
+GET    /api/terms/current                    - Get all active legal documents (public)
+                                              - Returns: { termsOfService, privacyPolicy, refundPolicy }
+                                              - Each contains: Id, DocumentType, Version, Content (HTML),
+                                                EffectiveDate, IsActive
+
+GET    /api/terms/status                     - Check if user accepted latest versions (auth required)
+                                              - Returns: { hasAccepted, termsAccepted, privacyAccepted }
+
+POST   /api/terms/accept                     - Record user acceptance (auth required)
+                                              - Body: { termsVersionId, privacyVersionId }
+                                              - Records: IpAddress, UserAgent for GDPR compliance
+
+GET    /api/terms/:documentType/:version     - Get specific document version (public)
+                                              - Types: terms_of_service, privacy_policy, refund_policy
+```
 
 ### Data Export (added Feb 6, 2026)
 ```
@@ -2194,6 +2212,16 @@ if (isInstructorPreview) {
 - Ensures deleted instructor courses don't appear in search/stats
 - Student enrollments preserved for historical access
 
+**TermsVersions (Added Feb 14, 2026)**
+- Id, DocumentType ('terms_of_service' | 'privacy_policy' | 'refund_policy')
+- Version, Content (NVARCHAR MAX - HTML), EffectiveDate, IsActive, CreatedAt
+- Unique filtered index: One active version per DocumentType
+
+**UserTermsAcceptance (Added Feb 14, 2026)**
+- Id, UserId (FK → Users), TermsVersionId (FK → TermsVersions)
+- AcceptedAt, IpAddress, UserAgent (GDPR compliance)
+- Pattern: Only terms_of_service + privacy_policy require acceptance (refund_policy is informational)
+
 ---
 
 ## 📁 FRONTEND STRUCTURE
@@ -2204,8 +2232,12 @@ if (isInstructorPreview) {
 pages/
 ├── Auth/
 │   ├── LoginForm.tsx - Login page
-│   ├── RegisterForm.tsx - Registration
+│   ├── RegisterForm.tsx - Registration (includes TOS/Privacy acceptance)
 │   └── ForgotPasswordForm.tsx - Password reset
+├── Legal/
+│   ├── TermsOfServicePage.tsx - Terms of Service (database-driven)
+│   ├── PrivacyPolicyPage.tsx - Privacy Policy (database-driven)
+│   └── RefundPolicyPage.tsx - Refund Policy (informational)
 ├── Courses/
 │   ├── CoursesPage.tsx - Course catalog (3 tabs: All, Enrolled, Bookmarked)
 │   └── CourseDetail.tsx - Old detail page (merged into CourseDetailPage)

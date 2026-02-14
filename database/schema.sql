@@ -39,6 +39,11 @@ IF OBJECT_ID('dbo.StudentRecommendations', 'U') IS NOT NULL DROP TABLE dbo.Stude
 IF OBJECT_ID('dbo.LearningActivities', 'U') IS NOT NULL DROP TABLE dbo.LearningActivities;
 IF OBJECT_ID('dbo.CourseProgress', 'U') IS NOT NULL DROP TABLE dbo.CourseProgress;
 IF OBJECT_ID('dbo.NotificationPreferences', 'U') IS NOT NULL DROP TABLE dbo.NotificationPreferences;
+-- Email & Notification Tables (drop before Notifications due to FK)
+IF OBJECT_ID('dbo.EmailDigests', 'U') IS NOT NULL DROP TABLE dbo.EmailDigests;
+IF OBJECT_ID('dbo.EmailTrackingEvents', 'U') IS NOT NULL DROP TABLE dbo.EmailTrackingEvents;
+IF OBJECT_ID('dbo.EmailUnsubscribeTokens', 'U') IS NOT NULL DROP TABLE dbo.EmailUnsubscribeTokens;
+IF OBJECT_ID('dbo.NotificationQueue', 'U') IS NOT NULL DROP TABLE dbo.NotificationQueue;
 IF OBJECT_ID('dbo.Notifications', 'U') IS NOT NULL DROP TABLE dbo.Notifications;
 IF OBJECT_ID('dbo.Bookmarks', 'U') IS NOT NULL DROP TABLE dbo.Bookmarks;
 -- Comments System Tables
@@ -49,6 +54,17 @@ IF OBJECT_ID('dbo.Certificates', 'U') IS NOT NULL DROP TABLE dbo.Certificates;
 -- Payment System Tables
 IF OBJECT_ID('dbo.Invoices', 'U') IS NOT NULL DROP TABLE dbo.Invoices;
 IF OBJECT_ID('dbo.Transactions', 'U') IS NOT NULL DROP TABLE dbo.Transactions;
+-- GDPR & Account Management Tables
+IF OBJECT_ID('dbo.DataExportRequests', 'U') IS NOT NULL DROP TABLE dbo.DataExportRequests;
+IF OBJECT_ID('dbo.AccountDeletionLog', 'U') IS NOT NULL DROP TABLE dbo.AccountDeletionLog;
+IF OBJECT_ID('dbo.CourseOwnershipHistory', 'U') IS NOT NULL DROP TABLE dbo.CourseOwnershipHistory;
+-- Collaborative Features Tables
+IF OBJECT_ID('dbo.StudyGroupMembers', 'U') IS NOT NULL DROP TABLE dbo.StudyGroupMembers;
+IF OBJECT_ID('dbo.StudyGroups', 'U') IS NOT NULL DROP TABLE dbo.StudyGroups;
+IF OBJECT_ID('dbo.OfficeHoursQueue', 'U') IS NOT NULL DROP TABLE dbo.OfficeHoursQueue;
+IF OBJECT_ID('dbo.OfficeHours', 'U') IS NOT NULL DROP TABLE dbo.OfficeHours;
+IF OBJECT_ID('dbo.UserPresence', 'U') IS NOT NULL DROP TABLE dbo.UserPresence;
+IF OBJECT_ID('dbo.UserSettings', 'U') IS NOT NULL DROP TABLE dbo.UserSettings;
 -- Core Assessment Tables
 IF OBJECT_ID('dbo.AssessmentSubmissions', 'U') IS NOT NULL DROP TABLE dbo.AssessmentSubmissions;
 IF OBJECT_ID('dbo.Questions', 'U') IS NOT NULL DROP TABLE dbo.Questions;
@@ -58,6 +74,9 @@ IF OBJECT_ID('dbo.UserProgress', 'U') IS NOT NULL DROP TABLE dbo.UserProgress;
 IF OBJECT_ID('dbo.Enrollments', 'U') IS NOT NULL DROP TABLE dbo.Enrollments;
 IF OBJECT_ID('dbo.Lessons', 'U') IS NOT NULL DROP TABLE dbo.Lessons;
 IF OBJECT_ID('dbo.Courses', 'U') IS NOT NULL DROP TABLE dbo.Courses;
+-- Terms & Privacy Tables (drop before Users due to FK dependency)
+IF OBJECT_ID('dbo.UserTermsAcceptance', 'U') IS NOT NULL DROP TABLE dbo.UserTermsAcceptance;
+IF OBJECT_ID('dbo.TermsVersions', 'U') IS NOT NULL DROP TABLE dbo.TermsVersions;
 IF OBJECT_ID('dbo.Users', 'U') IS NOT NULL DROP TABLE dbo.Users;
 
 -- Users Table
@@ -1155,6 +1174,333 @@ CREATE NONCLUSTERED INDEX IX_DataExportRequests_Status ON dbo.DataExportRequests
 CREATE NONCLUSTERED INDEX IX_DataExportRequests_ExpiresAt ON dbo.DataExportRequests(ExpiresAt) WHERE ExpiresAt IS NOT NULL AND Status = 'completed';
 
 -- ========================================
+-- TERMS OF SERVICE & PRIVACY POLICY SYSTEM
+-- ========================================
+
+-- TermsVersions Table - Track published versions of legal documents
+CREATE TABLE dbo.TermsVersions (
+    Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    DocumentType NVARCHAR(30) NOT NULL CHECK (DocumentType IN ('terms_of_service', 'privacy_policy', 'refund_policy')),
+    Version NVARCHAR(20) NOT NULL,
+    Title NVARCHAR(200) NOT NULL,
+    Content NVARCHAR(MAX) NOT NULL, -- Full HTML/markdown content
+    Summary NVARCHAR(MAX) NULL, -- Brief summary of changes from previous version
+    EffectiveDate DATETIME2 NOT NULL,
+    IsActive BIT NOT NULL DEFAULT 0, -- Only one active per DocumentType
+    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    UpdatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    CONSTRAINT UQ_TermsVersions_DocType_Version UNIQUE (DocumentType, Version)
+);
+
+-- UserTermsAcceptance Table - Track each user's consent per document version (GDPR audit trail)
+CREATE TABLE dbo.UserTermsAcceptance (
+    Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    UserId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id) ON DELETE CASCADE,
+    TermsVersionId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.TermsVersions(Id) ON DELETE CASCADE,
+    AcceptedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    IpAddress NVARCHAR(50) NULL, -- For legal audit trail
+    UserAgent NVARCHAR(500) NULL, -- Browser info at time of acceptance
+    CONSTRAINT UQ_UserTermsAcceptance_User_Version UNIQUE (UserId, TermsVersionId)
+);
+
+-- Terms Indexes
+CREATE UNIQUE NONCLUSTERED INDEX IX_TermsVersions_DocumentType_IsActive ON dbo.TermsVersions(DocumentType) WHERE IsActive = 1;
+CREATE NONCLUSTERED INDEX IX_TermsVersions_EffectiveDate ON dbo.TermsVersions(EffectiveDate DESC);
+CREATE NONCLUSTERED INDEX IX_UserTermsAcceptance_UserId ON dbo.UserTermsAcceptance(UserId);
+CREATE NONCLUSTERED INDEX IX_UserTermsAcceptance_TermsVersionId ON dbo.UserTermsAcceptance(TermsVersionId);
+CREATE NONCLUSTERED INDEX IX_UserTermsAcceptance_AcceptedAt ON dbo.UserTermsAcceptance(AcceptedAt DESC);
+
+-- Seed initial Terms of Service v1.0
+INSERT INTO dbo.TermsVersions (DocumentType, Version, Title, Content, Summary, EffectiveDate, IsActive)
+VALUES (
+    'terms_of_service',
+    '1.0',
+    'Terms of Service',
+    '<h2>Terms of Service</h2>
+<p><strong>Effective Date:</strong> February 14, 2026</p>
+<p><strong>Last Updated:</strong> February 14, 2026</p>
+
+<h3>1. Acceptance of Terms</h3>
+<p>By accessing or using Mishin Learn ("the Platform"), you agree to be bound by these Terms of Service ("Terms"). If you do not agree to these Terms, you may not use the Platform.</p>
+
+<h3>2. Account Registration</h3>
+<p>To use certain features, you must create an account. You agree to:</p>
+<ul>
+<li>Provide accurate, current, and complete information during registration</li>
+<li>Maintain the security of your password and account</li>
+<li>Accept responsibility for all activities under your account</li>
+<li>Notify us immediately of any unauthorized use of your account</li>
+</ul>
+<p>You must be at least 16 years old to create an account.</p>
+
+<h3>3. User Conduct</h3>
+<p>You agree not to:</p>
+<ul>
+<li>Upload or share content that is unlawful, harmful, threatening, abusive, or otherwise objectionable</li>
+<li>Impersonate any person or entity</li>
+<li>Interfere with the proper working of the Platform</li>
+<li>Attempt to gain unauthorized access to any portion of the Platform</li>
+<li>Use the Platform for any illegal or unauthorized purpose</li>
+<li>Share your account credentials with others</li>
+</ul>
+
+<h3>4. Content and Intellectual Property</h3>
+<p><strong>Your Content:</strong> You retain ownership of content you create and upload. By uploading content, you grant Mishin Learn a non-exclusive, worldwide, royalty-free license to use, display, and distribute your content on the Platform.</p>
+<p><strong>Platform Content:</strong> All Platform content, including courses, materials, and software, is owned by Mishin Learn or its content creators and is protected by intellectual property laws.</p>
+<p><strong>Instructor Content:</strong> Course materials created by instructors remain the intellectual property of the respective instructors. Students may not redistribute, copy, or share course materials without explicit permission.</p>
+
+<h3>5. Payments and Refunds</h3>
+<p>Paid courses are subject to our pricing at the time of purchase. Refund requests are subject to our <a href="/refund-policy">Refund Policy</a>. We reserve the right to change prices at any time.</p>
+
+<h3>6. Certificates</h3>
+<p>Certificates of completion are issued based on course requirements set by instructors. Certificates represent completion of coursework and are not accredited academic credentials.</p>
+
+<h3>7. Limitation of Liability</h3>
+<p>The Platform is provided "as is" without warranties of any kind. Mishin Learn is not liable for:</p>
+<ul>
+<li>The quality, accuracy, or completeness of any course content</li>
+<li>Any indirect, incidental, or consequential damages</li>
+<li>Loss of data or profits arising from your use of the Platform</li>
+<li>Actions or content of other users or instructors</li>
+</ul>
+
+<h3>8. Account Termination</h3>
+<p>We may suspend or terminate your account if you violate these Terms. You may delete your account at any time through your account settings. Upon deletion, your personal data will be handled according to our Privacy Policy.</p>
+
+<h3>9. Dispute Resolution</h3>
+<p>Any disputes arising from these Terms shall be resolved through binding arbitration, except where prohibited by law. You agree to resolve disputes individually and waive any right to class action proceedings.</p>
+
+<h3>10. Changes to Terms</h3>
+<p>We may update these Terms from time to time. We will notify you of material changes and require re-acceptance. Continued use of the Platform after changes constitutes acceptance of the updated Terms.</p>
+
+<h3>11. Contact</h3>
+<p>For questions about these Terms, contact us at <a href="mailto:support@mishinlearn.com">support@mishinlearn.com</a>.</p>',
+    'Initial Terms of Service for Mishin Learn Platform.',
+    '2026-02-14',
+    1
+);
+
+-- Seed initial Privacy Policy v1.0
+INSERT INTO dbo.TermsVersions (DocumentType, Version, Title, Content, Summary, EffectiveDate, IsActive)
+VALUES (
+    'privacy_policy',
+    '1.0',
+    'Privacy Policy',
+    '<h2>Privacy Policy</h2>
+<p><strong>Effective Date:</strong> February 14, 2026</p>
+<p><strong>Last Updated:</strong> February 14, 2026</p>
+
+<h3>1. Introduction</h3>
+<p>Mishin Learn ("we", "our", "us") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our platform.</p>
+
+<h3>2. Information We Collect</h3>
+<h4>2.1 Information You Provide</h4>
+<ul>
+<li><strong>Account Information:</strong> Name, email address, username, password, and profile details</li>
+<li><strong>Payment Information:</strong> Billing address and payment method details (processed securely via Stripe)</li>
+<li><strong>Learning Data:</strong> Course enrollments, progress, assessment submissions, and certificates</li>
+<li><strong>Communications:</strong> Messages, comments, and chat conversations</li>
+<li><strong>User Content:</strong> Course materials, assignments, and other content you upload</li>
+</ul>
+
+<h4>2.2 Information Collected Automatically</h4>
+<ul>
+<li><strong>Usage Data:</strong> Pages visited, features used, time spent on the platform</li>
+<li><strong>Device Information:</strong> Browser type, operating system, device identifiers</li>
+<li><strong>Log Data:</strong> IP addresses, access times, and referring URLs</li>
+<li><strong>Cookies:</strong> Session cookies for authentication and preference cookies for settings</li>
+</ul>
+
+<h3>3. How We Use Your Information</h3>
+<ul>
+<li>Provide, maintain, and improve the Platform</li>
+<li>Process transactions and send related information</li>
+<li>Personalize your learning experience through adaptive content and AI tutoring</li>
+<li>Send notifications about course updates, assessments, and platform features</li>
+<li>Monitor and analyze usage patterns to improve our services</li>
+<li>Detect, prevent, and address technical issues and security threats</li>
+<li>Comply with legal obligations</li>
+</ul>
+
+<h3>4. Data Sharing</h3>
+<p>We do not sell your personal data. We may share information with:</p>
+<ul>
+<li><strong>Instructors:</strong> Your enrollment status, progress, and assessment results for courses you are enrolled in</li>
+<li><strong>Service Providers:</strong> Third-party services that help us operate the Platform (e.g., Stripe for payments, email delivery services)</li>
+<li><strong>Legal Requirements:</strong> When required by law, legal process, or government request</li>
+</ul>
+
+<h3>5. Data Security</h3>
+<p>We implement appropriate technical and organizational measures to protect your data, including:</p>
+<ul>
+<li>Encryption of passwords using bcrypt hashing</li>
+<li>JWT-based authentication with token expiration</li>
+<li>HTTPS encryption for all data transmission</li>
+<li>Regular security audits and monitoring</li>
+</ul>
+
+<h3>6. Your Rights (GDPR Compliance)</h3>
+<p>You have the right to:</p>
+<ul>
+<li><strong>Access:</strong> Request a copy of your personal data (available via Data Export in Settings)</li>
+<li><strong>Rectification:</strong> Update or correct your personal information</li>
+<li><strong>Erasure:</strong> Delete your account and associated data (available in Settings)</li>
+<li><strong>Data Portability:</strong> Export your data in a machine-readable format</li>
+<li><strong>Restrict Processing:</strong> Limit how we use your data</li>
+<li><strong>Withdraw Consent:</strong> Withdraw consent at any time for optional data processing</li>
+</ul>
+
+<h3>7. Data Retention</h3>
+<p>We retain your personal data for as long as your account is active. Upon account deletion, personal data is permanently removed within 30 days. Anonymized analytics data may be retained for service improvement.</p>
+
+<h3>8. Cookies</h3>
+<p>We use essential cookies for authentication and session management. You can control cookie preferences through your browser settings.</p>
+
+<h3>9. Children''s Privacy</h3>
+<p>The Platform is not intended for children under 16. We do not knowingly collect personal data from children under 16. If we learn we have collected such data, we will delete it promptly.</p>
+
+<h3>10. International Data Transfers</h3>
+<p>Your data may be transferred to and processed in countries other than your own. We ensure appropriate safeguards are in place for such transfers.</p>
+
+<h3>11. Changes to Privacy Policy</h3>
+<p>We may update this Privacy Policy from time to time. We will notify you of material changes and may require re-acceptance. The "Last Updated" date at the top indicates when the policy was last revised.</p>
+
+<h3>12. Contact Us</h3>
+<p>For privacy-related questions or to exercise your rights, contact us at:</p>
+<ul>
+<li>Email: <a href="mailto:privacy@mishinlearn.com">privacy@mishinlearn.com</a></li>
+<li>Data Protection: Use the Data Export feature in Settings for data access requests</li>
+</ul>',
+    'Initial Privacy Policy for Mishin Learn Platform.',
+    '2026-02-14',
+    1
+);
+
+-- Seed initial Refund Policy v1.0
+INSERT INTO dbo.TermsVersions (DocumentType, Version, Title, Content, Summary, EffectiveDate, IsActive)
+VALUES (
+    'refund_policy',
+    '1.0',
+    'Refund Policy',
+    '<h2>Refund Policy</h2>
+<p><strong>Effective Date:</strong> February 14, 2026</p>
+<p><strong>Last Updated:</strong> February 14, 2026</p>
+
+<h3>1. Overview</h3>
+<p>At Mishin Learn, we want you to be completely satisfied with your learning experience. This refund policy outlines the conditions under which refunds are granted.</p>
+
+<h3>2. 30-Day Money-Back Guarantee</h3>
+<p>You are eligible for a <strong>100% refund</strong> if <strong>ALL</strong> of the following conditions are met:</p>
+<ul>
+<li>Course purchased within the <strong>last 30 days</strong></li>
+<li>Less than <strong>50% of course lessons</strong> completed</li>
+<li>No course completion certificate issued</li>
+<li>No violation of Terms of Service</li>
+</ul>
+<p><strong>What happens after approval:</strong></p>
+<ul>
+<li>Full refund processed within 5-10 business days</li>
+<li>Immediate course access revocation</li>
+<li>All progress data preserved (in case of re-enrollment)</li>
+<li>Refund confirmation email sent</li>
+</ul>
+
+<h3>3. Partial Refund Policy</h3>
+<h4>50-75% Course Completion</h4>
+<p>If you have completed 50-75% of the course:</p>
+<ul>
+<li><strong>50% refund</strong> of the original purchase price</li>
+<li>Available within 30 days of purchase</li>
+<li>Course access revoked upon refund</li>
+</ul>
+<h4>75-99% Course Completion</h4>
+<p>If you have completed 75-99% of the course:</p>
+<ul>
+<li><strong>25% refund</strong> of the original purchase price</li>
+<li>Available within 30 days of purchase</li>
+<li>Course access revoked upon refund</li>
+</ul>
+<p><strong>Note:</strong> Partial refunds acknowledge that you have benefited from significant course content.</p>
+
+<h3>4. No Refund Conditions</h3>
+<p>Refunds are <strong>NOT available</strong> under the following circumstances:</p>
+<ul>
+<li>More than 30 days have passed since purchase</li>
+<li>Course is 100% completed (all lessons finished)</li>
+<li>Course completion certificate has been issued</li>
+<li>Account suspended for Terms of Service violations</li>
+<li>Evidence of content downloading or unauthorized sharing</li>
+<li>Abuse of refund system (multiple refund requests)</li>
+<li>Promotional or discounted courses (unless legally required)</li>
+</ul>
+
+<h3>5. How to Request a Refund</h3>
+<p><strong>Step 1: Submit Request</strong></p>
+<ul>
+<li>Log into your Mishin Learn account</li>
+<li>Navigate to Profile &rarr; Purchase History</li>
+<li>Click "Request Refund" next to the course</li>
+<li>Select refund reason from dropdown</li>
+</ul>
+<p><strong>Step 2: Review Process</strong></p>
+<ul>
+<li>Our team reviews requests within 2-3 business days</li>
+<li>You will receive an email with the decision</li>
+<li>Additional information may be requested</li>
+</ul>
+<p><strong>Step 3: Refund Processing</strong></p>
+<ul>
+<li>Approved refunds processed within 5-10 business days</li>
+<li>Refund appears in original payment method</li>
+<li>Confirmation email sent with refund details</li>
+</ul>
+
+<h3>6. Refund Method</h3>
+<ul>
+<li><strong>Credit/Debit Cards:</strong> 5-10 business days</li>
+<li><strong>PayPal:</strong> 3-5 business days</li>
+<li><strong>Bank Transfers:</strong> 7-14 business days (regional variations)</li>
+</ul>
+<p><strong>Note:</strong> Processing time depends on your financial institution.</p>
+
+<h3>7. Special Circumstances</h3>
+<h4>Technical Issues</h4>
+<p>If you experienced technical problems that prevented course access, contact support immediately with screenshots or error messages. An extended refund window may be granted.</p>
+<h4>Course Quality Issues</h4>
+<p>If course content is significantly different from the description, contains major technical errors, or the instructor becomes unavailable, we will offer a full refund regardless of completion or a free course transfer to similar content.</p>
+
+<h3>8. Your Rights</h3>
+<h4>EU Customers (GDPR)</h4>
+<p>A 14-day cooling-off period applies. You have the right to cancel without reason. This right is waived if you begin accessing course content.</p>
+<h4>US Customers</h4>
+<p>State-specific consumer protection laws apply. Contact support for state-specific information.</p>
+<h4>Other Regions</h4>
+<p>Local consumer protection laws are honored. Contact support for regional policies.</p>
+
+<h3>9. Dispute Resolution</h3>
+<p>If you disagree with a refund decision:</p>
+<ul>
+<li><strong>Internal Appeal:</strong> Reply to the decision email within 7 days</li>
+<li><strong>Management Review:</strong> Senior team reviews the appeal</li>
+<li><strong>Final Decision:</strong> Communicated within 5 business days</li>
+</ul>
+
+<h3>10. Policy Updates</h3>
+<p>This policy may be updated to reflect legal requirements, operational changes, or industry best practices. Users will be notified of material changes via email.</p>
+
+<h3>11. Contact</h3>
+<p>For refund questions or special requests, contact us at:</p>
+<ul>
+<li>Email: <a href="mailto:support@mishinlearn.com">support@mishinlearn.com</a></li>
+<li>Response Time: Within 24-48 hours</li>
+</ul>
+<p>This refund policy is part of our <a href="/terms">Terms of Service</a> and is subject to applicable consumer protection laws, payment processor terms, and Platform Terms of Service.</p>',
+    'Initial Refund Policy for Mishin Learn Platform.',
+    '2026-02-14',
+    1
+);
+
+-- ========================================
 -- ========================================
 -- SCHEMA CREATION COMPLETE
 -- ========================================
@@ -1170,5 +1516,6 @@ PRINT '🎥 Multi-Content Progress: VideoProgress (tracks videos, text, quizzes 
 PRINT '⚙️ User Settings: UserSettings (Privacy, Appearance)';
 PRINT '💳 Payment System: Transactions, Invoices, Stripe Integration';
 PRINT '🎓 Certificates: Track course completion certificates with verification';
-PRINT '� Data Export: DataExportRequests (GDPR-compliant user data export)';
-PRINT '�🚀 Database is ready for Mishin Learn Platform!';
+PRINT '📦 Data Export: DataExportRequests (GDPR-compliant user data export)';
+PRINT '📜 Terms & Privacy: TermsVersions, UserTermsAcceptance (legal compliance)';
+PRINT '🚀 Database is ready for Mishin Learn Platform!';

@@ -1,7 +1,57 @@
 ﻿# 🚀 Quick Reference - Development Workflow
 
-**Last Updated**: February 13, 2026 - Real-time Course Updates 🔄
+**Last Updated**: February 14, 2026 - Terms of Service, Privacy Policy & Refund Policy 📜
 
+
+## Terms of Service, Privacy Policy & Refund Policy (Added Feb 14, 2026)
+
+**Database-driven legal compliance system with versioned documents, user acceptance tracking, and GDPR-compliant consent**
+
+### Architecture
+- **Database-driven**: All legal documents stored in `TermsVersions` table with version tracking
+- **Acceptance tracking**: `UserTermsAcceptance` table records when users accepted which version
+- **Consent gate**: Registration requires explicit TOS + Privacy Policy acceptance
+- **Banner enforcement**: `TermsConsentBanner` blocks app usage until latest terms accepted
+- **Refund Policy**: Informational only — does NOT require user acceptance
+
+### API Endpoints
+```
+GET    /api/terms/current                    - Get all active legal documents
+                                              Returns: { termsOfService, privacyPolicy, refundPolicy }
+GET    /api/terms/status                     - Check if user accepted latest versions
+                                              Returns: { hasAccepted, termsAccepted, privacyAccepted }
+POST   /api/terms/accept                     - Record user acceptance
+                                              Body: { termsVersionId, privacyVersionId }
+GET    /api/terms/:documentType/:version     - Get specific document version
+                                              Types: terms_of_service, privacy_policy, refund_policy
+```
+
+### Frontend Routes
+```
+/terms              → TermsOfServicePage.tsx     (public, no auth)
+/privacy            → PrivacyPolicyPage.tsx       (public, no auth)
+/refund-policy      → RefundPolicyPage.tsx        (public, no auth)
+```
+
+### Key Patterns
+```typescript
+// Registration: checkbox required, sends termsVersionId + privacyVersionId
+// Login: middleware checks acceptance, returns needsTermsAcceptance flag
+// TermsConsentBanner: overlay blocks navigation until accepted (skips /terms, /privacy, /refund-policy)
+// Middleware: requireTermsAcceptance only checks terms_of_service + privacy_policy (NOT refund_policy)
+```
+
+### Database Tables
+- `TermsVersions` — DocumentType ('terms_of_service' | 'privacy_policy' | 'refund_policy'), Version, Content (HTML), IsActive
+- `UserTermsAcceptance` — UserId, TermsVersionId, AcceptedAt, IpAddress, UserAgent
+
+### Key Files
+- Backend: `server/src/routes/terms.ts`, `server/src/middleware/auth.ts` (requireTermsAcceptance)
+- Frontend: `client/src/services/termsApi.ts`, `client/src/components/Legal/TermsConsentBanner.tsx`
+- Pages: `client/src/pages/Legal/TermsOfServicePage.tsx`, `PrivacyPolicyPage.tsx`, `RefundPolicyPage.tsx`
+- Schema: `database/schema.sql` (TermsVersions + UserTermsAcceptance tables)
+
+---
 
 ## Real-time Course Updates (Added Feb 13, 2026)
 
@@ -1276,6 +1326,7 @@ Components (NotificationBell, NotificationsPage) - Read-only
 │  Understand data flows                │  ARCHITECTURE.md     │
 │  Find API endpoints                   │  ARCHITECTURE.md     │
 │  Implement notification preferences   │  NOTIFICATION_PREFS  │
+│  Understand terms/legal compliance    │  QUICK_REFERENCE.md  │
 │  Test privacy features                │  test-privacy-*.js   │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -1473,8 +1524,10 @@ PROJECT ROOT
 ├─ client/
 │  ├─ src/
 │  │  ├─ pages/                 ← Page components (entry points)
+│  │  │  └─ Legal/              ← TOS, Privacy Policy, Refund Policy pages
 │  │  ├─ components/            ← Reusable components
-│  │  ├─ services/              ← API service classes
+│  │  │  └─ Legal/              ← TermsConsentBanner (acceptance overlay)
+│  │  ├─ services/              ← API service classes (incl. termsApi.ts)
 │  │  ├─ stores/                ← Zustand stores (authStore)
 │  │  └─ utils/                 ← Utility functions
 │  └─ package.json

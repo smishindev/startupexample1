@@ -2,7 +2,7 @@
 
 **Purpose**: Systematic checklist to follow before implementing changes  
 **Goal**: Reduce errors, missing considerations, and broken functionality  
-**Last Updated**: February 13, 2026 - Real-time Course Updates Complete 🔄
+**Last Updated**: February 14, 2026 - Terms of Service, Privacy Policy & Refund Policy 📜
 
 ---
 
@@ -50,6 +50,19 @@
 - [ ] Identified all pages that use this component
 
 **Recent Additions to Check:**
+- [x] **Terms of Service, Privacy Policy & Refund Policy** - PRODUCTION READY (Feb 14, 2026) 📜
+  - Database-driven versioned legal documents (TermsVersions + UserTermsAcceptance tables)
+  - Three document types: terms_of_service, privacy_policy, refund_policy
+  - Registration requires explicit TOS + Privacy Policy acceptance (checkbox + version IDs)
+  - TermsConsentBanner blocks app until latest terms accepted (skips /terms, /privacy, /refund-policy)
+  - requireTermsAcceptance middleware checks only TOS + Privacy (NOT refund_policy)
+  - Refund Policy is informational only — no user acceptance required
+  - Public API endpoints: GET /api/terms/current, GET /api/terms/status, POST /api/terms/accept
+  - Frontend pages: /terms, /privacy, /refund-policy (all public, no auth required)
+  - Cross-links between all three legal pages + LandingPage footer links
+  - HTML content rendered via dangerouslySetInnerHTML (seed data in schema.sql)
+  - Status: 0 TypeScript errors (server + client), all routes verified
+  - Files: terms.ts, auth.ts (middleware), termsApi.ts, TermsConsentBanner.tsx, 3 page components, App.tsx, RegisterForm.tsx, LandingPage.tsx, schema.sql
 - [x] **Real-time Course Updates - Phase 5** - PRODUCTION READY (Feb 13, 2026) 🔄
   - Automatic page refreshes when instructors edit courses (no manual refresh needed)
   - Socket.IO room-based broadcasting: `course-{courseId}` + `courses-catalog`

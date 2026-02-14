@@ -4,7 +4,7 @@
 
 An innovative EdTech startup providing personalized learning experiences through AI tutoring, adaptive content delivery, and comprehensive progress analytics.
 
-**Last Major Update**: February 13, 2026 - Real-time Course Updates Complete ✅  
+**Last Major Update**: February 14, 2026 - Terms of Service, Privacy Policy & Refund Policy ✅  
 **Code Quality**: Grade A (95/100) - 85% type safety, 70% logging coverage, 0 TypeScript errors
 
 ## 🚀 Features
@@ -17,6 +17,13 @@ An innovative EdTech startup providing personalized learning experiences through
 - **Assessment System** - Adaptive testing and skill evaluation
 
 ### Data Privacy & Security
+- **Terms of Service & Privacy Policy** - Database-driven legal compliance with versioned documents and GDPR-compliant acceptance tracking (February 14, 2026) 📜
+  - **Versioned Documents**: TOS, Privacy Policy, and Refund Policy stored in database (update without code deployment)
+  - **Consent Gate**: Registration requires explicit TOS + Privacy Policy acceptance
+  - **Existing User Banner**: Full-screen overlay blocks app until latest terms accepted
+  - **Refund Policy**: Informational page (no acceptance required) with cross-links to TOS + Privacy
+  - **GDPR Audit Trail**: IP address, user agent, and timestamp recorded with each acceptance
+  - **Public Pages**: /terms, /privacy, /refund-policy accessible without authentication
 - **GDPR-Compliant Data Export** - Complete user data portability with one-click export (February 6, 2026) 📦
   - **Comprehensive Data Collection**: 20+ tables (profile, enrollments, progress, certificates, transactions, chat, AI tutoring, comments, bookmarks, notifications)
   - **Multiple Formats**: JSON (complete data) + CSV (summary) + README documentation

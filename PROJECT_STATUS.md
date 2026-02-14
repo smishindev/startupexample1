@@ -1,6 +1,6 @@
 # Mishin Learn Platform - Project Status & Memory
 
-**Last Updated**: February 13, 2026 - Real-time Course Updates 🔄  
+**Last Updated**: February 14, 2026 - Terms of Service, Privacy Policy & Refund Policy 📜  
 **Developer**: Sergey Mishin (s.mishin.dev@gmail.com)  
 **AI Assistant Context**: This file serves as project memory for continuity across chat sessions
 
@@ -12,7 +12,74 @@
 **Certificate Settings**: Enable/disable certificates, custom titles, 4 visual templates (Phase 3 Complete) ✅  
 **Advanced Visibility**: Preview links for draft courses, unlisted courses, preview mode security (Phase 4 Complete) ✅  
 **Real-time Course Updates**: Automatic page refreshes when instructors edit courses (February 13, 2026) ✅  
-**Payment Security**: Transaction-based verification prevents all payment bypass scenarios ✅
+**Terms & Legal Compliance**: Database-driven TOS, Privacy Policy & Refund Policy with acceptance tracking (February 14, 2026) ✅
+
+---
+
+## 📜 TERMS OF SERVICE, PRIVACY POLICY & REFUND POLICY (Latest - February 14, 2026)
+
+**Activity**: Implemented database-driven legal compliance system with versioned documents, user acceptance tracking, and GDPR-compliant consent
+
+**Status**: ✅ **Complete** - Full end-to-end implementation with schema, backend API, middleware enforcement, frontend pages, and registration integration
+
+### **Problem Solved:**
+Before: No Terms of Service, Privacy Policy, or Refund Policy existed. Users could register and use the platform without agreeing to any legal terms.
+
+After: Complete legal compliance system. Registration requires TOS + Privacy Policy acceptance. Existing users see a consent banner blocking app usage until they accept. Refund Policy available as informational page. All documents are database-driven and versioned for future updates.
+
+### **Implementation Summary:**
+
+**Database (2 tables + seed data):**
+1. **TermsVersions** — Stores versioned legal documents
+   - DocumentType CHECK ('terms_of_service', 'privacy_policy', 'refund_policy')
+   - Version, Content (NVARCHAR MAX — full HTML), EffectiveDate, IsActive
+   - Unique filtered index: `IX_TermsVersions_DocumentType_IsActive` (one active per type)
+   - Seed data: TOS v1.0, Privacy Policy v1.0, Refund Policy v1.0
+
+2. **UserTermsAcceptance** — Records user consent
+   - UserId FK, TermsVersionId FK, AcceptedAt, IpAddress, UserAgent
+   - GDPR-compliant audit trail
+
+**Backend (2 files modified):**
+1. **terms.ts** (207 lines) — 4 API endpoints:
+   - `GET /current` — Returns all active documents (public)
+   - `GET /status` — Checks user acceptance (authenticated)
+   - `POST /accept` — Records acceptance with IP/UserAgent
+   - `GET /:documentType/:version` — Specific version lookup (public)
+
+2. **auth.ts** (middleware) — `requireTermsAcceptance`:
+   - Filters by `DocumentType IN ('terms_of_service', 'privacy_policy')` only
+   - Refund Policy excluded from acceptance requirements
+   - Returns `needsTermsAcceptance: true` flag when outdated
+
+**Frontend (10 files modified/created):**
+1. **termsApi.ts** (75 lines) — API service with typed responses
+2. **TermsConsentBanner.tsx** (250 lines) — Full-screen overlay blocking app until acceptance
+   - Skips on /terms, /privacy, /refund-policy, /login, /register, /landing
+3. **TermsOfServicePage.tsx** (178 lines) — Public TOS page at /terms
+4. **PrivacyPolicyPage.tsx** (178 lines) — Public Privacy Policy page at /privacy
+5. **RefundPolicyPage.tsx** (~195 lines) — Public Refund Policy page at /refund-policy
+6. **App.tsx** — Added routes for /terms, /privacy, /refund-policy
+7. **RegisterForm.tsx** — Added acceptance checkbox + version ID submission
+8. **LandingPage.tsx** — Added footer links to all three legal pages
+9. Each legal page cross-links to the other two in footer section
+
+### **Key Design Decisions:**
+- **Refund Policy is informational only** — doesn't require user acceptance
+- **HTML content stored in database** — allows updating without code deployment
+- **Versioned documents** — when new version published, users must re-accept
+- **Registration & login gates** — both paths enforce terms acceptance
+- **GDPR audit trail** — IP address and user agent recorded with each acceptance
+
+### **TypeScript Compilation:**
+- Server: 0 errors ✅
+- Client: 0 errors ✅
+
+### **Files Changed (12 total):**
+- **NEW**: TermsOfServicePage.tsx, PrivacyPolicyPage.tsx, RefundPolicyPage.tsx, TermsConsentBanner.tsx, termsApi.ts
+- **Modified Backend**: terms.ts, auth.ts (middleware)
+- **Modified Frontend**: App.tsx, RegisterForm.tsx, LandingPage.tsx
+- **Modified Database**: schema.sql (tables + seed data), add_refund_policy.sql (migration)
 
 ---
 
@@ -9140,6 +9207,8 @@ npm run dev
 
 ### Core Backend Files
 - `server/src/index.ts` - Main server entry point with Socket.io and NotificationService initialization
+- `server/src/routes/terms.ts` - **NEW**: Terms of Service, Privacy Policy & Refund Policy API routes (February 14, 2026)
+- `server/src/middleware/auth.ts` - **UPDATED**: requireTermsAcceptance middleware checks TOS + Privacy acceptance (February 14, 2026)
 - `server/src/routes/assessments.ts` - Assessment API routes
 - `server/src/routes/assessment-analytics.ts` - **NEW**: Enhanced cross-assessment analytics APIs
 - `server/src/routes/student-progress.ts` - **NEW**: Student Progress Integration APIs with AI recommendations
@@ -9159,7 +9228,14 @@ npm run dev
 - `server/src/sockets.ts` - **UPDATED**: Socket.io handlers with notification support (October 24, 2025)
 
 ### Core Frontend Files
-- `client/src/App.tsx` - **UPDATED**: Main React app with routing (includes analytics, smart progress, and intervention routes)
+- `client/src/App.tsx` - **UPDATED**: Main React app with routing (includes legal page routes /terms, /privacy, /refund-policy - February 14, 2026)
+- `client/src/pages/Legal/TermsOfServicePage.tsx` - **NEW**: Database-driven Terms of Service page (February 14, 2026)
+- `client/src/pages/Legal/PrivacyPolicyPage.tsx` - **NEW**: Database-driven Privacy Policy page (February 14, 2026)
+- `client/src/pages/Legal/RefundPolicyPage.tsx` - **NEW**: Database-driven Refund Policy page (February 14, 2026)
+- `client/src/components/Legal/TermsConsentBanner.tsx` - **NEW**: Full-screen consent overlay for terms acceptance (February 14, 2026)
+- `client/src/services/termsApi.ts` - **NEW**: Terms API service with typed responses (February 14, 2026)
+- `client/src/pages/Auth/RegisterForm.tsx` - **UPDATED**: Registration with TOS + Privacy acceptance checkbox (February 14, 2026)
+- `client/src/pages/Landing/LandingPage.tsx` - **UPDATED**: Footer links to TOS, Privacy, Refund Policy (February 14, 2026)
 - `client/src/pages/Instructor/InstructorDashboard.tsx` - **UPDATED**: Instructor interface with optimized Quick Actions (October 25, 2025)
 - `client/src/pages/Courses/CoursesPage.tsx` - **UPDATED**: Courses page with duplicate prevention and bookmark consistency (October 25, 2025)
 - `client/src/pages/Instructor/AnalyticsHubPage.tsx` - **NEW**: Central analytics hub landing page

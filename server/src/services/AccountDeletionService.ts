@@ -306,6 +306,7 @@ export class AccountDeletionService {
     // - Transactions (CASCADE)
     // - UserPresence (CASCADE - PRIMARY KEY)
     // - StudyGroupMembers (CASCADE)
+    // - UserTermsAcceptance (CASCADE)
     
     // Note: Chat-related tables (NO ACTION constraints - already handled manually above):
     // - ChatMessageReadStatus (deleted)

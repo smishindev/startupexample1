@@ -1,6 +1,6 @@
 # Mishin Learn Platform - Component Registry
 
-**Last Updated**: February 13, 2026 - Real-time Course Updates 🔄  
+**Last Updated**: February 14, 2026 - Terms of Service, Privacy Policy & Refund Policy 📜  
 **Purpose**: Quick reference for all major components, their dependencies, and relationships
 
 ---
@@ -142,6 +142,147 @@ router.put('/courses/:id', async (req, res) => {
 **Dependencies**:
 - Socket.IO instance set via `CourseEventService.setSocketIO(io)` in index.ts
 - Logger for structured logging
+
+---
+
+## 📜 Terms of Service, Privacy Policy & Refund Policy (Added February 14, 2026)
+
+### TermsConsentBanner
+**Path**: `client/src/components/Legal/TermsConsentBanner.tsx` (250 lines)  
+**Purpose**: Full-screen overlay that blocks app usage until user accepts latest TOS + Privacy Policy
+
+**Features**:
+- Checks acceptance status via `GET /api/terms/status` on mount
+- Shows overlay with links to TOS and Privacy Policy pages
+- Accept button calls `POST /api/terms/accept` with version IDs
+- Skips display on legal pages (`/terms`, `/privacy`, `/refund-policy`) and public routes (`/login`, `/register`, `/landing`)
+- Only shown to authenticated users who haven't accepted latest versions
+- Refreshes terms data from `GET /api/terms/current` for version IDs
+
+**State Management**:
+```typescript
+const [needsAcceptance, setNeedsAcceptance] = useState(false);
+const [termsData, setTermsData] = useState<CurrentTermsResponse | null>(null);
+const [loading, setLoading] = useState(true);
+const [accepting, setAccepting] = useState(false);
+```
+
+**Dependencies**:
+- `termsApi.getTermsStatus()` — Check acceptance status
+- `termsApi.getCurrentTerms()` — Get current document versions
+- `termsApi.acceptTerms()` — Record acceptance
+- `useAuthStore` — Check authentication state
+- `useLocation` — Detect current route for legal page bypass
+
+**Status**: ✅ Production-ready
+
+---
+
+### TermsOfServicePage
+**Path**: `client/src/pages/Legal/TermsOfServicePage.tsx` (178 lines)  
+**Route**: `/terms`  
+**Purpose**: Public page displaying current Terms of Service from database
+
+**Features**:
+- Fetches TOS via `getCurrentTerms()` API
+- Renders HTML content with `dangerouslySetInnerHTML`
+- Version and effective date display
+- Cross-links to Privacy Policy and Refund Policy in footer
+- Loading spinner and error states
+- Gavel icon header with purple gradient
+
+**Dependencies**: `termsApi.getCurrentTerms()`
+
+**Status**: ✅ Production-ready
+
+---
+
+### PrivacyPolicyPage
+**Path**: `client/src/pages/Legal/PrivacyPolicyPage.tsx` (178 lines)  
+**Route**: `/privacy`  
+**Purpose**: Public page displaying current Privacy Policy from database
+
+**Features**:
+- Same pattern as TermsOfServicePage
+- Shield icon header
+- Cross-links to TOS and Refund Policy
+
+**Dependencies**: `termsApi.getCurrentTerms()`
+
+**Status**: ✅ Production-ready
+
+---
+
+### RefundPolicyPage
+**Path**: `client/src/pages/Legal/RefundPolicyPage.tsx` (~195 lines)  
+**Route**: `/refund-policy`  
+**Purpose**: Public page displaying current Refund Policy from database (informational, no acceptance required)
+
+**Features**:
+- Same database-driven pattern as TOS and Privacy pages
+- AccountBalance icon header
+- Cross-links to TOS and Privacy Policy
+- **No acceptance required** — purely informational
+
+**Dependencies**: `termsApi.getCurrentTerms()`
+
+**Status**: ✅ Production-ready
+
+---
+
+### termsApi (Frontend Service)
+**Path**: `client/src/services/termsApi.ts` (75 lines)  
+**Endpoint Base**: `/api/terms`
+
+**Methods**:
+- `getCurrentTerms()` — GET /api/terms/current → `{ termsOfService, privacyPolicy, refundPolicy }`
+- `getTermsStatus()` — GET /api/terms/status → `{ hasAccepted, termsAccepted, privacyAccepted }`
+- `acceptTerms(termsVersionId, privacyVersionId)` — POST /api/terms/accept
+- `getDocumentVersion(type, version)` — GET /api/terms/:documentType/:version
+
+**Types**:
+```typescript
+type DocumentType = 'terms_of_service' | 'privacy_policy' | 'refund_policy';
+
+interface TermsVersion {
+  Id: string; DocumentType: DocumentType; Version: string;
+  Content: string; EffectiveDate: string; IsActive: boolean;
+}
+
+interface CurrentTermsResponse {
+  termsOfService: TermsVersion | null;
+  privacyPolicy: TermsVersion | null;
+  refundPolicy: TermsVersion | null;
+}
+```
+
+**Used By**: TermsConsentBanner, TermsOfServicePage, PrivacyPolicyPage, RefundPolicyPage, RegisterForm
+
+**Status**: ✅ Production-ready
+
+---
+
+### Terms Backend Routes
+**Path**: `server/src/routes/terms.ts` (207 lines)  
+**Endpoints**: 4 routes (2 public, 2 authenticated)
+
+**Routes**:
+1. `GET /api/terms/current` (public) — Get all active legal documents
+2. `GET /api/terms/status` (authenticated) — Check user's acceptance status
+3. `POST /api/terms/accept` (authenticated) — Record acceptance of TOS + Privacy Policy
+4. `GET /api/terms/:documentType/:version` (public) — Get specific document version
+
+**Middleware Integration**:
+- `requireTermsAcceptance` in `server/src/middleware/auth.ts` checks acceptance
+- Only requires acceptance of `terms_of_service` and `privacy_policy` (NOT `refund_policy`)
+- Returns `needsTermsAcceptance: true` flag when terms outdated
+
+**Database Tables**:
+- `TermsVersions`: DocumentType CHECK ('terms_of_service','privacy_policy','refund_policy'), Version, Content (NVARCHAR MAX), EffectiveDate, IsActive
+- `UserTermsAcceptance`: UserId FK, TermsVersionId FK, AcceptedAt, IpAddress, UserAgent
+- Unique filtered index: `IX_TermsVersions_DocumentType_IsActive` ensures one active version per type
+
+**Status**: ✅ Production-ready
 
 ---
 

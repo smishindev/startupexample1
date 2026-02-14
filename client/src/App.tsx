@@ -75,6 +75,12 @@ import Tutoring from './pages/Tutoring/Tutoring';
 // Demo Components
 import { ContentUploadDemo } from './components/Demo/ContentUploadDemo';
 
+// Legal Components
+import TermsOfServicePage from './pages/Legal/TermsOfServicePage';
+import PrivacyPolicyPage from './pages/Legal/PrivacyPolicyPage';
+import RefundPolicyPage from './pages/Legal/RefundPolicyPage';
+import TermsConsentBanner from './components/Legal/TermsConsentBanner';
+
 // Hooks
 import { useAuthStore } from './stores/authStore';
 import { useNotificationStore } from './stores/notificationStore';
@@ -214,6 +220,9 @@ function App() {
       {/* Token expiration warning */}
       {isAuthenticated && <TokenExpirationWarning />}
       
+      {/* Terms consent banner - shown when terms are updated */}
+      {isAuthenticated && <TermsConsentBanner />}
+      
       {/* Scroll to top on route change */}
       <ScrollToTop />
       
@@ -235,6 +244,9 @@ function App() {
         <Route path="/forgot-password" element={<ForgotPasswordForm />} />
         <Route path="/reset-password" element={<ResetPasswordForm />} />
         <Route path="/verify-email" element={<EmailVerificationPage />} />
+        <Route path="/terms" element={<TermsOfServicePage />} />
+        <Route path="/privacy" element={<PrivacyPolicyPage />} />
+        <Route path="/refund-policy" element={<RefundPolicyPage />} />
 
         {/* Protected Routes */}
         <Route

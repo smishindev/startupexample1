@@ -50,6 +50,7 @@ export interface RegisterData {
   password: string;
   role?: 'student' | 'instructor';
   learningStyle?: string;
+  acceptedTermsVersionIds?: string[];
 }
 
 export interface LoginResponse {

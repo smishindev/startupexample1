@@ -45,6 +45,7 @@ import { videoAnalyticsRoutes } from './routes/videoAnalytics';
 import dashboardRoutes from './routes/dashboard';
 import settingsRoutes from './routes/settings';
 import emailRoutes from './routes/email';
+import { termsRoutes } from './routes/terms';
 import { createCommentsRouter } from './routes/comments';
 const studentProgressRoutes = require('./routes/student-progress');
 import { DatabaseService } from './services/DatabaseService';
@@ -235,6 +236,7 @@ app.use('/api/comments', createCommentsRouter(commentService));
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/email', emailRoutes);
+app.use('/api/terms', termsRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {

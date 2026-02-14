@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Card,
@@ -21,6 +21,8 @@ import {
   DialogContent,
   DialogContentText,
   DialogActions,
+  Checkbox,
+  FormControlLabel,
 } from '@mui/material';
 import {
   Visibility,
@@ -35,6 +37,7 @@ import {
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { useAuthStore, RegisterData } from '../../stores/authStore';
 import { toast } from 'sonner';
+import { getCurrentTerms, CurrentTermsResponse } from '../../services/termsApi';
 
 const learningStyles = [
   { value: 'visual', label: 'Visual (I learn best with images and diagrams)' },
@@ -74,6 +77,21 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [showVerificationDialog, setShowVerificationDialog] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [currentTerms, setCurrentTerms] = useState<CurrentTermsResponse | null>(null);
+
+  // Fetch current terms versions on mount
+  useEffect(() => {
+    const fetchTerms = async () => {
+      try {
+        const data = await getCurrentTerms();
+        setCurrentTerms(data);
+      } catch (err) {
+        console.error('Failed to fetch current terms:', err);
+      }
+    };
+    fetchTerms();
+  }, []);
 
   const handleChange = (field: keyof RegisterData | 'confirmPassword') => (
     event: React.ChangeEvent<HTMLInputElement>
@@ -158,7 +176,10 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
         break;
         
       case 2: // Learning Preferences (optional)
-        // No required fields in this step
+        // Terms acceptance is required
+        if (!termsAccepted) {
+          errors.terms = 'You must accept the Terms of Service and Privacy Policy';
+        }
         break;
     }
     
@@ -222,12 +243,22 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
     setIsSubmitting(true);
     
     try {
+      // Build accepted terms version IDs
+      const acceptedTermsVersionIds: string[] = [];
+      if (currentTerms?.termsOfService?.Id) {
+        acceptedTermsVersionIds.push(currentTerms.termsOfService.Id);
+      }
+      if (currentTerms?.privacyPolicy?.Id) {
+        acceptedTermsVersionIds.push(currentTerms.privacyPolicy.Id);
+      }
+
       const success = await register({
         ...formData,
         email: formData.email.trim(),
         username: formData.username.trim(),
         firstName: formData.firstName.trim(),
         lastName: formData.lastName.trim(),
+        acceptedTermsVersionIds,
       });
       
       if (success) {
@@ -468,6 +499,58 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
                 </MenuItem>
               ))}
             </TextField>
+
+            {/* Terms of Service & Privacy Policy Agreement */}
+            <Box sx={{ mt: 3, p: 2, bgcolor: 'action.hover', borderRadius: 1 }}>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={termsAccepted}
+                    onChange={(e) => {
+                      setTermsAccepted(e.target.checked);
+                      if (validationErrors.terms) {
+                        setValidationErrors(prev => ({ ...prev, terms: '' }));
+                      }
+                    }}
+                    disabled={isLoading}
+                    data-testid="register-terms-checkbox"
+                  />
+                }
+                label={
+                  <Typography variant="body2" color="text.secondary">
+                    I agree to the{' '}
+                    <Link
+                      component={RouterLink}
+                      to="/terms"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      underline="hover"
+                      fontWeight="medium"
+                      onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                    >
+                      Terms of Service
+                    </Link>
+                    {' '}and{' '}
+                    <Link
+                      component={RouterLink}
+                      to="/privacy"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      underline="hover"
+                      fontWeight="medium"
+                      onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                    >
+                      Privacy Policy
+                    </Link>
+                  </Typography>
+                }
+              />
+              {validationErrors.terms && (
+                <Typography variant="caption" color="error" sx={{ ml: 4 }}>
+                  {validationErrors.terms}
+                </Typography>
+              )}
+            </Box>
           </>
         );
         

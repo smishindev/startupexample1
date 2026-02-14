@@ -539,6 +539,20 @@ export class DataExportService {
         ORDER BY CreatedAt DESC
       `);
 
+    // Terms & Privacy Acceptance History (GDPR audit trail)
+    const request23 = await this.dbService.getRequest();
+    const termsAcceptanceResult = await request23
+      .input('userId', sql.UniqueIdentifier, userId)
+      .query(`
+        SELECT 
+          uta.Id, uta.AcceptedAt, uta.IpAddress, uta.UserAgent,
+          tv.DocumentType, tv.Version, tv.Title, tv.EffectiveDate
+        FROM UserTermsAcceptance uta
+        INNER JOIN TermsVersions tv ON uta.TermsVersionId = tv.Id
+        WHERE uta.UserId = @userId
+        ORDER BY uta.AcceptedAt DESC
+      `);
+
     return {
       profile: profileResult.recordset[0] || {},
       settings: settingsResult.recordset[0] || {},
@@ -562,6 +576,7 @@ export class DataExportService {
       liveSessionAttendance: liveSessionsResult.recordset,
       studyGroups: studyGroupsResult.recordset,
       learningActivities: learningActivitiesResult.recordset,
+      termsAcceptance: termsAcceptanceResult.recordset,
     };
   }
 

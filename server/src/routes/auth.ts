@@ -58,7 +58,7 @@ const generateToken = (userId: string, email: string, role: string, rememberMe: 
 // POST /api/auth/register
 router.post('/register', async (req, res, next) => {
   try {
-    const { email, username, firstName, lastName, password, role, learningStyle } = req.body;
+    const { email, username, firstName, lastName, password, role, learningStyle, acceptedTermsVersionIds } = req.body;
 
     // Basic validation
     if (!email || !username || !firstName || !lastName || !password) {
@@ -150,7 +150,35 @@ router.post('/register', async (req, res, next) => {
     const token = generateToken(newUser.Id, newUser.Email, newUser.Role);
 
     logger.info(`User registered successfully: ${email} (Email verified: false)`);
-    
+
+    // Record terms acceptance if provided
+    if (acceptedTermsVersionIds && Array.isArray(acceptedTermsVersionIds) && acceptedTermsVersionIds.length > 0) {
+      try {
+        const ipAddress = req.headers['x-forwarded-for'] as string || req.ip || null;
+        const userAgent = req.headers['user-agent'] || null;
+        for (const versionId of acceptedTermsVersionIds) {
+          await db.execute(
+            `MERGE dbo.UserTermsAcceptance AS target
+             USING (SELECT @userId AS UserId, @termsVersionId AS TermsVersionId) AS source
+             ON target.UserId = source.UserId AND target.TermsVersionId = source.TermsVersionId
+             WHEN NOT MATCHED THEN
+               INSERT (UserId, TermsVersionId, AcceptedAt, IpAddress, UserAgent)
+               VALUES (@userId, @termsVersionId, GETUTCDATE(), @ipAddress, @userAgent);`,
+            {
+              userId: newUser.Id,
+              termsVersionId: versionId,
+              ipAddress: ipAddress || null,
+              userAgent: userAgent || null
+            }
+          );
+        }
+        logger.info(`Terms accepted during registration for user: ${email}`, { termsVersionIds: acceptedTermsVersionIds });
+      } catch (termsError) {
+        logger.error(`Failed to record terms acceptance for user: ${email}`, termsError);
+        // Don't fail registration if terms recording fails
+      }
+    }
+
     // Send verification email
     console.log(`[EMAIL VERIFICATION] User ${email} needs to verify their email`);
     try {

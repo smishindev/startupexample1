@@ -230,7 +230,7 @@
   - Resend cooldown: 60-second timer prevents spam
   - Database: EmailVerificationCode + EmailVerificationExpiry columns
   - Files created: 3 (verificationApi, EmailVerificationPage, EmailVerificationBanner)
-  - Files modified: 5 (authStore, App, DashboardLayout, ProfilePage, RegisterForm)
+  - Files modified: 5 (authStore, App, DashboardPage, ProfilePage, RegisterForm)
 - [x] Notifications Center - PRODUCTION READY (Dec 22, 2025) ✅
   - NotificationsPage: Full-page notification management with pagination
   - NotificationBell: Enhanced with queued count badge and real-time sync

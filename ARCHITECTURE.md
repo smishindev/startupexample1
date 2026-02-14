@@ -597,7 +597,7 @@ All endpoints require JWT authentication (authenticateToken middleware)
 **Frontend Integration:**
 - verificationApi.ts service with 4 methods
 - EmailVerificationPage (/verify-email) standalone page
-- EmailVerificationBanner in DashboardLayout
+- EmailVerificationBanner in DashboardPage
 - Profile badge integration (clickable for unverified)
 
 ### Relative Timestamp Auto-Update (added Jan 12, 2026)
@@ -2241,7 +2241,12 @@ components/
 │   ├── PageHeader.tsx - Page-specific header component
 │   └── index.ts - Barrel exports
 ├── Layout/
-│   └── DashboardLayout.tsx - Dashboard wrapper
+│   ├── Layout.tsx - Main layout wrapper
+│   └── PublicLayout.tsx - Public pages layout
+├── Dashboard/
+│   ├── StatCard.tsx - Dashboard stat display card
+│   ├── CourseCard.tsx - Dashboard course card with progress
+│   └── AchievementBadge.tsx - Achievement display badge
 ├── Video/
 │   ├── VideoPlayer.tsx - Video player with progress
 │   └── VideoTranscript.tsx - Interactive transcript

@@ -79,7 +79,8 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     // Redirect based on user's role
     switch (user.role) {
       case 'admin':
-        return <Navigate to="/admin/dashboard" replace />;
+        // Admin users fall through to general dashboard (no dedicated admin dashboard yet)
+        return <Navigate to="/dashboard" replace />;
       case 'instructor':
         return <Navigate to="/instructor/dashboard" replace />;
       case 'student':

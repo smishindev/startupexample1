@@ -24,7 +24,7 @@ import { TokenExpirationWarning } from './components/Auth/TokenExpirationWarning
 import EmailVerificationPage from './pages/Auth/EmailVerificationPage';
 
 // Main Pages
-import { DashboardLayout } from './components/Layout/DashboardLayout';
+import { DashboardPage } from './pages/Dashboard/DashboardPage';
 import { CoursesPage } from './pages/Courses/CoursesPage';
 import { CourseDetailPage } from './pages/Course/CourseDetailPage';
 import { LessonDetailPage } from './pages/Course/LessonDetailPage';
@@ -241,7 +241,7 @@ function App() {
           path="/dashboard"
           element={
             <ProtectedRoute>
-              <DashboardLayout />
+              <DashboardPage />
             </ProtectedRoute>
           }
         />

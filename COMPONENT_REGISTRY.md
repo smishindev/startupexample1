@@ -3613,7 +3613,7 @@ Check current state
 - `dismissed: boolean` - Temporary dismissal state (not persisted)
 
 **Used By**:
-- DashboardLayout (shown below Header, above content)
+- DashboardPage (shown below Header, above content)
 
 **Display Logic**:
 ```typescript

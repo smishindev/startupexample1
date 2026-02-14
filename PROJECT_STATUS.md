@@ -5019,10 +5019,11 @@ Automated digest sending with node-cron:
    - Delete icon on badge for quick access
    - Visual indicator in header section
 
-7. **Enhanced Dashboard Layout** (`client/src/components/Layout/DashboardLayout.tsx`)
+7. **Enhanced Dashboard Page** (`client/src/pages/Dashboard/DashboardPage.tsx`)
    - Integrated EmailVerificationBanner below header
    - Shows on all dashboard pages for unverified users
    - Automatically hides after verification
+   - Note: Refactored from DashboardLayout (Feb 2026)
 
 8. **Routing** (`client/src/App.tsx`)
    - Added /verify-email route (public access)
@@ -5101,7 +5102,7 @@ GMAIL_APP_PASSWORD=tfjubtheusandbiy
 #### Files Modified
 1. `client/src/stores/authStore.ts` - Added updateEmailVerified action
 2. `client/src/App.tsx` - Added /verify-email route
-3. `client/src/components/Layout/DashboardLayout.tsx` - Integrated banner
+3. `client/src/pages/Dashboard/DashboardPage.tsx` - Integrated banner (formerly DashboardLayout)
 4. `client/src/pages/Profile/ProfilePage.tsx` - Added verification badge with action
 5. `client/src/components/Auth/RegisterForm.tsx` - Added verification dialog, fixed form submission
 
@@ -8342,7 +8343,7 @@ CREATE TABLE dbo.Invoices (
    - ✅ Removed duplicate category badge from info section (kept only on thumbnail)
    - ✅ Added MUI `alpha` import for proper color transparency
 
-3. **DashboardLayout Component** (`client/src/components/Layout/DashboardLayout.tsx`)
+3. **Dashboard Component** (`client/src/pages/Dashboard/DashboardPage.tsx` - refactored Feb 2026)
    - ✅ Removed duplicate `formatCategory()` function
    - ✅ Removed duplicate `getCategoryGradient()` function
    - ✅ Imported shared utilities from `courseHelpers.ts`
@@ -8350,6 +8351,7 @@ CREATE TABLE dbo.Invoices (
    - ✅ Removed duplicate category badge from info section
    - ✅ Backend integration: Added `Category` and `Level` fields to enrollment queries
    - ✅ Updated TypeScript interfaces: `RecentCourse` includes `category?` and `level?`
+   - Note: Originally in `DashboardLayout.tsx`, refactored to proper page structure Feb 2026
 
 4. **MyLearningPage Component** (`client/src/pages/Learning/MyLearningPage.tsx`)
    - ✅ Removed duplicate `formatCategory()` function
@@ -8425,14 +8427,14 @@ CREATE TABLE dbo.Invoices (
 
 #### Pages Affected
 1. `/courses` - CoursesPage (shared CourseCard component)
-2. `/dashboard` - DashboardLayout (local CourseCard variant)
+2. `/dashboard` - DashboardPage (local CourseCard variant)
 3. `/my-learning` - MyLearningPage (enrollment cards)
 4. `/instructor/dashboard` - InstructorDashboard (instructor course cards)
 
 #### Files Modified (15 files)
 1. `client/src/utils/courseHelpers.ts` - NEW FILE (utility functions)
 2. `client/src/components/Course/CourseCard.tsx` - Updated (shared component)
-3. `client/src/components/Layout/DashboardLayout.tsx` - Refactored (removed duplicates)
+3. `client/src/pages/Dashboard/DashboardPage.tsx` - Refactored (removed duplicates, formerly DashboardLayout)
 4. `client/src/pages/Learning/MyLearningPage.tsx` - Refactored (removed duplicates)
 5. `client/src/pages/Instructor/InstructorDashboard.tsx` - Refactored (removed duplicates)
 6. `client/src/services/enrollmentApi.ts` - Type update (Category field)
@@ -9549,6 +9551,76 @@ npm run dev
 - `header-mobile-*` - Mobile drawer items ✅
 - `header-profile-menu-*` - Profile dropdown items ✅
 - `header-search-*` - Search controls ✅
+
+---
+
+### 🎨 **Dashboard Architecture Refactoring** (COMPLETED - February 14, 2026)
+
+**Problem**: Dashboard had multiple issues:
+- Three dashboard components (2 dead, 1 mislocated)
+- Inline sub-components recreated every render
+- Broken deduplication logic comparing formatted strings instead of dates
+- Hardcoded fake ratings displayed as real data
+- Non-functional UI elements (clickable cards with no onClick)
+- Type duplication across multiple files
+- No error handling or loading states
+- Admin redirect to non-existent route causing 404 loops
+
+**Solution**: Complete dashboard refactoring with proper architecture and bug fixes.
+
+**Files Deleted** (dead code):
+- `client/src/components/Dashboard.tsx` - 454 lines, never imported, had React hooks violation
+- `client/src/pages/Dashboard/Dashboard.tsx` - 88 lines, all hardcoded values, not routed
+- `client/src/components/Layout/DashboardLayout.tsx` - 546 lines, replaced with proper page structure
+
+**New Files Created**:
+- `client/src/pages/Dashboard/DashboardPage.tsx` - Proper page component replacing DashboardLayout
+- `client/src/components/Dashboard/StatCard.tsx` - Extracted stat card component
+- `client/src/components/Dashboard/CourseCard.tsx` - Extracted course card with click navigation
+- `client/src/components/Dashboard/AchievementBadge.tsx` - Extracted achievement badge component
+
+**Files Modified**:
+- `client/src/App.tsx` - Updated import from DashboardLayout to DashboardPage
+- `client/src/services/dashboardApi.ts` - Fixed env var (VITE_API_BASE_URL) and auth pattern
+- `client/src/components/Auth/ProtectedRoute.tsx` - Admin redirect now goes to /dashboard instead of /admin/dashboard
+
+**Key Improvements**:
+- ✅ **Bug Fixes**:
+  - Fixed deduplication logic: now compares raw timestamps instead of formatted strings
+  - Made course cards clickable with proper navigation to `/courses/{id}`
+  - Removed hardcoded 4.5 rating (was fake data)
+  - Removed non-functional bookmark and more-options buttons
+  - Fixed admin redirect to existing route
+- ✅ **Architecture**:
+  - Extracted inline components to separate files (no longer recreated every render)
+  - Moved component from `components/Layout/` to proper `pages/Dashboard/` location
+  - Consolidated types: single source of truth for `Achievement` and `DashboardStats`
+  - Fixed env var usage to match project standard
+- ✅ **UX Enhancements**:
+  - Added error state with retry button
+  - Implemented skeleton loading placeholders
+  - Different gradient colors for each stat card (blue, green, pink, orange)
+  - Added "View All" button linking to `/my-learning`
+  - Improved empty state with "Browse Courses" CTA button
+  - Hide achievements section when empty to reduce clutter
+  - Updated subtitle from misleading "personalized recommendations" to accurate text
+- ✅ **Test IDs**: Updated from `dashboard-layout-*` to `dashboard-course-card-{id}`
+
+**API Integration**:
+- Parallel fetching: `dashboardApi.getStats()` + `enrollmentApi.getMyEnrollments()`
+- Proper error handling with user-facing error messages
+- Deduplication by courseId with most recent enrollment kept
+
+**Type Safety**:
+- `Achievement` type: exported from `dashboardApi.ts`, re-exported by `AchievementBadge.tsx`
+- `DashboardStats` type: exported from `dashboardApi.ts`, used consistently
+- `RecentCourse` interface: defined in `CourseCard.tsx` for dashboard-specific course data
+
+**Documentation Updated**:
+- `PRE_FLIGHT_CHECKLIST.md` - Updated DashboardLayout → DashboardPage reference
+- `COMPONENT_REGISTRY.md` - Updated EmailVerificationBanner usage documentation
+- `ARCHITECTURE.md` - Updated component tree structure and integration notes
+- `PROJECT_STATUS.md` - Updated all historical references to reflect refactoring
 
 **NEXT PRIORITIES**: 
 - [ ] **Phase 2: Collaborative Features Implementation** - See `PHASE2_COLLABORATIVE_FEATURES_PLAN.md` for detailed plan

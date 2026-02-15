@@ -59,6 +59,7 @@ router.get('/', async (req: any, res: any) => {
         c.Duration,
         c.Price,
         c.Rating,
+        c.RatingCount,
         (SELECT COUNT(*) FROM Enrollments e WHERE e.CourseId = c.Id AND e.Status IN ('active', 'completed')) as EnrollmentCount,
         c.Tags,
         c.CreatedAt,

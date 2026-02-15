@@ -65,6 +65,8 @@ import { BookmarkApi } from '../../services/bookmarkApi';
 import { useShare } from '../../hooks/useShare';
 import { useCourseRealtimeUpdates } from '../../hooks/useCourseRealtimeUpdates';
 import { ShareService } from '../../services/shareService';
+import { ratingApi, type RatingSummary as RatingSummaryType, type CourseRating } from '../../services/ratingApi';
+import { RatingSummaryCard, RatingSubmitForm, ReviewsList } from '../../components/Rating';
 import { toast } from 'sonner';
 
 interface Lesson {
@@ -161,6 +163,13 @@ export const CourseDetailPage: React.FC = () => {
 
   // Real-time refetch trigger: incremented by socket events to re-run fetchCourse
   const [realtimeRefetchCounter, setRealtimeRefetchCounter] = useState(0);
+
+  // Ratings state
+  const [ratingSummary, setRatingSummary] = useState<RatingSummaryType | null>(null);
+  const [reviewsRefreshKey, setReviewsRefreshKey] = useState(0);
+  const [userRating, setUserRating] = useState<CourseRating | null>(null);
+  const [userRatingLoaded, setUserRatingLoaded] = useState(false);
+  const [editTrigger, setEditTrigger] = useState(0);
 
   const { openShareDialog, ShareDialogComponent } = useShare({
     contentType: 'course',
@@ -321,7 +330,7 @@ export const CourseDetailPage: React.FC = () => {
           duration: `${Math.floor(courseData.Duration / 60)}h ${courseData.Duration % 60}m`,
           level: courseData.Level as 'Beginner' | 'Intermediate' | 'Advanced' | 'Expert',
           rating: courseData.Rating || 0.0,
-          reviewCount: Math.floor(courseData.EnrollmentCount * 0.3) || 0,
+          reviewCount: courseData.RatingCount || 0,
           enrolledStudents: courseData.EnrollmentCount || 0,
           price: courseData.Price || 0,
           originalPrice: courseData.Price ? roundToDecimals(courseData.Price * 1.3) : 0,
@@ -386,6 +395,40 @@ export const CourseDetailPage: React.FC = () => {
   useCourseRealtimeUpdates(courseId, useCallback(() => {
     setRealtimeRefetchCounter(prev => prev + 1);
   }, []));
+
+  // Fetch rating summary (also re-fetches on real-time course updates for other viewers)
+  useEffect(() => {
+    if (!courseId) return;
+    ratingApi.getRatingSummary(courseId)
+      .then(setRatingSummary)
+      .catch(err => console.log('Failed to load rating summary:', err));
+    
+    // Also fetch user's own rating if logged in
+    if (user) {
+      ratingApi.getMyRating(courseId)
+        .then(data => { setUserRating(data || null); setUserRatingLoaded(true); })
+        .catch(() => { setUserRating(null); setUserRatingLoaded(true); });
+    } else {
+      setUserRatingLoaded(true);
+    }
+  }, [courseId, reviewsRefreshKey, realtimeRefetchCounter, user]);
+
+  // Handle #reviews hash navigation (e.g., from "Rate Course" button on MyLearningPage)
+  useEffect(() => {
+    if (window.location.hash === '#reviews' && !loading) {
+      // Wait for DOM to render the reviews section
+      setTimeout(() => {
+        const reviewsSection = document.getElementById('rating-submit-form') || document.querySelector('[data-section="reviews"]');
+        if (reviewsSection) {
+          reviewsSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 300);
+    }
+  }, [loading]);
+
+  const handleRatingSubmitted = () => {
+    setReviewsRefreshKey(prev => prev + 1);
+  };
 
   const handleEnroll = async () => {
     if (isPreviewMode) {
@@ -1212,6 +1255,54 @@ export const CourseDetailPage: React.FC = () => {
                   </Box>
                 </Box>
               </Box>
+            </Paper>
+
+            {/* Reviews & Ratings */}
+            <Paper 
+              data-section="reviews"
+              elevation={0}
+              sx={{ 
+                p: 4,
+                mt: 4,
+                border: '1px solid',
+                borderColor: 'divider',
+                borderRadius: 3
+              }}
+            >
+              <Typography variant="h5" sx={{ fontWeight: 700, mb: 3 }}>
+                Student Reviews
+              </Typography>
+              
+              {ratingSummary && <RatingSummaryCard summary={ratingSummary} />}
+              
+              {/* Rating form (only for enrolled non-instructor users) */}
+              {course.isEnrolled && user && courseId && userRatingLoaded && (
+                <Box id="rating-submit-form">
+                  <RatingSubmitForm 
+                    key={userRating?.Id || 'new'}
+                    courseId={courseId}
+                    existingRating={userRating}
+                    onRatingSubmitted={handleRatingSubmitted}
+                    onRatingDeleted={handleRatingSubmitted}
+                    editTrigger={editTrigger}
+                  />
+                </Box>
+              )}
+              
+              {courseId && (
+                <ReviewsList 
+                  courseId={courseId} 
+                  refreshKey={reviewsRefreshKey + realtimeRefetchCounter}
+                  onEditClick={() => {
+                    // Scroll to rating form and trigger edit mode
+                    setEditTrigger(prev => prev + 1);
+                    const formEl = document.getElementById('rating-submit-form');
+                    if (formEl) {
+                      formEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                  }}
+                />
+              )}
             </Paper>
           </Grid>
 

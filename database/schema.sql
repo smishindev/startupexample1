@@ -46,6 +46,8 @@ IF OBJECT_ID('dbo.EmailUnsubscribeTokens', 'U') IS NOT NULL DROP TABLE dbo.Email
 IF OBJECT_ID('dbo.NotificationQueue', 'U') IS NOT NULL DROP TABLE dbo.NotificationQueue;
 IF OBJECT_ID('dbo.Notifications', 'U') IS NOT NULL DROP TABLE dbo.Notifications;
 IF OBJECT_ID('dbo.Bookmarks', 'U') IS NOT NULL DROP TABLE dbo.Bookmarks;
+-- Course Ratings Table
+IF OBJECT_ID('dbo.CourseRatings', 'U') IS NOT NULL DROP TABLE dbo.CourseRatings;
 -- Comments System Tables
 IF OBJECT_ID('dbo.CommentLikes', 'U') IS NOT NULL DROP TABLE dbo.CommentLikes;
 IF OBJECT_ID('dbo.Comments', 'U') IS NOT NULL DROP TABLE dbo.Comments;
@@ -122,6 +124,7 @@ CREATE TABLE dbo.Courses (
     Duration INT NOT NULL DEFAULT 0, -- in minutes
     Price DECIMAL(10,2) NOT NULL DEFAULT 0.00,
     Rating DECIMAL(3,2) NOT NULL DEFAULT 0.00,
+    RatingCount INT NOT NULL DEFAULT 0, -- Denormalized count of ratings/reviews
     EnrollmentCount INT NOT NULL DEFAULT 0,
     Prerequisites NVARCHAR(MAX) NULL, -- JSON array of prerequisite course IDs (e.g., ["uuid1", "uuid2"])
     LearningOutcomes NVARCHAR(MAX) NULL, -- JSON array of learning outcome strings (e.g., ["Understand React", "Build apps"])
@@ -757,6 +760,26 @@ CREATE NONCLUSTERED INDEX IX_PeerComparison_UserId_CourseId ON dbo.PeerCompariso
 CREATE NONCLUSTERED INDEX IX_Bookmarks_UserId ON dbo.Bookmarks(UserId);
 CREATE NONCLUSTERED INDEX IX_Bookmarks_CourseId ON dbo.Bookmarks(CourseId);
 CREATE NONCLUSTERED INDEX IX_Bookmarks_BookmarkedAt ON dbo.Bookmarks(BookmarkedAt);
+
+-- ========================================
+-- Course Ratings & Reviews Table
+-- ========================================
+CREATE TABLE dbo.CourseRatings (
+    Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    CourseId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Courses(Id) ON DELETE CASCADE,
+    UserId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id) ON DELETE CASCADE,
+    Rating INT NOT NULL CHECK (Rating >= 1 AND Rating <= 5), -- 1-5 stars
+    ReviewText NVARCHAR(2000) NULL, -- Optional written review
+    IsEdited BIT NOT NULL DEFAULT 0,
+    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    UpdatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    CONSTRAINT UQ_CourseRatings_CourseUser UNIQUE (CourseId, UserId) -- One rating per user per course
+);
+
+-- Course Ratings Performance Indexes
+CREATE INDEX IX_CourseRatings_CourseId ON dbo.CourseRatings(CourseId);
+CREATE INDEX IX_CourseRatings_UserId ON dbo.CourseRatings(UserId);
+CREATE NONCLUSTERED INDEX IX_CourseRatings_CourseId_CreatedAt ON dbo.CourseRatings(CourseId, CreatedAt DESC);
 
 -- ========================================
 -- Comments System Tables (Generic for any entity)

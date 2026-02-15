@@ -441,6 +441,18 @@ export class DataExportService {
         ORDER BY CreatedAt DESC
       `);
 
+    // Course Ratings
+    const request14b = await this.dbService.getRequest();
+    const courseRatingsResult = await request14b
+      .input('userId', sql.UniqueIdentifier, userId)
+      .query(`
+        SELECT cr.*, c.Title as CourseTitle
+        FROM CourseRatings cr
+        INNER JOIN Courses c ON cr.CourseId = c.Id
+        WHERE cr.UserId = @userId
+        ORDER BY cr.CreatedAt DESC
+      `);
+
     // Comment Likes
     const request15 = await this.dbService.getRequest();
     const commentLikesResult = await request15
@@ -568,6 +580,7 @@ export class DataExportService {
       bookmarks: bookmarksResult.recordset,
       notifications: notificationsResult.recordset,
       comments: commentsResult.recordset,
+      courseRatings: courseRatingsResult.recordset,
       commentLikes: commentLikesResult.recordset,
       chatRooms: chatRoomsResult.recordset,
       chatMessages: chatMessagesResult.recordset,
@@ -611,6 +624,7 @@ export class DataExportService {
       archive.append(JSON.stringify(data.learningActivities, null, 2), { name: 'learning/learning-activities.json' });
 
       archive.append(JSON.stringify(data.comments, null, 2), { name: 'community/comments.json' });
+      archive.append(JSON.stringify(data.courseRatings, null, 2), { name: 'community/course-ratings.json' });
       archive.append(JSON.stringify(data.commentLikes, null, 2), { name: 'community/comment-likes.json' });
       archive.append(JSON.stringify(data.chatRooms, null, 2), { name: 'community/chat-rooms.json' });
       archive.append(JSON.stringify(data.chatMessages, null, 2), { name: 'community/chat-messages.json' });

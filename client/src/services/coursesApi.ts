@@ -27,6 +27,7 @@ export interface Course {
   Duration: number;
   Price: number;
   Rating: number;
+  RatingCount: number;
   EnrollmentCount: number;
   Tags: string[];
   CreatedAt: string;

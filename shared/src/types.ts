@@ -81,6 +81,7 @@ export interface Course {
   duration: number; // in minutes
   price: number;
   rating: number;
+  ratingCount: number;
   enrollmentCount: number;
   lessons: Lesson[];
   prerequisites: string[];

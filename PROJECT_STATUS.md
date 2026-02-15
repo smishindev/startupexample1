@@ -1,6 +1,6 @@
 # Mishin Learn Platform - Project Status & Memory
 
-**Last Updated**: February 14, 2026 - Real-time Enrollment Updates ⚡  
+**Last Updated**: February 15, 2026 - Course Ratings & Reviews System ⭐  
 **Developer**: Sergey Mishin (s.mishin.dev@gmail.com)  
 **AI Assistant Context**: This file serves as project memory for continuity across chat sessions
 
@@ -14,10 +14,136 @@
 **Real-time Course Updates**: Automatic page refreshes when instructors edit courses (February 13, 2026) ✅  
 **Real-time Enrollment Updates**: Pending approvals, approve/reject actions update dashboards instantly (February 14, 2026) ✅  
 **Terms & Legal Compliance**: Database-driven TOS, Privacy Policy & Refund Policy with acceptance tracking (February 14, 2026) ✅
+**Course Ratings & Reviews**: Full 5-star rating system with text reviews, real-time updates, instructor notifications (February 15, 2026) ⭐
 
 ---
 
-## 📜 TERMS OF SERVICE, PRIVACY POLICY & REFUND POLICY (Latest - February 14, 2026)
+## ⭐ COURSE RATINGS & REVIEWS SYSTEM (Latest - February 15, 2026)
+
+**Activity**: Implemented complete course rating and review system with real-time updates, instructor notifications, and My Learning page integration
+
+**Status**: ✅ **Complete** - Full end-to-end implementation with database schema, backend services, API routes, frontend components, real-time updates, and notification integration
+
+### **Problem Solved:**
+Before: No way for students to rate or review courses. No quality feedback mechanism. Instructors had no visibility into student satisfaction.
+
+After: Students can submit 1-5 star ratings with optional review text after enrolling. Ratings display on course cards, detail pages, and My Learning page. Real-time updates when ratings change. Instructors receive notifications for new and updated ratings. Course catalog shows average rating and review count.
+
+### **Implementation Summary:**
+
+**Database (1 table + denormalized columns):**
+1. **CourseRatings** — Stores individual student ratings
+   - Id (PK), CourseId (FK), UserId (FK), Rating (1-5 INT), ReviewText (NVARCHAR 2000)
+   - CreatedAt, UpdatedAt, UNIQUE INDEX on (CourseId, UserId)
+   - Prevents duplicate ratings, allows updates
+
+2. **Courses Table Updates** — Denormalized rating fields for performance
+   - Rating (DECIMAL 3,2) — average rating (e.g., 4.73)
+   - RatingCount (INT) — total number of ratings
+   - Updated via stored procedure recalculation after each rating CRUD operation
+
+**Backend (3 files created/modified):**
+1. **RatingService.ts** (288 lines) — Complete CRUD operations:
+   - `submitRating()` — Upsert with recalculation, returns `{ isNew, rating }`
+   - `getUserRating()` — Get student's own rating
+   - `getRatingSummary()` — Average + count + distribution
+   - `getCourseRatings()` — Paginated reviews with sorting (newest/oldest/highest/lowest)
+   - `deleteRating()` — Soft delete with recalculation
+   - `canUserRate()` — Validation (enrolled + not instructor)
+   - `recalculateRating()` — Atomic denormalization to Courses table
+
+2. **ratings.ts** (193 lines) — 7 API endpoints:
+   - `GET /courses/:id/summary` — Rating summary (public)
+   - `GET /courses/:id/ratings` — Paginated reviews (public)
+   - `GET /courses/:id/my-rating` — User's own rating (auth)
+   - `POST /courses/:id` — Submit/update rating (auth, enrolled only)
+   - `DELETE /courses/:id` — Delete own rating (auth)
+   - `GET /instructor/summary` — Instructor's aggregate stats (auth, instructor only)
+   - **Real-time emit**: `course:updated` event with `['rating']` field after rating submit/update/delete
+   - **Notifications**: Fires for both new and updated ratings with different messages/priorities
+
+3. **enrollment.ts, courses.ts, instructor.ts, bookmarks.ts** — Added `c.Rating, c.RatingCount` to SQL SELECT statements and response interfaces
+
+**Frontend (10 files created/modified):**
+1. **ratingApi.ts** (127 lines) — Frontend API service with typed responses
+   - Types: `CourseRating`, `RatingSummary`, `PaginatedRatings`
+   - Methods: getRatingSummary, getCourseRatings, getMyRating, submitRating, deleteRating
+
+2. **Rating Components** (4 components + barrel export):
+   - **RatingSubmitForm.tsx** (199 lines) — Star rating form with edit/delete
+     - Display mode vs edit mode toggle
+     - `editTrigger` prop to externally switch to edit mode (from "Edit Review" menu)
+     - Syncs form state from `existingRating` prop when edit triggered
+     - 2000 char review text limit with character counter
+   - **RatingSummaryCard.tsx** (~120 lines) — Average rating + distribution bars
+   - **ReviewCard.tsx** (91 lines) — Individual review with 3-dots menu (Edit/Delete for owner)
+   - **ReviewsList.tsx** (130 lines) — Paginated reviews with sort dropdown
+
+3. **CourseDetailPage.tsx** — Reviews section integration:
+   - `#reviews` hash navigation support
+   - Rating summary card + submit form + reviews list
+   - Real-time updates: `realtimeRefetchCounter` in rating useEffect deps
+   - Reviews list `refreshKey` includes `realtimeRefetchCounter` for instructor real-time updates
+   - `editTrigger` state wired to "Edit Review" button (increments → triggers form to switch to edit mode)
+   - Only shows rating form for enrolled non-instructor users
+
+4. **CoursesPage.tsx** — Rating display on course cards:
+   - Gold stars + numeric average + count in parentheses
+   - Conditional render when `RatingCount > 0`
+
+5. **MyLearningPage.tsx** — Rating display on enrollment cards:
+   - Added `Rating` and `RatingCount` to `Enrollment` interface
+   - Gold stars + numeric average + count between instructor name and level/category chips
+   - **Real-time updates**: Added `useCatalogRealtimeUpdates` hook to refetch enrollments when ratings change
+
+6. **useCatalogRealtimeUpdates.ts** — Enhanced for rating updates:
+   - Added `CourseUpdatedData` interface
+   - Added `course:updated` event listener (triggers on rating changes)
+   - Now listens to 3 events: `course:catalog-changed`, `course:enrollment-changed`, `course:updated`
+
+**Instructor Notifications (2 scenarios):**
+- **New Rating**: Priority "normal", Title "New Course Rating", Message "{student} rated \"{course}\" {rating}/5 stars{+ left a review}"
+- **Updated Rating**: Priority "low", Title "Course Rating Updated", Message "{student} updated their rating for \"{course}\" to {rating}/5 stars"
+- ActionUrl: `/courses/{courseId}#reviews` (scrolls to reviews section)
+- `canUserRate()` prevents self-rating so no self-notification
+
+**Real-time Architecture:**
+- Server emits `course:updated` event with `fields: ['rating']` after rating CRUD
+- CourseEventService broadcasts to `course-{courseId}` + `courses-catalog` rooms
+- Frontend hooks (`useCatalogRealtimeUpdates` + `useCourseRealtimeUpdates`) trigger refetch
+- MyLearningPage, InstructorDashboard, CoursesPage, CourseDetailPage all update automatically
+
+**Validation & Security:**
+- Rating must be 1-5 integer
+- Review text max 2000 chars
+- Must be enrolled with active/completed status
+- Instructors cannot rate own courses
+- Users can only edit/delete own ratings
+- SQL injection prevention via parameterized queries
+- UNIQUE index prevents duplicate ratings
+
+### **Bug Fixes (2 issues found during audit):**
+1. **RatingSubmitForm stale state**: `editTrigger` useEffect didn't sync form state from `existingRating` prop before switching to edit mode. Fixed by adding `setRating()` and `setReviewText()` calls.
+2. **MyLearningPage no real-time**: Instructor's My Learning page didn't update when student rated their course. Fixed by adding `useCatalogRealtimeUpdates` hook.
+
+### **TypeScript Compilation:**
+- Server: 0 errors ✅
+- Client: 0 errors ✅
+
+### **Files Changed (17 total):**
+- **NEW Backend**: RatingService.ts (288 lines)
+- **NEW Routes**: ratings.ts (193 lines)
+- **Modified Backend**: enrollment.ts, courses.ts, instructor.ts, bookmarks.ts
+- **NEW Frontend Service**: ratingApi.ts (127 lines)
+- **NEW Components**: RatingSubmitForm.tsx (199), RatingSummaryCard.tsx (~120), ReviewCard.tsx (91), ReviewsList.tsx (130), index.ts (barrel)
+- **Modified Pages**: CourseDetailPage.tsx, CoursesPage.tsx, MyLearningPage.tsx
+- **Modified Hooks**: useCatalogRealtimeUpdates.ts
+- **Modified Types**: enrollmentApi.ts, coursesApi.ts, instructorApi.ts, bookmarkApi.ts, shared/types.ts
+- **Database**: schema.sql (CourseRatings table + Courses.Rating/RatingCount columns)
+
+---
+
+## 📜 TERMS OF SERVICE, PRIVACY POLICY & REFUND POLICY (February 14, 2026)
 
 **Activity**: Implemented database-driven legal compliance system with versioned documents, user acceptance tracking, and GDPR-compliant consent
 

@@ -116,6 +116,7 @@ router.get('/courses', authenticateToken, authorize(['instructor', 'admin']), as
         c.IsPublished as isPublished,
         c.Price as price,
         c.Rating as rating,
+        c.RatingCount as ratingCount,
         c.EnrollmentCount as students,
         c.CreatedAt as createdAt,
         c.UpdatedAt as updatedAt,
@@ -153,7 +154,7 @@ router.get('/courses', authenticateToken, authorize(['instructor', 'admin']), as
 
     query += `
       GROUP BY c.Id, c.Title, c.Description, c.Thumbnail, c.Category, c.Level, c.Status, c.IsPublished, c.Price, 
-               c.Rating, c.EnrollmentCount, c.CreatedAt, c.UpdatedAt, c.Prerequisites, c.LearningOutcomes,
+               c.Rating, c.RatingCount, c.EnrollmentCount, c.CreatedAt, c.UpdatedAt, c.Prerequisites, c.LearningOutcomes,
                c.MaxEnrollment, c.EnrollmentOpenDate, c.EnrollmentCloseDate, c.RequiresApproval,
                c.CertificateEnabled, c.CertificateTitle, c.CertificateTemplate,
                c.Visibility, c.PreviewToken

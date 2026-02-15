@@ -47,6 +47,7 @@ export interface Bookmark {
   duration: number;
   price: number;
   rating: number;
+  ratingCount: number;
   enrollmentCount: number;
   tags: string[];
   instructor: {

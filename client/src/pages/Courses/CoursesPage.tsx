@@ -59,7 +59,7 @@ const convertApiCourseToUiCourse = (apiCourse: ApiCourse, isBookmarked: boolean 
   duration: formatDuration(apiCourse.Duration),
   level: apiCourse.Level as 'Beginner' | 'Intermediate' | 'Advanced' | 'Expert',
   rating: apiCourse.Rating,
-  reviewCount: Math.floor(apiCourse.EnrollmentCount * 0.3), // Estimate reviews from enrollments
+  reviewCount: apiCourse.RatingCount || 0,
   enrolledStudents: apiCourse.EnrollmentCount,
   price: apiCourse.Price,
   category: formatCategory(apiCourse.Category),
@@ -352,7 +352,7 @@ export const CoursesPage: React.FC = () => {
         duration: formatDuration(bookmark.duration),
         level: bookmark.level.charAt(0).toUpperCase() + bookmark.level.slice(1).toLowerCase() as 'Beginner' | 'Intermediate' | 'Advanced' | 'Expert',
         rating: bookmark.rating,
-        reviewCount: Math.floor(bookmark.enrollmentCount * 0.3),
+        reviewCount: bookmark.ratingCount || 0,
         enrolledStudents: bookmark.enrollmentCount,
         price: bookmark.price,
         category: formatCategory(bookmark.category),

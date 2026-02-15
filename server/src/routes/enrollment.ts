@@ -39,6 +39,8 @@ router.get('/my-enrollments', authenticateToken, async (req: AuthRequest, res: R
           c.Level,
           c.Price,
           c.Category,
+          c.Rating,
+          c.RatingCount,
           'You' as instructorFirstName,
           'are teaching' as instructorLastName,
           COALESCE(AVG(CAST(up.ProgressPercentage as FLOAT)), 0) as OverallProgress,
@@ -49,7 +51,7 @@ router.get('/my-enrollments', authenticateToken, async (req: AuthRequest, res: R
         LEFT JOIN dbo.UserProgress up ON e.UserId = up.UserId AND e.CourseId = up.CourseId
         WHERE c.InstructorId = @userId 
           AND (c.Status IN ('published', 'archived') OR (c.Status IS NULL AND c.IsPublished = 1))
-        GROUP BY c.Id, c.Title, c.Description, c.Thumbnail, c.Duration, c.Level, c.Price, c.Category, c.CreatedAt, c.UpdatedAt
+        GROUP BY c.Id, c.Title, c.Description, c.Thumbnail, c.Duration, c.Level, c.Price, c.Category, c.Rating, c.RatingCount, c.CreatedAt, c.UpdatedAt
         
         UNION ALL
         
@@ -67,6 +69,8 @@ router.get('/my-enrollments', authenticateToken, async (req: AuthRequest, res: R
           c.Level,
           c.Price,
           c.Category,
+          c.Rating,
+          c.RatingCount,
           u.FirstName as instructorFirstName,
           u.LastName as instructorLastName,
           COALESCE(up.ProgressPercentage, 0) as OverallProgress,
@@ -134,6 +138,8 @@ router.get('/my-enrollments', authenticateToken, async (req: AuthRequest, res: R
           c.Level,
           c.Price,
           c.Category,
+          c.Rating,
+          c.RatingCount,
           u.FirstName as instructorFirstName,
           u.LastName as instructorLastName,
           COALESCE(up.ProgressPercentage, 0) as OverallProgress,

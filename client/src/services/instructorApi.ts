@@ -70,6 +70,7 @@ export interface InstructorCourse {
   students: number;
   lessons: number;
   rating: number;
+  ratingCount?: number;
   revenue: number;
   progress: number;
   createdAt: string;

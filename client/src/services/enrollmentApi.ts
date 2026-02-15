@@ -82,6 +82,8 @@ export interface Enrollment {
   Level: string;
   Price: number;
   Category?: string;
+  Rating: number;
+  RatingCount: number;
   instructorFirstName: string;
   instructorLastName: string;
   OverallProgress: number;

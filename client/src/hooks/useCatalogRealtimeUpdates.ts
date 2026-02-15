@@ -7,6 +7,7 @@
  * Events listened:
  * - course:catalog-changed (course published, removed, visibility changed, metadata updated)
  * - course:enrollment-changed (enrollment count changed — affects "Full" badge, student count)
+ * - course:updated (course data changed — rating, lessons, metadata)
  * 
  * Design: Debounced re-fetch (500ms) to avoid excessive API calls.
  * Uses onConnect/offConnect to survive socket reconnections and late connections.
@@ -27,6 +28,12 @@ interface EnrollmentChangedData {
   timestamp: string;
 }
 
+interface CourseUpdatedData {
+  courseId: string;
+  fields: string[];
+  timestamp: string;
+}
+
 export const useCatalogRealtimeUpdates = (onUpdate: () => void) => {
   const onUpdateRef = useRef(onUpdate);
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -34,7 +41,8 @@ export const useCatalogRealtimeUpdates = (onUpdate: () => void) => {
   const listenersRef = useRef<{
     handleCatalogChanged: ((data: CatalogChangedData) => void) | null;
     handleEnrollmentChanged: ((data: EnrollmentChangedData) => void) | null;
-  }>({ handleCatalogChanged: null, handleEnrollmentChanged: null });
+    handleCourseUpdated: ((data: CourseUpdatedData) => void) | null;
+  }>({ handleCatalogChanged: null, handleEnrollmentChanged: null, handleCourseUpdated: null });
 
   // Keep the callback ref current without re-registering listeners
   useEffect(() => {
@@ -58,8 +66,9 @@ export const useCatalogRealtimeUpdates = (onUpdate: () => void) => {
       if (socket && listenersRef.current.handleCatalogChanged) {
         socket.off('course:catalog-changed', listenersRef.current.handleCatalogChanged);
         socket.off('course:enrollment-changed', listenersRef.current.handleEnrollmentChanged!);
+        socket.off('course:updated', listenersRef.current.handleCourseUpdated!);
       }
-      listenersRef.current = { handleCatalogChanged: null, handleEnrollmentChanged: null };
+      listenersRef.current = { handleCatalogChanged: null, handleEnrollmentChanged: null, handleCourseUpdated: null };
     };
 
     // Setup listeners on the current socket
@@ -80,12 +89,18 @@ export const useCatalogRealtimeUpdates = (onUpdate: () => void) => {
         triggerUpdate();
       };
 
+      const handleCourseUpdated = (data: CourseUpdatedData) => {
+        console.log('[useCatalogRealtimeUpdates] Course updated:', data.courseId, data.fields);
+        triggerUpdate();
+      };
+
       // Store references for cleanup
-      listenersRef.current = { handleCatalogChanged, handleEnrollmentChanged };
+      listenersRef.current = { handleCatalogChanged, handleEnrollmentChanged, handleCourseUpdated };
 
       // Register listeners
       socket.on('course:catalog-changed', handleCatalogChanged);
       socket.on('course:enrollment-changed', handleEnrollmentChanged);
+      socket.on('course:updated', handleCourseUpdated);
     };
 
     // Register for (re)connection events so listeners survive reconnects

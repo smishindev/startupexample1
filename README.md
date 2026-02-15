@@ -4,7 +4,7 @@
 
 An innovative EdTech startup providing personalized learning experiences through AI tutoring, adaptive content delivery, and comprehensive progress analytics.
 
-**Last Major Update**: February 14, 2026 - Terms of Service, Privacy Policy & Refund Policy ✅  
+**Last Major Update**: February 15, 2026 - Course Ratings & Reviews System ⭐  
 **Code Quality**: Grade A (95/100) - 85% type safety, 70% logging coverage, 0 TypeScript errors
 
 ## 🚀 Features
@@ -15,6 +15,14 @@ An innovative EdTech startup providing personalized learning experiences through
 - **Smart Content Delivery** - Dynamic course content adapted to learning style
 - **Progress Analytics** - Detailed insights and performance tracking
 - **Assessment System** - Adaptive testing and skill evaluation
+- **Course Ratings & Reviews** - 5-star rating system with text reviews, real-time updates, and instructor notifications (February 15, 2026) ⭐
+  - **Student Feedback**: 1-5 star ratings with optional review text (max 2000 chars)
+  - **Real-time Updates**: Ratings update automatically on all pages (My Learning, Catalog, Course Detail)
+  - **Instructor Notifications**: Notified on new ratings (priority: normal) and updated ratings (priority: low)
+  - **Validation**: Must be enrolled, instructors cannot rate own courses, 1 rating per student
+  - **Rich UI**: Rating summary cards, distribution bars, paginated reviews with sorting
+  - **Edit/Delete**: Students can edit or delete their ratings with 3-dots menu
+  - **Denormalized Performance**: Average rating and count stored on Courses table for fast catalog queries
 
 ### Data Privacy & Security
 - **Terms of Service & Privacy Policy** - Database-driven legal compliance with versioned documents and GDPR-compliant acceptance tracking (February 14, 2026) 📜

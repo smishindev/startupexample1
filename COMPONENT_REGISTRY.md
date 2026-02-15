@@ -1,7 +1,323 @@
 # Mishin Learn Platform - Component Registry
 
-**Last Updated**: February 14, 2026 - Terms of Service, Privacy Policy & Refund Policy 📜  
+**Last Updated**: February 15, 2026 - Course Ratings & Reviews System ⭐  
 **Purpose**: Quick reference for all major components, their dependencies, and relationships
+
+---
+
+## ⭐ Course Ratings & Reviews System (Added February 15, 2026)
+
+### RatingService (Backend)
+**Path**: `server/src/services/RatingService.ts` (288 lines)  
+**Purpose**: Complete CRUD operations for course ratings and reviews
+
+**Features**:
+- **Submit Rating**: Upsert (insert or update) with automatic recalculation
+- **Get User Rating**: Fetch student's own rating for a course
+- **Get Rating Summary**: Average, count, and distribution (1-5 star breakdown)
+- **Get Course Ratings**: Paginated reviews with sorting (newest, oldest, highest, lowest)
+- **Delete Rating**: Soft delete with recalculation
+- **Validation**: `canUserRate()` checks enrollment status and prevents instructor self-rating
+- **Recalculation**: Atomic denormalization to `Courses.Rating` and `Courses.RatingCount`
+
+**Key Methods**:
+```typescript
+async submitRating(userId, courseId, rating, reviewText?): Promise<{ rating, isNew }>
+  - Upserts rating (MERGE statement)
+  - Returns isNew flag for notification logic
+  - Calls recalculateRating() after success
+
+async getUserRating(userId, courseId): Promise<rating | null>
+  - Returns user's own rating or null
+
+async getRatingSummary(courseId): Promise<RatingSummary>
+  - Returns { averageRating, totalRatings, distribution: { 1: count, 2: count, ... } }
+
+async getCourseRatings(courseId, { page, limit, sort }): Promise<PaginatedRatings>
+  - Sort options: newest, oldest, highest, lowest
+  - Returns { ratings[], pagination }
+
+async deleteRating(userId, courseId): Promise<void>
+  - Deletes rating and recalculates course average
+
+async canUserRate(userId, courseId): Promise<{ canRate, reason? }>
+  - Checks: not instructor, enrolled (active/completed status)
+
+async recalculateRating(courseId): Promise<void>
+  - Atomic UPDATE: SET Rating = AVG(rating), RatingCount = COUNT(*)
+```
+
+**Database Interaction**:
+- `CourseRatings` table: Id, CourseId FK, UserId FK, Rating (1-5), ReviewText (max 2000), CreatedAt, UpdatedAt
+- `Courses` table: Rating (DECIMAL 3,2), RatingCount (INT) — denormalized for performance
+- UNIQUE INDEX on (CourseId, UserId) prevents duplicate ratings
+
+### Rating API Routes (Backend)
+**Path**: `server/src/routes/ratings.ts` (193 lines)  
+**Purpose**: REST API endpoints for rating operations
+
+**Endpoints**:
+```typescript
+GET    /api/ratings/courses/:id/summary      - Public, returns RatingSummary
+GET    /api/ratings/courses/:id/ratings      - Public, paginated reviews
+GET    /api/ratings/courses/:id/my-rating    - Auth, user's own rating
+POST   /api/ratings/courses/:id              - Auth, submit/update rating
+DELETE /api/ratings/courses/:id              - Auth, delete own rating
+GET    /api/ratings/instructor/summary       - Auth + instructor role, aggregate stats
+```
+
+**Real-time Integration**:
+- After successful submit/update/delete: `CourseEventService.emitCourseUpdated(courseId, ['rating'])`
+- Broadcasts to `course-{courseId}` + `courses-catalog` rooms
+- Frontend hooks refetch data automatically
+
+**Notification Integration**:
+- **New Rating**: Title "New Course Rating", Priority "normal"
+  - Message: "{student} rated \"{course}\" {rating}/5 stars{+ left a review}"
+- **Updated Rating**: Title "Course Rating Updated", Priority "low"
+  - Message: "{student} updated their rating for \"{course}\" to {rating}/5 stars"
+- ActionUrl: `/courses/{courseId}#reviews`
+
+### ratingApi (Frontend Service)
+**Path**: `client/src/services/ratingApi.ts` (127 lines)  
+**Purpose**: Frontend API service for rating operations with typed responses
+
+**Types**:
+```typescript
+interface CourseRating {
+  Id: string;
+  CourseId: string;
+  UserId: string;
+  Rating: number;
+  ReviewText: string | null;
+  CreatedAt: string;
+  UpdatedAt: string;
+  FirstName: string;
+  LastName: string;
+}
+
+interface RatingSummary {
+  averageRating: number;
+  totalRatings: number;
+  distribution: { [key: string]: number };
+}
+
+interface PaginatedRatings {
+  ratings: CourseRating[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    pages: number;
+  };
+}
+```
+
+**Methods**:
+```typescript
+getRatingSummary(courseId): Promise<RatingSummary>
+getCourseRatings(courseId, { page, limit, sort }): Promise<PaginatedRatings>
+getMyRating(courseId): Promise<CourseRating | null>
+submitRating(courseId, { rating, reviewText }): Promise<{ success, message, rating, isNew }>
+deleteRating(courseId): Promise<void>
+```
+
+### RatingSubmitForm
+**Path**: `client/src/components/Rating/RatingSubmitForm.tsx` (199 lines)  
+**Purpose**: Star rating form with display/edit modes and external edit trigger
+
+**Props**:
+```typescript
+interface RatingSubmitFormProps {
+  courseId: string;
+  existingRating: CourseRating | null;
+  onRatingSubmitted: () => void;
+  onRatingDeleted: () => void;
+  editTrigger?: number;  // Increment to externally trigger edit mode
+}
+```
+
+**Features**:
+- **Display Mode**: Shows existing rating with Edit/Delete buttons (3-dots menu pattern)
+- **Edit Mode**: Star selector + review text field (2000 char limit with counter)
+- **External Edit Trigger**: `editTrigger` prop increments → useEffect syncs form state from `existingRating` → switches to edit mode
+- **Validation**: Rating 1-5 required, review text optional
+- **Loading States**: Submit and delete spinners
+- **Toast Notifications**: Success/error feedback
+
+**Usage**:
+```tsx
+// CourseDetailPage
+const [editTrigger, setEditTrigger] = useState(0);
+
+<RatingSubmitForm 
+  courseId={courseId}
+  existingRating={userRating}
+  onRatingSubmitted={handleRatingSubmitted}
+  onRatingDeleted={handleRatingSubmitted}
+  editTrigger={editTrigger}  // Incremented by "Edit Review" button
+/>
+```
+
+**Bug Fix (Feb 15)**: Added state sync in `editTrigger` useEffect to prevent stale form values when `existingRating` prop changes.
+
+### RatingSummaryCard
+**Path**: `client/src/components/Rating/RatingSummaryCard.tsx` (~120 lines)  
+**Purpose**: Display average rating and distribution
+
+**Props**:
+```typescript
+interface RatingSummaryCardProps {
+  summary: RatingSummary;
+}
+```
+
+**Features**:
+- Large average rating with gold stars
+- Total rating count
+- Distribution bars (5 stars → 1 star) with percentages and counts
+- Zero state handling
+
+### ReviewCard
+**Path**: `client/src/components/Rating/ReviewCard.tsx` (91 lines)  
+**Purpose**: Individual review display with owner actions
+
+**Props**:
+```typescript
+interface ReviewCardProps {
+  review: CourseRating;
+  currentUserId?: string;
+  onEdit?: () => void;  // Called when owner clicks "Edit Review"
+}
+```
+
+**Features**:
+- User name + avatar
+- Star rating display
+- Review text
+- Relative timestamp ("X days ago")
+- 3-dots menu (Edit for owner only)
+- `onEdit` callback triggers parent to scroll to form and increment `editTrigger`
+
+### ReviewsList
+**Path**: `client/src/components/Rating/ReviewsList.tsx` (130 lines)  
+**Purpose**: Paginated list of reviews with sorting
+
+**Props**:
+```typescript
+interface ReviewsListProps {
+  courseId: string;
+  refreshKey?: number;  // Increment to refetch
+  onEditClick?: () => void;  // Passed to ReviewCard for edit action
+}
+```
+
+**Features**:
+- Sort dropdown (Newest, Oldest, Highest Rating, Lowest Rating)
+- Pagination controls
+- Loading states (skeleton + spinner)
+- Empty state ("No reviews yet")
+- Auto-refetch on `refreshKey` change (e.g., after rating submitted or real-time update)
+
+**Real-time Integration**:
+```tsx
+// CourseDetailPage
+<ReviewsList 
+  courseId={courseId} 
+  refreshKey={reviewsRefreshKey + realtimeRefetchCounter}  // Refetch on real-time course updates
+  onEditClick={() => {
+    setEditTrigger(prev => prev + 1);
+    // Scroll to form...
+  }}
+/>
+```
+
+### CourseDetailPage - Ratings Section
+**Path**: `client/src/pages/Course/CourseDetailPage.tsx`  
+**Integration**: Reviews section at bottom of course detail page
+
+**Features**:
+- `#reviews` hash navigation support (scrolls to reviews section)
+- Rating summary card
+- Rating submit form (only for enrolled non-instructor users)
+- Reviews list with pagination
+- **Real-time Updates**: 
+  - `realtimeRefetchCounter` state incremented by `useCourseRealtimeUpdates` hook
+  - Rating summary useEffect depends on `[courseId, reviewsRefreshKey, realtimeRefetchCounter, user]`
+  - ReviewsList `refreshKey` = `reviewsRefreshKey + realtimeRefetchCounter`
+  - When instructor edits course OR student submits rating → real-time refetch
+- **Edit Trigger**: `editTrigger` state wired to ReviewCard's `onEdit` → scrolls to form + increments trigger
+
+```tsx
+// Rating summary useEffect (refetches on real-time updates)
+useEffect(() => {
+  if (!courseId) return;
+  ratingApi.getRatingSummary(courseId).then(setRatingSummary);
+  if (user) {
+    ratingApi.getMyRating(courseId).then(setUserRating);
+  }
+}, [courseId, reviewsRefreshKey, realtimeRefetchCounter, user]);
+
+// Real-time hook
+useCourseRealtimeUpdates(courseId, useCallback(() => {
+  setRealtimeRefetchCounter(prev => prev + 1);
+}, []));
+```
+
+### CoursesPage & MyLearningPage - Rating Display
+**Purpose**: Show course ratings on catalog and My Learning cards
+
+**CoursesPage.tsx**:
+- Rating display below course title on catalog cards
+- Gold stars + numeric average + count in parentheses
+- Conditional render when `RatingCount > 0`
+
+**MyLearningPage.tsx**:
+- Rating display between instructor name and level/category chips
+- Same visual pattern as CoursesPage
+- **Real-time Updates (Feb 15)**: Added `useCatalogRealtimeUpdates` hook
+  - Listens to `course:updated` event
+  - Refetches enrollments when ratings change
+  - Instructor's My Learning page now updates instantly when students rate their courses
+
+```tsx
+// MyLearningPage - Real-time updates
+useCatalogRealtimeUpdates(useCallback(() => {
+  loadEnrollments();
+}, [page]));
+```
+
+### useCatalogRealtimeUpdates Hook (Enhanced Feb 15)
+**Path**: `client/src/hooks/useCatalogRealtimeUpdates.ts` (119 lines)  
+**Enhancement**: Added `course:updated` event listener for rating changes
+
+**Events Listened**:
+- `course:catalog-changed` — Course published/unpublished/deleted
+- `course:enrollment-changed` — Enrollment count changed
+- `course:updated` — **NEW**: Course data changed (lessons, metadata, **ratings**)
+
+**Real-time Flow**:
+1. Student submits/updates/deletes rating
+2. Server: `ratings.ts` → `CourseEventService.emitCourseUpdated(courseId, ['rating'])`
+3. Socket.IO broadcasts to `courses-catalog` room (all authenticated users)
+4. Frontend: `useCatalogRealtimeUpdates` receives `course:updated` event
+5. Triggers `onUpdate()` callback → refetch data
+6. MyLearningPage, InstructorDashboard, CoursesPage all update automatically
+
+```typescript
+interface CourseUpdatedData {
+  courseId: string;
+  fields: string[];  // e.g., ['rating'], ['lessons'], ['metadata', 'thumbnail']
+  timestamp: string;
+}
+
+const handleCourseUpdated = (data: CourseUpdatedData) => {
+  console.log('[useCatalogRealtimeUpdates] Course updated:', data.courseId, data.fields);
+  triggerUpdate();  // 500ms debounced refetch
+};
+
+socket.on('course:updated', handleCourseUpdated);
+```
 
 ---
 

@@ -47,6 +47,7 @@ import settingsRoutes from './routes/settings';
 import emailRoutes from './routes/email';
 import { termsRoutes } from './routes/terms';
 import { createCommentsRouter } from './routes/comments';
+import ratingsRoutes from './routes/ratings';
 const studentProgressRoutes = require('./routes/student-progress');
 import { DatabaseService } from './services/DatabaseService';
 import { setupSocketHandlers } from './sockets';
@@ -237,6 +238,7 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/email', emailRoutes);
 app.use('/api/terms', termsRoutes);
+app.use('/api/ratings', ratingsRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {

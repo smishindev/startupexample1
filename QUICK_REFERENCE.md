@@ -1,7 +1,82 @@
 ﻿# 🚀 Quick Reference - Development Workflow
 
-**Last Updated**: February 14, 2026 - Terms of Service, Privacy Policy & Refund Policy 📜
+**Last Updated**: February 15, 2026 - Course Ratings & Reviews System ⭐
 
+
+## Course Ratings & Reviews System (Added Feb 15, 2026)
+
+**Complete 5-star rating system with text reviews, real-time updates, and instructor notifications**
+
+### Architecture
+- **Database**: `CourseRatings` table (ratings + reviews) + denormalized `Rating`/`RatingCount` columns on `Courses`
+- **Real-time**: Emits `course:updated` event with `fields: ['rating']` after rating CRUD
+- **Notifications**: Instructor notified on new ratings (priority: normal) and updated ratings (priority: low)
+- **Validation**: Must be enrolled (active/completed), instructors cannot rate own courses, 1 rating per student per course
+
+### API Endpoints
+```
+GET    /api/ratings/courses/:id/summary      - Get rating summary (average, count, distribution)
+                                              Returns: { averageRating, totalRatings, distribution }
+GET    /api/ratings/courses/:id/ratings      - Get paginated reviews (public)
+                                              Query: page, limit, sort (newest/oldest/highest/lowest)
+                                              Returns: { ratings[], pagination }
+GET    /api/ratings/courses/:id/my-rating    - Get user's own rating (auth)
+                                              Returns: { rating } or null
+POST   /api/ratings/courses/:id              - Submit or update rating (auth, enrolled only)
+                                              Body: { rating: 1-5, reviewText?: string (max 2000) }
+                                              Returns: { success, message, rating, isNew }
+DELETE /api/ratings/courses/:id              - Delete own rating (auth)
+GET    /api/ratings/instructor/summary       - Instructor's aggregate rating stats (auth, instructor)
+```
+
+### Frontend Components
+```
+RatingSubmitForm      → Star rating form with edit/delete (editTrigger prop for external edit)
+RatingSummaryCard     → Average rating + distribution bars
+ReviewCard            → Individual review with 3-dots menu (Edit/Delete for owner)
+ReviewsList           → Paginated reviews with sort dropdown
+```
+
+### Real-time Updates
+```
+Server: CourseEventService.emitCourseUpdated(courseId, ['rating'])
+        → Broadcast to course-{courseId} + courses-catalog rooms
+
+Frontend: useCatalogRealtimeUpdates() listens to 'course:updated' event
+          → MyLearningPage, InstructorDashboard, CoursesPage refetch
+          CourseDetailPage: realtimeRefetchCounter in useEffect deps
+          → Rating summary + reviews list refresh automatically
+```
+
+### Key Patterns
+```typescript
+// Validation: RatingService.canUserRate()
+// - Must be enrolled (active/completed status)
+// - Cannot be course instructor
+// - Returns { canRate: boolean, reason?: string }
+
+// Submit/Update: Returns { isNew: boolean } for notification logic
+// - isNew = true  → send "New Course Rating" notification (priority: normal)
+// - isNew = false → send "Course Rating Updated" notification (priority: low)
+
+// Real-time: editTrigger prop mechanism
+// - CourseDetailPage: editTrigger state increments on "Edit Review" click
+// - RatingSubmitForm: useEffect watches editTrigger, syncs form state, switches to edit mode
+```
+
+### Database Schema
+- `CourseRatings` — Id, CourseId FK, UserId FK, Rating (1-5 INT), ReviewText (NVARCHAR 2000), CreatedAt, UpdatedAt
+- `Courses.Rating` — DECIMAL(3,2) average rating (e.g., 4.73)
+- `Courses.RatingCount` — INT total ratings
+- UNIQUE INDEX on (CourseId, UserId) prevents duplicate ratings
+
+### Key Files
+- Backend: `server/src/services/RatingService.ts` (288 lines), `server/src/routes/ratings.ts` (193 lines)
+- Frontend: `client/src/services/ratingApi.ts`, `client/src/components/Rating/*` (4 components)
+- Pages: CourseDetailPage.tsx, CoursesPage.tsx, MyLearningPage.tsx (all show ratings)
+- Hooks: useCatalogRealtimeUpdates.ts (added `course:updated` listener for rating changes)
+
+---
 
 ## Terms of Service, Privacy Policy & Refund Policy (Added Feb 14, 2026)
 

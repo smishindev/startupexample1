@@ -15,6 +15,7 @@ interface BookmarkRow {
   Duration: number;
   Price: number;
   Rating: number;
+  RatingCount: number;
   EnrollmentCount: number;
   Tags: string;
   CreatedAt: Date;
@@ -43,6 +44,7 @@ router.get('/', authenticateToken, async (req: any, res: any) => {
         c.Duration,
         c.Price,
         c.Rating,
+        c.RatingCount,
         c.EnrollmentCount,
         c.Tags,
         c.CreatedAt,
@@ -81,6 +83,7 @@ router.get('/', authenticateToken, async (req: any, res: any) => {
         duration: row.Duration,
         price: row.Price,
         rating: row.Rating,
+        ratingCount: row.RatingCount || 0,
         enrollmentCount: row.EnrollmentCount,
         tags: row.Tags ? JSON.parse(row.Tags) : [],
         instructor: {

@@ -2,7 +2,7 @@
 
 **Purpose**: Systematic checklist to follow before implementing changes  
 **Goal**: Reduce errors, missing considerations, and broken functionality  
-**Last Updated**: February 14, 2026 - Terms of Service, Privacy Policy & Refund Policy 📜
+**Last Updated**: February 15, 2026 - Course Ratings & Reviews System ⭐
 
 ---
 
@@ -50,6 +50,20 @@
 - [ ] Identified all pages that use this component
 
 **Recent Additions to Check:**
+- [x] **Course Ratings & Reviews System** - PRODUCTION READY (Feb 15, 2026) ⭐
+  - Complete 5-star rating system with text reviews (max 2000 chars)
+  - Database: CourseRatings table + denormalized Rating/RatingCount on Courses
+  - Backend: RatingService.ts (288 lines), ratings.ts routes (193 lines)
+  - Frontend: 4 rating components (RatingSubmitForm, RatingSummaryCard, ReviewCard, ReviewsList)
+  - API: 7 endpoints (summary, ratings, my-rating, submit, delete, instructor-summary)
+  - Validation: Must be enrolled (active/completed), instructors cannot rate own courses
+  - Real-time: Emits course:updated event with fields: ['rating'] after CRUD
+  - Notifications: New ratings (priority: normal), Updated ratings (priority: low)
+  - Edit functionality: editTrigger prop syncs form state and switches to edit mode
+  - Display locations: CourseDetailPage (#reviews section), CoursesPage (cards), MyLearningPage (cards)
+  - Real-time updates: useCatalogRealtimeUpdates now listens to course:updated for rating changes
+  - MyLearningPage refetches when ratings change (instructor sees student ratings instantly)
+  - TypeScript: 0 errors (both client and server)
 - [x] **Terms of Service, Privacy Policy & Refund Policy** - PRODUCTION READY (Feb 14, 2026) 📜
   - Database-driven versioned legal documents (TermsVersions + UserTermsAcceptance tables)
   - Three document types: terms_of_service, privacy_policy, refund_policy

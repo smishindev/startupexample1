@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Container,
@@ -15,7 +15,8 @@ import {
   Alert,
   CircularProgress,
   alpha,
-  Pagination
+  Pagination,
+  Rating
 } from '@mui/material';
 import {
   PlayArrow,
@@ -24,7 +25,8 @@ import {
   School,
   CheckCircle,
   AccessTime,
-  Psychology
+  Psychology,
+  StarOutline,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
@@ -34,6 +36,7 @@ import { useAuthStore } from '../../stores/authStore';
 import { useTheme } from '@mui/material';
 import { formatCategory, getCategoryGradient, getLevelColor } from '../../utils/courseHelpers';
 import { formatDuration } from '@shared/utils';
+import { useCatalogRealtimeUpdates } from '../../hooks/useCatalogRealtimeUpdates';
 
 const MyLearningPage: React.FC = () => {
   const navigate = useNavigate();
@@ -53,6 +56,11 @@ const MyLearningPage: React.FC = () => {
   useEffect(() => {
     loadEnrollments();
   }, [page]);
+
+  // Real-time: refresh when course data changes (e.g., ratings updated by students)
+  useCatalogRealtimeUpdates(useCallback(() => {
+    loadEnrollments();
+  }, [page]));
 
   // Auto-update relative timestamps every 60 seconds
   useEffect(() => {
@@ -422,9 +430,21 @@ const MyLearningPage: React.FC = () => {
                         {enrollment.Title}
                       </Typography>
                       
-                      <Typography variant="body2" color="text.secondary" sx={{ mb: 2, fontWeight: 500 }}>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 500 }}>
                         by {enrollment.instructorFirstName} {enrollment.instructorLastName}
                       </Typography>
+
+                      {(enrollment.Rating > 0 || enrollment.RatingCount > 0) && (
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1.5 }}>
+                          <Rating value={enrollment.Rating || 0} precision={0.1} readOnly size="small" sx={{ color: '#ffd700' }} />
+                          <Typography variant="body2" sx={{ fontWeight: 700, color: 'text.primary', fontSize: '0.85rem' }}>
+                            {Number(enrollment.Rating || 0).toFixed(1)}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            ({enrollment.RatingCount || 0})
+                          </Typography>
+                        </Box>
+                      )}
 
                       <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, gap: 1, flexWrap: 'wrap' }}>
                         {enrollment.Level && (
@@ -644,6 +664,7 @@ const MyLearningPage: React.FC = () => {
                           </Button>
                         </Box>
                       ) : (
+                        <Box>
                         <Button
                           variant="contained"
                           startIcon={<PlayArrow />}
@@ -675,6 +696,24 @@ const MyLearningPage: React.FC = () => {
                         >
                           {enrollment.OverallProgress === 0 ? 'Start Course' : 'Continue'}
                         </Button>
+                        <Button
+                          variant="text"
+                          size="small"
+                          startIcon={<StarOutline />}
+                          fullWidth
+                          onClick={() => navigate(`/courses/${enrollment.courseId}#reviews`)}
+                          sx={{
+                            mt: 0.5,
+                            borderRadius: 2,
+                            fontWeight: 600,
+                            color: 'text.secondary',
+                            '&:hover': { color: 'warning.main' },
+                          }}
+                          data-testid={`my-learning-rate-${enrollment.courseId}-button`}
+                        >
+                          Rate Course
+                        </Button>
+                        </Box>
                       )}
                     </CardContent>
                   </Card>

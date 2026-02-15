@@ -40,6 +40,77 @@ Instructor Status Change Flow:
 
 ## 🔌 API ENDPOINTS
 
+### Course Ratings & Reviews (added Feb 15, 2026)
+```
+GET    /api/ratings/courses/:id/summary      - Get rating summary (public)
+                                              - Returns: { averageRating, totalRatings, distribution: { 1-5: count } }
+                                              - Zero state: { averageRating: 0, totalRatings: 0, distribution: {} }
+
+GET    /api/ratings/courses/:id/ratings      - Get paginated reviews (public)
+                                              - Query: page (default: 1), limit (default: 10), sort (newest/oldest/highest/lowest)
+                                              - Returns: { ratings: [], pagination: { page, limit, total, pages } }
+                                              - Ratings include: Id, CourseId, UserId, Rating, ReviewText, CreatedAt, UpdatedAt, FirstName, LastName
+
+GET    /api/ratings/courses/:id/my-rating    - Get user's own rating (auth required)
+                                              - Returns: rating object or null
+                                              - Used to check if user already rated
+
+POST   /api/ratings/courses/:id              - Submit or update rating (auth required, enrolled only)
+                                              - Body: { rating: 1-5 (integer), reviewText?: string (max 2000 chars) }
+                                              - Validation: Must be enrolled (active/completed status), cannot be instructor
+                                              - Returns: { success, message, rating, isNew: boolean }
+                                              - Upsert behavior: Creates or updates existing rating
+                                              - **Real-time**: Emits course:updated event with fields: ['rating']
+                                              - **Notification**: Sends to instructor (new: priority normal, update: priority low)
+
+DELETE /api/ratings/courses/:id              - Delete own rating (auth required)
+                                              - Validates ownership (userId matches rating's userId)
+                                              - Recalculates course average and count
+                                              - **Real-time**: Emits course:updated event
+
+GET    /api/ratings/instructor/summary       - Instructor's aggregate rating stats (auth required, instructor role)
+                                              - Returns aggregated stats across all instructor's courses
+                                              - Returns: { totalRatings, averageRating, courseRatings: [] }
+```
+
+**Rating System Architecture (Feb 15, 2026):**
+- **Database Tables**:
+  - `CourseRatings` — Stores individual ratings (Id, CourseId FK, UserId FK, Rating 1-5, ReviewText max 2000, CreatedAt, UpdatedAt)
+  - `Courses.Rating` — DECIMAL(3,2) denormalized average (e.g., 4.73)
+  - `Courses.RatingCount` — INT denormalized count (for catalog performance)
+  - UNIQUE INDEX on (CourseId, UserId) enforces 1 rating per student per course
+- **Validation Logic**: `RatingService.canUserRate(userId, courseId)`
+  - Must be enrolled (Enrollments.Status IN ('active', 'completed'))
+  - Cannot be course instructor (Courses.InstructorId != userId)
+  - Returns: { canRate: boolean, reason?: string }
+- **Recalculation**: After every CRUD operation
+  - Atomically updates Courses.Rating = AVG(rating), Courses.RatingCount = COUNT(*)
+  - Single UPDATE query with subquery for atomicity
+- **Real-time Flow**:
+  1. Student submits/updates/deletes rating via POST/DELETE
+  2. RatingService performs CRUD + recalculation
+  3. ratings.ts emits: `CourseEventService.emitCourseUpdated(courseId, ['rating'])`
+  4. Socket.IO broadcasts to `course-{courseId}` + `courses-catalog` rooms
+  5. Frontend hooks (`useCatalogRealtimeUpdates`, `useCourseRealtimeUpdates`) trigger refetch
+  6. MyLearningPage, InstructorDashboard, CoursesPage, CourseDetailPage update automatically
+- **Notification Integration**:
+  - **New Rating**: Title "New Course Rating", Priority "normal", Message "{student} rated \"{course}\" {rating}/5 stars{+ left a review}"
+  - **Updated Rating**: Title "Course Rating Updated", Priority "low", Message "{student} updated their rating for \"{course}\" to {rating}/5 stars"
+  - ActionUrl: `/courses/{courseId}#reviews` (hash navigation to reviews section)
+  - `canUserRate()` prevents self-rating so no self-notification
+
+**Frontend Components:**
+- **RatingSubmitForm** (199 lines) — Display/edit modes, external edit trigger via `editTrigger` prop
+- **RatingSummaryCard** (~120 lines) — Average + distribution bars
+- **ReviewCard** (91 lines) — Individual review with 3-dots menu (Edit/Delete for owner)
+- **ReviewsList** (130 lines) — Paginated reviews with sort dropdown, real-time `refreshKey` prop
+- **Integration**: CourseDetailPage (#reviews section), CoursesPage (cards), MyLearningPage (cards)
+
+**Real-time Updates (Feb 15):**
+- **useCatalogRealtimeUpdates** enhanced with `course:updated` listener for rating changes
+- **MyLearningPage** now uses `useCatalogRealtimeUpdates()` to refetch enrollments when ratings change
+- **CourseDetailPage** uses `realtimeRefetchCounter` in rating useEffect deps for automatic refresh
+
 ### Terms & Legal Compliance (added Feb 14, 2026)
 ```
 GET    /api/terms/current                    - Get all active legal documents (public)

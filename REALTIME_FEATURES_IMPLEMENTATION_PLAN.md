@@ -1,8 +1,8 @@
 # Real-time Features Implementation Plan
 
 **Created**: November 27, 2025  
-**Last Updated**: February 13, 2026  
-**Status**: Phase 1 Complete ✅ | Phase 2 Complete ✅ | Integration Complete ✅ | Notifications ✅ | Chat System ✅ | Course Updates ✅
+**Last Updated**: February 15, 2026  
+**Status**: Phase 1 Complete ✅ | Phase 2 Complete ✅ | Integration Complete ✅ | Notifications ✅ | Chat System ✅ | Course Updates ✅ | Ratings ✅
 
 ---
 
@@ -150,6 +150,34 @@
   - Instructor edits course → Student page updates instantly without manual refresh
   - Student requests enrollment → Instructor dashboard "Pending Approvals" updates in real-time
   - Instructor approves/rejects → Student's course card status changes instantly
+
+**5. Course Ratings & Reviews Real-time** ✅ **COMPLETED** - February 15, 2026
+- ✅ Rating submission emits `course:updated` event with `fields: ['rating']`
+- ✅ `useCatalogRealtimeUpdates` hook enhanced with `course:updated` listener
+- ✅ MyLearningPage now uses `useCatalogRealtimeUpdates` for real-time rating updates
+- ✅ InstructorDashboard updates automatically when students rate courses
+- ✅ CourseDetailPage reviews section updates automatically via `realtimeRefetchCounter`
+- ✅ Rating summary and reviews list refetch on real-time events
+- ✅ EditTrigger mechanism for external edit mode activation (3-dots menu)
+- ✅ RatingSubmitForm syncs state from existingRating prop when edit triggered
+- ✅ 4 rating components fully integrated (RatingSubmitForm, RatingSummaryCard, ReviewCard, ReviewsList)
+- ✅ Instructor notifications: New ratings (priority: normal), Updated ratings (priority: low)
+- ✅ 2 bugs fixed: EditTrigger stale state sync, MyLearningPage missing real-time hook
+- ✅ 0 TypeScript errors (both client and server)
+- **Event Flow**: 
+  1. Student submits/updates rating via POST /api/ratings/courses/:id
+  2. RatingService performs CRUD + recalculation (atomic denormalization)
+  3. ratings.ts emits: `CourseEventService.emitCourseUpdated(courseId, ['rating'])`
+  4. Socket.IO broadcasts to `course-{courseId}` + `courses-catalog` rooms
+  5. Frontend hooks trigger refetch (MyLearningPage, InstructorDashboard, CoursesPage, CourseDetailPage)
+  6. All pages update automatically without manual refresh
+- **Database**: CourseRatings table + Courses.Rating (DECIMAL 3,2) + Courses.RatingCount (INT)
+- **Validation**: Must be enrolled (active/completed), instructors cannot rate own courses, 1 rating per student
+- **API**: 7 endpoints (summary, ratings, my-rating, submit, delete, instructor-summary)
+- **Use Cases**:
+  - Student rates course → Instructor's My Learning page updates instantly
+  - Student edits rating → All pages showing that course refresh automatically
+  - Instructor viewing course detail → Reviews section updates when students post ratings
 
 ---
 

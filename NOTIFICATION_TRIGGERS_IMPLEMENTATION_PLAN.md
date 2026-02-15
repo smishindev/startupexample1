@@ -1,8 +1,8 @@
 # Notification Triggers - Full Implementation Plan
 
 **Created**: December 28, 2025  
-**Last Updated**: February 5, 2026  
-**Status**: Complete (31/31 Implemented + Hybrid Controls Design)  
+**Last Updated**: February 15, 2026  
+**Status**: Complete (32/32 Implemented + Hybrid Controls Design)  
 **Goal**: Integrate automatic notification creation throughout the application with granular user controls
 
 ---
@@ -12,13 +12,13 @@
 | Category | Completed | Total | Progress |
 |----------|-----------|-------|----------|
 | **Progress Updates** | 3/3 | 3 | 100% ✅ |
-| **Course Updates** | 8/7 | 7 | 114% ✅ |
+| **Course Updates** | 9/8 | 8 | 113% ✅ |
 | **Community Updates** | 8/9 | 9 | 89% 🔄 |
 | **Assessment Updates** | 4/4 | 4 | 100% ✅ |
 | **System Alerts** | 8/8 | 8 | 100% ✅ |
-| **TOTAL** | **31/31** | **31** | **100%** 🎉 |
+| **TOTAL** | **32/32** | **32** | **100%** 🎉 |
 
-**Latest Addition**: Direct Message Notifications - Chat System Rebuild (Community, February 5, 2026) 💬
+**Latest Addition**: Course Ratings & Reviews Notifications (Course Updates, February 15, 2026) ⭐
 
 ---
 
@@ -112,7 +112,7 @@ When creating notification:
 
 Users receive email notifications (based on their preferences) when these events occur:
 
-#### ✅ **All Implemented (31 triggers)** 🎉
+#### ✅ **All Implemented (32 triggers)** 🎉
 1. **Lesson Completed** - Student completes any lesson → Email to student + instructor (at milestones)
 2. **Video Completed** - Student finishes watching video → Email to student (January 8, 2026)
 3. **Live Session Created** - Instructor schedules session → Email to all enrolled students
@@ -144,6 +144,7 @@ Users receive email notifications (based on their preferences) when these events
 29. **Study Group Message** - Member posts in study group → Notification to all members (January 21, 2026) 👥
 30. **Direct Message Received** - User receives direct message → Notification to offline recipient (February 5, 2026) 💬
 31. **Instructor Direct Message** - Instructor sends direct message → Notification to student (February 5, 2026) 💬
+32. **Course Rating Submitted/Updated** - Student rates course → Notification to instructor with rating details (February 15, 2026) ⭐
 
 **Email Delivery Options** (Profile → Preferences):
 - **Real-time**: Immediate email for each event
@@ -158,12 +159,12 @@ Users receive email notifications (based on their preferences) when these events
 ## 📋 EXECUTIVE SUMMARY
 
 **Current State:**
-- ✅ Twenty-nine notification triggers implemented (Lesson, Video, Live Sessions x4, Course Management x3, Assessments x4, Course Completion, Payment x2, Password Changed, Office Hours, Study Groups x3, New Comments, AI Tutoring, At-Risk Detection, Live Session Reminders, Account Deletion)
+- ✅ Thirty-two notification triggers implemented (Lesson, Video, Live Sessions x4, Course Management x4, Assessments x4, Course Completion, Payment x2, Password Changed, Office Hours, Study Groups x3, Comments x2, AI Tutoring, At-Risk Detection, Live Session Reminders, Account Deletion, Direct Messages x2, Course Ratings)
 - ✅ **Automated Testing**: Comprehensive Playwright test suite for comment notifications (11 tests, 100% coverage)
-- ❌ 2 additional notification triggers NOT implemented
+- ✅ **Rating System**: Complete 5-star rating system with real-time updates and instructor notifications (February 15, 2026)
 
-**What's Missing:**
-Direct message notifications (2 triggers)
+**Implementation Notes:**
+All triggers implemented with proper notification controls integration
 
 **Estimated Effort:** 2-3 hours remaining for final triggers
 ---
@@ -777,7 +778,113 @@ subcategory: 'CourseMilestones'
 
 ---
 
-### 2.10 Password Changed
+### 2.10 Course Rating Submitted/Updated ⭐ **IMPLEMENTED** (February 15, 2026)
+**File**: `server/src/routes/ratings.ts`  
+**Endpoint**: `POST /api/ratings/courses/:courseId`  
+**Lines**: ~100-143 (notification section)
+
+**Status**: ✅ **IMPLEMENTED** - February 15, 2026
+
+**Triggers:**
+- ✅ **Instructor**: New rating notification (priority: normal)
+- ✅ **Instructor**: Updated rating notification (priority: low)
+
+**Notification Details:**
+```typescript
+// New Rating
+type: 'course'
+priority: 'normal'
+title: 'New Course Rating'
+message: '{studentName} rated "{courseTitle}" {rating}/5 stars{+ left a review}'
+actionUrl: '/courses/{courseId}#reviews'
+actionText: 'View Rating'
+relatedEntityId: courseId
+relatedEntityType: 'course'
+category: 'course'
+subcategory: 'CourseRatings'
+
+// Updated Rating
+type: 'course'
+priority: 'low'
+title: 'Course Rating Updated'
+message: '{studentName} updated their rating for "{courseTitle}" to {rating}/5 stars'
+actionUrl: '/courses/{courseId}#reviews'
+actionText: 'View Rating'
+relatedEntityId: courseId
+relatedEntityType: 'course'
+category: 'course'
+subcategory: 'CourseRatings'
+```
+
+**Implementation:**
+```typescript
+// After rating upsert and recalculation (isolated try-catch)
+try {
+  const notificationService: NotificationService = req.app.get('notificationService');
+  
+  // Get course and student info
+  const courseInfo = await db.query(`
+    SELECT c.Title, c.InstructorId, u.FirstName, u.LastName
+    FROM Courses c
+    INNER JOIN Users u ON u.Id = @userId
+    WHERE c.Id = @courseId
+  `, { courseId, userId });
+
+  if (courseInfo.length > 0 && courseInfo[0].InstructorId) {
+    const course = courseInfo[0];
+    const studentName = `${course.FirstName} ${course.LastName}`;
+
+    if (result.isNew) {
+      // New rating notification
+      await notificationService.createNotification({
+        userId: course.InstructorId,
+        type: 'course',
+        priority: 'normal',
+        title: 'New Course Rating',
+        message: `${studentName} rated "${course.Title}" ${rating}/5 stars${reviewText ? ' and left a review' : ''}`,
+        actionUrl: `/courses/${courseId}#reviews`,
+        actionText: 'View Rating',
+        relatedEntityId: courseId,
+        relatedEntityType: 'course',
+      });
+    } else {
+      // Updated rating notification
+      await notificationService.createNotification({
+        userId: course.InstructorId,
+        type: 'course',
+        priority: 'low',
+        title: 'Course Rating Updated',
+        message: `${studentName} updated their rating for "${course.Title}" to ${rating}/5 stars`,
+        actionUrl: `/courses/${courseId}#reviews`,
+        actionText: 'View Rating',
+        relatedEntityId: courseId,
+        relatedEntityType: 'course',
+      });
+    }
+  }
+} catch (notifError) {
+  logger.error('[Ratings] Failed to send notification:', { error: notifError });
+}
+```
+
+**Validation & Security:**
+- `RatingService.canUserRate()` prevents instructor self-rating → no self-notification
+- Must be enrolled (active/completed status)
+- Rating must be 1-5 integer
+- Review text max 2000 chars
+
+**Real-time Integration:**
+- After notification, emits `course:updated` event with `fields: ['rating']`
+- Frontend hooks (`useCatalogRealtimeUpdates`) trigger refetch
+- MyLearningPage, InstructorDashboard update automatically
+
+**Error Handling**: Notification failures are caught and logged without breaking rating submission.
+
+**Settings UI**: Course Updates → Course Ratings (new subcategory)
+
+---
+
+### 2.11 Password Changed
 **File**: `server/src/routes/profile.ts`  
 **Endpoint**: `PUT /api/profile/password` (Line ~330)
 
@@ -830,7 +937,7 @@ try {
 
 ---
 
-### 2.11 Account Deletion Request
+### 2.12 Account Deletion Request
 **File**: `server/src/services/AccountDeletionService.ts`  
 **Method**: `notifyAdmin()` (Line ~388)
 **Endpoint**: `POST /api/settings/delete-account`

@@ -98,6 +98,8 @@ GET    /api/ratings/instructor/summary       - Instructor's aggregate rating sta
   - **Updated Rating**: Title "Course Rating Updated", Priority "low", Message "{student} updated their rating for \"{course}\" to {rating}/5 stars"
   - ActionUrl: `/courses/{courseId}#reviews` (hash navigation to reviews section)
   - `canUserRate()` prevents self-rating so no self-notification
+  - **Preferences**: Controlled by Course Updates → Course Ratings subcategory toggle
+  - Uses `createNotificationWithControls({ category: 'course', subcategory: 'CourseRatings' })`
 
 **Frontend Components:**
 - **RatingSubmitForm** (199 lines) — Display/edit modes, external edit trigger via `editTrigger` prop

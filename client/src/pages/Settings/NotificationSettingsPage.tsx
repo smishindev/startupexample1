@@ -70,6 +70,7 @@ interface NotificationPreferences {
   EnableEnrollmentRejected: boolean | null;
   EnableEnrollmentSuspended: boolean | null;
   EnableEnrollmentCancelled: boolean | null;
+  EnableCourseRatings: boolean | null;
   EmailCourseEnrollment: boolean | null;
   EmailNewLessons: boolean | null;
   EmailLiveSessions: boolean | null;
@@ -80,6 +81,7 @@ interface NotificationPreferences {
   EmailEnrollmentRejected: boolean | null;
   EmailEnrollmentSuspended: boolean | null;
   EmailEnrollmentCancelled: boolean | null;
+  EmailCourseRatings: boolean | null;
   
   // Assessment Updates subcategories
   EnableAssessmentSubmitted: boolean | null;
@@ -254,6 +256,14 @@ const COURSE_SUBCATEGORIES: SubcategoryControl[] = [
     emailKey: 'EmailEnrollmentCancelled',
     canDisable: true,
     description: 'When your enrollment is cancelled'
+  },
+  {
+    name: 'course-ratings',
+    label: 'Course Ratings',
+    inAppKey: 'EnableCourseRatings',
+    emailKey: 'EmailCourseRatings',
+    canDisable: true,
+    description: 'When students rate or review your courses'
   },
 ];
 

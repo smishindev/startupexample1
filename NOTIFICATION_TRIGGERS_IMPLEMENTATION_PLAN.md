@@ -1694,6 +1694,7 @@ MAX_NOTIFICATIONS_PER_HOUR: 10  // Rate limiting
 | Enrollment Rejected (to Student) | `EnableEnrollmentRejected` | ✅ ON | ✅ ON | normal |
 | Enrollment Suspended (to Student) | `EnableEnrollmentSuspended` | ✅ ON | ✅ ON | normal |
 | Enrollment Cancelled (to Student) | `EnableEnrollmentCancelled` | ✅ ON | ✅ ON | normal |
+| Course Ratings ⭐ NEW | `EnableCourseRatings` | ✅ ON | ✅ ON | normal/low |
 | New Lesson Created | `EnableNewLessons` | ✅ ON | ✅ ON | normal |
 | Live Session Created | `EnableLiveSessions` | ✅ ON | ✅ ON | high |
 | Live Session Starting Soon (15 min) | `EnableLiveSessions` | ✅ ON | ✅ ON | urgent |
@@ -1786,6 +1787,7 @@ ADD EnableCourseEnrollment BIT NULL,
     EnableEnrollmentRejected BIT NULL,
     EnableEnrollmentSuspended BIT NULL,
     EnableEnrollmentCancelled BIT NULL,
+    EnableCourseRatings BIT NULL,
     -- Email-specific toggles
     EmailCourseEnrollment BIT NULL,
     EmailNewLessons BIT NULL,
@@ -1796,7 +1798,8 @@ ADD EnableCourseEnrollment BIT NULL,
     EmailEnrollmentApproved BIT NULL,
     EmailEnrollmentRejected BIT NULL,
     EmailEnrollmentSuspended BIT NULL,
-    EmailEnrollmentCancelled BIT NULL;
+    EmailEnrollmentCancelled BIT NULL,
+    EmailCourseRatings BIT NULL;
 
 -- Assessment Updates Subcategories
 ALTER TABLE NotificationPreferences
@@ -1976,7 +1979,10 @@ Settings Page (Profile → Settings → Notifications Tab)
 │   │   ├── Course Enrollment: [In-App ☑] [Email ☑]
 │   │   ├── New Lessons: [In-App ☑] [Email ☑]
 │   │   ├── Live Sessions: [In-App ☑] [Email ☑]
-│   │   └── Instructor Announcements: [In-App ☑] [Email ☑]
+│   │   ├── Instructor Announcements: [In-App ☑] [Email ☑]
+│   │   ├── Enrollment Requests: [In-App ☑] [Email ☑]
+│   │   ├── Enrollment Status Changes: [In-App ☑] [Email ☑]
+│   │   └── Course Ratings ⭐: [In-App ☑] [Email ☑]
 │
 ├── Assessment Updates (Collapsible Section)
 │   ├── Category Toggle: Enable All Assessment Updates

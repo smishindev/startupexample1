@@ -161,7 +161,7 @@
 - ✅ EditTrigger mechanism for external edit mode activation (3-dots menu)
 - ✅ RatingSubmitForm syncs state from existingRating prop when edit triggered
 - ✅ 4 rating components fully integrated (RatingSubmitForm, RatingSummaryCard, ReviewCard, ReviewsList)
-- ✅ Instructor notifications: New ratings (priority: normal), Updated ratings (priority: low)
+- ✅ Instructor notifications: New ratings (priority: normal), Updated ratings (priority: low), controllable via Settings → Notifications → Course Updates → Course Ratings
 - ✅ 2 bugs fixed: EditTrigger stale state sync, MyLearningPage missing real-time hook
 - ✅ 0 TypeScript errors (both client and server)
 - **Event Flow**: 

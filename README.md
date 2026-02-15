@@ -18,7 +18,7 @@ An innovative EdTech startup providing personalized learning experiences through
 - **Course Ratings & Reviews** - 5-star rating system with text reviews, real-time updates, and instructor notifications (February 15, 2026) ⭐
   - **Student Feedback**: 1-5 star ratings with optional review text (max 2000 chars)
   - **Real-time Updates**: Ratings update automatically on all pages (My Learning, Catalog, Course Detail)
-  - **Instructor Notifications**: Notified on new ratings (priority: normal) and updated ratings (priority: low)
+  - **Instructor Notifications**: Notified on new ratings (priority: normal) and updated ratings (priority: low), controllable via Settings → Notifications → Course Updates → Course Ratings
   - **Validation**: Must be enrolled, instructors cannot rate own courses, 1 rating per student
   - **Rich UI**: Rating summary cards, distribution bars, paginated reviews with sorting
   - **Edit/Delete**: Students can edit or delete their ratings with 3-dots menu

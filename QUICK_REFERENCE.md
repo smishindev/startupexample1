@@ -58,6 +58,8 @@ Frontend: useCatalogRealtimeUpdates() listens to 'course:updated' event
 // Submit/Update: Returns { isNew: boolean } for notification logic
 // - isNew = true  → send "New Course Rating" notification (priority: normal)
 // - isNew = false → send "Course Rating Updated" notification (priority: low)
+// Respects user preferences: Settings → Course Updates → Course Ratings toggle
+// Uses createNotificationWithControls({ category: 'course', subcategory: 'CourseRatings' })
 
 // Real-time: editTrigger prop mechanism
 // - CourseDetailPage: editTrigger state increments on "Edit Review" click

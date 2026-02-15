@@ -77,6 +77,8 @@ GET    /api/ratings/instructor/summary       - Auth + instructor role, aggregate
 - **Updated Rating**: Title "Course Rating Updated", Priority "low"
   - Message: "{student} updated their rating for \"{course}\" to {rating}/5 stars"
 - ActionUrl: `/courses/{courseId}#reviews`
+- **Preference Control**: Settings → Notifications → Course Updates → Course Ratings toggle
+  - Respects instructor's in-app and email preferences (\`EnableCourseRatings\`, \`EmailCourseRatings\`)
 
 ### ratingApi (Frontend Service)
 **Path**: `client/src/services/ratingApi.ts` (127 lines)  

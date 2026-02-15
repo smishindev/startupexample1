@@ -59,6 +59,7 @@
   - Validation: Must be enrolled (active/completed), instructors cannot rate own courses
   - Real-time: Emits course:updated event with fields: ['rating'] after CRUD
   - Notifications: New ratings (priority: normal), Updated ratings (priority: low)
+  - Preference Control: Settings → Notifications → Course Updates → Course Ratings toggle
   - Edit functionality: editTrigger prop syncs form state and switches to edit mode
   - Display locations: CourseDetailPage (#reviews section), CoursesPage (cards), MyLearningPage (cards)
   - Real-time updates: useCatalogRealtimeUpdates now listens to course:updated for rating changes

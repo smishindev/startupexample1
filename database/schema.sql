@@ -655,6 +655,7 @@ CREATE TABLE dbo.NotificationPreferences (
     EnableEnrollmentRejected BIT NULL,
     EnableEnrollmentSuspended BIT NULL,
     EnableEnrollmentCancelled BIT NULL,
+    EnableCourseRatings BIT NULL,
     EmailCourseEnrollment BIT NULL,
     EmailNewLessons BIT NULL,
     EmailLiveSessions BIT NULL,
@@ -665,6 +666,7 @@ CREATE TABLE dbo.NotificationPreferences (
     EmailEnrollmentRejected BIT NULL,
     EmailEnrollmentSuspended BIT NULL,
     EmailEnrollmentCancelled BIT NULL,
+    EmailCourseRatings BIT NULL,
     
     -- Assessment Updates Subcategories
     EnableAssessmentSubmitted BIT NULL,

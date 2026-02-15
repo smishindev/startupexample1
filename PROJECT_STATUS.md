@@ -106,6 +106,7 @@ After: Students can submit 1-5 star ratings with optional review text after enro
 - **Updated Rating**: Priority "low", Title "Course Rating Updated", Message "{student} updated their rating for \"{course}\" to {rating}/5 stars"
 - ActionUrl: `/courses/{courseId}#reviews` (scrolls to reviews section)
 - `canUserRate()` prevents self-rating so no self-notification
+- **Preference Control**: Instructors can toggle in Settings → Notifications → Course Updates → Course Ratings (in-app + email separately)
 
 **Real-time Architecture:**
 - Server emits `course:updated` event with `fields: ['rating']` after rating CRUD

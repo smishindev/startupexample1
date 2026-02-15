@@ -114,7 +114,7 @@ router.post('/courses/:courseId', authenticateToken, async (req: AuthRequest, re
         const studentName = `${course.FirstName} ${course.LastName}`;
 
         if (result.isNew) {
-          await notificationService.createNotification({
+          await notificationService.createNotificationWithControls({
             userId: course.InstructorId,
             type: 'course',
             priority: 'normal',
@@ -124,9 +124,9 @@ router.post('/courses/:courseId', authenticateToken, async (req: AuthRequest, re
             actionText: 'View Rating',
             relatedEntityId: courseId,
             relatedEntityType: 'course',
-          });
+          }, { category: 'course', subcategory: 'CourseRatings' });
         } else {
-          await notificationService.createNotification({
+          await notificationService.createNotificationWithControls({
             userId: course.InstructorId,
             type: 'course',
             priority: 'low',
@@ -136,7 +136,7 @@ router.post('/courses/:courseId', authenticateToken, async (req: AuthRequest, re
             actionText: 'View Rating',
             relatedEntityId: courseId,
             relatedEntityType: 'course',
-          });
+          }, { category: 'course', subcategory: 'CourseRatings' });
         }
       }
     } catch (notifError) {

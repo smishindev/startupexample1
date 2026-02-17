@@ -83,11 +83,13 @@ BEGIN TRY
             Duration,
             Price,
             Rating,
+            RatingCount,
             EnrollmentCount,
             Prerequisites,
             LearningOutcomes,
             Tags,
             IsPublished,
+            Status,
             CreatedAt,
             UpdatedAt
         )
@@ -99,14 +101,16 @@ BEGIN TRY
             @InstructorId,
             (SELECT TOP 1 Name FROM @Categories ORDER BY NEWID()), -- Random category
             (SELECT TOP 1 Name FROM @Levels ORDER BY NEWID()), -- Random level
-            (30 + (@Counter % 300)) * 60, -- Duration between 30-330 hours (in minutes)
+            30 + (@Counter % 300), -- Duration between 30-329 minutes
             CAST((29.99 + (@Counter % 200)) AS DECIMAL(10,2)), -- Price between $29.99 and $229.99
             CAST((3.0 + (@Counter % 20) * 0.1) AS DECIMAL(3,2)), -- Rating between 3.0 and 5.0
+            1 + (@Counter % 50), -- RatingCount (1-50 ratings to match non-zero Rating)
             1, -- Initial enrollment count
             '["Basic computer skills", "English proficiency"]', -- Prerequisites JSON
             '["Master the fundamentals", "Build real projects", "Get certified"]', -- Learning outcomes JSON
             '["test", "course-' + CAST(@Counter AS NVARCHAR(10)) + '", "automated"]', -- Tags JSON
             1, -- Published
+            'published', -- Status matches IsPublished=1
             DATEADD(DAY, -(@Counter % 365), GETUTCDATE()), -- Stagger creation dates over past year
             GETUTCDATE()
         );
@@ -188,6 +192,7 @@ BEGIN TRY
             TaxRate,
             TaxId,
             PdfUrl,
+            PdfPath,
             PdfGeneratedAt,
             CreatedAt,
             UpdatedAt
@@ -206,6 +211,7 @@ BEGIN TRY
             10.00, -- 10% tax rate
             NULL,
             '/invoices/test/' + @InvoiceNumber + '.pdf',
+            'uploads/invoices/test/' + @InvoiceNumber + '.pdf', -- PdfPath (file system path)
             DATEADD(MINUTE, 5, DATEADD(DAY, -(@Counter % 365), GETUTCDATE())),
             DATEADD(DAY, -(@Counter % 365), GETUTCDATE()),
             GETUTCDATE()

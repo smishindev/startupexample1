@@ -188,7 +188,13 @@ const LandingPage: React.FC = () => {
     navigate(`/courses?search=${encodeURIComponent(query)}`)
   }
 
-  const popularSearches = ['Python', 'Web Development', 'Data Science', 'JavaScript', 'Machine Learning', 'Design']
+  // Build popular chips dynamically from actual categories (top 6 by course count)
+  const popularSearches = categories
+    .slice(0, 6)
+    .map((cat: any) => ({
+      label: cat.Category.split('_').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
+      category: cat.Category,
+    }))
 
   return (
     <Box>
@@ -247,13 +253,13 @@ const LandingPage: React.FC = () => {
             <Typography variant="body2" sx={{ opacity: 0.8, display: 'flex', alignItems: 'center', mr: 0.5 }}>
               Popular:
             </Typography>
-            {popularSearches.map((term) => (
+            {popularSearches.map((item) => (
               <Chip
-                key={term}
-                label={term}
+                key={item.category}
+                label={item.label}
                 size="small"
                 clickable
-                onClick={() => navigate(`/courses?search=${encodeURIComponent(term)}`)}
+                onClick={() => navigate(`/courses?category=${encodeURIComponent(item.category)}`)}
                 sx={{
                   bgcolor: 'rgba(255, 255, 255, 0.2)',
                   color: 'white',

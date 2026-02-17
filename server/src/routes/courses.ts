@@ -26,8 +26,12 @@ router.get('/', async (req: any, res: any) => {
 
     // Add search filter
     if (search) {
-      whereClause += ' AND (c.Title LIKE @search OR c.Description LIKE @search OR c.Tags LIKE @search)';
+      // Search in Title, Description, Tags, AND Category (handle both snake_case and Title Case)
+      // e.g., "Data Science" matches both category "data_science" and title "Data Science Basics"
+      whereClause += ` AND (c.Title LIKE @search OR c.Description LIKE @search OR c.Tags LIKE @search OR REPLACE(c.Category, '_', ' ') LIKE @searchCategory)`;
       params.search = `%${search}%`;
+      // Convert search to lowercase with underscores for category matching (e.g., "Data Science" -> "data science")
+      params.searchCategory = `%${search.toLowerCase()}%`;
     }
 
     // Add category filter

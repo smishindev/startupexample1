@@ -92,7 +92,9 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
     
     if (success) {
       onSuccess?.();
-      navigate('/dashboard');
+      // Navigate back to where user came from (e.g., course page), or dashboard
+      const returnTo = (location.state as any)?.from || '/dashboard';
+      navigate(returnTo);
     }
   };
 
@@ -259,11 +261,11 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
               <Typography variant="body2" color="text.secondary">
                 Don't have an account?{' '}
                 <Link
-                  component={RouterLink}
-                  to="/register"
+                  component="button"
                   variant="body2"
                   underline="hover"
                   fontWeight="medium"
+                  onClick={() => navigate('/register', { state: location.state })}
                   data-testid="login-register-link"
                 >
                   Sign Up

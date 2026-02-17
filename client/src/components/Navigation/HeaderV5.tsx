@@ -13,7 +13,6 @@ import {
   Avatar,
   Menu,
   MenuItem,
-  InputBase,
   useTheme,
   useMediaQuery,
   Typography,
@@ -30,7 +29,6 @@ import {
   Dashboard as DashboardIcon,
   Close as CloseIcon,
 } from '@mui/icons-material';
-import { styled } from '@mui/material/styles';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore';
 import { NotificationBell } from '../Notifications/NotificationBell';
@@ -39,58 +37,7 @@ import { MegaMenuDropdown } from './MegaMenuDropdown';
 import { MobileBottomNav } from './MobileBottomNav';
 import { MobileNavDrawer } from './MobileNavDrawer';
 import { navGroups, profileMenuItems, filterByRole } from '../../config/navigation';
-
-// Styled search container
-const Search = styled('div')(({ theme }) => ({
-  position: 'relative',
-  borderRadius: theme.shape.borderRadius * 3,
-  backgroundColor: 'rgba(255, 255, 255, 0.9)',
-  backdropFilter: 'blur(10px)',
-  border: '1px solid rgba(255, 255, 255, 0.5)',
-  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-  transition: 'all 0.3s ease',
-  '&:hover': {
-    backgroundColor: 'rgba(255, 255, 255, 1)',
-    transform: 'translateY(-1px)',
-    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-  },
-  '&:focus-within': {
-    backgroundColor: 'rgba(255, 255, 255, 1)',
-    border: `1px solid ${alpha(theme.palette.primary.main, 0.5)}`,
-    boxShadow: `0 0 0 3px ${alpha(theme.palette.primary.main, 0.1)}`,
-  },
-  marginLeft: theme.spacing(2),
-  width: 'auto',
-}));
-
-const SearchIconWrapper = styled('div')(({ theme }) => ({
-  padding: theme.spacing(0, 2),
-  height: '100%',
-  position: 'absolute',
-  pointerEvents: 'none',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  color: theme.palette.primary.main,
-}));
-
-const StyledInputBase = styled(InputBase)(({ theme }) => ({
-  color: theme.palette.text.primary,
-  fontWeight: 500,
-  '& .MuiInputBase-input': {
-    padding: theme.spacing(1, 1, 1, 0),
-    paddingLeft: `calc(1em + ${theme.spacing(4)})`,
-    transition: theme.transitions.create('width'),
-    width: '20ch',
-    '&::placeholder': {
-      color: theme.palette.text.secondary,
-      opacity: 0.7,
-    },
-    '&:focus': {
-      width: '28ch',
-    },
-  },
-}));
+import { SearchAutocomplete } from '../Search/SearchAutocomplete';
 
 export const HeaderV5: React.FC = () => {
   const theme = useTheme();
@@ -101,7 +48,6 @@ export const HeaderV5: React.FC = () => {
 
   // State
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [searchQuery, setSearchQuery] = useState('');
   const [searchExpanded, setSearchExpanded] = useState(false);
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
 
@@ -128,15 +74,6 @@ export const HeaderV5: React.FC = () => {
     logout();
     handleProfileMenuClose();
     navigate('/login');
-  };
-
-  const handleSearch = (event: React.FormEvent) => {
-    event.preventDefault();
-    if (searchQuery.trim()) {
-      navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
-      setSearchQuery('');
-      setSearchExpanded(false);
-    }
   };
 
   const handleProfileMenuAction = (item: typeof visibleProfileItems[0]) => {
@@ -259,29 +196,14 @@ export const HeaderV5: React.FC = () => {
                   alignItems: 'center',
                   flexGrow: 1,
                   mx: 1,
+                  gap: 0.5,
                 }}
               >
-                <Box
-                  component="form"
-                  onSubmit={handleSearch}
-                  sx={{
-                    flexGrow: 1,
-                    display: 'flex',
-                    alignItems: 'center',
-                    backgroundColor: 'rgba(255,255,255,0.9)',
-                    borderRadius: 2,
-                    px: 1.5,
-                    py: 0.5,
-                  }}
-                >
-                  <SearchIcon sx={{ color: 'text.secondary', mr: 1 }} />
-                  <InputBase
-                    placeholder="Search..."
-                    autoFocus
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    sx={{ flex: 1 }}
-                    data-testid="header-search-input-mobile"
+                <Box sx={{ flex: 1 }}>
+                  <SearchAutocomplete
+                    variant="header"
+                    placeholder="Search courses..."
+                    testIdPrefix="header-search-mobile"
                   />
                 </Box>
                 <IconButton
@@ -311,19 +233,13 @@ export const HeaderV5: React.FC = () => {
               </Tooltip>
             )
           ) : (
-            <Search>
-              <SearchIconWrapper>
-                <SearchIcon />
-              </SearchIconWrapper>
-              <form onSubmit={handleSearch}>
-                <StyledInputBase
-                  placeholder="Search courses, topics..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  data-testid="header-search-input"
-                />
-              </form>
-            </Search>
+            <Box sx={{ ml: 2, width: 'auto', maxWidth: 480 }}>
+              <SearchAutocomplete
+                variant="header"
+                placeholder="Search courses, topics..."
+                testIdPrefix="header-search"
+              />
+            </Box>
           )}
 
           {/* Right Actions */}

@@ -1,6 +1,6 @@
 # Mishin Learn Platform - Component Registry
 
-**Last Updated**: February 15, 2026 - Course Ratings & Reviews System ⭐  
+**Last Updated**: February 17, 2026 - Search Autocomplete System 🔍  
 **Purpose**: Quick reference for all major components, their dependencies, and relationships
 
 ---
@@ -3177,9 +3177,99 @@ if (progress >= 0.9 && !isCompleted) {
 
 ---
 
+## 🔍 Search Autocomplete System (Added February 17, 2026)
+
+### SearchAutocomplete
+**Path**: `client/src/components/Search/SearchAutocomplete.tsx` (551 lines)  
+**Purpose**: Reusable Udemy-style live search dropdown with debounced API calls, keyboard navigation, and highlighted matching text
+
+**Features**:
+- **Two Variants**: `header` (compact for navigation bars) and `hero` (larger for landing page)
+- **Debounced Search**: 300ms delay prevents excessive API calls
+- **Keyboard Navigation**: Arrow keys, Enter, Escape fully supported
+- **Highlighted Matches**: Query text highlighted in bold primary color
+- **Loading States**: Spinner and "Searching courses..." message
+- **Empty State**: "No courses found" with helpful suggestion text
+- **Race Condition Guard**: Request ID counter prevents stale results
+- **Debounce Cleanup**: Clears pending searches on navigation
+- **Modulo-by-Zero Guard**: Arrow keys work correctly in empty/loading states
+
+**Props**:
+```typescript
+interface SearchAutocompleteProps {
+  variant: 'header' | 'hero';          // Visual style
+  placeholder?: string;                 // Input placeholder text
+  onSubmit?: (query: string) => void;   // Custom submit handler (default: navigate to /courses?search=...)
+  testIdPrefix?: string;                // Test ID prefix for all elements
+  showButton?: boolean;                 // Show "Search" button (hero variant only)
+}
+```
+
+**Styled Components**:
+- `SearchContainer` - Main wrapper with variant-specific styles and focus states
+- `SearchInputWrapper` - Flex container for icon, input, spinner, button
+- `StyledInput` - Custom InputBase with `shouldForwardProp` to prevent `searchVariant` DOM warning
+- `ResultItem` - Course result row with hover and keyboard focus styles
+
+**State Management**:
+```typescript
+const [query, setQuery] = useState('');
+const [results, setResults] = useState<Course[]>([]);
+const [loading, setLoading] = useState(false);
+const [isOpen, setIsOpen] = useState(false);
+const [focusedIndex, setFocusedIndex] = useState(-1);
+const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+const requestIdRef = useRef(0);  // Prevents race conditions
+```
+
+**Key Handlers**:
+- `handleInputChange` - Debounces search, opens dropdown at 2+ chars
+- `handleSubmit` - Navigates to /courses?search=... or calls onSubmit prop
+- `handleResultClick` - Navigates to /courses/:id
+- `handleViewAll` - Navigates to /courses?search=...
+- `handleKeyDown` - Arrow keys cycle focus, Enter selects, Escape closes
+- `handleClickAway` - Closes dropdown when clicking outside
+
+**Helper Functions**:
+```typescript
+function highlightMatch(text: string, query: string): React.ReactNode
+  // Splits text by regex, highlights matching parts
+  // Uses separate regex without 'g' flag for .test() to prevent lastIndex drift
+
+function escapeRegex(str: string): string
+  // Escapes special regex characters in user input
+```
+
+**API Integration**:
+- `coursesApi.searchCourses(query, 6)` - Fetches up to 6 matching courses
+- Uses `Course` interface from `client/src/services/coursesApi.ts`
+- Displays: Thumbnail, Title, Instructor name, Rating, Price/Free chip
+
+**Integration Sites (4 locations)**:
+1. **PublicHeader.tsx** - Guest header (desktop + mobile drawer)
+2. **HeaderV5.tsx** - Authenticated header (desktop + mobile expand/collapse)
+3. **LandingPage.tsx** - Hero section with `showButton` and custom `onSubmit`
+4. **Mobile Drawer** - Both headers include in mobile navigation
+
+**Common Issues Fixed**:
+- **Regex global flag bug**: `.test()` with 'g' flag alternates true/false due to lastIndex state. Fixed by using separate regex objects.
+- **DOM prop warning**: `variant` prop forwarded to InputBase → DOM. Fixed by renaming to `searchVariant` with `shouldForwardProp`.
+- **Race condition**: Out-of-order API responses could overwrite newer results. Fixed with `requestIdRef` counter.
+- **Arrow key crash**: Modulo by zero when `totalItems = 0`. Fixed with `if (totalItems > 0)` guard.
+- **Stale debounce**: Pending search fires after navigation. Fixed by clearing `debounceRef` in submit/result/viewAll handlers.
+
+**Test IDs**:
+- `{testIdPrefix}-input` - Search input field
+- `{testIdPrefix}-button` - Search button (hero variant)
+- `{testIdPrefix}-dropdown` - Dropdown Paper container
+- `{testIdPrefix}-result-{index}` - Individual result items
+- `{testIdPrefix}-view-all` - "View all results" link
+
+---
+
 ### HeaderV5 (Navigation System)
 **Path**: `client/src/components/Navigation/HeaderV5.tsx`  
-**Purpose**: Modern navigation header with mega-menu dropdowns and mobile-optimized layout
+**Purpose**: Modern navigation header with mega-menu dropdowns, mobile-optimized layout, and live search autocomplete
 
 **Architecture** (Refactored January 31, 2026):
 - **Desktop**: Mega-menu dropdowns for grouped navigation (Learn, Collaborate, Tools, Instructor)
@@ -3192,9 +3282,23 @@ if (progress >= 0.9 && !isCompleted) {
 - `MobileBottomNav.tsx` - Fixed bottom navigation for mobile (64px height)
 - `MobileNavDrawer.tsx` - Full-screen mobile navigation drawer
 
+**Components Used**:
+- `SearchAutocomplete` - Live search dropdown (variant="header", desktop + mobile)
+- `MegaMenuDropdown` - Desktop dropdown menus
+- `MobileBottomNav` - Fixed bottom navigation for mobile
+- `MobileNavDrawer` - Full-screen mobile drawer
+- `NotificationBell` - Notification bell with badge
+- `PresenceStatusSelector` - Online status selector (desktop only)
+
 **Services Used**:
 - `useAuthStore()` - User authentication state and logout
 - `useNotificationStore()` - Notification badge count
+
+**Removed Legacy Code** (February 17, 2026):
+- Removed static search input (`Search`, `SearchIconWrapper`, `StyledInputBase` styled components)
+- Removed `searchQuery` state and `handleSearch` handler
+- Fixed bug: Old search navigated to non-existent `/search?q=...` route
+- Now uses `SearchAutocomplete` which correctly navigates to `/courses?search=...`
 
 **Navigation Groups** (Role-based):
 - **Learn**: Courses, My Learning, Smart Progress

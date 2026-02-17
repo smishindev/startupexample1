@@ -1,5 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
+
+// Helper function to format category for display (e.g. 'data_science' → 'Data Science')
+const formatCategory = (category: string): string => {
+  return category.split('_').map(word =>
+    word.charAt(0).toUpperCase() + word.slice(1)
+  ).join(' ');
+};
+
 import {
   Box,
   Container,
@@ -139,6 +147,7 @@ interface CourseDetails {
 export const CourseDetailPage: React.FC = () => {
   const { courseId, previewToken } = useParams<{ courseId: string; previewToken?: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuthStore();
 
   // Preview mode when a preview token is present in the URL
@@ -334,7 +343,7 @@ export const CourseDetailPage: React.FC = () => {
           enrolledStudents: courseData.EnrollmentCount || 0,
           price: courseData.Price || 0,
           originalPrice: courseData.Price ? roundToDecimals(courseData.Price * 1.3) : 0,
-          category: courseData.Category || 'General',
+          category: formatCategory(courseData.Category || 'General'),
           tags: courseData.Tags || [],
           lastUpdated: courseData.UpdatedAt ? courseData.UpdatedAt.split('T')[0] : new Date().toISOString().split('T')[0],
           language: 'English',
@@ -436,7 +445,7 @@ export const CourseDetailPage: React.FC = () => {
       return;
     }
     if (!user) {
-      navigate('/login');
+      navigate('/login', { state: { from: location.pathname } });
       return;
     }
 
@@ -551,7 +560,7 @@ export const CourseDetailPage: React.FC = () => {
       return;
     }
     if (!user) {
-      navigate('/login');
+      navigate('/login', { state: { from: location.pathname } });
       return;
     }
     
@@ -580,11 +589,7 @@ export const CourseDetailPage: React.FC = () => {
       return;
     }
     if (!user) {
-      setSnackbar({
-        open: true,
-        message: 'Please log in to bookmark courses',
-        severity: 'warning'
-      });
+      navigate('/login', { state: { from: location.pathname } });
       return;
     }
 
@@ -653,7 +658,7 @@ export const CourseDetailPage: React.FC = () => {
   if (loading) {
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-        <Header />
+        {user && <Header />}
         <Container maxWidth="xl" sx={{ mt: 4, mb: 4, flex: 1 }}>
           <Skeleton variant="rectangular" width="100%" height={300} sx={{ mb: 4, borderRadius: 2 }} />
           <Grid container spacing={4}>
@@ -675,7 +680,7 @@ export const CourseDetailPage: React.FC = () => {
   if (error || !course) {
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-        <Header />
+        {user && <Header />}
         <Container maxWidth="xl" sx={{ mt: 4, mb: 4, flex: 1 }}>
           <Alert severity="error" sx={{ mb: 4 }}>
             {error || 'Course not found'}
@@ -694,7 +699,7 @@ export const CourseDetailPage: React.FC = () => {
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', bgcolor: 'background.default' }}>
-      <Header />
+      {user && <Header />}
 
       {/* Preview Banner */}
       {isPreviewMode && (
@@ -1686,7 +1691,7 @@ export const CourseDetailPage: React.FC = () => {
 
                 {/* Action Buttons */}
                 <Box sx={{ display: 'flex', gap: 1, mb: 3 }}>
-                  <Tooltip title="Bookmark" arrow>
+                  <Tooltip title={user ? "Bookmark" : "Sign in to bookmark"} arrow>
                     <IconButton 
                       onClick={handleBookmark} 
                       data-testid="course-detail-bookmark-button"

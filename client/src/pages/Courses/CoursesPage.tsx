@@ -21,7 +21,7 @@ import {
   Snackbar,
 } from '@mui/material';
 import { Search } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { HeaderV5 as Header } from '../../components/Navigation/HeaderV5';
 import { CourseCard, Course } from '../../components/Course/CourseCard';
 import { enrollmentApi } from '../../services/enrollmentApi';
@@ -105,12 +105,13 @@ const isNewCourse = (createdAt: string): boolean => {
 
 export const CoursesPage: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { isAuthenticated, user } = useAuthStore();
   const [tabValue, setTabValue] = useState(0);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('');
-  const [selectedLevel, setSelectedLevel] = useState('');
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(searchParams.get('search') || '');
+  const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') || '');
+  const [selectedLevel, setSelectedLevel] = useState(searchParams.get('level') || '');
   const [sortBy, setSortBy] = useState('popular');
   const [currentPage, setCurrentPage] = useState(1);
   
@@ -144,6 +145,27 @@ export const CoursesPage: React.FC = () => {
     message: string;
     severity: 'success' | 'error' | 'warning' | 'info';
   }>({ open: false, message: '', severity: 'info' });
+
+  // Sync URL search params → component state when navigating from external links
+  // (e.g. footer category links, search autocomplete, popular search chips)
+  useEffect(() => {
+    const urlSearch = searchParams.get('search') || '';
+    const urlCategory = searchParams.get('category') || '';
+    const urlLevel = searchParams.get('level') || '';
+
+    if (urlSearch !== searchQuery) {
+      setSearchQuery(urlSearch);
+      setDebouncedSearchQuery(urlSearch);
+    }
+    if (urlCategory !== selectedCategory) {
+      setSelectedCategory(urlCategory);
+      setCurrentPage(1);
+    }
+    if (urlLevel !== selectedLevel) {
+      setSelectedLevel(urlLevel);
+      setCurrentPage(1);
+    }
+  }, [searchParams]);
 
   // Debounce search query to prevent excessive API calls and flickering
   useEffect(() => {
@@ -450,6 +472,12 @@ export const CoursesPage: React.FC = () => {
   };
 
   const handleEnroll = async (courseId: string) => {
+    // Redirect guests to login with return URL
+    if (!isAuthenticated) {
+      navigate('/login', { state: { from: '/courses' } });
+      return;
+    }
+
     // Prevent duplicate enrollments
     if (enrollingCourses.has(courseId)) {
       console.log('Enrollment already in progress for:', courseId);
@@ -572,11 +600,7 @@ export const CoursesPage: React.FC = () => {
   const handleBookmark = async (courseId: string, isBookmarked: boolean) => {
     try {
       if (!isAuthenticated) {
-        setSnackbar({
-          open: true,
-          message: 'Please log in to bookmark courses',
-          severity: 'warning'
-        });
+        navigate('/login', { state: { from: '/courses' } });
         return;
       }
 
@@ -679,7 +703,8 @@ export const CoursesPage: React.FC = () => {
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-      <Header />
+      {/* Show HeaderV5 only for authenticated users — guests get PublicLayout header */}
+      {isAuthenticated && <Header />}
       
       <Container maxWidth="xl" sx={{ mt: 4, mb: 4, flex: 1 }}>
         {/* Page Header */}
@@ -688,12 +713,32 @@ export const CoursesPage: React.FC = () => {
             Courses
           </Typography>
           
-          {/* Tabs */}
+          {/* Guest sign-up prompt */}
+          {!isAuthenticated && (
+            <Alert
+              severity="info"
+              sx={{ mb: 2, borderRadius: 2 }}
+              action={
+                <Button
+                  color="inherit"
+                  size="small"
+                  onClick={() => navigate('/register')}
+                  sx={{ textTransform: 'none', fontWeight: 600 }}
+                >
+                  Sign Up Free
+                </Button>
+              }
+            >
+              Create a free account to enroll in courses, track your progress, and bookmark favorites.
+            </Alert>
+          )}
+          
+          {/* Tabs — show all 3 for authenticated, only "All Courses" for guests */}
           <Paper sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
             <Tabs value={tabValue} onChange={handleTabChange} data-testid="courses-tabs">
               <Tab label="All Courses" data-testid="courses-tab-all" />
-              <Tab label="My Courses" data-testid="courses-tab-my" />
-              <Tab label="Bookmarked" data-testid="courses-tab-bookmarked" />
+              {isAuthenticated && <Tab label="My Courses" data-testid="courses-tab-my" />}
+              {isAuthenticated && <Tab label="Bookmarked" data-testid="courses-tab-bookmarked" />}
             </Tabs>
           </Paper>
         </Box>
@@ -786,7 +831,7 @@ export const CoursesPage: React.FC = () => {
                 <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                   {selectedCategory && (
                     <Chip
-                      label={`Category: ${selectedCategory}`}
+                      label={`Category: ${formatCategory(selectedCategory)}`}
                       onDelete={() => setSelectedCategory('')}
                       size="small"
                     />

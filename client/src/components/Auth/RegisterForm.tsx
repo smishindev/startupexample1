@@ -34,7 +34,7 @@ import {
   PersonAdd,
   MarkEmailRead,
 } from '@mui/icons-material';
-import { Link as RouterLink, useNavigate } from 'react-router-dom';
+import { Link as RouterLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore, RegisterData } from '../../stores/authStore';
 import { toast } from 'sonner';
 import { getCurrentTerms, CurrentTermsResponse } from '../../services/termsApi';
@@ -59,6 +59,7 @@ interface RegisterFormProps {
 
 export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { register, isLoading, error, clearError } = useAuthStore();
   
   const [activeStep, setActiveStep] = useState(0);
@@ -671,11 +672,11 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
             <Typography variant="body2" color="text.secondary">
               Already have an account?{' '}
               <Link
-                component={RouterLink}
-                to="/login"
+                component="button"
                 variant="body2"
                 underline="hover"
                 fontWeight="medium"
+                onClick={() => navigate('/login', { state: location.state })}
                 data-testid="register-login-link"
               >
                 Sign in
@@ -714,7 +715,9 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
         <DialogActions>
           <Button onClick={() => {
             setShowVerificationDialog(false);
-            navigate('/dashboard');
+            // Navigate back to where user came from, or dashboard
+            const returnTo = (location.state as any)?.from || '/dashboard';
+            navigate(returnTo);
           }} data-testid="register-verify-later-button">
             Verify Later
           </Button>

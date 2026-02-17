@@ -75,6 +75,9 @@ import Tutoring from './pages/Tutoring/Tutoring';
 // Demo Components
 import { ContentUploadDemo } from './components/Demo/ContentUploadDemo';
 
+// Layout Components
+import PublicLayout from './components/Layout/PublicLayout';
+
 // Legal Components
 import TermsOfServicePage from './pages/Legal/TermsOfServicePage';
 import PrivacyPolicyPage from './pages/Legal/PrivacyPolicyPage';
@@ -258,11 +261,12 @@ function App() {
           }
         />
         
-        <Route path="/courses" element={<CoursesPage />} />
-        
-        {/* Unified Course Detail Route - public, works for everyone */}
-        <Route path="/courses/:courseId" element={<CourseDetailPage />} />
-        <Route path="/courses/:courseId/preview/:previewToken" element={<CourseDetailPage />} />
+        {/* Public course routes wrapped in PublicLayout (guest header/footer for non-auth users) */}
+        <Route element={<PublicLayout />}>
+          <Route path="/courses" element={<CoursesPage />} />
+          <Route path="/courses/:courseId" element={<CourseDetailPage />} />
+          <Route path="/courses/:courseId/preview/:previewToken" element={<CourseDetailPage />} />
+        </Route>
         
         {/* Public Certificate Route - shareable, no authentication required */}
         <Route path="/certificate/:verificationCode" element={<PublicCertificatePage />} />

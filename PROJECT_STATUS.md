@@ -1,6 +1,6 @@
 # Mishin Learn Platform - Project Status & Memory
 
-**Last Updated**: February 15, 2026 - Course Ratings & Reviews System ⭐  
+**Last Updated**: February 17, 2026 - Search Autocomplete System 🔍  
 **Developer**: Sergey Mishin (s.mishin.dev@gmail.com)  
 **AI Assistant Context**: This file serves as project memory for continuity across chat sessions
 
@@ -13,12 +13,109 @@
 **Advanced Visibility**: Preview links for draft courses, unlisted courses, preview mode security (Phase 4 Complete) ✅  
 **Real-time Course Updates**: Automatic page refreshes when instructors edit courses (February 13, 2026) ✅  
 **Real-time Enrollment Updates**: Pending approvals, approve/reject actions update dashboards instantly (February 14, 2026) ✅  
-**Terms & Legal Compliance**: Database-driven TOS, Privacy Policy & Refund Policy with acceptance tracking (February 14, 2026) ✅
-**Course Ratings & Reviews**: Full 5-star rating system with text reviews, real-time updates, instructor notifications (February 15, 2026) ⭐
+**Terms & Legal Compliance**: Database-driven TOS, Privacy Policy & Refund Policy with acceptance tracking (February 14, 2026) ✅  
+**Course Ratings & Reviews**: Full 5-star rating system with text reviews, real-time updates, instructor notifications (February 15, 2026) ⭐  
+**Search Autocomplete**: Live search dropdown with keyboard navigation, debouncing, and highlighted matches (February 17, 2026) 🔍
 
 ---
 
-## ⭐ COURSE RATINGS & REVIEWS SYSTEM (Latest - February 15, 2026)
+## 🔍 SEARCH AUTOCOMPLETE SYSTEM (Latest - February 17, 2026)
+
+**Activity**: Implemented Udemy-style live search autocomplete component with keyboard navigation, debouncing, and integration across all navigation headers
+
+**Status**: ✅ **Complete** - Full implementation with reusable component, bug fixes, and integration into PublicHeader, HeaderV5, and LandingPage
+
+### **Problem Solved:**
+Before: Static search inputs with no live suggestions. Users had to navigate to /courses page, type query, and wait. Authenticated header navigated to non-existent `/search?q=...` route causing 404 errors.
+
+After: Live dropdown shows up to 6 matching courses as user types (2+ characters). Debounced API calls (300ms) prevent server overload. Full keyboard navigation (Arrow keys, Enter, Escape). Highlighted matching text. Navigates directly to course detail or filtered catalog. Works in both public and authenticated headers.
+
+### **Implementation Summary:**
+
+**Component Architecture:**
+1. **SearchAutocomplete.tsx** (551 lines) — Reusable component with two variants:
+   - `header` variant: Compact for navigation bars (PublicHeader, HeaderV5)
+   - `hero` variant: Larger for landing page hero section with optional button
+   - Props: `variant`, `placeholder`, `onSubmit`, `testIdPrefix`, `showButton`
+
+2. **Styled Components**:   - `SearchContainer` — Variant-specific wrapper with focus states
+   - `SearchInputWrapper` — Flex container for icon, input, spinner, button
+   - `StyledInput` — Custom InputBase with `shouldForwardProp` to prevent DOM warnings
+   - `ResultItem` — Course result row with hover/focus styles
+
+3. **Features**:
+   - **Debounced Search**: 300ms delay, clears on input change
+   - **Keyboard Navigation**: Arrow Up/Down cycle, Enter selects, Escape closes
+   - **Highlighted Matches**: Query text highlighted in bold primary color
+   - **Loading States**: Spinner + "Searching courses..." message
+   - **Empty State**: "No courses found" with suggestions
+   - **Race Condition Guard**: Request ID counter prevents stale results
+   - **Modulo-by-Zero Guard**: Arrow keys work in empty/loading states
+
+**Integration Points (4 locations):**
+1. **PublicHeader.tsx** — Guest navigation header
+   - Desktop: `<SearchAutocomplete variant="header" />`
+   - Mobile drawer: Same component in expand/collapse pattern
+
+2. **HeaderV5.tsx** — Authenticated user header
+   - Desktop: `<SearchAutocomplete variant="header" placeholder="Search courses, topics..." />`
+   - Mobile: Expand/collapse pattern with close button
+   - **Removed**: Old static search (Search, SearchIconWrapper, StyledInputBase styled components)
+   - **Removed**: `searchQuery` state and `handleSearch` handler
+   - **Bug Fixed**: Old handler navigated to `/search?q=...` which doesn't exist (404)
+
+3. **LandingPage.tsx** — Hero section
+   - `<SearchAutocomplete variant="hero" showButton onSubmit={handleHeroSearch} />`
+   - Custom submit handler navigates to `/courses?search=...`
+
+4. **Mobile Navigation** — Both PublicHeader and HeaderV5 mobile drawers include autocomplete
+
+**Bug Fixes (5 critical issues):**
+1. **Regex global flag drift**: Used `.test()` with 'g' flag → `lastIndex` state caused alternating true/false on successive calls
+   - **Fix**: Split into two regex objects (one with 'g' for split, one without for test)
+
+2. **DOM prop warning**: `variant` prop forwarded to InputBase → React warning "Unknown prop 'variant' on <input>"
+   - **Fix**: Renamed to `searchVariant` + `shouldForwardProp: (prop) => prop !== 'searchVariant'`
+
+3. **Race condition**: Out-of-order API responses could overwrite newer results when typing fast
+   - **Fix**: Added `requestIdRef` counter, only apply results if `thisRequestId === requestIdRef.current`
+
+4. **Arrow key modulo-by-zero**: When dropdown open in loading/empty state, `totalItems = 0` → `(n) % 0 = NaN` → broke keyboard navigation permanently
+   - **Fix**: Guard with `if (totalItems > 0)` before modulo operations
+
+5. **Stale debounce on navigation**: Pending 300ms search still fired after user navigated away
+   - **Fix**: Clear `debounceRef` in `handleSubmit`, `handleResultClick`, `handleViewAll`
+
+**Additional Fixes (3 UI/data issues):**
+1. **Footer categories incomplete**: Only showed 5 of 10 categories
+   - **Fix**: Added marketing, language, science, arts to PublicFooter.tsx
+
+2. **CoursesPage URL filter broken**: Clicking footer category changed URL but didn't apply filter
+   - **Fix**: Added `useEffect` to sync `searchParams` → component state on URL change
+
+3. **Category display formatting**: Active filter chip and CourseDetailPage showed raw "data_science"
+   - **Fix**: Applied `formatCategory()` helper (e.g., "data_science" → "Data Science")
+
+**API Integration:**
+- **Endpoint**: `GET /api/courses?search=...&limit=6`
+- **Service**: `coursesApi.searchCourses(query, 6)` — SQL LIKE search on Title, Description, Tags
+- **Response**: Array of `Course` objects with Id, Title, Thumbnail, Instructor, Rating, Price
+- **Search Start**: 2+ characters typed
+- **Debounce**: 300ms delay reduces API calls
+
+**TypeScript Compilation:**
+- Client: 0 errors ✅
+- Server: No changes ✅
+
+**Files Changed (7 total):**
+- **NEW Component**: SearchAutocomplete.tsx (551 lines)
+- **Modified Headers**: PublicHeader.tsx, HeaderV5.tsx (integrated SearchAutocomplete, removed old search)
+- **Modified Pages**: LandingPage.tsx (hero search), CoursesPage.tsx (URL sync + category format), CourseDetailPage.tsx (category format)
+- **Modified Footer**: PublicFooter.tsx (added missing categories)
+
+---
+
+## ⭐ COURSE RATINGS & REVIEWS SYSTEM (February 15, 2026)
 
 **Activity**: Implemented complete course rating and review system with real-time updates, instructor notifications, and My Learning page integration
 

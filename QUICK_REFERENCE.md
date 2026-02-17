@@ -1,7 +1,78 @@
 ﻿# 🚀 Quick Reference - Development Workflow
 
-**Last Updated**: February 15, 2026 - Course Ratings & Reviews System ⭐
+**Last Updated**: February 17, 2026 - Search Autocomplete System 🔍
 
+---
+
+## 🔍 Search Autocomplete System (Added Feb 17, 2026)
+
+**Reusable Udemy-style live search dropdown with debouncing, keyboard navigation, and highlighted matches**
+
+### Component Usage
+```tsx
+import { SearchAutocomplete } from '../components/Search/SearchAutocomplete';
+
+// Header variant (compact)
+<SearchAutocomplete
+  variant="header"
+  placeholder="Search courses..."
+  testIdPrefix="header-search"
+/>
+
+// Hero variant (larger, with button)
+<SearchAutocomplete
+  variant="hero"
+  placeholder="What do you want to learn?"
+  showButton
+  onSubmit={(query) => navigate(`/courses?search=${encodeURIComponent(query)}`)}
+  testIdPrefix="hero-search"
+/>
+```
+
+### Props
+```typescript
+interface SearchAutocompleteProps {
+  variant: 'header' | 'hero';          // Visual style
+  placeholder?: string;                 // Input placeholder
+  onSubmit?: (query: string) => void;   // Custom submit (default: navigate to /courses?search=...)
+  testIdPrefix?: string;                // Test ID prefix
+  showButton?: boolean;                 // Show search button (hero only)
+}
+```
+
+### Features
+- **Debounced Search**: 300ms delay, minimum 2 characters
+- **Keyboard Navigation**: Arrow Up/Down cycle, Enter selects, Escape closes
+- **Highlighted Matches**: Query text in bold primary color
+- **Loading States**: Spinner + "Searching courses..." message
+- **Empty State**: "No courses found" with suggestions
+- **Race Guard**: Request ID counter prevents stale results
+- **Cleanup**: Clears debounce on navigation/unmount
+
+### Integration Sites
+1. **PublicHeader** (guest) — Desktop + mobile drawer
+2. **HeaderV5** (authenticated) — Desktop + mobile expand/collapse
+3. **LandingPage** — Hero section with button and custom submit
+
+### API Endpoint
+```
+GET /api/courses?search={query}&limit=6
+Returns: Course[] with Id, Title, Thumbnail, Instructor, Rating, Price
+```
+
+### Bug Fixes Applied
+1. **Regex global flag**: Separate regex for split (with 'g') and test (without 'g')
+2. **DOM prop warning**: Renamed `variant` → `searchVariant` with `shouldForwardProp`
+3. **Race condition**: Request ID counter (`requestIdRef`)
+4. **Arrow key crash**: Guard modulo with `if (totalItems > 0)`
+5. **Stale debounce**: Clear timer in submit/result/viewAll handlers
+
+### Related Fixes
+- **FooterCategories**: Added marketing, language, science, arts (9 total)
+- **CoursesPage URL sync**: `useEffect` syncs `searchParams` → state
+- **Category formatting**: `formatCategory('data_science')` → "Data Science"
+
+---
 
 ## Course Ratings & Reviews System (Added Feb 15, 2026)
 

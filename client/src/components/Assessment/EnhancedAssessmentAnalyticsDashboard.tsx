@@ -26,6 +26,7 @@ import {
   Warning as WarningIcon,
   Refresh as RefreshIcon
 } from '@mui/icons-material';
+import Container from '@mui/material/Container';
 import {
   LineChart,
   Line,
@@ -80,6 +81,8 @@ export const EnhancedAssessmentAnalyticsDashboard: React.FC = () => {
   const [courses, setCourses] = useState<InstructorCourse[]>([]);
   const [selectedCoursePerformance, setSelectedCoursePerformance] = useState<StudentPerformanceAnalytics | null>(null);
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
+  const [coursePerformanceLoading, setCoursePerformanceLoading] = useState(false);
+  const [coursePerformanceError, setCoursePerformanceError] = useState<string | null>(null);
 
   useEffect(() => {
     loadData();
@@ -104,9 +107,14 @@ export const EnhancedAssessmentAnalyticsDashboard: React.FC = () => {
       setCrossAnalytics(analyticsData);
       setCourses(coursesResponse.courses);
       
-      // Auto-select first course for detailed analysis
-      if (coursesResponse.courses.length > 0 && !selectedCourseId) {
-        setSelectedCourseId(coursesResponse.courses[0].id);
+      // Auto-select first course for detailed analysis, or refresh current selection
+      if (coursesResponse.courses.length > 0) {
+        if (!selectedCourseId) {
+          setSelectedCourseId(coursesResponse.courses[0].id);
+        } else {
+          // Refresh: selectedCourseId unchanged so useEffect won't re-fire — reload manually
+          loadCoursePerformance(selectedCourseId);
+        }
       }
     } catch (err: any) {
       console.error('Error loading analytics:', err);
@@ -118,10 +126,17 @@ export const EnhancedAssessmentAnalyticsDashboard: React.FC = () => {
 
   const loadCoursePerformance = async (courseId: string) => {
     try {
+      setCoursePerformanceLoading(true);
+      setCoursePerformanceError(null);
+      setSelectedCoursePerformance(null); // Clear stale data while loading
       const performanceData = await assessmentAnalyticsApi.getStudentPerformance(courseId);
       setSelectedCoursePerformance(performanceData);
     } catch (err: any) {
       console.error('Error loading course performance:', err);
+      setSelectedCoursePerformance(null);
+      setCoursePerformanceError('Failed to load student performance data for this course.');
+    } finally {
+      setCoursePerformanceLoading(false);
     }
   };
 
@@ -145,43 +160,15 @@ export const EnhancedAssessmentAnalyticsDashboard: React.FC = () => {
     }));
   };
 
-  if (loading) {
-    return (
-      <Box>
-        <Header />
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '400px' }}>
-          <CircularProgress />
-        </Box>
-      </Box>
-    );
-  }
-
-  if (error || !crossAnalytics) {
-    return (
-      <Box>
-        <Header />
-        <Box sx={{ p: 3 }}>
-          <Alert severity="error" action={
-            <IconButton data-testid="assessment-analytics-error-retry" color="inherit" size="small" onClick={loadData}>
-              <RefreshIcon />
-            </IconButton>
-          }>
-            {error || 'Failed to load analytics data'}
-          </Alert>
-        </Box>
-      </Box>
-    );
-  }
-
   return (
     <Box>
       <Header />
-      <Box sx={{ maxWidth: 'xl', mx: 'auto', p: 3 }}>
+      <Container maxWidth="xl" sx={{ py: 4 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
           <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold' }}>
             Assessment Analytics Dashboard
           </Typography>
-          <IconButton data-testid="assessment-analytics-refresh" onClick={loadData} color="primary">
+          <IconButton data-testid="assessment-analytics-refresh" onClick={loadData} color="primary" disabled={loading}>
             <RefreshIcon />
           </IconButton>
         </Box>
@@ -192,6 +179,20 @@ export const EnhancedAssessmentAnalyticsDashboard: React.FC = () => {
           <Tab data-testid="assessment-analytics-tab-insights" label="Student Insights" />
         </Tabs>
 
+        {loading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '400px' }}>
+            <CircularProgress />
+          </Box>
+        ) : (error || !crossAnalytics) ? (
+          <Alert severity="error" sx={{ mb: 3 }} action={
+            <IconButton data-testid="assessment-analytics-error-retry" color="inherit" size="small" onClick={loadData}>
+              <RefreshIcon />
+            </IconButton>
+          }>
+            {error || 'Failed to load analytics data'}
+          </Alert>
+        ) : (
+        <>
         <TabPanel value={tabValue} index={0}>
           {/* Overview Dashboard */}
           <Grid container spacing={3}>
@@ -553,7 +554,19 @@ export const EnhancedAssessmentAnalyticsDashboard: React.FC = () => {
                         ))}
                       </Grid>
 
-                      {selectedCoursePerformance && selectedCoursePerformance.studentPerformance.length > 0 && (
+                      {coursePerformanceLoading && (
+                        <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                          <CircularProgress size={32} />
+                        </Box>
+                      )}
+
+                      {!coursePerformanceLoading && coursePerformanceError && (
+                        <Alert severity="warning" sx={{ mt: 2 }}>
+                          {coursePerformanceError}
+                        </Alert>
+                      )}
+
+                      {!coursePerformanceLoading && selectedCoursePerformance && selectedCoursePerformance.studentPerformance.length > 0 && (
                         <Box sx={{ mt: 3 }}>
                           <Typography variant="h6" gutterBottom>
                             Student Performance Analysis
@@ -599,7 +612,7 @@ export const EnhancedAssessmentAnalyticsDashboard: React.FC = () => {
                     </Box>
                   )}
                       
-                      {selectedCoursePerformance && selectedCoursePerformance.studentPerformance.length === 0 && (
+                      {!coursePerformanceLoading && selectedCoursePerformance && selectedCoursePerformance.studentPerformance.length === 0 && (
                         <Box sx={{ mt: 3, py: 4, textAlign: 'center' }}>
                           <Typography variant="body1" color="text.secondary" gutterBottom>
                             No student performance data available for this course
@@ -625,7 +638,9 @@ export const EnhancedAssessmentAnalyticsDashboard: React.FC = () => {
             </Grid>
           </Grid>
         </TabPanel>
-      </Box>
+        </>
+        )}
+      </Container>
     </Box>
   );
 };

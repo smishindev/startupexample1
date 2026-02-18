@@ -1,6 +1,124 @@
 ﻿# 🚀 Quick Reference - Development Workflow
 
-**Last Updated**: February 17, 2026 - Search Autocomplete System 🔍
+**Last Updated**: February 18, 2026 - Analytics Hub Audit & Quality Pass 🔧
+
+---
+
+## 🔧 Analytics Hub API Service Pattern (Added Feb 18, 2026)
+
+**All 3 analytics API services must follow this exact pattern:**
+
+```typescript
+import axios from 'axios';
+import { useAuthStore } from '../store/authStore';
+
+const API_URL = ((import.meta as any).env?.VITE_API_URL || 'http://localhost:3001') + '/api';
+
+const api = axios.create({ baseURL: API_URL });
+
+// Auth interceptor — fresh token on every request
+api.interceptors.request.use((config) => {
+  const token = useAuthStore.getState().token;
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  config.headers['Content-Type'] = 'application/json';
+  return config;
+});
+
+// 401 interceptor — auto-logout on expired/invalid token
+api.interceptors.response.use(
+  (res) => res,
+  (err) => {
+    if (err.response?.status === 401) {
+      useAuthStore.getState().logout();
+    }
+    return Promise.reject(err);
+  }
+);
+```
+
+**Files that MUST have both interceptors:**
+- `client/src/services/analyticsApi.ts`
+- `client/src/services/assessmentAnalyticsApi.ts`
+- Any new analytics/instructor API service
+
+---
+
+## 🔧 Analytics Hub SQL Patterns (Added Feb 18, 2026)
+
+**COUNT DISTINCT for JOIN-multiplied aggregates:**
+```sql
+-- WRONG: LEFT JOIN on submissions multiplies rows, inflating count
+COUNT(CASE WHEN a.CreatedAt >= DATEADD(month,-1,GETUTCDATE()) THEN a.Id END) AS assessmentsThisMonth
+
+-- CORRECT: DISTINCT eliminates inflated counts from 1-to-many JOINs
+COUNT(DISTINCT CASE WHEN a.CreatedAt >= DATEADD(month,-1,GETUTCDATE()) THEN a.Id END) AS assessmentsThisMonth
+```
+
+**NULL-safe name concatenation:**
+```sql
+-- WRONG: CONCAT with NULL returns NULL in some contexts
+CONCAT(u.FirstName, ' ', u.LastName) AS StudentName
+
+-- CORRECT: Explicit ISNULL guards
+ISNULL(u.FirstName, '') + ' ' + ISNULL(u.LastName, '') AS StudentName
+```
+
+---
+
+## 🔧 Analytics Hub JSON.parse Guard (Added Feb 18, 2026)
+
+**Always validate JSON.parse result type — valid JSON does not guarantee an array:**
+```typescript
+// WRONG: JSON.parse('"some string"') succeeds but is not an array
+riskFactors = JSON.parse(student.RiskFactors);
+riskFactors.slice(0, 3).map(...)  // TypeError if result is not array
+
+// CORRECT: Validate type after parse
+const parsed = student.RiskFactors ? JSON.parse(student.RiskFactors) : [];
+riskFactors = Array.isArray(parsed) ? parsed : [];
+```
+
+**Applied in:** `server/src/routes/instructor.ts` — at-risk-students endpoint (`RiskFactors`, `RecommendedInterventions`)
+
+---
+
+## 🔧 CoursePerformanceTable Pattern (Added Feb 18, 2026)
+
+**Sortable/searchable/paginated table for large data sets — replaces card grids:**
+
+```tsx
+// Sort state
+const [sortKey, setSortKey] = useState<SortKey>('enrolledStudents');
+const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+const [search, setSearch] = useState('');
+const [page, setPage] = useState(0);
+const [rowsPerPage, setRowsPerPage] = useState(25);
+
+// Non-mutating filtered+sorted memo (CRITICAL: spread before sort)
+const sorted = useMemo(() => {
+  const filtered = data.filter(item =>
+    item.Title.toLowerCase().includes(search.toLowerCase())
+  );
+  return [...filtered].sort((a, b) => {
+    const factor = sortDir === 'asc' ? 1 : -1;
+    if (sortKey === 'Title') return factor * a.Title.localeCompare(b.Title);
+    return factor * ((a[sortKey] as number) - (b[sortKey] as number));
+  });
+}, [data, search, sortKey, sortDir]);
+
+// Reset page when search changes
+useEffect(() => setPage(0), [search]);
+
+// Paginated slice
+const paginated = sorted.slice(page * rowsPerPage, (page + 1) * rowsPerPage);
+```
+
+**Key rules:**
+- Always `[...filtered].sort()` — never sort state directly (mutation bug)
+- `useMemo` for filter+sort — prevents recalculation on every render
+- `useEffect` to reset `page` to 0 when search changes
+- `showFirstButton` + `showLastButton` on `TablePagination` for large datasets
+- Provide `rowsPerPageOptions={[10, 25, 50, 100]}` — let user choose density
 
 ---
 

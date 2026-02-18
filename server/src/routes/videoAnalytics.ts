@@ -3,26 +3,19 @@
  * Provides aggregated video engagement metrics across all students
  */
 
-import express, { Request, Response } from 'express';
-import { authenticateToken } from '../middleware/auth';
+import express, { Response } from 'express';
+import { AuthRequest, authenticateToken, authorize } from '../middleware/auth';
 import { DatabaseService } from '../services/DatabaseService';
 
 const router = express.Router();
 const db = DatabaseService.getInstance();
-
-interface AuthRequest extends Request {
-  user?: {
-    userId: string;
-    role: string;
-  };
-}
 
 /**
  * GET /api/video-analytics/course/:courseId
  * Get aggregated video progress analytics for all students in a course
  * Instructor-only endpoint
  */
-router.get('/course/:courseId', authenticateToken, async (req: AuthRequest, res: Response) => {
+router.get('/course/:courseId', authenticateToken, authorize(['instructor']), async (req: AuthRequest, res: Response) => {
   try {
     const { courseId } = req.params;
     const userId = req.user?.userId;

@@ -29,7 +29,9 @@ import {
   List,
   ListItem,
   ListItemText,
-  ListItemIcon
+  ListItemIcon,
+  CircularProgress,
+  Alert
 } from '@mui/material';
 import {
   Psychology as AIIcon,
@@ -41,6 +43,7 @@ import {
   Refresh as RefreshIcon
 } from '@mui/icons-material';
 import { HeaderV5 as Header } from '../../components/Navigation/HeaderV5';
+import { useSearchParams } from 'react-router-dom';
 import { instructorApi } from '../../services/instructorApi';
 
 interface StudentRiskData {
@@ -57,7 +60,10 @@ interface StudentRiskData {
 }
 
 export const InstructorStudentAnalytics: React.FC = () => {
+  const [searchParams] = useSearchParams();
   const [students, setStudents] = useState<StudentRiskData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [selectedStudent, setSelectedStudent] = useState<StudentRiskData | null>(null);
   const [interventionDialog, setInterventionDialog] = useState(false);
   const [filterRisk, setFilterRisk] = useState<string>('all');
@@ -67,27 +73,93 @@ export const InstructorStudentAnalytics: React.FC = () => {
     loadStudentData();
   }, []);
 
+  // Auto-open student details dialog when navigated from InterventionDashboard
+  useEffect(() => {
+    const studentId = searchParams.get('studentId');
+    const courseId = searchParams.get('courseId');
+    if (studentId && students.length > 0 && !interventionDialog) {
+      const student = students.find(s =>
+        s.studentId === studentId && (!courseId || s.courseId === courseId)
+      );
+      if (student) {
+        setSelectedStudent(student);
+        setInterventionDialog(true);
+      }
+    }
+  }, [students, searchParams]);
+
   const loadStudentData = async () => {
     try {
-      // Get instructor's courses and enrolled students
-      await instructorApi.getStats();
-      
-      // TODO: Implement real student risk analytics from API
-      // const studentData = await studentAnalyticsApi.getStudentRiskData();
-      // setStudents(studentData);
-      
-      // For now, set empty array until API is implemented
-      setStudents([]);
+      setLoading(true);
+      setFetchError(null);
+      // Fetch at-risk and low-progress students from real APIs
+      const [atRiskStudents, lowProgressStudents] = await Promise.all([
+        instructorApi.getAtRiskStudents().catch(() => []),
+        instructorApi.getLowProgressStudents().catch(() => [])
+      ]);
+
+      const mapped: StudentRiskData[] = [];
+      const seen = new Set<string>();
+
+      // Map at-risk students (high/critical risk from StudentRiskAssessment)
+      for (const s of atRiskStudents) {
+        const key = `${s.UserId}-${s.CourseId}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        mapped.push({
+          studentId: s.UserId,
+          studentName: `${s.FirstName || ''} ${s.LastName || ''}`.trim() || 'Unknown',
+          email: s.Email || '',
+          courseId: s.CourseId,
+          courseName: s.CourseName || 'Unknown Course',
+          riskLevel: s.RiskLevel === 'critical' ? 'high' : (s.RiskLevel || 'high'),
+          currentProgress: s.OverallProgress != null ? Math.round(s.OverallProgress) : 0,
+          lastActivity: s.LastUpdated ? new Date(s.LastUpdated).toLocaleDateString() : 'Unknown',
+          strugglingAreas: Array.isArray(s.RiskFactors) ? s.RiskFactors : [],
+          recommendedActions: Array.isArray(s.RecommendedInterventions) ? s.RecommendedInterventions : []
+        });
+      }
+
+      // Map low-progress students as medium risk
+      for (const s of lowProgressStudents) {
+        const key = `${s.UserId}-${s.CourseId}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        mapped.push({
+          studentId: s.UserId,
+          studentName: `${s.FirstName || ''} ${s.LastName || ''}`.trim() || 'Unknown',
+          email: s.Email || '',
+          courseId: s.CourseId,
+          courseName: s.CourseName || 'Unknown Course',
+          riskLevel: 'medium',
+          currentProgress: s.OverallProgress ?? 0,
+          lastActivity: s.LastAccessedAt ? new Date(s.LastAccessedAt).toLocaleDateString() : 'Unknown',
+          strugglingAreas: [
+            'Low progress',
+            ...(s.DaysSinceAccess ? [`Inactive for ${s.DaysSinceAccess} days`] : [])
+          ],
+          recommendedActions: [
+            'Send a reminder to resume the course',
+            'Check if the student needs additional support'
+          ]
+        });
+      }
+
+      setStudents(mapped);
     } catch (error) {
       console.error('Error loading student data:', error);
+      setFetchError('Failed to load student analytics data.');
       setStudents([]);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleViewStudentDetails = async (studentId: string) => {
+  const handleViewStudentDetails = async (studentId: string, courseId?: string) => {
     try {
-      // In real implementation, fetch detailed analytics
-      const student = students.find(s => s.studentId === studentId);
+      const student = students.find(s =>
+        s.studentId === studentId && (!courseId || s.courseId === courseId)
+      );
       if (student) {
         setSelectedStudent(student);
         setInterventionDialog(true);
@@ -140,11 +212,17 @@ export const InstructorStudentAnalytics: React.FC = () => {
               AI-powered insights and intervention recommendations for your students
             </Typography>
           </Box>
-          <IconButton data-testid="student-analytics-refresh" onClick={loadStudentData} color="primary" size="large">
+          <IconButton data-testid="student-analytics-refresh" onClick={loadStudentData} color="primary" size="large" disabled={loading}>
             <RefreshIcon />
           </IconButton>
         </Box>
 
+        {loading ? (
+          <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+            <CircularProgress />
+          </Box>
+        ) : (
+        <>
         {/* Risk Summary Cards */}
         <Grid container spacing={3} sx={{ mb: 4 }}>
           <Grid item xs={12} md={3}>
@@ -232,6 +310,12 @@ export const InstructorStudentAnalytics: React.FC = () => {
           </Grid>
         </Grid>
 
+        {fetchError && (
+          <Alert severity="error" sx={{ mb: 3 }}>
+            {fetchError}
+          </Alert>
+        )}
+
         {/* Filters */}
         <Paper sx={{ p: 2, mb: 3 }}>
           <Grid container spacing={2} alignItems="center">
@@ -280,7 +364,7 @@ export const InstructorStudentAnalytics: React.FC = () => {
             <TableBody>
               {filteredStudents.length > 0 ? (
                 filteredStudents.map((student) => (
-                  <TableRow key={student.studentId}>
+                  <TableRow key={`${student.studentId}-${student.courseId}`}>
                     <TableCell>
                       <Box>
                         <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
@@ -345,7 +429,7 @@ export const InstructorStudentAnalytics: React.FC = () => {
                     </TableCell>
                     <TableCell>
                       <IconButton
-                        onClick={() => handleViewStudentDetails(student.studentId)}
+                        onClick={() => handleViewStudentDetails(student.studentId, student.courseId)}
                         color="primary"
                         size="small"
                         data-testid={`student-analytics-view-details-${student.studentId}-button`}
@@ -372,6 +456,8 @@ export const InstructorStudentAnalytics: React.FC = () => {
             </TableBody>
           </Table>
         </TableContainer>
+        </>
+        )}
 
         {/* Student Details Dialog */}
         <Dialog
@@ -448,8 +534,18 @@ export const InstructorStudentAnalytics: React.FC = () => {
             <Button onClick={() => setInterventionDialog(false)} data-testid="student-analytics-intervention-close-button">
               Close
             </Button>
-            <Button variant="contained" color="primary" data-testid="student-analytics-send-message-button">
-              Send Message to Student
+            <Button
+              variant="contained"
+              color="primary"
+              data-testid="student-analytics-send-message-button"
+              disabled={!selectedStudent?.email}
+              onClick={() => {
+                if (selectedStudent?.email) {
+                  window.location.href = `mailto:${selectedStudent.email}`;
+                }
+              }}
+            >
+              {selectedStudent?.email ? 'Send Message to Student' : 'Email Unavailable'}
             </Button>
           </DialogActions>
         </Dialog>

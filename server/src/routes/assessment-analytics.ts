@@ -1,9 +1,11 @@
-import { Router, Request, Response } from 'express';
+import { Router, Response } from 'express';
 import { DatabaseService } from '../services/DatabaseService';
+import { SettingsService } from '../services/SettingsService';
 import { AuthRequest, authenticateToken, authorize } from '../middleware/auth';
 
 const router = Router();
 const db = DatabaseService.getInstance();
+const settingsService = new SettingsService();
 
 // GET /api/assessment-analytics/instructor/overview - Cross-assessment analytics overview
 router.get('/instructor/overview', authenticateToken, authorize(['instructor']), async (req: AuthRequest, res: Response) => {
@@ -34,10 +36,7 @@ router.get('/instructor/overview', authenticateToken, authorize(['instructor']),
       });
     }
 
-    const courseIds = instructorCourses.map(c => c.Id);
-    const courseIdsList = courseIds.map(id => `'${id}'`).join(',');
-
-    // Overall assessment statistics
+    // Overall assessment statistics (using JOIN instead of IN for SQL injection safety)
     const overviewStats = await db.query(`
       SELECT 
         COUNT(DISTINCT a.Id) as totalAssessments,
@@ -46,12 +45,14 @@ router.get('/instructor/overview', authenticateToken, authorize(['instructor']),
         AVG(CASE WHEN s.Status = 'completed' THEN CAST(s.Score as FLOAT) END) as averageScore,
         COUNT(CASE WHEN s.Status = 'completed' AND s.Score >= a.PassingScore THEN 1 END) * 100.0 / 
           NULLIF(COUNT(CASE WHEN s.Status = 'completed' THEN 1 END), 0) as overallPassRate,
-        COUNT(CASE WHEN a.CreatedAt >= DATEADD(month, -1, GETUTCDATE()) THEN 1 END) as assessmentsThisMonth
+        COUNT(DISTINCT CASE WHEN a.CreatedAt >= DATEADD(month, -1, GETUTCDATE()) THEN a.Id END) as assessmentsThisMonth
       FROM dbo.Assessments a
       LEFT JOIN dbo.AssessmentSubmissions s ON a.Id = s.AssessmentId AND s.IsPreview = 0
-      LEFT JOIN dbo.Lessons l ON a.LessonId = l.Id
-      WHERE l.CourseId IN (${courseIdsList})
-    `);
+      JOIN dbo.Lessons l ON a.LessonId = l.Id
+      JOIN dbo.Courses c ON l.CourseId = c.Id
+      WHERE c.InstructorId = @instructorId
+        AND (c.Status IN ('published', 'archived') OR (c.Status IS NULL AND c.IsPublished = 1))
+    `, { instructorId });
 
     // Assessment types breakdown
     const assessmentTypes = await db.query(`
@@ -64,11 +65,13 @@ router.get('/instructor/overview', authenticateToken, authorize(['instructor']),
         COUNT(DISTINCT s.UserId) as activeStudents
       FROM dbo.Assessments a
       LEFT JOIN dbo.AssessmentSubmissions s ON a.Id = s.AssessmentId AND s.IsPreview = 0
-      LEFT JOIN dbo.Lessons l ON a.LessonId = l.Id
-      WHERE l.CourseId IN (${courseIdsList})
+      JOIN dbo.Lessons l ON a.LessonId = l.Id
+      JOIN dbo.Courses c ON l.CourseId = c.Id
+      WHERE c.InstructorId = @instructorId
+        AND (c.Status IN ('published', 'archived') OR (c.Status IS NULL AND c.IsPublished = 1))
       GROUP BY a.Type
       ORDER BY count DESC
-    `);
+    `, { instructorId });
 
     // Performance trends over last 6 months
     const performanceTrends = await db.query(`
@@ -81,12 +84,14 @@ router.get('/instructor/overview', authenticateToken, authorize(['instructor']),
       FROM dbo.AssessmentSubmissions s
       JOIN dbo.Assessments a ON s.AssessmentId = a.Id
       JOIN dbo.Lessons l ON a.LessonId = l.Id
-      WHERE l.CourseId IN (${courseIdsList})
+      JOIN dbo.Courses c ON l.CourseId = c.Id
+      WHERE c.InstructorId = @instructorId
+        AND (c.Status IN ('published', 'archived') OR (c.Status IS NULL AND c.IsPublished = 1))
         AND s.CompletedAt >= DATEADD(month, -6, GETUTCDATE())
         AND s.Status = 'completed'
       GROUP BY FORMAT(s.CompletedAt, 'yyyy-MM')
       ORDER BY month DESC
-    `);
+    `, { instructorId });
 
     // Top performing assessments
     const topPerformingAssessments = await db.query(`
@@ -103,11 +108,12 @@ router.get('/instructor/overview', authenticateToken, authorize(['instructor']),
       JOIN dbo.Lessons l ON a.LessonId = l.Id
       JOIN dbo.Courses c ON l.CourseId = c.Id
       LEFT JOIN dbo.AssessmentSubmissions s ON a.Id = s.AssessmentId AND s.IsPreview = 0
-      WHERE c.Id IN (${courseIdsList})
+      WHERE c.InstructorId = @instructorId
+        AND (c.Status IN ('published', 'archived') OR (c.Status IS NULL AND c.IsPublished = 1))
       GROUP BY a.Id, a.Title, a.Type, c.Title
       HAVING COUNT(CASE WHEN s.Status = 'completed' THEN 1 END) >= 3
       ORDER BY passRate DESC, avgScore DESC
-    `);
+    `, { instructorId });
 
     // Struggling areas (low-performing assessments)
     const strugglingAreas = await db.query(`
@@ -125,11 +131,12 @@ router.get('/instructor/overview', authenticateToken, authorize(['instructor']),
       JOIN dbo.Lessons l ON a.LessonId = l.Id
       JOIN dbo.Courses c ON l.CourseId = c.Id
       LEFT JOIN dbo.AssessmentSubmissions s ON a.Id = s.AssessmentId AND s.IsPreview = 0
-      WHERE c.Id IN (${courseIdsList})
+      WHERE c.InstructorId = @instructorId
+        AND (c.Status IN ('published', 'archived') OR (c.Status IS NULL AND c.IsPublished = 1))
       GROUP BY a.Id, a.Title, a.Type, c.Title
       HAVING COUNT(CASE WHEN s.Status = 'completed' THEN 1 END) >= 3
       ORDER BY passRate ASC, failedAttempts DESC
-    `);
+    `, { instructorId });
 
     const overview = overviewStats[0] || {
       totalAssessments: 0,
@@ -197,7 +204,7 @@ router.get('/student-performance/:courseId', authenticateToken, authorize(['inst
     const studentPerformance = await db.query(`
       SELECT 
         u.Id as userId,
-        u.FirstName + ' ' + u.LastName as studentName,
+        COALESCE(NULLIF(RTRIM(LTRIM(CONCAT(u.FirstName, ' ', u.LastName))), ''), 'Unknown') as studentName,
         u.Email,
         COUNT(DISTINCT a.Id) as totalAssessments,
         COUNT(DISTINCT CASE WHEN s.Status = 'completed' THEN s.AssessmentId END) as completedAssessments,
@@ -238,8 +245,20 @@ router.get('/student-performance/:courseId', authenticateToken, authorize(['inst
       ORDER BY passRate ASC
     `, { courseId });
 
+    // Apply privacy filtering to student emails
+    const filteredPerformance = await Promise.all(
+      studentPerformance.map(async (student: any) => {
+        try {
+          const settings = await settingsService.getUserSettings(student.userId);
+          return settingsService.filterUserData(student, settings, false);
+        } catch (error) {
+          return { ...student, Email: null };
+        }
+      })
+    );
+
     res.json({
-      studentPerformance: studentPerformance.map(student => ({
+      studentPerformance: filteredPerformance.map(student => ({
         ...student,
         avgScore: Math.round(student.avgScore || 0),
         progressPercentage: Math.round(student.progressPercentage || 0)

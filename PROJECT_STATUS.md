@@ -1,6 +1,6 @@
 # Mishin Learn Platform - Project Status & Memory
 
-**Last Updated**: February 17, 2026 - Search Autocomplete System 🔍  
+**Last Updated**: February 18, 2026 - Analytics Hub Audit & Quality Pass (23 Rounds, 68 Fixes) 🔧  
 **Developer**: Sergey Mishin (s.mishin.dev@gmail.com)  
 **AI Assistant Context**: This file serves as project memory for continuity across chat sessions
 
@@ -15,11 +15,149 @@
 **Real-time Enrollment Updates**: Pending approvals, approve/reject actions update dashboards instantly (February 14, 2026) ✅  
 **Terms & Legal Compliance**: Database-driven TOS, Privacy Policy & Refund Policy with acceptance tracking (February 14, 2026) ✅  
 **Course Ratings & Reviews**: Full 5-star rating system with text reviews, real-time updates, instructor notifications (February 15, 2026) ⭐  
-**Search Autocomplete**: Live search dropdown with keyboard navigation, debouncing, and highlighted matches (February 17, 2026) 🔍
+**Search Autocomplete**: Live search dropdown with keyboard navigation, debouncing, and highlighted matches (February 17, 2026) 🔍  
+**Analytics Hub**: Exhaustive 23-round audit — 68 total fixes, all services hardened, CoursePerformanceTable UI (February 18, 2026) 🔧
 
 ---
 
-## 🔍 SEARCH AUTOCOMPLETE SYSTEM (Latest - February 17, 2026)
+## 🔧 ANALYTICS HUB AUDIT & QUALITY PASS (Latest - February 18, 2026)
+
+**Activity**: Performed 23 consecutive audit rounds across all Analytics Hub files. Found and fixed 68 bugs total. Replaced the unusable 1004-card "Course Performance Overview" grid with a fully-featured sortable/searchable/paginated table.
+
+**Status**: ✅ **Complete** - All 4 API route files hardened, all 3 frontend services hardened, CourseAnalyticsDashboard redesigned. Zero TypeScript errors.
+
+### **Files Audited (7 total)**
+
+**Backend Routes:**
+1. `server/src/routes/analytics.ts` — Course/student analytics endpoints
+2. `server/src/routes/assessment-analytics.ts` — Cross-assessment analytics
+3. `server/src/routes/videoAnalytics.ts` — Video engagement analytics
+4. `server/src/routes/instructor.ts` — At-risk, low-progress, pending-assessment endpoints
+
+**Frontend Services & Components:**
+5. `client/src/services/analyticsApi.ts` — Course analytics API service
+6. `client/src/services/assessmentAnalyticsApi.ts` — Assessment analytics API service
+7. `client/src/pages/Instructor/CourseAnalyticsDashboard.tsx` — Main analytics dashboard UI
+
+### **Key Patterns Established Across All Services**
+
+**API Service Pattern (all 3 services now follow this exactly):**
+```typescript
+const API_URL = ((import.meta as any).env?.VITE_API_URL || 'http://localhost:3001') + '/api';
+
+const api = axios.create({ baseURL: API_URL });
+
+// Auth interceptor — always-fresh token
+api.interceptors.request.use((config) => {
+  const token = useAuthStore.getState().token;
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  config.headers['Content-Type'] = 'application/json';
+  return config;
+});
+
+// 401 interceptor — auto-logout on expired token
+api.interceptors.response.use(
+  (res) => res,
+  (err) => {
+    if (err.response?.status === 401) {
+      useAuthStore.getState().logout();
+    }
+    return Promise.reject(err);
+  }
+);
+```
+
+**SQL DISTINCT for JOIN-multiplied counts:**
+```sql
+-- WRONG: COUNT(a.Id) inflated by LEFT JOIN on submissions
+COUNT(CASE WHEN condition THEN a.Id END)
+
+-- CORRECT: Deduplicate before counting
+COUNT(DISTINCT CASE WHEN condition THEN a.Id END)
+```
+
+**JSON.parse Array validation:**
+```typescript
+// WRONG: JSON.parse can succeed but return a non-array (e.g., quoted string, object)
+const riskFactors = JSON.parse(student.RiskFactors);  // could be {}, "foo", etc.
+
+// CORRECT: Always validate result type
+const parsed = JSON.parse(student.RiskFactors);
+const riskFactors = Array.isArray(parsed) ? parsed : [];
+```
+
+**UI State Standards (all components now have all 3):**
+- **Loading state**: Spinner/skeleton while fetching, buttons/selects disabled
+- **Error state**: Alert with specific message + retry mechanism
+- **Empty state**: Informational message when data is empty (not just blank)
+
+### **CoursePerformanceTable (New Component - Feb 18, 2026)**
+
+**Problem**: Course Performance Overview rendered all 1004 courses as MUI cards simultaneously — DOM-heavy (~3012 elements), no search, no sort, completely unusable at scale.
+
+**Solution**: New `CoursePerformanceTable` component inside `CourseAnalyticsDashboard.tsx`.
+
+**Features:**
+- **Sort**: Click column headers for Course Title, Students Enrolled, Avg Progress, Completed, Avg Time
+- **Search**: Debounce-friendly text filter on course title, shows `{filtered} of {total}` counter chip
+- **Pagination**: MUI `TablePagination` — 10/25/50/100 rows per page with first/last buttons
+- **Color-coded progress bars**: Green ≥70%, Orange ≥40%, Red <40%
+- **Empty search state**: "No courses match 'X'" row spanning all columns
+- **Zero data state**: Informational message instead of table
+
+```typescript
+type SortKey = 'Title' | 'enrolledStudents' | 'avgProgress' | 'completedStudents' | 'avgTimeSpent';
+
+// Non-mutating sort pattern
+const sorted = useMemo(() => {
+  const filtered = coursePerformance.filter(c =>
+    c.Title.toLowerCase().includes(search.toLowerCase())
+  );
+  return [...filtered].sort((a, b) => { /* ... */ });
+}, [coursePerformance, search, sortKey, sortDir]);
+```
+
+### **Complete Fix Log (68 Fixes)**
+
+**Rounds 1–5 (Foundation):**
+- Fix #1–3: API service URL used hardcoded `localhost:3001` — switched to env-aware `VITE_API_URL` pattern
+- Fix #4–6: Auth interceptors missing from `analyticsApi.ts` and `assessmentAnalyticsApi.ts` — added per-request token injection
+- Fix #7–9: 401 interceptors missing — added auto-logout on expired token
+- Fix #10–12: `Content-Type: application/json` header missing from interceptors
+
+**Rounds 6–10 (SQL Correctness):**
+- Fix #13–15: `COUNT(submissionCol)` inflated by LEFT JOINs — `COUNT(DISTINCT ...)` where needed
+- Fix #16–18: NULL-unsafe `CONCAT(FirstName, ' ', LastName)` — switched to `ISNULL(FirstName,'') + ' ' + ISNULL(LastName,'')`
+- Fix #19–21: SQL `COALESCE` applied to nullable INT columns returning in queries that assumed non-null
+- Fix #22–24: Assessment analytics `assessmentsThisMonth` counted duplicates across submission rows
+
+**Rounds 11–14 (UI States):**
+- Fix #25–28: Missing loading states on multiple dashboard views — spinners + disabled refresh buttons
+- Fix #29–32: Missing error states — silent failure swallowed errors, user saw blank screen
+- Fix #33–36: Missing empty states — some views showed nothing when data was empty
+- Fix #37–40: Refresh buttons stayed enabled during loading — added `disabled={loading}` consistently
+- Fix #41–42: Select components not disabled during loading — added `disabled={loading}` to all
+
+**Rounds 15–18 (Data Safety):**
+- Fix #43–45: Non-mutating array sort — `.sort()` was mutating state directly, changed to `[...arr].sort()`
+- Fix #46–48: Duplicate React keys from reused IDs across different data sets
+- Fix #49–51: State mutation in handlers — spread operators added for immutable updates
+- Fix #52–53: Redundant `setLoading(false)` calls in finally blocks that were already covered
+
+**Rounds 19–21 (Privacy & Types):**
+- Fix #54–56: `SettingsService.filterUserData()` missing from at-risk and low-progress endpoints — student emails now privacy-filtered
+- Fix #57–59: Duplicate `AuthRequest` interface declared in analytics route file when canonical one exists in `middleware/auth.ts`
+- Fix #60–62: Engagement score normalization — raw scores divided by zero when max was 0
+
+**Rounds 22–23 (Final Hardening):**
+- Fix #63–65: Misleading error messages returned generic "Failed to load" when specific SQL error info was available
+- Fix #66: `getInstructorCourses()` in analytics returned courses silently if `SELECT` failed — now throws
+- Fix #67: `assessmentsThisMonth` used `COUNT(DISTINCT CASE ...)` but missing DISTINCT only on that column — corrected
+- Fix #68: `JSON.parse(student.RiskFactors)` in `instructor.ts` validated JSON syntax but not that the result was an array — `Array.isArray()` guard added; same fix for `RecommendedInterventions`
+
+---
+
+## 🔍 SEARCH AUTOCOMPLETE SYSTEM (February 17, 2026)
 
 **Activity**: Implemented Udemy-style live search autocomplete component with keyboard navigation, debouncing, and integration across all navigation headers
 

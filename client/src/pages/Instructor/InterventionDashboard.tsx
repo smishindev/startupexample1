@@ -36,7 +36,8 @@ import {
   Assignment as AssignmentIcon,
   School as SchoolIcon,
   NotificationImportant as AlertIcon,
-  CheckCircle as CheckCircleIcon
+  CheckCircle as CheckCircleIcon,
+  Refresh as RefreshIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { instructorApi } from '../../services/instructorApi';
@@ -86,6 +87,7 @@ export const InterventionDashboard: React.FC = () => {
   const [lowProgressStudents, setLowProgressStudents] = useState<LowProgressStudent[]>([]);
   const [pendingAssessments, setPendingAssessments] = useState<PendingAssessment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -95,20 +97,27 @@ export const InterventionDashboard: React.FC = () => {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
+      setFetchError(null);
       
-      // Fetch all data using instructorApi
+      // Fetch all data using instructorApi - individually caught to isolate failures
       const [atRisk, lowProgress, pending] = await Promise.all([
-        instructorApi.getAtRiskStudents(),
-        instructorApi.getLowProgressStudents(),
-        instructorApi.getPendingAssessments()
+        instructorApi.getAtRiskStudents().catch((err) => { console.error('At-risk fetch failed:', err); return []; }),
+        instructorApi.getLowProgressStudents().catch((err) => { console.error('Low-progress fetch failed:', err); return []; }),
+        instructorApi.getPendingAssessments().catch((err) => { console.error('Pending assessments fetch failed:', err); return []; })
       ]);
 
       setAtRiskStudents(atRisk);
       setLowProgressStudents(lowProgress);
       setPendingAssessments(pending);
 
+      // If any returned empty due to errors, warn the user
+      if (atRisk.length === 0 && lowProgress.length === 0 && pending.length === 0) {
+        // Could be genuinely empty or all failed - data is already set
+      }
+
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
+      setFetchError('Failed to load intervention data. The information shown may be incomplete.');
     } finally {
       setLoading(false);
     }
@@ -138,31 +147,37 @@ export const InterventionDashboard: React.FC = () => {
     window.location.href = `mailto:${studentEmail}`;
   };
 
-  if (loading) {
-    return (
-      <>
-        <Header />
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
-          <CircularProgress />
-        </Box>
-      </>
-    );
-  }
-
   return (
     <>
       <Header />
       <Container maxWidth="xl" sx={{ py: 4 }}>
         {/* Header */}
-        <Box sx={{ mb: 4 }}>
-          <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold' }}>
-            🚨 Intervention Dashboard
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            Monitor at-risk students and take proactive interventions to improve learning outcomes
-          </Typography>
+        <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Box>
+            <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold' }}>
+              🚨 Intervention Dashboard
+            </Typography>
+            <Typography variant="body1" color="text.secondary">
+              Monitor at-risk students and take proactive interventions to improve learning outcomes
+            </Typography>
+          </Box>
+          <IconButton onClick={fetchDashboardData} color="primary" size="large" disabled={loading} data-testid="intervention-dashboard-refresh-button">
+            <RefreshIcon />
+          </IconButton>
         </Box>
 
+      {fetchError && (
+        <Alert severity="warning" sx={{ mb: 3 }}>
+          {fetchError}
+        </Alert>
+      )}
+
+      {loading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
+          <CircularProgress />
+        </Box>
+      ) : (
+      <>
       {/* Summary Cards */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} md={4}>
@@ -477,7 +492,7 @@ export const InterventionDashboard: React.FC = () => {
                         secondary={
                           <React.Fragment>
                             <Typography variant="body2" color="text.secondary" component="span" display="block">
-                              📧 {assessment.Email}
+                              📧 {assessment.Email || 'Email hidden'}
                             </Typography>
                             <Typography variant="body2" component="span" display="block">
                               📝 {assessment.AssessmentTitle}
@@ -502,14 +517,17 @@ export const InterventionDashboard: React.FC = () => {
                         secondaryTypographyProps={{ component: 'div' }}
                       />
                       <ListItemSecondaryAction>
-                        <Tooltip title="Send Reminder">
-                          <IconButton
-                            edge="end"
-                            onClick={() => handleSendMessage(assessment.Email)}
-                            data-testid={`intervention-dashboard-send-reminder-${assessment.UserId}-button`}
-                          >
-                            <EmailIcon />
-                          </IconButton>
+                        <Tooltip title={assessment.Email ? "Send Reminder" : "Email hidden"}>
+                          <span>
+                            <IconButton
+                              edge="end"
+                              onClick={() => assessment.Email && handleSendMessage(assessment.Email)}
+                              disabled={!assessment.Email}
+                              data-testid={`intervention-dashboard-send-reminder-${assessment.UserId}-button`}
+                            >
+                              <EmailIcon />
+                            </IconButton>
+                          </span>
                         </Tooltip>
                       </ListItemSecondaryAction>
                     </ListItem>
@@ -519,6 +537,8 @@ export const InterventionDashboard: React.FC = () => {
             </Paper>
           )}
         </Box>
+      )}
+      </>
       )}
       </Container>
     </>

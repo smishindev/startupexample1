@@ -1,4 +1,4 @@
-import { Router, Request, Response } from 'express';
+import { Router, Response } from 'express';
 import { DatabaseService } from '../services/DatabaseService';
 import { SettingsService } from '../services/SettingsService';
 import { AuthRequest, authenticateToken, authorize } from '../middleware/auth';
@@ -42,7 +42,7 @@ router.get('/courses/:courseId', authenticateToken, authorize(['instructor']), a
           COUNT(CASE WHEN Status = 'active' THEN 1 END) as activeEnrollments,
           COUNT(CASE WHEN Status = 'completed' THEN 1 END) as completedEnrollments,
           COUNT(CASE WHEN Status = 'cancelled' THEN 1 END) as cancelledEnrollments,
-          AVG(CASE WHEN Status = 'completed' THEN DATEDIFF(day, EnrolledAt, GETUTCDATE()) END) as avgCompletionDays
+          AVG(CASE WHEN Status = 'completed' AND CompletedAt IS NOT NULL THEN DATEDIFF(day, EnrolledAt, CompletedAt) END) as avgCompletionDays
         FROM dbo.Enrollments 
         WHERE CourseId = @courseId
       `, { courseId }),
@@ -139,12 +139,12 @@ router.get('/dashboard', authenticateToken, authorize(['instructor']), async (re
         SELECT 
           COUNT(DISTINCT c.Id) as totalCourses,
           COUNT(DISTINCT e.UserId) as totalStudents,
-          COUNT(e.Id) as totalEnrollments,
-          AVG(CAST(up.ProgressPercentage as FLOAT)) as avgProgress,
-          SUM(CAST(up.TimeSpent as FLOAT)) as totalTimeSpent
+          COUNT(DISTINCT e.Id) as totalEnrollments,
+          AVG(CAST(cp.OverallProgress as FLOAT)) as avgProgress,
+          SUM(CAST(cp.TimeSpent as FLOAT)) as totalTimeSpent
         FROM dbo.Courses c
         LEFT JOIN dbo.Enrollments e ON c.Id = e.CourseId
-        LEFT JOIN dbo.UserProgress up ON e.UserId = up.UserId AND e.CourseId = up.CourseId
+        LEFT JOIN dbo.CourseProgress cp ON e.UserId = cp.UserId AND e.CourseId = cp.CourseId
         WHERE c.InstructorId = @instructorId
       `, { instructorId }),
 
@@ -154,12 +154,12 @@ router.get('/dashboard', authenticateToken, authorize(['instructor']), async (re
           c.Id,
           c.Title,
           COUNT(DISTINCT e.UserId) as enrolledStudents,
-          AVG(CAST(up.ProgressPercentage as FLOAT)) as avgProgress,
-          COUNT(CASE WHEN up.ProgressPercentage = 100 THEN 1 END) as completedStudents,
-          AVG(CAST(up.TimeSpent as FLOAT)) as avgTimeSpent
+          AVG(CAST(cp.OverallProgress as FLOAT)) as avgProgress,
+          COUNT(CASE WHEN cp.OverallProgress >= 100 THEN 1 END) as completedStudents,
+          AVG(CAST(cp.TimeSpent as FLOAT)) as avgTimeSpent
         FROM dbo.Courses c
         LEFT JOIN dbo.Enrollments e ON c.Id = e.CourseId
-        LEFT JOIN dbo.UserProgress up ON e.UserId = up.UserId AND e.CourseId = up.CourseId
+        LEFT JOIN dbo.CourseProgress cp ON e.UserId = cp.UserId AND e.CourseId = cp.CourseId
         WHERE c.InstructorId = @instructorId
         GROUP BY c.Id, c.Title
         ORDER BY enrolledStudents DESC
@@ -184,14 +184,14 @@ router.get('/dashboard', authenticateToken, authorize(['instructor']), async (re
         SELECT TOP 5
           c.Title,
           COUNT(DISTINCT e.UserId) as enrollments,
-          AVG(CAST(up.ProgressPercentage as FLOAT)) as avgProgress,
-          COUNT(CASE WHEN up.ProgressPercentage = 100 THEN 1 END) as completions
+          AVG(CAST(cp.OverallProgress as FLOAT)) as avgProgress,
+          COUNT(CASE WHEN cp.OverallProgress >= 100 THEN 1 END) as completions
         FROM dbo.Courses c
         JOIN dbo.Enrollments e ON c.Id = e.CourseId
-        JOIN dbo.UserProgress up ON e.UserId = up.UserId AND e.CourseId = up.CourseId
+        JOIN dbo.CourseProgress cp ON e.UserId = cp.UserId AND e.CourseId = cp.CourseId
         WHERE c.InstructorId = @instructorId
         GROUP BY c.Id, c.Title
-        ORDER BY (COUNT(CASE WHEN up.ProgressPercentage = 100 THEN 1 END) * 100.0 / COUNT(DISTINCT e.UserId)) DESC
+        ORDER BY (COUNT(CASE WHEN cp.OverallProgress >= 100 THEN 1 END) * 100.0 / NULLIF(COUNT(DISTINCT e.UserId), 0)) DESC
       `, { instructorId })
     ]);
 

@@ -1,6 +1,6 @@
 # Mishin Learn Platform - System Architecture
 
-**Last Updated**: February 17, 2026 - Search Autocomplete System 🔍  
+**Last Updated**: February 18, 2026 - Analytics Hub Audit & Quality Pass 🔧  
 **Purpose**: Understanding system components, data flows, and dependencies
 
 ---
@@ -39,6 +39,63 @@ Instructor Status Change Flow:
 ---
 
 ## 🔌 API ENDPOINTS
+
+### Analytics Hub (Audited & Hardened Feb 18, 2026)
+
+**4 route files, all with `authenticateToken` + instructor role guard:**
+
+```
+GET    /api/analytics/instructor/course-performance
+       → All instructor courses with: enrolledStudents, avgProgress,
+         completedStudents, avgTimeSpent (minutes)
+       → Used by CoursePerformanceTable (sorted/searched/paginated client-side)
+
+GET    /api/analytics/courses/:id
+       → Per-course analytics: studentList, completionFunnel, lessonStats
+       → SQL: COUNT DISTINCT to avoid JOIN-multiplied totals
+       → Privacy: SettingsService.filterUserData() on all student email fields
+
+GET    /api/analytics/instructor/students/:courseId/at-risk
+GET    /api/instructor/at-risk/:courseId           (instructor.ts)
+       → At-risk students with RiskFactors (JSON array) + RecommendedInterventions (JSON array)
+       → JSON.parse result validated with Array.isArray() guard (Fix #68)
+       → Privacy: filterUserData() before response
+
+GET    /api/instructor/low-progress/:courseId      (instructor.ts)
+       → Students below progress threshold
+       → Privacy: filterUserData() applied
+
+GET    /api/instructor/pending-assessments/:courseId  (instructor.ts)
+       → Students with unsubmitted assessments near due date
+
+GET    /api/assessment-analytics/overview/:courseId  (assessment-analytics.ts)
+       → assessmentsThisMonth uses COUNT(DISTINCT ...) to avoid inflation from
+         submissions LEFT JOIN (Fix #67)
+       → Returns: totalAssessments, assessmentsThisMonth, avgScore, passRate
+
+GET    /api/assessment-analytics/student-performance/:courseId  (assessment-analytics.ts)
+GET    /api/assessment-analytics/learning-insights/:courseId    (assessment-analytics.ts)
+
+GET    /api/video-analytics/:courseId              (videoAnalytics.ts)
+       → Video engagement: avgWatchPercent, completionRate, dropOffPoints
+       → Engagement score normalized to prevent div-by-zero (Fix #62)
+```
+
+**Critical SQL patterns used in these routes:**
+```sql
+-- Deduplicate counts inflated by LEFT JOINs
+COUNT(DISTINCT CASE WHEN condition THEN col END)
+
+-- NULL-safe name concat
+ISNULL(u.FirstName,'') + ' ' + ISNULL(u.LastName,'') AS StudentName
+
+-- UTC timestamps always
+DATEADD(month, -1, GETUTCDATE())
+```
+
+**Frontend API services (both hardened Feb 18, 2026):**
+- `client/src/services/analyticsApi.ts` — env-aware URL, auth + 401 interceptors, Content-Type header
+- `client/src/services/assessmentAnalyticsApi.ts` — same pattern
 
 ### Course Ratings & Reviews (added Feb 15, 2026)
 ```

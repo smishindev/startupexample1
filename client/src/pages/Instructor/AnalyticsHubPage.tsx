@@ -25,6 +25,7 @@ import {
   VideoLibrary as VideoLibraryIcon,
   NotificationImportant as AlertIcon
 } from '@mui/icons-material';
+import { Skeleton, Alert as MuiAlert } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { HeaderV5 as Header } from '../../components/Navigation/HeaderV5';
 import { instructorApi, type InstructorStats } from '../../services/instructorApi';
@@ -45,6 +46,8 @@ interface AnalyticsCard {
 export const AnalyticsHubPage: React.FC = () => {
   const navigate = useNavigate();
   const [stats, setStats] = useState<InstructorStats | null>(null);
+  const [statsLoading, setStatsLoading] = useState(true);
+  const [statsError, setStatsError] = useState<string | null>(null);
 
   useEffect(() => {
     loadInstructorStats();
@@ -52,10 +55,15 @@ export const AnalyticsHubPage: React.FC = () => {
 
   const loadInstructorStats = async () => {
     try {
+      setStatsLoading(true);
+      setStatsError(null);
       const statsData = await instructorApi.getStats();
       setStats(statsData);
     } catch (error) {
       console.error('Failed to load instructor stats:', error);
+      setStatsError('Failed to load stats');
+    } finally {
+      setStatsLoading(false);
     }
   };
 
@@ -144,20 +152,29 @@ export const AnalyticsHubPage: React.FC = () => {
               Comprehensive insights and analytics for your teaching platform
             </Typography>
           </Box>
-          <IconButton onClick={loadInstructorStats} color="primary" size="large" data-testid="analytics-hub-refresh-button">
+          <IconButton onClick={loadInstructorStats} color="primary" size="large" disabled={statsLoading} data-testid="analytics-hub-refresh-button">
             <RefreshIcon />
           </IconButton>
         </Box>
 
         {/* Quick Stats Overview */}
+        {statsError && (
+          <MuiAlert severity="warning" sx={{ mb: 2 }}>
+            {statsError}. Some stats may be unavailable.
+          </MuiAlert>
+        )}
         <Paper sx={{ p: 3, mb: 4, background: 'linear-gradient(45deg, #2196f3 30%, #21cbf3 90%)' }}>
           <Grid container spacing={3}>
             <Grid item xs={12} md={3}>
               <Box sx={{ textAlign: 'center', color: 'white' }}>
                 <PerformanceIcon sx={{ fontSize: 32, mb: 1 }} />
-                <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
-                  {stats?.totalCourses || 0}
-                </Typography>
+                {statsLoading ? (
+                  <Skeleton variant="text" width={60} sx={{ mx: 'auto', bgcolor: 'rgba(255,255,255,0.3)' }} />
+                ) : (
+                  <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+                    {stats?.totalCourses || 0}
+                  </Typography>
+                )}
                 <Typography variant="body2" sx={{ opacity: 0.9 }}>
                   Active Courses
                 </Typography>
@@ -166,9 +183,13 @@ export const AnalyticsHubPage: React.FC = () => {
             <Grid item xs={12} md={3}>
               <Box sx={{ textAlign: 'center', color: 'white' }}>
                 <StudentsIcon sx={{ fontSize: 32, mb: 1 }} />
-                <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
-                  {stats?.totalStudents || 0}
-                </Typography>
+                {statsLoading ? (
+                  <Skeleton variant="text" width={60} sx={{ mx: 'auto', bgcolor: 'rgba(255,255,255,0.3)' }} />
+                ) : (
+                  <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+                    {stats?.totalStudents || 0}
+                  </Typography>
+                )}
                 <Typography variant="body2" sx={{ opacity: 0.9 }}>
                   Total Students
                 </Typography>
@@ -177,9 +198,13 @@ export const AnalyticsHubPage: React.FC = () => {
             <Grid item xs={12} md={3}>
               <Box sx={{ textAlign: 'center', color: 'white' }}>
                 <TrendingUpIcon sx={{ fontSize: 32, mb: 1 }} />
-                <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
-                  {stats?.avgRating?.toFixed(1) || '0.0'}
-                </Typography>
+                {statsLoading ? (
+                  <Skeleton variant="text" width={60} sx={{ mx: 'auto', bgcolor: 'rgba(255,255,255,0.3)' }} />
+                ) : (
+                  <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+                    {stats?.avgRating?.toFixed(1) || '0.0'}
+                  </Typography>
+                )}
                 <Typography variant="body2" sx={{ opacity: 0.9 }}>
                   Average Rating
                 </Typography>
@@ -188,9 +213,13 @@ export const AnalyticsHubPage: React.FC = () => {
             <Grid item xs={12} md={3}>
               <Box sx={{ textAlign: 'center', color: 'white' }}>
                 <AnalyticsIcon sx={{ fontSize: 32, mb: 1 }} />
-                <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
-                  {stats?.completionRate || 0}%
-                </Typography>
+                {statsLoading ? (
+                  <Skeleton variant="text" width={60} sx={{ mx: 'auto', bgcolor: 'rgba(255,255,255,0.3)' }} />
+                ) : (
+                  <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+                    {stats?.completionRate || 0}%
+                  </Typography>
+                )}
                 <Typography variant="body2" sx={{ opacity: 0.9 }}>
                   Completion Rate
                 </Typography>

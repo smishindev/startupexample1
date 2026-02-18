@@ -2883,6 +2883,92 @@ const courses = await instructorApi.getCourses(); // Filtered by req.user.userId
 
 ---
 
+### CourseAnalyticsDashboard
+**Path**: `client/src/pages/Instructor/CourseAnalyticsDashboard.tsx` (~852 lines)  
+**Route**: `/instructor/analytics` (+ `?courseId=:id` query param for per-course view)  
+**Purpose**: Instructor analytics hub — three views: Dashboard Overview, Course Performance Overview, and Per-Course Detail  
+**Last Updated**: February 18, 2026 — Full audit (68 fixes), CoursePerformanceTable replacing card grid
+
+**Views (3 sub-components inside the file):**
+
+1. **DashboardView** — Multi-course overview metrics (total students, enrollments, revenue, average progress, top courses)
+2. **CoursePerformanceTable** — Sortable/searchable/paginated table of all instructor courses *(NEW — Feb 18, 2026)*
+3. **CourseView** — Single-course deep-dive (student list, completion funnel, lesson analytics)
+
+**Services Used**:
+- `analyticsApi.getCourseAnalytics(courseId)` — Per-course detail
+- `analyticsApi.getInstructorCoursePerformance()` — All courses overview  
+- `assessmentAnalyticsApi.getOverview(courseId)` — Assessment metrics  
+- Both services now have full auth + 401 interceptors and Content-Type headers
+
+**State Management**:
+- `useAuthStore()` — Instructor identity + token
+- Local state: `coursePerformance`, `selectedCourse`, `view`, `loading`, `error`
+
+---
+
+### CoursePerformanceTable (sub-component of CourseAnalyticsDashboard)
+**Location**: `client/src/pages/Instructor/CourseAnalyticsDashboard.tsx` (defined before `DashboardView`)  
+**Purpose**: Replaces the old 1004-card responsive grid with a fully-featured table  
+**Added**: February 18, 2026
+
+**Props**:
+```typescript
+interface CoursePerformanceTableProps {
+  coursePerformance: CoursePerformance[];   // Array of all instructor courses with stats
+  onSelectCourse: (courseId: string) => void; // Navigate to per-course view
+}
+```
+
+**Features**:
+- **Sort**: 5 columns — Course Title (string), Students Enrolled (num), Avg Progress % (num), Completed (num), Avg Time Spent (num)
+- **Default sort**: Enrolled Students descending
+- **Search**: Filter by course title with real-time counter chip `{filtered} of {total}`
+- **Pagination**: MUI `TablePagination` with [10, 25, 50, 100] options, `showFirstButton`, `showLastButton`
+- **Progress bars**: Inline `LinearProgress` — green ≥70%, orange ≥40%, red <40%
+- **Empty search state**: "No courses match '{query}'" row spanning all columns
+- **Zero data state**: Informational empty message instead of table
+
+**Sort Keys**:
+```typescript
+type SortKey = 'Title' | 'enrolledStudents' | 'avgProgress' | 'completedStudents' | 'avgTimeSpent';
+```
+
+**Key Implementation Patterns**:
+```typescript
+// Non-mutating sorted array (CRITICAL — direct .sort() mutates state)
+const sorted = useMemo(() => {
+  const filtered = coursePerformance.filter(c =>
+    c.Title.toLowerCase().includes(search.toLowerCase())
+  );
+  return [...filtered].sort((a, b) => {
+    const factor = sortDir === 'asc' ? 1 : -1;
+    if (sortKey === 'Title') return factor * a.Title.localeCompare(b.Title);
+    return factor * ((a[sortKey] as number) - (b[sortKey] as number));
+  });
+}, [coursePerformance, search, sortKey, sortDir]);
+
+// Reset to page 0 when search changes
+useEffect(() => setPage(0), [search]);
+```
+
+**Imports Added to CourseAnalyticsDashboard.tsx**:
+- MUI: `Table`, `TableBody`, `TableCell`, `TableContainer`, `TableHead`, `TableRow`, `TablePagination`, `TableSortLabel`
+- MUI: `TextField`, `InputAdornment`, `SearchIcon`
+- React: `useMemo`
+
+**Related**:
+- Replaced: `coursePerformance.map(...)` inside `<Grid container spacing={2}>` — rendered ~3000 DOM nodes at once
+- Backend: `GET /api/analytics/instructor/course-performance` — returns all courses, no pagination needed on backend because table handles it client-side
+
+**Used By**:
+- `DashboardView` renders `<CoursePerformanceTable coursePerformance={coursePerformance} />`
+- Route: `/instructor/analytics`
+
+**Status**: ✅ Production-ready (February 18, 2026)
+
+---
+
 ## 🧩 REUSABLE COMPONENTS
 
 ### CourseCard (CRITICAL - SHARED)

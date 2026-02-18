@@ -26,7 +26,8 @@ import {
   CircularProgress,
   Alert,
   Chip,
-  LinearProgress
+  LinearProgress,
+  IconButton
 } from '@mui/material';
 import {
   VideoLibrary as VideoIcon,
@@ -34,9 +35,12 @@ import {
   People as PeopleIcon,
   Schedule as ScheduleIcon,
   PlayCircle as PlayIcon,
-  CheckCircle as CompleteIcon
+  CheckCircle as CompleteIcon,
+  Refresh as RefreshIcon
 } from '@mui/icons-material';
 import axios from 'axios';
+import { useAuthStore } from '../../stores/authStore';
+import { HeaderV5 as Header } from '../../components/Navigation/HeaderV5';
 
 // Use environment variable or fallback to localhost
 const API_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3001';
@@ -81,25 +85,31 @@ interface OverallStats {
 }
 
 const createAuthAxios = () => {
-  const token = localStorage.getItem('auth-storage');
-  let authToken = '';
-  
-  if (token) {
-    try {
-      const parsed = JSON.parse(token);
-      authToken = parsed?.state?.token || '';
-    } catch (e) {
-      console.error('Failed to parse auth token:', e);
-    }
-  }
+  const token = useAuthStore.getState().token;
 
-  return axios.create({
+  const instance = axios.create({
     baseURL: API_URL,
     headers: {
-      Authorization: `Bearer ${authToken}`,
+      Authorization: token ? `Bearer ${token}` : '',
       'Content-Type': 'application/json'
     }
   });
+
+  // Handle token expiration (consistent with analyticsApi/instructorApi/assessmentAnalyticsApi)
+  instance.interceptors.response.use(
+    (response) => response,
+    (error) => {
+      if (error.response?.status === 401) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        useAuthStore.getState().logout();
+        window.location.href = '/login';
+      }
+      return Promise.reject(error);
+    }
+  );
+
+  return instance;
 };
 
 export const VideoAnalyticsPage: React.FC = () => {
@@ -108,44 +118,48 @@ export const VideoAnalyticsPage: React.FC = () => {
   const [analytics, setAnalytics] = useState<VideoAnalytics[]>([]);
   const [overallStats, setOverallStats] = useState<OverallStats | null>(null);
   const [loading, setLoading] = useState(false);
+  const [coursesLoading, setCoursesLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // Fetch instructor's courses
   useEffect(() => {
     const fetchCourses = async () => {
       try {
+        setCoursesLoading(true);
         const authAxios = createAuthAxios();
         const response = await authAxios.get('/api/instructor/courses');
         setCourses(response.data.courses || []);
         
         if (response.data.courses?.length > 0 && !selectedCourseId) {
           setSelectedCourseId(response.data.courses[0].id);
+          setLoading(true); // Pre-set loading to avoid flash before analytics useEffect fires
         }
       } catch (error) {
         console.error('Failed to fetch courses:', error);
         setError('Failed to load courses');
+      } finally {
+        setCoursesLoading(false);
       }
     };
 
     fetchCourses();
   }, []);
 
-  // Fetch video analytics when course changes
-  useEffect(() => {
+  const fetchAnalytics = async () => {
     if (!selectedCourseId) return;
-
-    const fetchAnalytics = async () => {
-      try {
-        setLoading(true);
-        setError(null);
+    try {
+      setLoading(true);
+      setError(null);
+        setAnalytics([]);
+        setOverallStats(null);
         const authAxios = createAuthAxios();
 
-        // Fetch all lessons for the course
-        const lessonsResponse = await authAxios.get(`/api/lessons/${selectedCourseId}`);
+        // Fetch lessons and course details in parallel
+        const [lessonsResponse, courseResponse] = await Promise.all([
+          authAxios.get(`/api/lessons/${selectedCourseId}`),
+          authAxios.get(`/api/courses/${selectedCourseId}`)
+        ]);
         const lessons = lessonsResponse.data.lessons || [];
-
-        // Fetch course details
-        const courseResponse = await authAxios.get(`/api/courses/${selectedCourseId}`);
         const courseTitle = courseResponse.data.course?.title || 'Unknown Course';
 
         // Extract video content items from lessons
@@ -153,7 +167,8 @@ export const VideoAnalyticsPage: React.FC = () => {
         lessons.forEach((lesson: any) => {
           try {
             const content = lesson.contentJson ? JSON.parse(lesson.contentJson) : [];
-            content.forEach((item: any, index: number) => {
+            let videoCount = 0;
+            content.forEach((item: any) => {
               if (item.type === 'video' && item.id) {
                 videoItems.push({
                   contentItemId: item.id,
@@ -161,10 +176,11 @@ export const VideoAnalyticsPage: React.FC = () => {
                   lessonTitle: lesson.title,
                   courseId: selectedCourseId,
                   courseTitle,
-                  videoIndex: index,
+                  videoIndex: videoCount,
                   duration: item.data?.duration || 0,
                   url: item.data?.url || ''
                 });
+                videoCount++;
               }
             });
           } catch (e) {
@@ -182,7 +198,6 @@ export const VideoAnalyticsPage: React.FC = () => {
             avgWatchTime: 0,
             totalWatchTimeHours: 0
           });
-          setLoading(false);
           return;
         }
 
@@ -214,8 +229,10 @@ export const VideoAnalyticsPage: React.FC = () => {
           const avgCompletionPercentage = totalViews > 0 ? totalCompletionPercentage / totalViews : 0;
 
           // Engagement score: weighted combination of views, completion rate, and avg watch percentage
+          // Normalize views to 0-100 scale (10+ views = full score) so it mixes properly with percentages
+          const viewScore = Math.min(totalViews * 10, 100);
           const engagementScore = totalViews > 0 
-            ? (totalViews * 0.3) + (completionRate * 0.4) + (avgCompletionPercentage * 0.3)
+            ? (viewScore * 0.3) + (completionRate * 0.4) + (avgCompletionPercentage * 0.3)
             : 0;
 
           return {
@@ -255,14 +272,16 @@ export const VideoAnalyticsPage: React.FC = () => {
           totalWatchTimeHours
         });
 
-      } catch (error: any) {
-        console.error('Failed to fetch analytics:', error);
-        setError(error.response?.data?.error || 'Failed to load video analytics');
-      } finally {
-        setLoading(false);
-      }
-    };
+    } catch (error: any) {
+      console.error('Failed to fetch analytics:', error);
+      setError(error.response?.data?.error || 'Failed to load video analytics');
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  // Fetch video analytics when course changes
+  useEffect(() => {
     fetchAnalytics();
   }, [selectedCourseId]);
 
@@ -282,17 +301,9 @@ export const VideoAnalyticsPage: React.FC = () => {
     return '#f44336';
   };
 
-  if (error) {
-    return (
-      <Container maxWidth="xl" sx={{ py: 4 }}>
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error}
-        </Alert>
-      </Container>
-    );
-  }
-
   return (
+    <>
+    <Header />
     <Container maxWidth="xl" sx={{ py: 4 }}>
       {/* Header */}
       <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -306,13 +317,18 @@ export const VideoAnalyticsPage: React.FC = () => {
           </Typography>
         </Box>
         
-        <FormControl sx={{ minWidth: 300 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <IconButton onClick={fetchAnalytics} color="primary" size="large" disabled={loading} data-testid="video-analytics-refresh-button">
+            <RefreshIcon />
+          </IconButton>
+          <FormControl sx={{ minWidth: 300 }}>
           <InputLabel>Select Course</InputLabel>
           <Select
             value={selectedCourseId}
             onChange={(e) => setSelectedCourseId(e.target.value)}
             label="Select Course"
             data-testid="video-analytics-course-select"
+            disabled={loading}
           >
             {courses.map((course) => (
               <MenuItem key={course.id} value={course.id}>
@@ -321,9 +337,16 @@ export const VideoAnalyticsPage: React.FC = () => {
             ))}
           </Select>
         </FormControl>
+        </Box>
       </Box>
 
-      {loading ? (
+      {error && (
+        <Alert severity="error" sx={{ mb: 3 }}>
+          {error}{courses.length > 0 ? '. Try selecting a different course.' : '.'}
+        </Alert>
+      )}
+
+      {loading || coursesLoading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
           <CircularProgress />
         </Box>
@@ -420,7 +443,7 @@ export const VideoAnalyticsPage: React.FC = () => {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {analytics
+                    {[...analytics]
                       .sort((a, b) => b.engagementScore - a.engagementScore)
                       .map((video) => (
                         <TableRow key={video.contentItemId} hover>
@@ -520,9 +543,10 @@ export const VideoAnalyticsPage: React.FC = () => {
                   const lowVideo = analytics.reduce((min, v) => 
                     v.engagementScore < min.engagementScore ? v : min, analytics[0]);
                   
+                  const hasDifferentVideos = topVideo.contentItemId !== lowVideo.contentItemId;
                   return (
                     <>
-                      <Grid item xs={12} md={6}>
+                      <Grid item xs={12} md={hasDifferentVideos ? 6 : 12}>
                         <Alert severity="success">
                           <Typography variant="body2" fontWeight="medium">
                             Top Performing Video
@@ -533,17 +557,19 @@ export const VideoAnalyticsPage: React.FC = () => {
                           </Typography>
                         </Alert>
                       </Grid>
-                      <Grid item xs={12} md={6}>
-                        <Alert severity="warning">
-                          <Typography variant="body2" fontWeight="medium">
-                            Needs Attention
-                          </Typography>
-                          <Typography variant="body2">
-                            "{lowVideo.lessonTitle}" - Video {lowVideo.videoIndex + 1} has lower engagement 
-                            ({lowVideo.engagementScore.toFixed(0)}). Consider reviewing content or placement.
-                          </Typography>
-                        </Alert>
-                      </Grid>
+                      {hasDifferentVideos && (
+                        <Grid item xs={12} md={6}>
+                          <Alert severity="warning">
+                            <Typography variant="body2" fontWeight="medium">
+                              Needs Attention
+                            </Typography>
+                            <Typography variant="body2">
+                              "{lowVideo.lessonTitle}" - Video {lowVideo.videoIndex + 1} has lower engagement 
+                              ({lowVideo.engagementScore.toFixed(0)}). Consider reviewing content or placement.
+                            </Typography>
+                          </Alert>
+                        </Grid>
+                      )}
                     </>
                   );
                 })()}
@@ -551,11 +577,16 @@ export const VideoAnalyticsPage: React.FC = () => {
             </Paper>
           )}
         </>
-      ) : (
+      ) : !error && courses.length === 0 && !coursesLoading ? (
+        <Alert severity="info">
+          No courses found. Create a course with video content to see analytics.
+        </Alert>
+      ) : !selectedCourseId ? (
         <Alert severity="info">
           Select a course to view video analytics
         </Alert>
-      )}
+      ) : null}
     </Container>
+    </>
   );
 };

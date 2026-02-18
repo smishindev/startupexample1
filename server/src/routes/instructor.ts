@@ -857,10 +857,12 @@ router.get('/at-risk-students', authenticateToken, authorize(['instructor', 'adm
           c.Title as CourseName,
           u.FirstName,
           u.LastName,
-          u.Email
+          u.Email,
+          ISNULL(cp.OverallProgress, 0) as OverallProgress
         FROM StudentRiskAssessment sr
         JOIN Courses c ON sr.CourseId = c.Id
         JOIN Users u ON sr.UserId = u.Id
+        LEFT JOIN CourseProgress cp ON sr.UserId = cp.UserId AND sr.CourseId = cp.CourseId
         WHERE c.InstructorId = @instructorId
           AND sr.RiskLevel IN ('high', 'critical')
         ORDER BY 
@@ -873,11 +875,23 @@ router.get('/at-risk-students', authenticateToken, authorize(['instructor', 'adm
           sr.RiskScore DESC
       `, { instructorId: userId });
 
-      const students = result.map((student: any) => ({
-        ...student,
-        RiskFactors: student.RiskFactors ? JSON.parse(student.RiskFactors) : [],
-        RecommendedInterventions: student.RecommendedInterventions ? JSON.parse(student.RecommendedInterventions) : []
-      }));
+      const students = result.map((student: any) => {
+        let riskFactors: string[] = [];
+        let recommendedInterventions: string[] = [];
+        try {
+          const parsedFactors = student.RiskFactors ? JSON.parse(student.RiskFactors) : [];
+          riskFactors = Array.isArray(parsedFactors) ? parsedFactors : [];
+        } catch { riskFactors = []; }
+        try {
+          const parsedInterventions = student.RecommendedInterventions ? JSON.parse(student.RecommendedInterventions) : [];
+          recommendedInterventions = Array.isArray(parsedInterventions) ? parsedInterventions : [];
+        } catch { recommendedInterventions = []; }
+        return {
+          ...student,
+          RiskFactors: riskFactors,
+          RecommendedInterventions: recommendedInterventions
+        };
+      });
 
       // Apply privacy filtering (instructors can see enrolled students)
       const filteredStudents = await Promise.all(
@@ -1020,7 +1034,19 @@ router.get('/pending-assessments', authenticateToken, authorize(['instructor', '
         ORDER BY AttemptsLeft ASC, LastName, FirstName
       `, { instructorId: userId });
 
-      res.json({ assessments: result });
+      // Apply privacy filtering (consistent with at-risk and low-progress endpoints)
+      const filteredAssessments = await Promise.all(
+        result.map(async (assessment: any) => {
+          try {
+            const settings = await settingsService.getUserSettings(assessment.UserId);
+            return settingsService.filterUserData(assessment, settings, false);
+          } catch (error) {
+            return { ...assessment, Email: null };
+          }
+        })
+      );
+
+      res.json({ assessments: filteredAssessments });
     } catch (queryError: any) {
       // SQL error (likely column mismatch) - return empty array
       logger.info('Assessment table structure mismatch - returning empty array');

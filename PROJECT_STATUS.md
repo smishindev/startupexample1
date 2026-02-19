@@ -1,6 +1,6 @@
 # Mishin Learn Platform - Project Status & Memory
 
-**Last Updated**: February 18, 2026 - Analytics Hub Audit & Quality Pass (23 Rounds, 68 Fixes) 🔧  
+**Last Updated**: February 19, 2026 - CourseSelector Reusable Dropdown System 🔽  
 **Developer**: Sergey Mishin (s.mishin.dev@gmail.com)  
 **AI Assistant Context**: This file serves as project memory for continuity across chat sessions
 
@@ -16,7 +16,45 @@
 **Terms & Legal Compliance**: Database-driven TOS, Privacy Policy & Refund Policy with acceptance tracking (February 14, 2026) ✅  
 **Course Ratings & Reviews**: Full 5-star rating system with text reviews, real-time updates, instructor notifications (February 15, 2026) ⭐  
 **Search Autocomplete**: Live search dropdown with keyboard navigation, debouncing, and highlighted matches (February 17, 2026) 🔍  
-**Analytics Hub**: Exhaustive 23-round audit — 68 total fixes, all services hardened, CoursePerformanceTable UI (February 18, 2026) 🔧
+**Analytics Hub**: Exhaustive 23-round audit — 68 total fixes, all services hardened, CoursePerformanceTable UI (February 18, 2026) 🔧  
+**CourseSelector**: Unified reusable course dropdown replacing 9 inline implementations; lazy rendering, type-to-search, helper text (February 19, 2026) 🔽
+
+---
+
+## 🔽 COURSESELECTOR REUSABLE DROPDOWN SYSTEM (Latest - February 19, 2026)
+
+**Activity**: Replaced 9 independent course dropdown implementations across the platform with a single `CourseSelector` component. Added lazy rendering, type-to-search, scroll-based infinite load, and "X of Y courses loaded" helper text. Fixed course-fetching limits across all consumer pages so dropdowns receive all courses (not just `limit=12` default).
+
+**Status**: ✅ **Complete** — 0 TypeScript errors, all 10 CourseSelector instances verified
+
+### **New Component**
+- `client/src/components/Common/CourseSelector.tsx` (406 lines)
+  - MUI Autocomplete with IntersectionObserver + scroll lazy rendering
+  - Single-select and multi-select (chips) modes
+  - `showHelperText`: shows `"X of Y courses loaded — type to search or scroll for more"` when list > `initialDisplayCount` (default 50)
+  - Accepts PascalCase `{Id, Title}` and camelCase `{id, title}` inputs
+  - Custom `renderCourseOption` and `renderTag` overrides
+  - `allOption`, `excludeIds`, `required`, `multiple`, `size`, `sx`, `testId` props
+
+### **New API Method**
+- `instructorApi.getCoursesForDropdown(status?)` — fetches `limit=10000`; returns `InstructorCourse[]`
+  - Distinct from `getCourses()` which remains paginated (limit=12 default) for dashboard card views
+
+### **Pages Updated**
+| Page | Fetch Change | Notes |
+|--|--|--|
+| `CourseAnalyticsDashboard.tsx` | `getCourses()` → `getCoursesForDropdown()` | Removed "View:" label |
+| `VideoAnalyticsPage.tsx` | Added `limit=10000` to axios call | `required`, no allOption (per-course only) |
+| `StudentManagement.tsx` | `getCourses()` → `getCoursesForDropdown()` | `showHelperText={false}` (compact filter bar) |
+| `StudyGroupsPage.tsx` | Instructor: `getCoursesForDropdown()`; Student: `limit=10000` | — |
+| `CourseSettingsEditor.tsx` | `getCourses('published',1,100)` → `getCoursesForDropdown('published')` | Prerequisites modal |
+| `coursesApi.ts` `getEnrolledCourses` | `limit=100` → `limit=10000` | Tutoring page |
+| `LiveSessionsPage.tsx` | Student path `getMyEnrollments()` → `(1, 10000)` | — |
+| `InstructorSessionsList.tsx` | **New CourseSelector added** | Course filter above tabs |
+
+### **`showHelperText` Rules**
+- Default `true` — auto-shows only when `normalised.length > displayCount`
+- Set `false` only for compact contexts: `CreateSessionModal`, `CreateGroupModal`, `CourseSettingsEditor` (prerequisites), `StudentManagement` (search filter bar)
 
 ---
 

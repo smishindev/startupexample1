@@ -1,6 +1,75 @@
 ﻿# 🚀 Quick Reference - Development Workflow
 
-**Last Updated**: February 18, 2026 - Analytics Hub Audit & Quality Pass 🔧
+**Last Updated**: February 19, 2026 - CourseSelector Reusable Dropdown System 🔽
+
+---
+
+## 🔽 CourseSelector Usage Pattern (Added Feb 19, 2026)
+
+**Single reusable component replacing all inline course dropdowns on the platform.**
+
+### Basic Usage
+```tsx
+import { CourseSelector } from '../../components/Common/CourseSelector';
+
+// Single-select with "All Courses" option
+<CourseSelector
+  courses={courses}           // any[] — accepts {Id,Title} or {id,title}
+  value={selectedCourseId}   // string | null
+  onChange={(id) => setSelectedCourseId(id)}
+  allOption={{ value: '', label: 'All Courses' }}
+  size="small"
+  testId="my-page-course-select"
+/>
+```
+
+### Data Fetching Rule — ALWAYS fetch all courses for dropdowns
+```typescript
+// ✅ CORRECT — use getCoursesForDropdown (limit=10000)
+const courses = await instructorApi.getCoursesForDropdown();
+const courses = await instructorApi.getCoursesForDropdown('published'); // filtered by status
+
+// ❌ WRONG — getCourses() defaults to limit=12 (dashboard pagination)
+const { courses } = await instructorApi.getCourses(); // only 12 returned!
+
+// Student side
+const response = await enrollmentApi.getMyEnrollments(1, 10000);
+const response = await coursesApi.getEnrolledCourses(); // already limit=10000
+```
+
+### `showHelperText` Rule
+```tsx
+// Default true — shows "50 of 1004 courses loaded — type to search or scroll for more"
+// Only set to false for compact contexts (modals or inline filter bars)
+<CourseSelector courses={courses} value={v} onChange={f} showHelperText={false} />
+```
+
+**`showHelperText={false}` only in**: `CreateSessionModal`, `CreateGroupModal`, `CourseSettingsEditor` (prerequisites), `StudentManagement` (search filter bar)
+
+### Multi-select
+```tsx
+<CourseSelector
+  courses={courses}
+  value={selectedIds}          // string[]
+  onChange={(ids) => setSelectedIds(ids)}
+  multiple
+/>
+```
+
+### Custom Option Renderer (e.g. Tutoring page)
+```tsx
+<CourseSelector
+  courses={courses}
+  value={selectedId}
+  onChange={setSelectedId}
+  renderCourseOption={(props, option) => (
+    <li {...props}>
+      <img src={option._raw.thumbnail} />
+      <span>{option.Title}</span>
+    </li>
+  )}
+/>
+```
 
 ---
 

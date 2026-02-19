@@ -46,6 +46,7 @@ import {
 } from '../../services/tutoringApi';
 import { coursesApi, Course } from '../../services/coursesApi';
 import { HeaderV5 as Header } from '../../components/Navigation/HeaderV5';
+import { CourseSelector } from '../../components/Common/CourseSelector';
 
 const Tutoring: React.FC = () => {
   const [sessions, setSessions] = useState<TutoringSession[]>([]);
@@ -511,69 +512,57 @@ const Tutoring: React.FC = () => {
             placeholder="e.g., JavaScript Help, React Questions"
             sx={{ mb: 2 }}
           />
-          <FormControl fullWidth variant="outlined">
-            <InputLabel>Course</InputLabel>
-            <Select
-              value={newSessionData.courseId || ''}
-              label="Course"
-              onChange={(e) => {
-                const courseId = e.target.value || undefined;
-                const course = enrolledCourses.find(c => c.Id === courseId);
-                setNewSessionData(prev => ({ 
-                  ...prev, 
-                  courseId,
-                  subject: course ? course.Title : 'General',
-                  title: prev.title || (course ? `Help with ${course.Title}` : '')
-                }));
-              }}
-            >
-              {/* General option */}
-              <MenuItem value="">
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                  <AIIcon fontSize="small" sx={{ color: 'text.secondary' }} />
-                  <Box>
-                    <Typography variant="body2" fontWeight={500}>General Question</Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      Not related to a specific course
-                    </Typography>
-                  </Box>
-                </Box>
-              </MenuItem>
-
-              {/* Divider if user has courses */}
-              {enrolledCourses.length > 0 && (
-                <MenuItem disabled>
-                  <Typography variant="caption" fontWeight={600} color="text.secondary" sx={{ pl: 0.5 }}>
-                    YOUR ENROLLED COURSES
-                  </Typography>
-                </MenuItem>
-              )}
-
-              {/* User's enrolled courses */}
-              {enrolledCourses.map(course => (
-                <MenuItem key={course.Id} value={course.Id}>
+          <CourseSelector
+            courses={enrolledCourses}
+            value={newSessionData.courseId || ''}
+            onChange={(id: string) => {
+              const courseId = id || undefined;
+              const course = enrolledCourses.find(c => c.Id === courseId);
+              setNewSessionData(prev => ({
+                ...prev,
+                courseId,
+                subject: course ? course.Title : 'General',
+                title: prev.title || (course ? `Help with ${course.Title}` : '')
+              }));
+            }}
+            allOption={{ value: '', label: 'General Question' }}
+            label="Course"
+            placeholder="Search enrolled courses..."
+            testId="tutoring-course-select"
+            renderCourseOption={(props, option) => {
+              // "General Question" option
+              if (option.Id === '') {
+                return (
+                  <li {...props} key="general-question">
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                      <AIIcon fontSize="small" sx={{ color: 'text.secondary' }} />
+                      <Box>
+                        <Typography variant="body2" fontWeight={500}>General Question</Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Not related to a specific course
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </li>
+                );
+              }
+              // Course options with icon and subtext
+              const raw = option._raw as Course | undefined;
+              return (
+                <li {...props} key={option.Id}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                     <SchoolIcon fontSize="small" color="primary" />
                     <Box>
-                      <Typography variant="body2" fontWeight={500}>{course.Title}</Typography>
+                      <Typography variant="body2" fontWeight={500}>{option.Title}</Typography>
                       <Typography variant="caption" color="text.secondary">
-                        {course.Level} · {course.Category}
+                        {raw?.Level || ''} · {raw?.Category || ''}
                       </Typography>
                     </Box>
                   </Box>
-                </MenuItem>
-              ))}
-
-              {/* Fallback if no courses */}
-              {enrolledCourses.length === 0 && (
-                <MenuItem disabled>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic', pl: 0.5 }}>
-                    You're not enrolled in any courses yet
-                  </Typography>
-                </MenuItem>
-              )}
-            </Select>
-          </FormControl>
+                </li>
+              );
+            }}
+          />
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setCreateSessionOpen(false)} data-testid="tutoring-dialog-cancel-button">Cancel</Button>

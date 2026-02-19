@@ -2,7 +2,7 @@
 
 **Purpose**: Systematic checklist to follow before implementing changes  
 **Goal**: Reduce errors, missing considerations, and broken functionality  
-**Last Updated**: February 18, 2026 - Analytics Hub Audit & Quality Pass 🔧
+**Last Updated**: February 19, 2026 - CourseSelector Reusable Dropdown System 🔽
 
 ---
 
@@ -50,6 +50,13 @@
 - [ ] Identified all pages that use this component
 
 **Recent Additions to Check:**
+- [x] **CourseSelector Reusable Dropdown** - PRODUCTION READY (Feb 19, 2026) 🔽
+  - Single component (`client/src/components/Common/CourseSelector.tsx`) replacing 9 inline course dropdowns
+  - **Always use `getCoursesForDropdown()`** (not `getCourses()`) when populating for dropdowns — `getCourses()` defaults to `limit=12`
+  - **`showHelperText`** defaults to `true` — set `false` only in compact modals/filter bars
+  - **Instructor live sessions**: `InstructorSessionsList` now has a CourseSelector above tabs (course filter)
+  - **Lazy rendering**: renders first 50, loads 12 more on scroll; helper text appears when total > 50
+  - Files: `CourseSelector.tsx` (new); `instructorApi.ts`, `CourseAnalyticsDashboard.tsx`, `VideoAnalyticsPage.tsx`, `StudentManagement.tsx`, `StudyGroupsPage.tsx`, `CourseSettingsEditor.tsx`, `coursesApi.ts`, `LiveSessionsPage.tsx`, `InstructorSessionsList.tsx` (modified)
 - [x] **Analytics Hub Audit & Quality Pass** - PRODUCTION READY (Feb 18, 2026) 🔧
   - 68 total fixes across 23 audit rounds; 4 backend route files + 3 frontend services hardened
   - **API Services Pattern**: Env-aware URL (`VITE_API_URL`), auth interceptor (fresh token), 401 interceptor (auto-logout), `Content-Type: application/json` — all 3 analytics services must follow this

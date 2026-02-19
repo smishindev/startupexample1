@@ -50,6 +50,7 @@ import {
 import { HeaderV5 as Header } from '../../components/Navigation/HeaderV5';
 import { studentsApi, Student, StudentAnalytics, StudentFilters } from '../../services/studentsApi';
 import { instructorApi, PendingEnrollment } from '../../services/instructorApi';
+import { CourseSelector } from '../../components/Common/CourseSelector';
 import { toast } from 'sonner';
 
 const StudentManagement: React.FC = () => {
@@ -124,15 +125,15 @@ const StudentManagement: React.FC = () => {
       setLoading(true);
       setError(null);
       
-      const [studentsData, analyticsData, coursesResponse] = await Promise.all([
+      const [studentsData, analyticsData, allCourses] = await Promise.all([
         studentsApi.getStudents(filters),
         studentsApi.getAnalytics(filters.courseId),
-        instructorApi.getCourses()
+        instructorApi.getCoursesForDropdown()
       ]);
       
       setStudents(studentsData);
       setAnalytics(analyticsData);
-      setCourses(coursesResponse.courses);
+      setCourses(allCourses);
     } catch (err: any) {
       console.error('Error loading student data:', err);
       
@@ -427,22 +428,16 @@ const StudentManagement: React.FC = () => {
           </Grid>
           
           <Grid item xs={12} sm={6} md={2}>
-            <FormControl fullWidth>
-              <InputLabel>Course</InputLabel>
-              <Select
-                value={filters.courseId || ''}
-                onChange={(e) => handleFilterChange('courseId', e.target.value || undefined)}
-                label="Course"
-                data-testid="student-management-course-select"
-              >
-                <MenuItem value="">All Courses</MenuItem>
-                {courses.map((course) => (
-                  <MenuItem key={course.id} value={course.id}>
-                    {course.title}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+            <CourseSelector
+              courses={courses}
+              value={filters.courseId || ''}
+              onChange={(id: string) => handleFilterChange('courseId', id || undefined)}
+              allOption={{ value: '', label: 'All Courses' }}
+              label="Course"
+              fullWidth
+              showHelperText={false}
+              testId="student-management-course-select"
+            />
           </Grid>
           
           <Grid item xs={12} sm={6} md={2}>

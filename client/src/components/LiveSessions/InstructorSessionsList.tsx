@@ -31,6 +31,7 @@ import {
 } from '../../services/liveSessionsApi';
 import { LiveSession, SessionStatus } from '../../types/liveSession';
 import { useLiveSessionSocket } from '../../hooks/useLiveSessionSocket';
+import { CourseSelector } from '../Common/CourseSelector';
 
 interface Course {
   Id: string;
@@ -53,6 +54,7 @@ export const InstructorSessionsList: React.FC<InstructorSessionsListProps> = ({
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState(0);
+  const [selectedCourse, setSelectedCourse] = useState<string>('all');
 
   // Fetch sessions
   const fetchSessions = async () => {
@@ -163,8 +165,13 @@ export const InstructorSessionsList: React.FC<InstructorSessionsListProps> = ({
     },
   });
 
-  // Filter sessions by status
+  // Filter sessions by course and status
   const filteredSessions = sessions.filter((session) => {
+    // Course filter
+    if (selectedCourse !== 'all' && session.CourseId !== selectedCourse) {
+      return false;
+    }
+    // Status filter
     switch (activeTab) {
       case 0: // All
         return true;
@@ -290,6 +297,21 @@ export const InstructorSessionsList: React.FC<InstructorSessionsListProps> = ({
           Create Session
         </Button>
       </Box>
+
+      {/* Course Filter */}
+      {courses.length > 0 && (
+        <CourseSelector
+          courses={courses}
+          value={selectedCourse}
+          onChange={(id: string) => setSelectedCourse(id || 'all')}
+          allOption={{ value: 'all', label: 'All Courses' }}
+          size="small"
+          placeholder="Filter by course..."
+          sx={{ mb: 3, minWidth: 250 }}
+          testId="live-sessions-instructor-course-autocomplete"
+          inputTestId="live-sessions-instructor-course-autocomplete-input"
+        />
+      )}
 
       {/* Tabs */}
       <Tabs

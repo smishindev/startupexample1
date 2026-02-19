@@ -7,8 +7,6 @@ import {
   Card,
   CardContent,
   Grid,
-  Select,
-  MenuItem,
   CircularProgress,
   Alert,
   Chip,
@@ -57,6 +55,7 @@ import { HeaderV5 as Header } from '../../components/Navigation/HeaderV5';
 import { PageHeader } from '../../components/Navigation/PageHeader';
 import { analyticsApi, type CourseAnalytics, type DashboardAnalytics } from '../../services/analyticsApi';
 import { instructorApi, type InstructorCourse } from '../../services/instructorApi';
+import { CourseSelector } from '../../components/Common/CourseSelector';
 
 const PERFORMANCE_COLORS = ['#f44336', '#ff9800', '#ffc107', '#4caf50', '#2196f3', '#9c27b0'];
 
@@ -98,8 +97,8 @@ export const CourseAnalyticsDashboard: React.FC = () => {
   const loadCourses = async () => {
     try {
       setCoursesError(null);
-      const coursesResponse = await instructorApi.getCourses();
-      setCourses(coursesResponse.courses);
+      const courses = await instructorApi.getCoursesForDropdown();
+      setCourses(courses);
     } catch (err) {
       console.error('Error loading courses:', err);
       setCoursesError('Failed to load courses list.');
@@ -171,24 +170,16 @@ export const CourseAnalyticsDashboard: React.FC = () => {
             <IconButton onClick={handleRefresh} color="primary" size="small" disabled={loading} data-testid="course-analytics-refresh-button">
               <RefreshIcon />
             </IconButton>
-            <Typography variant="body2" color="textSecondary">
-              View:
-            </Typography>
-            <Select
-              data-testid="course-analytics-course-select"
-              size="small"
+            <CourseSelector
+              courses={courses}
               value={selectedCourse}
-              onChange={(e) => setSelectedCourse(e.target.value)}
-              sx={{ minWidth: 200 }}
+              onChange={(id: string) => setSelectedCourse(id)}
+              allOption={{ value: 'dashboard', label: 'All Courses Overview' }}
               disabled={loading}
-            >
-              <MenuItem value="dashboard">All Courses Overview</MenuItem>
-              {courses.map((course, index) => (
-                <MenuItem key={course.id || `course-${index}`} value={course.id?.toString() || course.id}>
-                  {course.title}
-                </MenuItem>
-              ))}
-            </Select>
+              size="small"
+              sx={{ minWidth: 200 }}
+              testId="course-analytics-course-select"
+            />
           </Box>
         }
       />

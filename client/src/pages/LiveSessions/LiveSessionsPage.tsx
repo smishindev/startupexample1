@@ -39,7 +39,7 @@ export const LiveSessionsPage: React.FC = () => {
           );
         } else {
           // Fetch student's enrolled courses
-          const response = await enrollmentApi.getMyEnrollments();
+          const response = await enrollmentApi.getMyEnrollments(1, 10000);
           console.log('Student enrollments:', response);
           const mappedCourses = response.enrollments
             .filter((e: any) => e.courseId || e.CourseId)

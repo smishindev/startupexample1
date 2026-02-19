@@ -5,7 +5,6 @@ import {
   Typography,
   TextField,
   Button,
-  Autocomplete,
   Chip,
   IconButton,
   List,
@@ -39,6 +38,8 @@ import {
 } from '@mui/icons-material';
 import { toast } from 'sonner';
 import { instructorApi, InstructorCourse } from '../../services/instructorApi';
+import { CourseSelector } from '../Common/CourseSelector';
+import type { CourseOption } from '../Common/CourseSelector';
 
 interface CourseSettingsEditorProps {
   course: InstructorCourse;
@@ -80,9 +81,9 @@ export const CourseSettingsEditor: React.FC<CourseSettingsEditorProps> = ({ cour
 
   const loadAvailableCourses = async () => {
     try {
-      const response = await instructorApi.getCourses('published', 1, 100);
+      const courses = await instructorApi.getCoursesForDropdown('published');
       // Exclude current course from prerequisites
-      setAvailableCourses(response.courses.filter(c => c.id !== course.id));
+      setAvailableCourses(courses.filter(c => c.id !== course.id));
     } catch (error) {
       console.error('Failed to load available courses:', error);
     }
@@ -209,37 +210,27 @@ export const CourseSettingsEditor: React.FC<CourseSettingsEditorProps> = ({ cour
           Students will not be able to enroll until all prerequisites are completed.
         </Typography>
 
-        <Autocomplete
+        <CourseSelector
           multiple
-          options={availableCourses}
-          getOptionLabel={(option) => option.title}
-          value={availableCourses.filter(c => prerequisites.includes(c.id))}
-          onChange={(_, newValue) => {
-            setPrerequisites(newValue.map(c => c.id));
+          courses={availableCourses}
+          value={prerequisites}
+          onChange={(ids: string[]) => setPrerequisites(ids)}
+          excludeIds={[course.id]}
+          label="Select prerequisite courses"
+          placeholder="Search courses..."
+          testId="course-settings-prerequisites-autocomplete"
+          inputTestId="course-settings-prerequisites-input"
+          renderTag={(option: CourseOption, index: number, getTagProps: any) => {
+            const { key, ...tagProps } = getTagProps({ index });
+            return (
+              <Chip
+                key={key}
+                label={option.Title}
+                {...tagProps}
+                data-testid={`course-settings-prerequisite-chip-${index}`}
+              />
+            );
           }}
-          renderInput={(params) => (
-            <TextField
-              {...params}
-              label="Select prerequisite courses"
-              placeholder="Search courses..."
-              data-testid="course-settings-prerequisites-input"
-            />
-          )}
-          renderTags={(value, getTagProps) =>
-            value.map((option, index) => {
-              const { key, ...tagProps } = getTagProps({ index });
-              return (
-                <Chip
-                  key={key}
-                  label={option.title}
-                  {...tagProps}
-                  data-testid={`course-settings-prerequisite-chip-${index}`}
-                />
-              );
-            })
-          }
-          isOptionEqualToValue={(option, value) => option.id === value.id}
-          data-testid="course-settings-prerequisites-autocomplete"
         />
 
         {prerequisites.length > 0 && (

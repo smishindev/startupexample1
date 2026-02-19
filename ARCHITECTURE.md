@@ -1,6 +1,6 @@
 # Mishin Learn Platform - System Architecture
 
-**Last Updated**: February 18, 2026 - Analytics Hub Audit & Quality Pass 🔧  
+**Last Updated**: February 19, 2026 - CourseSelector Reusable Dropdown System 🔽  
 **Purpose**: Understanding system components, data flows, and dependencies
 
 ---
@@ -2175,7 +2175,7 @@ export const myApi = new MyApi();
 | **assessmentApi** | `assessmentApi.ts` | Assessments | getAssessments, submitAssessment, getResults |
 | **chatApi** | `chatApi.ts` | AI tutoring | createSession, sendMessage, getSessions |
 | **analyticsApi** | `analyticsApi.ts` | Analytics | getCourseAnalytics, getStudentAnalytics |
-| **instructorApi** | `instructorApi.ts` | Instructor features | createCourse, updateCourse, getStudents |
+| **instructorApi** | `instructorApi.ts` | Instructor features | createCourse, updateCourse, getStudents, getCourses (paginated, limit=12), **getCoursesForDropdown** (all, limit=10000) |
 | **accountDeletionApi** | `accountDeletionApi.ts` | Account deletion | deleteAccount (Jan 19, 2026) |
 
 ### Backend Service Layer

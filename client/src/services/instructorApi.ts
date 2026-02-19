@@ -189,6 +189,21 @@ export const instructorApi = {
     }
   },
 
+  // Get ALL instructor courses for dropdown/selector use (no pagination limit)
+  getCoursesForDropdown: async (status?: string): Promise<InstructorCourse[]> => {
+    try {
+      const params: any = { page: 1, limit: 10000 };
+      if (status) {
+        params.status = status;
+      }
+      const response = await api.get('/instructor/courses', { params });
+      return response.data.courses || [];
+    } catch (error) {
+      console.error('Failed to fetch instructor courses for dropdown:', error);
+      throw error;
+    }
+  },
+
   // Create new course
   createCourse: async (courseData: CourseFormData): Promise<{ id: string; message: string; status: string }> => {
     try {

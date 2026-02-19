@@ -13,11 +13,11 @@ import {
   Button,
   Box,
   Typography,
-  Autocomplete
 } from '@mui/material';
 import { toast } from 'sonner';
 import { createGroup } from '../../services/studyGroupsApi';
 import type { CreateGroupData } from '../../types/studyGroup';
+import { CourseSelector } from '../Common/CourseSelector';
 
 interface Course {
   Id: string;
@@ -45,18 +45,6 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Lazy loading state for courses
-  const [displayedCourses, setDisplayedCourses] = useState<Course[]>([]);
-  const [courseLoadCount, setCourseLoadCount] = useState(50);
-
-  // Initialize displayed courses when modal opens or courses change
-  React.useEffect(() => {
-    if (open) {
-      setDisplayedCourses(courses.slice(0, 50));
-      setCourseLoadCount(50);
-    }
-  }, [open, courses]);
 
   const handleChange = (field: keyof CreateGroupData, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -159,68 +147,15 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
 
           {/* Course Selection - Autocomplete with lazy loading */}
           {courses.length > 0 && (
-            <Autocomplete
-              options={(() => {
-                // Always include selected course in options
-                const selectedCourse = courses.find(c => c.Id === formData.courseId);
-                if (selectedCourse && !displayedCourses.find(c => c.Id === selectedCourse.Id)) {
-                  return [selectedCourse, ...displayedCourses];
-                }
-                return displayedCourses;
-              })()}
-              getOptionLabel={(option) => option.Title}
-              value={courses.find(c => c.Id === formData.courseId) || null}
-              onChange={(_, newValue) => handleChange('courseId', newValue?.Id || '')}
-              isOptionEqualToValue={(option, value) => option.Id === value.Id}
+            <CourseSelector
+              courses={courses}
+              value={formData.courseId}
+              onChange={(id: string) => handleChange('courseId', id)}
               disabled={isSubmitting}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  label="Course (Optional)"
-                  placeholder="Search courses..."
-                  helperText={`${displayedCourses.length} of ${courses.length} courses loaded - type to search or scroll for more`}
-                  data-testid="create-group-course-autocomplete-input"
-                />
-              )}
-              renderOption={(props, option, state) => {
-                const isLastItem = state.index === displayedCourses.length - 1;
-                
-                return (
-                  <li 
-                    {...props} 
-                    key={option.Id}
-                    ref={isLastItem ? (el) => {
-                      if (el && courseLoadCount < courses.length) {
-                        const observer = new IntersectionObserver((entries) => {
-                          if (entries[0].isIntersecting) {
-                            const newCount = Math.min(courseLoadCount + 12, courses.length);
-                            setDisplayedCourses(courses.slice(0, newCount));
-                            setCourseLoadCount(newCount);
-                            observer.disconnect();
-                          }
-                        }, { threshold: 0.1 });
-                        observer.observe(el);
-                      }
-                    } : undefined}
-                  >
-                    <Box sx={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
-                      <Typography variant="body2">{option.Title}</Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        ID: {option.Id}
-                      </Typography>
-                    </Box>
-                  </li>
-                );
-              }}
-              filterOptions={(options, { inputValue }) => {
-                if (inputValue.trim()) {
-                  return courses.filter(option =>
-                    option.Title.toLowerCase().includes(inputValue.toLowerCase())
-                  ).slice(0, 100);
-                }
-                return options;
-              }}
-              data-testid="create-group-course-select"
+              label="Course (Optional)"
+              placeholder="Search courses..."
+              testId="create-group-course-select"
+              inputTestId="create-group-course-autocomplete-input"
             />
           )}
           {courses.length === 0 && (

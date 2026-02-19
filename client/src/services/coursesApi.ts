@@ -234,7 +234,7 @@ class CoursesApi {
 
   // Get user's enrolled courses (for tutoring session course selection)
   async getEnrolledCourses(): Promise<Course[]> {
-    const response = await api.get('/api/enrollment/my-enrollments?limit=100');
+    const response = await api.get('/api/enrollment/my-enrollments?limit=10000');
     // Map enrollment data to Course interface
     return response.data.enrollments.map((enrollment: any) => ({
       Id: enrollment.courseId,

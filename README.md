@@ -4,7 +4,7 @@
 
 An innovative EdTech startup providing personalized learning experiences through AI tutoring, adaptive content delivery, and comprehensive progress analytics.
 
-**Last Major Update**: February 18, 2026 - Analytics Hub Audit & Quality Pass 🔧  
+**Last Major Update**: February 19, 2026 - CourseSelector Reusable Dropdown System 🔽  
 **Code Quality**: Grade A (95/100) - 85% type safety, 70% logging coverage, 0 TypeScript errors
 
 ## 🚀 Features
@@ -25,6 +25,13 @@ An innovative EdTech startup providing personalized learning experiences through
   - **Reusable Component**: Two variants (header: compact for nav bars, hero: larger for landing page with button)
   - **Universal Integration**: PublicHeader (guest), HeaderV5 (authenticated), LandingPage hero
   - **Bug Fixes**: Regex global flag drift, DOM prop warnings, modulo-by-zero crashes, stale debounce cleanup
+- **CourseSelector — Reusable Course Dropdown** - Single component replaces 9 inline course dropdowns across the platform (February 19, 2026) 🔽
+  - **Lazy Rendering**: Renders 50 courses initially; IntersectionObserver + scroll loads 12 more at a time
+  - **Type-to-Search**: Client-side filter across full course list — no re-fetches needed
+  - **Helper Text**: "X of Y courses loaded — type to search or scroll for more" shown automatically when list exceeds display count
+  - **Flexible**: Single-select and multi-select (chips) modes; optional synthetic "All Courses" first option; custom option/tag renderers; `excludeIds` support
+  - **Full Data**: All consumer pages updated to fetch `limit=10000` (via `getCoursesForDropdown()`); ensures dropdown always shows complete course list
+  - **10 Instances**: CourseAnalytics, VideoAnalytics, StudentManagement, StudyGroups, Tutoring, InstructorSessions (new), StudentSessions, CreateSessionModal, CreateGroupModal, CourseSettingsEditor
 - **Analytics Hub (Hardened)** - Full instructor analytics with exhaustive audit pass — 68 bug fixes across 23 rounds (February 18, 2026) 🔧
   - **Course Performance Table**: Replaced 1004-card grid with sortable/searchable/paginated MUI table (sort by students, progress, completions, time; 10/25/50/100 rows per page; color-coded progress bars)
   - **API Services Hardened**: Both `analyticsApi.ts` and `assessmentAnalyticsApi.ts` now have env-aware URLs, auth interceptors, 401 auto-logout, and Content-Type headers

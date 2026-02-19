@@ -15,10 +15,6 @@ import {
   Grid,
   TextField,
   InputAdornment,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   CircularProgress,
   Alert,
   Paper
@@ -49,6 +45,7 @@ import { useStudyGroupSocket } from '../../hooks/useStudyGroupSocket';
 import { presenceApi } from '../../services/presenceApi';
 import { socketService } from '../../services/socketService';
 import { HeaderV5 as Header } from '../../components/Navigation/HeaderV5';
+import { CourseSelector } from '../../components/Common/CourseSelector';
 
 interface Course {
   Id: string;
@@ -89,14 +86,14 @@ export const StudyGroupsPage: React.FC = () => {
     const fetchCourses = async () => {
       try {
         if (user?.role === 'instructor') {
-          const response = await instructorApi.getCourses();
-          const coursesData = response.courses.map(c => ({
+          const courses = await instructorApi.getCoursesForDropdown();
+          const coursesData = courses.map(c => ({
             Id: c.id,
             Title: c.title
           }));
           setCourses(coursesData);
         } else {
-          const response = await enrollmentApi.getMyEnrollments();
+          const response = await enrollmentApi.getMyEnrollments(1, 10000);
           const coursesData = response.enrollments.map(e => ({
             Id: e.courseId,
             Title: e.Title
@@ -401,24 +398,15 @@ export const StudyGroupsPage: React.FC = () => {
 
           {/* Course Filter */}
           {activeTab === 'course' && (
-            <FormControl sx={{ minWidth: 250 }}>
-              <InputLabel>Select Course</InputLabel>
-              <Select
-                value={selectedCourse}
-                onChange={(e) => setSelectedCourse(e.target.value)}
-                label="Select Course"
-                data-testid="study-groups-course-select"
-              >
-                <MenuItem value="">
-                  <em>All Courses</em>
-                </MenuItem>
-                {courses.map((course) => (
-                  <MenuItem key={course.Id} value={course.Id}>
-                    {course.Title}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+            <CourseSelector
+              courses={courses}
+              value={selectedCourse}
+              onChange={(id: string) => setSelectedCourse(id)}
+              allOption={{ value: '', label: 'All Courses' }}
+              label="Select Course"
+              sx={{ minWidth: 250 }}
+              testId="study-groups-course-select"
+            />
           )}
         </Box>
       </Paper>

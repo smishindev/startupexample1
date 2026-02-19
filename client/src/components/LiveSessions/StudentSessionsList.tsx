@@ -13,16 +13,15 @@ import {
   Tab,
   Alert,
   CircularProgress,
-  TextField,
   useTheme,
   alpha,
-  Autocomplete,
 } from '@mui/material';
 import { toast } from 'sonner';
 import { LiveSessionCard } from './LiveSessionCard';
 import { getSessionsByCourse, joinSession, leaveSession } from '../../services/liveSessionsApi';
 import { LiveSession, SessionStatus } from '../../types/liveSession';
 import { useLiveSessionSocket } from '../../hooks/useLiveSessionSocket';
+import { CourseSelector } from '../Common/CourseSelector';
 
 interface Course {
   Id: string;
@@ -43,16 +42,6 @@ export const StudentSessionsList: React.FC<StudentSessionsListProps> = ({
   const [error, setError] = useState<string>('');
   const [activeTab, setActiveTab] = useState(0);
   const [selectedCourse, setSelectedCourse] = useState<string>('all');
-
-  // Lazy loading state for courses
-  const [displayedCourses, setDisplayedCourses] = useState<Course[]>([]);
-  const [courseLoadCount, setCourseLoadCount] = useState(50);
-
-  // Initialize displayed courses
-  React.useEffect(() => {
-    setDisplayedCourses(enrolledCourses.slice(0, 50));
-    setCourseLoadCount(50);
-  }, [enrolledCourses]);
 
   // Fetch sessions
   const fetchSessions = async (courseId?: string) => {
@@ -262,88 +251,16 @@ export const StudentSessionsList: React.FC<StudentSessionsListProps> = ({
 
       {/* Course Filter - Autocomplete with lazy loading */}
       {enrolledCourses.length > 0 && (
-        <Autocomplete
-          options={(() => {
-            // Always include selected course in options + "All Courses"
-            const allCoursesOption = { Id: 'all', Title: 'All Courses' };
-            const currentSelected = enrolledCourses.find(c => c.Id === selectedCourse);
-            if (currentSelected && !displayedCourses.find(c => c.Id === currentSelected.Id)) {
-              return [allCoursesOption, currentSelected, ...displayedCourses];
-            }
-            return [allCoursesOption, ...displayedCourses];
-          })()}
-          getOptionLabel={(option) => option.Title}
-          value={enrolledCourses.find(c => c.Id === selectedCourse) || { Id: 'all', Title: 'All Courses' }}
-          onChange={(_, newValue) => setSelectedCourse(newValue?.Id || 'all')}
-          isOptionEqualToValue={(option, value) => option.Id === value.Id}
-          renderInput={(params) => (
-            <TextField
-              {...params}
-              size="small"
-              placeholder="Filter by course..."
-              helperText={`${displayedCourses.length + 1} of ${enrolledCourses.length + 1} courses loaded - type to search or scroll for more`}
-              data-testid="live-sessions-student-course-autocomplete-input"
-            />
-          )}
-          renderOption={(props, option, state) => {
-            const isLastItem = state.index === displayedCourses.length;
-            
-            return (
-              <li 
-                {...props} 
-                key={option.Id}
-                ref={isLastItem && option.Id !== 'all' ? (el) => {
-                  if (el && courseLoadCount < enrolledCourses.length) {
-                    const observer = new IntersectionObserver((entries) => {
-                      if (entries[0].isIntersecting) {
-                        const newCount = Math.min(courseLoadCount + 12, enrolledCourses.length);
-                        setDisplayedCourses(enrolledCourses.slice(0, newCount));
-                        setCourseLoadCount(newCount);
-                        observer.disconnect();
-                      }
-                    }, { threshold: 0.1 });
-                    observer.observe(el);
-                  }
-                } : undefined}
-              >
-                <Box sx={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
-                  <Typography variant="body2">{option.Title}</Typography>
-                  {option.Id !== 'all' && (
-                    <Typography variant="caption" color="text.secondary">
-                      ID: {option.Id}
-                    </Typography>
-                  )}
-                </Box>
-              </li>
-            );
-          }}
-          filterOptions={(options, { inputValue }) => {
-            if (inputValue.trim()) {
-              return [{ Id: 'all', Title: 'All Courses' }, ...enrolledCourses.filter(option =>
-                option.Title.toLowerCase().includes(inputValue.toLowerCase())
-              )].slice(0, 100);
-            }
-            return options;
-          }}
-          ListboxProps={{
-            onScroll: (event: React.SyntheticEvent) => {
-              const listboxNode = event.currentTarget;
-              const position = listboxNode.scrollTop + listboxNode.clientHeight;
-              const isNearBottom = position >= listboxNode.scrollHeight - 50;
-              
-              if (isNearBottom && courseLoadCount < enrolledCourses.length) {
-                const newCount = Math.min(courseLoadCount + 12, enrolledCourses.length);
-                setDisplayedCourses(enrolledCourses.slice(0, newCount));
-                setCourseLoadCount(newCount);
-              }
-            },
-            style: { maxHeight: '300px' },
-          }}
+        <CourseSelector
+          courses={enrolledCourses}
+          value={selectedCourse}
+          onChange={(id: string) => setSelectedCourse(id || 'all')}
+          allOption={{ value: 'all', label: 'All Courses' }}
+          size="small"
+          placeholder="Filter by course..."
           sx={{ mb: 3, minWidth: 250 }}
-          clearOnBlur
-          selectOnFocus
-          handleHomeEndKeys
-          data-testid="live-sessions-student-course-autocomplete"
+          testId="live-sessions-student-course-autocomplete"
+          inputTestId="live-sessions-student-course-autocomplete-input"
         />
       )}
 

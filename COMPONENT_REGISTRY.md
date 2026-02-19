@@ -1,7 +1,100 @@
 # Mishin Learn Platform - Component Registry
 
-**Last Updated**: February 17, 2026 - Search Autocomplete System 🔍  
+**Last Updated**: February 19, 2026 - CourseSelector Reusable Dropdown System 🔽  
 **Purpose**: Quick reference for all major components, their dependencies, and relationships
+
+---
+
+## 🔽 CourseSelector — Reusable Course Dropdown (Added February 19, 2026)
+
+### CourseSelector
+**Path**: `client/src/components/Common/CourseSelector.tsx` (406 lines)  
+**Purpose**: Single reusable dropdown that replaced 9 independent course-select implementations across the platform
+
+**Features**:
+- MUI Autocomplete with IntersectionObserver + scroll-based lazy rendering
+- Client-side type-to-search across the full course list
+- Single-select and multi-select (chips) modes
+- Optional synthetic "All Courses" first option (`allOption` prop)
+- Helper text: `"X of Y courses loaded — type to search or scroll for more"` when list exceeds `initialDisplayCount`
+- Accepts both PascalCase (`{Id, Title}`) and camelCase (`{id, title}`) course objects
+- Custom `renderCourseOption` override for rich item rendering
+- Custom `renderTag` override for multi-select chip rendering
+- `excludeIds` prop to remove specific courses from options
+- Lazy rendering: renders `initialDisplayCount` items initially, loads `loadMoreCount` more per scroll
+
+**Props**:
+```typescript
+interface CourseSelectorProps {
+  courses: any[];                          // PascalCase or camelCase — auto-normalised
+  value: string | string[] | null;         // Selected course id(s)
+  onChange: (value: any) => void;          // Fires with new id or id[]
+  multiple?: boolean;                      // Multi-select mode (default: false)
+  disabled?: boolean;
+  required?: boolean;                      // Prevents clearing (disableClearable)
+  allOption?: { value: string; label: string }; // Synthetic first option
+  excludeIds?: string[];                   // Course IDs to hide
+  label?: string;
+  placeholder?: string;                   // Default: 'Search courses...'
+  size?: 'small' | 'medium';
+  showHelperText?: boolean;               // Default: true
+  sx?: SxProps<Theme>;
+  fullWidth?: boolean;                    // Default: true
+  testId?: string;
+  inputTestId?: string;
+  renderCourseOption?: (props, option, state) => ReactNode;
+  renderTag?: (option, index, getTagProps) => ReactNode;
+  initialDisplayCount?: number;           // Default: 50
+  loadMoreCount?: number;                 // Default: 12
+}
+```
+
+**Usage**:
+```tsx
+import { CourseSelector } from '../../components/Common/CourseSelector';
+
+// Basic single-select with "All Courses" option
+<CourseSelector
+  courses={courses}
+  value={selectedCourseId}
+  onChange={(id: string) => setSelectedCourseId(id)}
+  allOption={{ value: '', label: 'All Courses' }}
+  size="small"
+  testId="my-course-select"
+/>
+
+// Multi-select
+<CourseSelector
+  courses={courses}
+  value={selectedIds}
+  onChange={(ids: string[]) => setSelectedIds(ids)}
+  multiple
+/>
+```
+
+**`showHelperText` Rules**:
+- Default `true` — always show if there are more courses than `initialDisplayCount`
+- Set `showHelperText={false}` only for compact modals where vertical space is limited
+- Currently `false` only in: `CreateSessionModal`, `CreateGroupModal`, `CourseSettingsEditor` (prerequisites)
+- Currently `false` also in: `StudentManagement` (near search bar — compact filter context)
+
+**Data Fetching Convention**:
+- Pages must fetch ALL courses (not default `limit=12`) when populating CourseSelector
+- Use `instructorApi.getCoursesForDropdown()` (instructor side) — fetches with `limit=10000`
+- Use `enrollmentApi.getMyEnrollments(1, 10000)` (student side)
+- Use `coursesApi.getEnrolledCourses()` (student Tutoring page — `limit=10000`)
+
+**Pages using CourseSelector** (10 instances):
+1. `CourseAnalyticsDashboard.tsx` — `allOption: 'All Courses Overview'`
+2. `VideoAnalyticsPage.tsx` — required, no allOption (needs specific course for per-lesson data)
+3. `StudentManagement.tsx` — `allOption: 'All Courses'`, `showHelperText={false}` (filter bar)
+4. `StudyGroupsPage.tsx` — `allOption: 'All Study Groups'`
+5. `Tutoring.tsx` — `allOption: 'All Courses'` with custom `renderCourseOption`
+6. `InstructorSessionsList.tsx` — `allOption: 'All Courses'`
+7. `StudentSessionsList.tsx` — `allOption: 'All Courses'`
+8. `CreateSessionModal.tsx` — modal, no allOption
+9. `CreateGroupModal.tsx` — modal, no allOption
+10. `CourseSettingsEditor.tsx` — prerequisites modal, `excludeIds` to hide current course
 
 ---
 

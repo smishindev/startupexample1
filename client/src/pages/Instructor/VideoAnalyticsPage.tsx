@@ -19,10 +19,6 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
   CircularProgress,
   Alert,
   Chip,
@@ -41,6 +37,7 @@ import {
 import axios from 'axios';
 import { useAuthStore } from '../../stores/authStore';
 import { HeaderV5 as Header } from '../../components/Navigation/HeaderV5';
+import { CourseSelector } from '../../components/Common/CourseSelector';
 
 // Use environment variable or fallback to localhost
 const API_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3001';
@@ -127,7 +124,7 @@ export const VideoAnalyticsPage: React.FC = () => {
       try {
         setCoursesLoading(true);
         const authAxios = createAuthAxios();
-        const response = await authAxios.get('/api/instructor/courses');
+        const response = await authAxios.get('/api/instructor/courses', { params: { page: 1, limit: 10000 } });
         setCourses(response.data.courses || []);
         
         if (response.data.courses?.length > 0 && !selectedCourseId) {
@@ -321,22 +318,17 @@ export const VideoAnalyticsPage: React.FC = () => {
           <IconButton onClick={fetchAnalytics} color="primary" size="large" disabled={loading} data-testid="video-analytics-refresh-button">
             <RefreshIcon />
           </IconButton>
-          <FormControl sx={{ minWidth: 300 }}>
-          <InputLabel>Select Course</InputLabel>
-          <Select
+          <CourseSelector
+            courses={courses}
             value={selectedCourseId}
-            onChange={(e) => setSelectedCourseId(e.target.value)}
+            onChange={(id: string) => setSelectedCourseId(id)}
             label="Select Course"
-            data-testid="video-analytics-course-select"
             disabled={loading}
-          >
-            {courses.map((course) => (
-              <MenuItem key={course.id} value={course.id}>
-                {course.title}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+            required
+            sx={{ minWidth: 300 }}
+            testId="video-analytics-course-select"
+            inputTestId="video-analytics-course-select-input"
+          />
         </Box>
       </Box>
 

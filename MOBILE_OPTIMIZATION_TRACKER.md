@@ -2,7 +2,7 @@
 
 **Created**: February 19, 2026  
 **Last Updated**: February 21, 2026  
-**Status**: Phase 1 Complete — Phase 2 Next  
+**Status**: Phase 1 Complete + Theme Token System Built + 3-Round Bug Audit — Phase 2 Next  
 **Goal**: Make every page fully responsive and mobile-optimized across the Mishin Learn Platform
 
 ---
@@ -19,14 +19,15 @@
 | **Pages with bottom-nav padding** | 1 (DashboardPage only) |
 | **Global Layout Components** | HeaderV5, PublicHeader, MobileBottomNav, MobileNavDrawer, PublicFooter, Layout.tsx, PublicLayout.tsx |
 
-### MUI Breakpoint Reference (used throughout)
+### Custom Breakpoint Reference (defined in `theme/index.ts`)
 ```
-xs: 0px    — phones (portrait)
-sm: 600px  — phones (landscape) / small tablets
-md: 900px  — tablets
-lg: 1200px — desktops
-xl: 1536px — large desktops
+xs: 0px     — phones (portrait)
+sm: 640px   — phones (landscape) / small tablets
+md: 768px   — tablets
+lg: 1024px  — desktops
+xl: 1280px  — large desktops
 ```
+> ⚠️ These are NOT MUI defaults (600/900/1200/1536). We use custom values.
 
 ---
 
@@ -287,9 +288,49 @@ const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 ### Strategy
 1. **Phase 0 first** — global components affect every page; fixing them gives immediate improvement across the board
 2. **Phase 1 next** — these are the first pages any user (student or guest) encounters
-3. **Top-down approach** — optimize the outer shell, then page-specific content
-4. **One page at a time** — fully optimize, verify at 375px, mark complete, move to next
-5. **TypeScript 0 errors** after every change — verify with `npx tsc --noEmit`
+3. **Theme Token System** — centralise all design values (colors, shadows, radii) in the theme before Phase 2 so every subsequent page uses tokens instead of raw values (MUI-upgrade-proofing)
+4. **Token hardening per phase** — as each page is mobile-optimized, also replace its hardcoded hex colors / boxShadow / borderRadius with theme tokens
+5. **Top-down approach** — optimize the outer shell, then page-specific content
+6. **One page at a time** — fully optimize, verify at 375px, mark complete, move to next
+7. **TypeScript 0 errors** after every change — verify with `npx tsc --noEmit`
+
+### Theme Token System (Added Feb 21, 2026)
+
+To prevent painful MUI version upgrades in the future, all design primitives are now centralised in the theme rather than scattered across 2,500+ inline `sx` usages.
+
+**Files:**
+- `client/src/theme/index.ts` — Single `createTheme()` call (merged old split `theme` + `augmentedTheme`)
+- `client/src/theme/tokens.ts` — Reusable `SxProps` fragments (spread into any `sx` prop)
+
+**What was added to `theme.custom`:**
+
+| Category | Tokens | Usage |
+|----------|--------|-------|
+| `custom.colors` | `gold`, `onlineGreen`, `muted`, `mutedDark`, `border`, `surfaceHover`, `overlay`, `brandPrimary` | `sx={{ color: (t) => t.custom.colors.gold }}` |
+| `custom.gradients` | `primary`, `secondary`, `success`, `warning`, `error` | `sx={{ background: (t) => t.custom.gradients.primary }}` |
+| `custom.shadows` | `soft`, `card`, `cardHover`, `dialog`, `image`, `focusPrimary`, `focusSuccess`, `large`, `none` | `sx={{ boxShadow: (t) => t.custom.shadows.card }}` |
+| `custom.radii` | `none`(0), `sm`(6), `md`(12), `card`(16), `chip`(20), `lg`(24), `full`('50%') | **Numbers** (all except `full`): `` sx={{ borderRadius: (t) => `${t.custom.radii.card}px` }} `` — MUST use `px` string to bypass MUI's `× shape.borderRadius` multiplier (12). **EXCEPTION `full`**: already `'50%'` string — use `(t) => t.custom.radii.full` directly (no `px` suffix). |
+
+**Extended palette shades**: All 50-900 shades now on `palette.primary`, `.secondary`, `.success`, `.warning`, `.error` — enables `sx={{ bgcolor: 'primary.50' }}` etc.
+
+**What was fixed:** `augmentedTheme` was defined but never used (main.tsx imported `theme`). Merged into single export.
+
+**Reusable sx fragments** (`tokens.ts`):
+- `cardSx`, `elevatedPaperSx`, `flatSurfaceSx` — surface elevation
+- `truncateSx`, `lineClamp2Sx`, `lineClamp3Sx` — text overflow
+- `centeredFlexSx`, `spacedRowSx`, `inlineRowSx` — flex layouts
+- `clickableSx`, `focusRingSx` — interactivity
+- `responsiveImageSx`, `avatarSx` — images
+- `badgeSx`, `statusDotSx` — badges/indicators
+- `scrollRowSx`, `glassSx`, `srOnlySx` — miscellaneous
+
+**Per-phase token hardening plan:**
+| Phase | Files | Est. hardcoded values to replace |
+|-------|-------|----------------------------------|
+| Phase 2 (13 pages) | Student pages | ~200 |
+| Phase 3 (7 pages) | Collaboration pages | ~100 |
+| Phase 4 (19 pages) | Instructor pages (425 sx usages!) | ~300 |
+| Phase 5 (10 pages) | Payment/legal pages | ~80 |
 
 ### Key Observations from Audit
 - **Only DashboardPage** currently has the full mobile pattern (useMediaQuery + isMobile + bottom-nav padding)
@@ -326,6 +367,8 @@ The following pages may be unused (old versions superseded by newer implementati
 | 1 | Feb 19, 2026 | Created tracking document, audited all 55 pages | Planning only |
 | 2 | Feb 19, 2026 | Phase 0 complete: Audited & fixed all 15 global/shared components. Fixes: NotificationBell responsive width, PageHeader responsive sticky+breadcrumbs, MobileNavDrawer search route, CommentsSection responsive padding, RatingSummaryCard responsive padding/gap, RatingSubmitForm responsive padding. 0 TS errors. | 15/15 (Phase 0) |
 | 3 | Feb 21, 2026 | Phase 1 complete (9/9): Created Responsive library (8 files — PageContainer, PageTitle, ResponsiveDialog, ResponsivePaper, ResponsiveStack, useResponsive, constants, index). Applied to all 9 Phase 1 pages. Fixed auth bug: `<Link component="button">` inside `<form>` was submitting login form on Sign-Up click — fixed with `type="button"`. Fixed logout(): state now clears immediately before server call. Fixed `await logout()` in all nav handlers. Unified 401 interceptors across all API services. App.tsx stale-state guard added. Full Phase 1 audit: 0 TS errors across all 18 files. | 9/9 (Phase 1), cumulative 24/73 |
+| 4 | Feb 21, 2026 | Theme Token System: Merged `augmentedTheme` (was unused!) into single `createTheme` export. Extended palette with full 50-900 shades. Added `theme.custom.colors` (8 named tokens), `theme.custom.shadows` (9 named tokens), `theme.custom.radii` (7 named tokens). Created `tokens.ts` with 18 reusable sx fragments. Component overrides now use `baseRadius` variable. 0 TS errors. | Infrastructure (token system ready for Phase 2+) |
+| 5 | Feb 21, 2026 | Theme Token System — 3-Round Bug Audit: Round 1 found CRITICAL bug (borderRadius callbacks returned raw numbers → MUI ×12 multiplier → 192px instead of 16px; fixed to `px` strings) + wrong shadow RGBs (focusPrimary/image used old purple `rgba(102,126,234)`, focusSuccess used MUI default `rgba(76,175,80)`) + docs. Round 2 found duplicate shadow token (`shadows.soft` was identical to `shadows.card`; differentiated) + Rule 2 comment fix. Round 3 found `radii.full` JSDoc footgun (warning applied to all tokens but `full='50%'` must NOT get `px` suffix). Also fixed this tracker's own radii usage example (was showing the pre-fix incorrect raw-number pattern). 0 TS errors after every round. | 0 new pages (quality fixes to token system) |
 
 ---
 

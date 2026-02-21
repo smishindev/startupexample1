@@ -2,7 +2,7 @@
 
 **Purpose**: Systematic checklist to follow before implementing changes  
 **Goal**: Reduce errors, missing considerations, and broken functionality  
-**Last Updated**: February 21, 2026 - Mobile Phase 1 Complete + Auth Bug Fixes 📱
+**Last Updated**: February 21, 2026 - Theme Token System + 3-Round Bug Audit 🎨
 
 ---
 
@@ -50,6 +50,15 @@
 - [ ] Identified all pages that use this component
 
 **Recent Additions to Check:**
+- [x] **Theme Token System** - PRODUCTION READY (Feb 21, 2026) 🎨
+  - Single source of truth: `client/src/theme/index.ts` (merged from old split `theme`+`augmentedTheme`), `client/src/theme/tokens.ts`
+  - **`borderRadius` in sx MUST use px strings**: `(t) => \`${t.custom.radii.card}px\`` — raw numbers get multiplied by `shape.borderRadius` (12) → `16 × 12 = 192px`!
+  - **EXCEPTION**: `radii.full = '50%'` — already a string, use `(t) => t.custom.radii.full` directly (adding `px` would produce `'50%px'`)
+  - **Shadow RGBs**: `focusPrimary` uses `rgba(99, 102, 241)` (#6366f1 brand), `focusSuccess` uses `rgba(34, 197, 94)` (#22c55e brand). Old `rgba(102, 126, 234)` / `rgba(76, 175, 80)` are wrong.
+  - **Colors outside sx**: Use `mishinColors.primary[500]` raw values (not callbacks) for Toaster, chart libs, etc.
+  - **`tokens.ts`**: 18 reusable `SxProps<Theme>` fragments — import and spread: `<Paper sx={{ ...cardSx }}>`
+  - **Extended palette**: All 5 palettes have 50-900 shades → `sx={{ bgcolor: 'primary.50' }}` works
+  - Files: `client/src/theme/index.ts`, `client/src/theme/tokens.ts`, `client/src/main.tsx`
 - [x] **Mobile Optimization Phase 1 + Auth Bug Fixes** - PRODUCTION READY (Feb 21, 2026) 📱🔐
   - New Responsive library at `client/src/components/Responsive/` (8 files: PageContainer, PageTitle, ResponsiveDialog, ResponsivePaper, ResponsiveStack, useResponsive, constants, index)
   - **Every page** must use `PageContainer` instead of raw `<Container>` and `PageTitle` for headings

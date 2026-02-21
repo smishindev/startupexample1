@@ -6,7 +6,7 @@ import CssBaseline from '@mui/material/CssBaseline'
 import { Toaster } from 'react-hot-toast'
 
 import App from './App'
-import { theme } from './theme'
+import { theme, mishinColors } from './theme'
 import './index.css'
 import './utils/axiosConfig' // Initialize axios interceptors
 
@@ -32,20 +32,20 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
           toastOptions={{
             duration: 4000,
             style: {
-              background: '#333',
+              background: mishinColors.secondary[800],
               color: '#fff',
             },
             success: {
               duration: 3000,
               iconTheme: {
-                primary: '#4caf50',
+                primary: mishinColors.success[500],
                 secondary: '#fff',
               },
             },
             error: {
               duration: 5000,
               iconTheme: {
-                primary: '#f44336',
+                primary: mishinColors.error[500],
                 secondary: '#fff',
               },
             },

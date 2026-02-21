@@ -1,6 +1,6 @@
 # Mishin Learn Platform - System Architecture
 
-**Last Updated**: February 19, 2026 - CourseSelector Reusable Dropdown System 🔽  
+**Last Updated**: February 21, 2026 - Theme Token System 🎨  
 **Purpose**: Understanding system components, data flows, and dependencies
 
 ---
@@ -16,7 +16,23 @@ Real-time: Socket.io
 State: Zustand (auth), React state (components)
 Logging: Structured logger with metadata (70% coverage)
 Type Safety: 85% (30+ interfaces in types/database.ts)
+Theme System: Centralised token system (client/src/theme/) — colors, shadows, radii
 ```
+
+### Theme Token System (Added Feb 21, 2026)
+All design primitives are centralised in `client/src/theme/` to prevent hardcoded values across 2,500+ `sx` props.
+
+| File | Purpose |
+|------|---------|
+| `client/src/theme/index.ts` | Single `createTheme()` export: extended palette (50-900 shades), `theme.custom.colors` (8), `.shadows` (9), `.radii` (7), component overrides, `mishinColors` export |
+| `client/src/theme/tokens.ts` | 18 reusable `SxProps<Theme>` fragments (`cardSx`, `truncateSx`, `centeredFlexSx`, etc.) |
+| `client/src/main.tsx` | `ThemeProvider` wrapping; `Toaster` uses `mishinColors` raw values (non-sx context) |
+
+**Critical rules** (3-round bug audit confirmed):
+- `borderRadius` in sx: number tokens MUST use `` `${t.custom.radii.card}px` `` — raw numbers × `shape.borderRadius` (12) → `16×12=192px`
+- `radii.full` = `'50%'` string — use directly without `px` suffix
+- Shadow RGBs: `focusPrimary` = `rgba(99, 102, 241)` (brand #6366f1), `focusSuccess` = `rgba(34, 197, 94)` (brand #22c55e)
+- Colors outside sx: use `mishinColors.primary[500]` (raw), not theme callbacks
 
 ### Server Ports
 - **Backend API**: `http://localhost:3001`

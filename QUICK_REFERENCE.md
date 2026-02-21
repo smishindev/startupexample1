@@ -1,6 +1,6 @@
 ﻿# 🚀 Quick Reference - Development Workflow
 
-**Last Updated**: February 21, 2026 - Mobile Phase 1 Complete + Auth Bug Fixes 📱
+**Last Updated**: February 21, 2026 - Theme Token System + 3-Round Bug Audit 🎨
 
 ---
 
@@ -130,6 +130,69 @@ useEffect(() => {
     logout();
   }
 }, []);
+```
+
+---
+
+## 🎨 Theme Token System (Added Feb 21, 2026)
+
+**All design primitives are centralised in `client/src/theme/`. Use tokens instead of hardcoding hex colors, box-shadows, or border-radius values.**
+
+### Extended Palette Shades
+```tsx
+// All palettes now have 50-900 shades: primary, secondary, success, warning, error
+sx={{ bgcolor: 'primary.50', color: 'success.800' }}
+sx={{ borderColor: 'error.200' }}
+```
+
+### `theme.custom.colors` — Semantic Color Tokens
+```tsx
+sx={{ color: (t) => t.custom.colors.gold }}
+// gold, onlineGreen, muted, mutedDark, border, surfaceHover, overlay, brandPrimary
+```
+
+### `theme.custom.shadows` — Box Shadow Tokens
+```tsx
+sx={{ boxShadow: (t) => t.custom.shadows.card }}
+// soft, card, cardHover, dialog, image, focusPrimary, focusSuccess, large, none
+```
+
+### `theme.custom.radii` — Border Radius Tokens
+```tsx
+// ✅ Number tokens — MUST stringify with px (bypasses MUI's × shape.borderRadius multiplier)
+sx={{ borderRadius: (t) => `${t.custom.radii.card}px` }}
+
+// ✅ EXCEPTION: full = '50%' — already a string, use directly WITHOUT 'px' suffix
+sx={{ borderRadius: (t) => t.custom.radii.full }}
+
+// Token values: none(0), sm(6px), md(12px), card(16px), chip(20px), lg(24px), full('50%')
+```
+
+> ⚠️ **CRITICAL**: `borderRadius: (t) => t.custom.radii.card` is WRONG — MUI multiplies raw numbers by `shape.borderRadius` (12), so `16 × 12 = 192px`!  
+> ✅ Always wrap number tokens in a template literal: `` `${t.custom.radii.card}px` ``  
+> 🔺 **Only `full`** is a string — all other radii tokens are numbers and require the `px` suffix.
+
+### `tokens.ts` — Reusable `sx` Fragments
+```tsx
+import { cardSx, truncateSx, centeredFlexSx, clickableSx } from '../../theme/tokens';
+
+// Spread into any sx prop:
+<Paper sx={{ ...cardSx }}>...</Paper>
+<Typography sx={{ ...truncateSx }}>Long text...</Typography>
+<Box sx={{ ...centeredFlexSx, gap: 2 }}>...</Box>
+<ButtonBase sx={{ ...clickableSx }}>...</ButtonBase>
+```
+
+**All 18 tokens**: `cardSx`, `elevatedPaperSx`, `flatSurfaceSx`, `statusDotSx`, `truncateSx`, `lineClamp2Sx`, `lineClamp3Sx`, `centeredFlexSx`, `spacedRowSx`, `inlineRowSx`, `clickableSx`, `focusRingSx`, `responsiveImageSx`, `avatarSx`, `badgeSx`, `scrollRowSx`, `glassSx`, `srOnlySx`
+
+### Colors Outside `sx` (Toaster, Charts, Third-party)
+```tsx
+import { mishinColors } from '../../theme';
+
+// Use raw palette values — NOT theme callbacks in non-sx contexts
+mishinColors.primary[500]   // #6366f1
+mishinColors.success[500]   // #22c55e
+mishinColors.error[500]     // #ef4444
 ```
 
 ---

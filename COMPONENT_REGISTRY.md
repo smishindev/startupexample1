@@ -1,6 +1,6 @@
 # Mishin Learn Platform - Component Registry
 
-**Last Updated**: February 21, 2026 - Mobile Phase 1 Complete + Auth Bug Fixes 📱  
+**Last Updated**: February 21, 2026 - Theme Token System 🎨  
 **Purpose**: Quick reference for all major components, their dependencies, and relationships
 
 ---
@@ -70,6 +70,64 @@ import { PageContainer, PageTitle, useResponsive, ResponsiveDialog,
 - `LandingPage.tsx`, `Login.tsx`, `Register.tsx`
 - `ForgotPasswordForm.tsx`, `ResetPasswordForm.tsx`, `EmailVerificationPage.tsx`
 - `CoursesPage.tsx`, `CourseDetailPage.tsx`, `DashboardPage.tsx`
+
+---
+
+## 🎨 Theme System (Added February 21, 2026)
+
+**Path**: `client/src/theme/`  
+**Purpose**: Single source of truth for all design values. Centralises colors, shadows, and border-radius tokens to prevent hardcoding across 2,500+ `sx` props and protect against painful MUI version upgrades.
+
+### `index.ts` — Main Theme File
+**Path**: `client/src/theme/index.ts`  
+**Exports**: `theme` (named + default), `mishinColors` (raw palette), `SxProps`, `Theme`
+
+- Single `createTheme()` call (merged old separate `augmentedTheme` — it was defined but never imported by `main.tsx`)
+- `shape.borderRadius = 12` — ORIGINAL pre-existing value, NOT changed by token work
+- Custom breakpoints: `xs:0 / sm:640 / md:768 / lg:1024 / xl:1280` (Tailwind-aligned, also original)
+- **Extended palette shades**: All 5 palettes (`primary`, `secondary`, `success`, `warning`, `error`) have 50-900 shades
+- **Component overrides**: MuiButton, MuiCard, MuiTextField, MuiChip, MuiAppBar, MuiDrawer, MuiListItemButton, MuiTab, MuiTabs (all use `baseRadius` variable)
+
+**`theme.custom` token namespaces**:
+
+| Namespace | Tokens | `sx` Usage |
+|-----------|--------|------------|
+| `custom.colors` | `gold`, `onlineGreen`, `muted`, `mutedDark`, `border`, `surfaceHover`, `overlay`, `brandPrimary` | `sx={{ color: (t) => t.custom.colors.gold }}` |
+| `custom.shadows` | `soft`, `card`, `cardHover`, `dialog`, `image`, `focusPrimary`, `focusSuccess`, `large`, `none` | `sx={{ boxShadow: (t) => t.custom.shadows.card }}` |
+| `custom.radii` | `none`(0), `sm`(6), `md`(12), `card`(16), `chip`(20), `lg`(24), `full`('50%') | See critical rules below |
+
+**Critical borderRadius rules**:
+- Number tokens MUST be stringified: `sx={{ borderRadius: (t) => \`${t.custom.radii.card}px\` }}` — otherwise MUI multiplies by `shape.borderRadius` (12) ⇒ `16×12 = 192px`!
+- `full` is the **only exception** — it is already the string `'50%'`: use `(t) => t.custom.radii.full` directly (adding `px` would produce `'50%px'`)
+
+**Colors outside `sx`** (Toaster, chart libraries, third-party components):
+```tsx
+import { mishinColors } from '../../theme';
+mishinColors.primary[500]  // '#6366f1'
+mishinColors.success[500]  // '#22c55e'
+```
+
+### `tokens.ts` — Reusable `sx` Fragments
+**Path**: `client/src/theme/tokens.ts`  
+18 reusable `SxProps<Theme>` objects — spread into any component's `sx` prop.
+
+| Group | Fragment Names |
+|-------|----------------|
+| Surfaces | `cardSx`, `elevatedPaperSx`, `flatSurfaceSx` |
+| Text overflow | `truncateSx`, `lineClamp2Sx`, `lineClamp3Sx` |
+| Flex layout | `centeredFlexSx`, `spacedRowSx`, `inlineRowSx` |
+| Interactivity | `clickableSx`, `focusRingSx` |
+| Media | `responsiveImageSx`, `avatarSx` |
+| Miscellaneous | `statusDotSx`, `badgeSx`, `scrollRowSx`, `glassSx`, `srOnlySx` |
+
+```tsx
+import { cardSx, truncateSx, centeredFlexSx } from '../../theme/tokens';
+<Paper sx={{ ...cardSx }}>
+  <Typography sx={{ ...truncateSx }}>Long text</Typography>
+</Paper>
+```
+
+**Note**: `tokens.ts` is not yet imported by any page component — tokens are ready to use as Phase 2+ pages are mobile-optimized.
 
 ---
 

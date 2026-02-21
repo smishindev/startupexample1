@@ -1,6 +1,6 @@
-# Mishin Learn Platform - Project Status & Memory
+﻿# Mishin Learn Platform - Project Status & Memory
 
-**Last Updated**: February 21, 2026 - Mobile Phase 1 Complete + Auth Bug Fixes 📱  
+**Last Updated**: February 21, 2026 - Theme Token System + 3-Round Bug Audit 🎨  
 **Developer**: Sergey Mishin (s.mishin.dev@gmail.com)  
 **AI Assistant Context**: This file serves as project memory for continuity across chat sessions
 
@@ -19,11 +19,50 @@
 **Analytics Hub**: Exhaustive 23-round audit — 68 total fixes, all services hardened, CoursePerformanceTable UI (February 18, 2026) 🔧  
 **CourseSelector**: Unified reusable course dropdown replacing 9 inline implementations; lazy rendering, type-to-search, helper text (February 19, 2026) 🔽  
 **Mobile Optimization Phase 1**: Responsive library (8 files) created; all 9 critical-path pages fully mobile-optimized (February 21, 2026) 📱  
-**Auth Bug Fixes**: `logout()` clears state immediately; `type="button"` on nav-links inside forms; all 401 interceptors unified; stale-state guard in App.tsx (February 21, 2026) 🔐
+**Auth Bug Fixes**: `logout()` clears state immediately; `type="button"` on nav-links inside forms; all 401 interceptors unified; stale-state guard in App.tsx (February 21, 2026) 🔐  
+**Theme Token System**: Centralised design tokens in `theme/index.ts` (colors, shadows, radii, extended palette). `tokens.ts` with 18 reusable `sx` fragments. 3-round exhaustive bug audit — all bugs fixed, 0 TypeScript errors (February 21, 2026) 🎨
 
 ---
 
-## � MOBILE OPTIMIZATION — PHASE 1 COMPLETE (Latest - February 21, 2026)
+## u{1F3A8} THEME TOKEN SYSTEM (Latest u{2014} February 21, 2026)
+
+**Activity**: Built a centralised design-value system in `client/src/theme/` to prevent MUI upgrade pain. Merged the old dead `augmentedTheme` export into a single `createTheme()` call. Extended all 5 color palettes with 50-900 shades. Added three `theme.custom` namespaces (colors, shadows, radii) and created `tokens.ts` with 18 reusable `SxProps<Theme>` fragments. Fixed `main.tsx` Toaster to use `mishinColors` instead of hardcoded hex values. Followed up with three exhaustive audit rounds that found and fixed real bugs.
+
+**Status**:  **Complete** u{2014} 0 TypeScript errors, git-verified no regressions (`shape.borderRadius=12` and custom breakpoints are ORIGINAL pre-existing values)
+
+### **Files Changed**
+
+| File | Change |
+|------|--------|
+| `client/src/theme/index.ts` | Merged `augmentedTheme`; added `mishinColors`, extended 50-900 palette shades, `custom.colors` (8 tokens), `custom.shadows` (9 tokens), `custom.radii` (7 tokens), `baseRadius` variable for component overrides |
+| `client/src/theme/tokens.ts` | **New file** u{2014} 18 reusable `SxProps<Theme>` fragments for common patterns |
+| `client/src/main.tsx` | `Toaster` hot-toast colors replaced with `mishinColors` raw values (non-sx context) |
+
+### **Bugs Fixed (3-Round Audit)**
+
+| Round | Severity | Bug | Fix |
+|-------|----------|-----|-----|
+| 1 | CRITICAL | `tokens.ts` borderRadius callbacks returned raw numbers u{2192} MUI multiplies by 12 u{2192} `16u{D7}12=192px` | Changed all callbacks to return ` `\${value}px\ ` strings (bypasses multiplier) |
+| 1 | MEDIUM | `focusPrimary`/`image` shadows used `rgba(102,126,234)` (old purple `#667eea`) | Fixed to `rgba(99,102,241)` (brand `#6366f1`) |
+| 1 | MEDIUM | `focusSuccess` shadow used `rgba(76,175,80)` (MUI default green) | Fixed to `rgba(34,197,94)` (brand `#22c55e`) |
+| 2 | MINOR | `shadows.soft` and `shadows.card` were identical strings | Differentiated: `soft` = `'0 1px 2px 0 rgba(0,0,0,0.05)'` (lighter single shadow) |
+| 3 | DOC | `radii.full` JSDoc warning "always use px" applied to ALL tokens including `full='50%'` | Added: `full` is already a string u{2014} adding `px` would produce `'50%px'` (broken CSS) |
+
+### **Token Quick Reference**
+
+| Category | Tokens | Correct `sx` Usage |
+|----------|--------|---------------------|
+| `custom.colors` | `gold`, `onlineGreen`, `muted`, `mutedDark`, `border`, `surfaceHover`, `overlay`, `brandPrimary` | `(t) => t.custom.colors.gold` |
+| `custom.shadows` | `soft`, `card`, `cardHover`, `dialog`, `image`, `focusPrimary`, `focusSuccess`, `large`, `none` | `(t) => t.custom.shadows.card` |
+| `custom.radii` (numbers) | `none`(0), `sm`(6), `md`(12), `card`(16), `chip`(20), `lg`(24) | `(t) => \${t.custom.radii.card}px\ ` |
+| `custom.radii.full` | `'50%'` | `(t) => t.custom.radii.full` (NO `px`!) |
+
+**Reusable `sx` fragments** (import from `../../theme/tokens`):
+`cardSx`, `elevatedPaperSx`, `flatSurfaceSx`, `truncateSx`, `lineClamp2Sx`, `lineClamp3Sx`, `centeredFlexSx`, `spacedRowSx`, `inlineRowSx`, `clickableSx`, `focusRingSx`, `responsiveImageSx`, `avatarSx`, `statusDotSx`, `badgeSx`, `scrollRowSx`, `glassSx`, `srOnlySx`
+
+---
+
+## u{1F4F1} MOBILE OPTIMIZATION u{2014} PHASE 1 COMPLETE (February 21, 2026)
 
 **Activity**: Built Responsive wrapper library (8 files), then fully mobile-optimized all 9 Phase 1 critical-path pages. Also diagnosed and fixed a subtle auth redirect bug where clicking "Sign Up" on the login page re-authenticated the user instead of navigating to /register.
 

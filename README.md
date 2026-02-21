@@ -4,7 +4,7 @@
 
 An innovative EdTech startup providing personalized learning experiences through AI tutoring, adaptive content delivery, and comprehensive progress analytics.
 
-**Last Major Update**: February 21, 2026 - Mobile Phase 1 Complete + Auth Bug Fixes 📱  
+**Last Major Update**: February 21, 2026 - Theme Token System + 3-Round Bug Audit 🎨  
 **Code Quality**: Grade A (95/100) - 85% type safety, 70% logging coverage, 0 TypeScript errors
 
 ## 🚀 Features
@@ -31,6 +31,12 @@ An innovative EdTech startup providing personalized learning experiences through
   - **Auth Bug Fix**: `<Link component="button">` inside `<form>` submits by default — fixed with `type="button"` on all nav-links in LoginForm and RegisterForm
   - **Logout Hardening**: `logout()` now clears auth state immediately (before server call); all nav handlers `await logout()`; all 401 interceptors unified to use `useAuthStore.getState().logout()`; App.tsx stale-state guard added
   - **Progress**: 24/73 pages done (32.9%) — Phase 0 (15/15) + Phase 1 (9/9) complete
+- **Theme Token System** - Centralised design primitives in `client/src/theme/` — eliminates hardcoded colors/shadows/borderRadius across 2,500+ sx props and protects against MUI version upgrades (February 21, 2026) 🎨
+  - **Extended Palette**: All 5 palettes (`primary`, `secondary`, `success`, `warning`, `error`) have 50-900 shades — `sx={{ bgcolor: 'primary.50' }}` works everywhere
+  - **Custom Tokens**: `theme.custom.colors` (8 semantic colors), `theme.custom.shadows` (9 box-shadow names), `theme.custom.radii` (7 border-radius values)
+  - **Reusable Fragments**: `tokens.ts` provides 18 `SxProps<Theme>` objects (`cardSx`, `truncateSx`, `centeredFlexSx`, etc.) to spread into any `sx` prop
+  - **3-Round Audit**: Found and fixed critical bug (borderRadius raw numbers ×12 multiplier → 192px), shadow RGB values (wrong brand colors corrected), duplicate shadow tokens, and JSDoc exception gaps
+  - **Files**: `client/src/theme/index.ts` (refactored), `client/src/theme/tokens.ts` (new), `client/src/main.tsx` (Toaster color fix)
 - **CourseSelector — Reusable Course Dropdown** - Single component replaces 9 inline course dropdowns across the platform (February 19, 2026) 🔽
   - **Lazy Rendering**: Renders 50 courses initially; IntersectionObserver + scroll loads 12 more at a time
   - **Type-to-Search**: Client-side filter across full course list — no re-fetches needed

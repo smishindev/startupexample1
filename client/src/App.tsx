@@ -96,6 +96,12 @@ function App() {
   // Validate token on app startup
   useEffect(() => {
     const initializeAuth = async () => {
+      if (isAuthenticated && !token) {
+        // Stale state: isAuthenticated=true but no token (e.g. corrupted localStorage)
+        console.warn('Stale auth state detected (no token), clearing...');
+        logout();
+        return;
+      }
       if (token && isAuthenticated) {
         try {
           const isValid = await validateToken();

@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
-  Container,
   Grid,
   Typography,
   Button,
@@ -9,8 +8,6 @@ import {
   Skeleton,
   Card,
   CardContent,
-  useTheme,
-  useMediaQuery,
 } from '@mui/material';
 import {
   TrendingUp,
@@ -29,6 +26,7 @@ import EmailVerificationBanner from '../../components/Auth/EmailVerificationBann
 import { StatCard } from '../../components/Dashboard/StatCard';
 import { CourseCard, type RecentCourse } from '../../components/Dashboard/CourseCard';
 import { AchievementBadge, type Achievement } from '../../components/Dashboard/AchievementBadge';
+import { PageContainer } from '../../components/Responsive';
 
 // Helper function to format last accessed date
 const formatLastAccessed = (dateString: string | null): string => {
@@ -60,10 +58,8 @@ const STAT_GRADIENTS = {
 };
 
 export const DashboardPage: React.FC = () => {
-  const theme = useTheme();
   const navigate = useNavigate();
   const { user } = useAuthStore();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   const [stats, setStats] = useState<DashboardStats>({
     totalCourses: 0,
@@ -156,13 +152,13 @@ export const DashboardPage: React.FC = () => {
       <Header />
       <EmailVerificationBanner />
 
-      <Container maxWidth="xl" sx={{ mt: 4, mb: 4, flex: 1, pb: isMobile ? 10 : 0 }}>
+      <PageContainer sx={{ flex: 1 }}>
         {/* Welcome Section */}
         <Box sx={{ mb: 4 }}>
-          <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1 }}>
+          <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1, fontSize: { xs: '1.5rem', sm: '1.75rem', md: '2.125rem' } }}>
             Welcome back, {user?.firstName}! 👋
           </Typography>
-          <Typography variant="h6" color="text.secondary">
+          <Typography variant="h6" color="text.secondary" sx={{ fontSize: { xs: '0.95rem', sm: '1.25rem' } }}>
             Here's an overview of your learning progress
           </Typography>
         </Box>
@@ -297,7 +293,7 @@ export const DashboardPage: React.FC = () => {
             </Grid>
           </Box>
         )}
-      </Container>
+      </PageContainer>
     </Box>
   );
 };

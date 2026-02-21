@@ -70,9 +70,9 @@ export const HeaderV5: React.FC = () => {
     setAnchorEl(null);
   };
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
     handleProfileMenuClose();
+    await logout();
     navigate('/login');
   };
 

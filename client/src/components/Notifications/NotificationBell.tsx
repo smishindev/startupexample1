@@ -201,8 +201,9 @@ export const NotificationBell: React.FC = () => {
         onClose={handleClose}
         PaperProps={{
           sx: {
-            width: 420,
-            maxHeight: 600,
+            width: { xs: 'calc(100vw - 32px)', sm: 420 },
+            maxWidth: 420,
+            maxHeight: { xs: '70vh', sm: 600 },
             overflow: 'visible',
             mt: 1.5,
             '& .MuiAvatar-root': {

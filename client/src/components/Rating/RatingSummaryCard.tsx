@@ -20,16 +20,16 @@ export const RatingSummaryCard: React.FC<RatingSummaryCardProps> = ({ summary })
     <Paper 
       elevation={0}
       sx={{ 
-        p: 3, 
+        p: { xs: 2, sm: 3 }, 
         border: '1px solid',
         borderColor: 'divider',
         borderRadius: 2,
         mb: 3,
       }}
     >
-      <Box sx={{ display: 'flex', gap: 4, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+      <Box sx={{ display: 'flex', gap: { xs: 2, sm: 4 }, alignItems: 'flex-start', flexWrap: 'wrap' }}>
         {/* Average rating */}
-        <Box sx={{ textAlign: 'center', minWidth: 120 }}>
+        <Box sx={{ textAlign: 'center', minWidth: { xs: 80, sm: 120 } }}>
           <Typography variant="h2" sx={{ fontWeight: 800, color: 'text.primary', lineHeight: 1 }}>
             {summary.average > 0 ? summary.average.toFixed(1) : '—'}
           </Typography>
@@ -46,7 +46,7 @@ export const RatingSummaryCard: React.FC<RatingSummaryCardProps> = ({ summary })
         </Box>
 
         {/* Distribution bars */}
-        <Box sx={{ flex: 1, minWidth: 200 }}>
+        <Box sx={{ flex: 1, minWidth: { xs: 160, sm: 200 } }}>
           {[5, 4, 3, 2, 1].map((star) => {
             const count = summary.distribution[star as keyof typeof summary.distribution];
             const percentage = summary.count > 0 ? (count / summary.count) * 100 : 0;

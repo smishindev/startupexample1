@@ -1,7 +1,75 @@
 # Mishin Learn Platform - Component Registry
 
-**Last Updated**: February 19, 2026 - CourseSelector Reusable Dropdown System 🔽  
+**Last Updated**: February 21, 2026 - Mobile Phase 1 Complete + Auth Bug Fixes 📱  
 **Purpose**: Quick reference for all major components, their dependencies, and relationships
+
+---
+
+## 📱 Responsive Component Library (Added February 21, 2026)
+
+**Path**: `client/src/components/Responsive/`  
+**Purpose**: Reusable, theme-aware wrappers that encapsulate all mobile-optimization patterns. Every page should use these instead of raw MUI primitives.
+
+### Constants (`constants.ts`)
+Single source of truth for layout dimensions:
+```typescript
+BOTTOM_NAV_HEIGHT = 64      // MobileBottomNav height (px)
+BOTTOM_NAV_PADDING = 10     // MUI spacing units of pb on mobile (= 80px)
+HEADER_HEIGHT_MOBILE = 56   // AppBar height xs-sm (px)
+HEADER_HEIGHT_DESKTOP = 64  // AppBar height md+ (px)
+PAGE_PADDING_X = { xs: 2, sm: 3, md: 4 }  // Horizontal page padding
+PAGE_MARGIN_Y = 4           // Vertical page margin (MUI units)
+SIDEBAR_WIDTH = 280         // Permanent sidebar (px)
+```
+
+### `useResponsive` Hook
+```typescript
+const { isMobile, isTablet, isDesktop, isSmallMobile } = useResponsive();
+// isMobile     = breakpoints.down('md')           (< 900px)
+// isSmallMobile = breakpoints.down('sm')          (< 600px)
+// isTablet      = breakpoints.between('md', 'lg')
+// isDesktop     = breakpoints.up('lg')
+```
+
+### `PageContainer`
+**Path**: `Responsive/PageContainer.tsx`  
+**Purpose**: Replaces raw `<Container maxWidth="xl">` on every authenticated page. Adds `px: PAGE_PADDING_X` and `pb: { xs: BOTTOM_NAV_PADDING, md: 0 }` automatically.  
+**Props**: `maxWidth`, `disableBottomPad`, `sx`, standard Container props  
+**Usage**: `<PageContainer> ... </PageContainer>`
+
+### `PageTitle`
+**Path**: `Responsive/PageTitle.tsx`  
+**Purpose**: `<Typography variant="h4">` that scales to `h5` on mobile with responsive `fontSize`. Optional `subtitle` prop.  
+**Props**: `subtitle`, `sx`, standard Typography props  
+**Usage**: `<PageTitle subtitle="Subtext here">Page Heading</PageTitle>`
+
+### `ResponsiveDialog`
+**Path**: `Responsive/ResponsiveDialog.tsx`  
+**Purpose**: MUI `<Dialog>` that automatically sets `fullScreen` on mobile (no manual `isMobile` check per dialog needed).  
+**Props**: `title`, `actions`, `fullScreenBreakpoint` (default `'sm'`), standard Dialog props  
+**Usage**: `<ResponsiveDialog open={open} onClose={onClose} title="Edit">...</ResponsiveDialog>`
+
+### `ResponsivePaper`
+**Path**: `Responsive/ResponsivePaper.tsx`  
+**Purpose**: `<Paper>` with responsive padding `{ xs: 2, sm: 3, md: 4 }` applied by default.  
+**Props**: `padding` override, `sx`, standard Paper props
+
+### `ResponsiveStack`
+**Path**: `Responsive/ResponsiveStack.tsx`  
+**Purpose**: `<Stack>` that switches `direction` from `'column'` (mobile) to `'row'` (desktop) at a configurable breakpoint.  
+**Props**: `breakpoint` (default `'sm'`), standard Stack props  
+**Usage**: `<ResponsiveStack spacing={2}><Button/><Button/></ResponsiveStack>`
+
+### `index.ts` — Barrel Export
+```typescript
+import { PageContainer, PageTitle, useResponsive, ResponsiveDialog,
+         ResponsivePaper, ResponsiveStack, BOTTOM_NAV_HEIGHT, ... } from '../../components/Responsive';
+```
+
+**Pages currently using Responsive library** (Phase 1 — 9 pages):
+- `LandingPage.tsx`, `Login.tsx`, `Register.tsx`
+- `ForgotPasswordForm.tsx`, `ResetPasswordForm.tsx`, `EmailVerificationPage.tsx`
+- `CoursesPage.tsx`, `CourseDetailPage.tsx`, `DashboardPage.tsx`
 
 ---
 

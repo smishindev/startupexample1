@@ -66,9 +66,9 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
   }
 
   return (
-    <Paper sx={{ p: 3 }} data-testid={`comments-section-${entityType}`}>
+    <Paper sx={{ p: { xs: 2, sm: 3 } }} data-testid={`comments-section-${entityType}`}>
       {/* Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: { xs: 2, sm: 3 } }}>
         <Typography variant="h6">
           {title}
         </Typography>
@@ -90,7 +90,7 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
         placeholder="Ask a question or share your thoughts..."
       />
 
-      <Divider sx={{ my: 3 }} />
+      <Divider sx={{ my: { xs: 2, sm: 3 } }} />
 
       {/* Loading State */}
       {loading && (

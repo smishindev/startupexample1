@@ -35,11 +35,12 @@ api.interceptors.response.use(
     
     // Handle token expiration
     if (error.response?.status === 401) {
-      // Token expired or invalid - clear auth data and redirect
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
+      // Clear auth state immediately (logout clears Zustand + localStorage)
       useAuthStore.getState().logout();
-      window.location.href = '/login';
+      // Only hard-redirect if not already on login page
+      if (!window.location.pathname.includes('/login')) {
+        window.location.href = '/login';
+      }
     }
     
     return Promise.reject(error);

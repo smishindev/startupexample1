@@ -61,9 +61,9 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
         borderBottom: '1px solid',
         borderColor: 'divider',
         px: { xs: 2, sm: 3, md: 4 },
-        py: 2.5,
+        py: { xs: 1.5, sm: 2.5 },
         position: 'sticky',
-        top: 64, // Height of Header AppBar
+        top: { xs: 56, sm: 64 }, // MUI AppBar height: 56 on mobile, 64 on desktop
         zIndex: theme.zIndex.appBar - 1,
         boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
       }}
@@ -71,7 +71,16 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
       {/* Breadcrumbs */}
       <Breadcrumbs
         separator={<NavigateNextIcon fontSize="small" sx={{ color: 'text.secondary' }} />}
-        sx={{ mb: 1.5 }}
+        sx={{
+          mb: 1.5,
+          '& .MuiBreadcrumbs-ol': {
+            flexWrap: { xs: 'nowrap', sm: 'wrap' },
+            overflow: 'auto',
+          },
+          '& .MuiBreadcrumbs-li': {
+            whiteSpace: 'nowrap',
+          },
+        }}
       >
         {autoBreadcrumbs.map((crumb, index) => {
           const isLast = index === autoBreadcrumbs.length - 1;

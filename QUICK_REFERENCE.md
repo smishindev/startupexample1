@@ -1,6 +1,136 @@
 ﻿# 🚀 Quick Reference - Development Workflow
 
-**Last Updated**: February 19, 2026 - CourseSelector Reusable Dropdown System 🔽
+**Last Updated**: February 21, 2026 - Mobile Phase 1 Complete + Auth Bug Fixes 📱
+
+---
+
+## 📱 Responsive Library Usage (Added Feb 21, 2026)
+
+**Single source of truth for all mobile-optimization layout patterns. Import from `@/components/Responsive`.**
+
+### Import
+```tsx
+import { PageContainer, PageTitle, useResponsive, ResponsiveDialog, ResponsiveStack, ResponsivePaper } from '../../components/Responsive';
+```
+
+### PageContainer — Use on EVERY authenticated page
+```tsx
+// Replaces raw <Container>: adds responsive px + bottom-nav padding on mobile automatically
+<PageContainer>
+  {/* page content */}
+</PageContainer>
+
+// With override:
+<PageContainer sx={{ mt: 2 }}>
+  ...
+</PageContainer>
+```
+
+### PageTitle — Responsive page heading
+```tsx
+// h4 on desktop → h5 on mobile, scales font-size automatically
+<PageTitle>My Page Title</PageTitle>
+
+// With subtitle:
+<PageTitle subtitle="Manage your courses below">Courses</PageTitle>
+```
+
+### useResponsive — Breakpoint flags
+```tsx
+const { isMobile, isTablet, isDesktop, isSmallMobile } = useResponsive();
+// isMobile = breakpoints.down('md')  (< 900px)
+// isTablet = breakpoints.between('md', 'lg')
+// isDesktop = breakpoints.up('lg')
+// isSmallMobile = breakpoints.down('sm')  (< 600px)
+```
+
+### ResponsiveDialog — Full-screen on mobile
+```tsx
+// Automatically fullScreen on mobile — no manual isMobile check needed
+<ResponsiveDialog open={open} onClose={onClose} title="Edit Item">
+  {/* dialog content */}
+</ResponsiveDialog>
+```
+
+### ResponsiveStack — Direction switches at breakpoint
+```tsx
+// Stacked on mobile → row on desktop (default breakpoint: 'sm')
+<ResponsiveStack spacing={2}>
+  <Button>Cancel</Button>
+  <Button variant="contained">Save</Button>
+</ResponsiveStack>
+
+// Custom breakpoint:
+<ResponsiveStack breakpoint="md" spacing={1} />
+```
+
+### Layout Constants (from `constants.ts`)
+```tsx
+import { BOTTOM_NAV_HEIGHT, BOTTOM_NAV_PADDING, HEADER_HEIGHT_MOBILE } from '../../components/Responsive';
+// BOTTOM_NAV_HEIGHT = 64px ← use when positioning fixed elements above bottom nav
+// BOTTOM_NAV_PADDING = 10  ← MUI spacing units (= 80px) for pb on mobile
+```
+
+---
+
+## 🔐 Auth Safety Patterns (Added Feb 21, 2026)
+
+### `<Link component="button">` inside `<form>` — ALWAYS add `type="button"`
+```tsx
+// ❌ WRONG — <button> default type is "submit" → clicking it submits the parent form!
+<Link component="button" onClick={handleSignUp}>
+  Sign up
+</Link>
+
+// ✅ CORRECT — prevents accidental form submission
+<Link component="button" type="button" onClick={handleSignUp}>
+  Sign up
+</Link>
+```
+
+### Logout — always `await` before navigating
+```tsx
+// ❌ WRONG — state may not be cleared when navigate() runs
+const handleLogout = () => { logout(); navigate('/login'); };
+
+// ✅ CORRECT
+const handleLogout = async () => { await logout(); navigate('/login'); };
+```
+
+### logout() contract (authStore.ts)
+```typescript
+// logout() clears { user, token, isAuthenticated } IMMEDIATELY
+// THEN calls the server (fire-and-forget with captured token)
+// This prevents any 401-interceptor race conditions
+```
+
+### 401 Interceptor Pattern (all API services)
+```typescript
+api.interceptors.response.use(
+  (res) => res,
+  (err) => {
+    if (err.response?.status === 401) {
+      // Skip redirect if already on /login to avoid redirect loops
+      if (!window.location.pathname.includes('/login')) {
+        useAuthStore.getState().logout();
+        window.location.href = '/login';
+      }
+    }
+    return Promise.reject(err);
+  }
+);
+// NEVER use localStorage.removeItem('auth-storage') directly — always useAuthStore.getState().logout()
+```
+
+### App.tsx stale-state guard
+```tsx
+// Guards against persisted { isAuthenticated: true, token: null } after hard reload
+useEffect(() => {
+  if (isAuthenticated && !token) {
+    logout();
+  }
+}, []);
+```
 
 ---
 

@@ -1,6 +1,6 @@
 # Mishin Learn Platform - Project Status & Memory
 
-**Last Updated**: February 19, 2026 - CourseSelector Reusable Dropdown System 🔽  
+**Last Updated**: February 21, 2026 - Mobile Phase 1 Complete + Auth Bug Fixes 📱  
 **Developer**: Sergey Mishin (s.mishin.dev@gmail.com)  
 **AI Assistant Context**: This file serves as project memory for continuity across chat sessions
 
@@ -17,11 +17,75 @@
 **Course Ratings & Reviews**: Full 5-star rating system with text reviews, real-time updates, instructor notifications (February 15, 2026) ⭐  
 **Search Autocomplete**: Live search dropdown with keyboard navigation, debouncing, and highlighted matches (February 17, 2026) 🔍  
 **Analytics Hub**: Exhaustive 23-round audit — 68 total fixes, all services hardened, CoursePerformanceTable UI (February 18, 2026) 🔧  
-**CourseSelector**: Unified reusable course dropdown replacing 9 inline implementations; lazy rendering, type-to-search, helper text (February 19, 2026) 🔽
+**CourseSelector**: Unified reusable course dropdown replacing 9 inline implementations; lazy rendering, type-to-search, helper text (February 19, 2026) 🔽  
+**Mobile Optimization Phase 1**: Responsive library (8 files) created; all 9 critical-path pages fully mobile-optimized (February 21, 2026) 📱  
+**Auth Bug Fixes**: `logout()` clears state immediately; `type="button"` on nav-links inside forms; all 401 interceptors unified; stale-state guard in App.tsx (February 21, 2026) 🔐
 
 ---
 
-## 🔽 COURSESELECTOR REUSABLE DROPDOWN SYSTEM (Latest - February 19, 2026)
+## � MOBILE OPTIMIZATION — PHASE 1 COMPLETE (Latest - February 21, 2026)
+
+**Activity**: Built Responsive wrapper library (8 files), then fully mobile-optimized all 9 Phase 1 critical-path pages. Also diagnosed and fixed a subtle auth redirect bug where clicking "Sign Up" on the login page re-authenticated the user instead of navigating to /register.
+
+**Status**: ✅ **Complete** — 24/73 pages done (32.9%), 0 TypeScript errors, auth bug confirmed fixed
+
+### **New Responsive Library** (`client/src/components/Responsive/`)
+
+| File | Purpose |
+|------|---------|
+| `constants.ts` | Single source of truth for layout dimensions (`BOTTOM_NAV_HEIGHT=64`, `HEADER_HEIGHT_MOBILE=56`, `HEADER_HEIGHT_DESKTOP=64`, `PAGE_PADDING_X`, etc.) |
+| `useResponsive.ts` | Hook returning `{ isMobile, isTablet, isDesktop, isSmallMobile }` from MUI theme |
+| `PageContainer.tsx` | Authenticated-page wrapper: `Container maxWidth="xl"` + responsive px + bottom-nav padding on mobile |
+| `PageTitle.tsx` | Responsive `<Typography>` headline: scales `h4→h5` on mobile |
+| `ResponsiveStack.tsx` | `Stack` that switches `direction` at a configurable breakpoint |
+| `ResponsivePaper.tsx` | `Paper` with responsive padding (`{ xs: 2, sm: 3, md: 4 }`) |
+| `ResponsiveDialog.tsx` | MUI `Dialog` that goes `fullScreen` on mobile automatically |
+| `index.ts` | Barrel export for all of the above |
+
+**Import pattern** (used by every Phase 1+ page):
+```tsx
+import { PageContainer, PageTitle, useResponsive } from '../../components/Responsive';
+```
+
+### **Phase 1 Pages Optimized (9/9)**
+
+| # | Page | Key Changes |
+|---|------|-------------|
+| 1.1 | `LandingPage.tsx` | PageContainer, PageTitle, bottom-nav pad, responsive hero/grid |
+| 1.2 | `Login.tsx` | PageContainer, responsive Card sizing, responsive typography |
+| 1.3 | `Register.tsx` | PageContainer, responsive Card sizing, responsive typography |
+| 1.4 | `ForgotPasswordForm.tsx` | PageContainer, responsive typography + spacing |
+| 1.5 | `ResetPasswordForm.tsx` | PageContainer, responsive typography + spacing |
+| 1.6 | `EmailVerificationPage.tsx` | PageContainer, responsive icon/typography, fixed `inputProps` conflict |
+| 1.7 | `CoursesPage.tsx` | PageContainer + PageTitle, bottom-nav pad, responsive filter row |
+| 1.8 | `CourseDetailPage.tsx` | PageContainer + PageTitle, responsive tabs, full audit (0 TS errors) |
+| 1.9 | `DashboardPage.tsx` | Migrated to PageContainer, audit complete (0 TS errors) |
+
+### **Auth Bug Fixes (February 21, 2026)**
+
+**Root Cause**: `<Link component="button">` inside `<Box component="form">` renders a `<button type="submit">` by default. Clicking "Sign Up" on the login page submitted the login form, re-authenticating the user → `isAuthenticated: true` → route guard redirected `/register` to `/dashboard`.
+
+**Fixes Applied**:
+
+| File | Fix |
+|------|-----|
+| `components/Auth/LoginForm.tsx` | Added `type="button"` to Sign Up `<Link component="button">` |
+| `components/Auth/RegisterForm.tsx` | Added `type="button"` to Sign In `<Link component="button">` |
+| `stores/authStore.ts` | `logout()` now clears `{ user, token, isAuthenticated }` **immediately** before the server call (captured token passed to server separately) |
+| `components/Navigation/HeaderV5.tsx` | `handleLogout` made `async`, `await logout()` before `navigate('/login')` |
+| `components/Navigation/MobileNavDrawer.tsx` | Same: `async` + `await logout()` |
+| `components/Layout/Layout.tsx` | Same: `async` + `await logout()` |
+| `services/analyticsApi.ts` | 401 interceptor: `useAuthStore.getState().logout()` (removed stale `localStorage.removeItem`) |
+| `services/assessmentAnalyticsApi.ts` | Same |
+| `services/instructorApi.ts` | Same + skip redirect if already on `/login` |
+| `services/lessonApi.ts` | Replaced broken `await import()` inside non-async callback with existing static `useAuthStore` import; skip redirect if already on `/login` |
+| `services/fileUploadApi.ts` | Same as lessonApi (was causing Vite compile error: "await not allowed in non-async function") |
+| `utils/axiosConfig.ts` | Use `useAuthStore.getState().logout()` in 401 interceptor instead of `localStorage.removeItem('auth-storage')` |
+| `App.tsx` | Stale-state guard: if `isAuthenticated === true` but `token` is null/empty on mount, call `logout()` immediately |
+
+---
+
+## �🔽 COURSESELECTOR REUSABLE DROPDOWN SYSTEM (Latest - February 19, 2026)
 
 **Activity**: Replaced 9 independent course dropdown implementations across the platform with a single `CourseSelector` component. Added lazy rendering, type-to-search, scroll-based infinite load, and "X of Y courses loaded" helper text. Fixed course-fetching limits across all consumer pages so dropdowns receive all courses (not just `limit=12` default).
 

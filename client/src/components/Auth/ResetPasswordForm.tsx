@@ -131,10 +131,10 @@ export const ResetPasswordForm: React.FC = () => {
         px={2}
       >
         <Card sx={{ maxWidth: 400, width: '100%', boxShadow: 3 }}>
-          <CardContent sx={{ p: 4 }}>
+          <CardContent sx={{ p: { xs: 2.5, sm: 4 } }}>
             <Box textAlign="center">
-              <CheckCircle sx={{ fontSize: 64, color: 'success.main', mb: 2 }} />
-              <Typography variant="h5" component="h1" gutterBottom>
+              <CheckCircle sx={{ fontSize: { xs: 48, sm: 64 }, color: 'success.main', mb: 2 }} />
+              <Typography variant="h5" component="h1" gutterBottom sx={{ fontSize: { xs: '1.3rem', sm: '1.5rem' } }}>
                 Password Reset Successful!
               </Typography>
               <Typography variant="body1" color="text.secondary" paragraph>
@@ -170,10 +170,10 @@ export const ResetPasswordForm: React.FC = () => {
       px={2}
     >
       <Card sx={{ maxWidth: 400, width: '100%', boxShadow: 3 }}>
-        <CardContent sx={{ p: 4 }}>
+        <CardContent sx={{ p: { xs: 2.5, sm: 4 } }}>
           <Box textAlign="center" mb={3}>
-            <Lock sx={{ fontSize: 48, color: 'primary.main', mb: 2 }} />
-            <Typography variant="h4" component="h1" gutterBottom>
+            <Lock sx={{ fontSize: { xs: 40, sm: 48 }, color: 'primary.main', mb: 2 }} />
+            <Typography variant="h4" component="h1" gutterBottom sx={{ fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
               Reset Password
             </Typography>
             <Typography variant="body1" color="text.secondary">

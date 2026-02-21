@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box,
-  Container,
   Typography,
   Grid,
   TextField,
@@ -32,6 +31,7 @@ import { ShareDialog } from '../../components/Shared/ShareDialog';
 import { ShareService } from '../../services/shareService';
 import { useCatalogRealtimeUpdates } from '../../hooks/useCatalogRealtimeUpdates';
 import { toast } from 'sonner';
+import { PageContainer } from '../../components/Responsive';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -706,10 +706,10 @@ export const CoursesPage: React.FC = () => {
       {/* Show HeaderV5 only for authenticated users — guests get PublicLayout header */}
       {isAuthenticated && <Header />}
       
-      <Container maxWidth="xl" sx={{ mt: 4, mb: 4, flex: 1 }}>
+      <PageContainer disableBottomPad={!isAuthenticated} sx={{ flex: 1 }}>
         {/* Page Header */}
         <Box sx={{ mb: 4 }}>
-          <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 2 }}>
+          <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 2, fontSize: { xs: '1.5rem', sm: '1.75rem', md: '2.125rem' } }}>
             Courses
           </Typography>
           
@@ -735,7 +735,7 @@ export const CoursesPage: React.FC = () => {
           
           {/* Tabs — show all 3 for authenticated, only "All Courses" for guests */}
           <Paper sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
-            <Tabs value={tabValue} onChange={handleTabChange} data-testid="courses-tabs">
+            <Tabs value={tabValue} onChange={handleTabChange} variant="scrollable" scrollButtons="auto" data-testid="courses-tabs">
               <Tab label="All Courses" data-testid="courses-tab-all" />
               {isAuthenticated && <Tab label="My Courses" data-testid="courses-tab-my" />}
               {isAuthenticated && <Tab label="Bookmarked" data-testid="courses-tab-bookmarked" />}
@@ -746,7 +746,7 @@ export const CoursesPage: React.FC = () => {
         {/* All Courses Tab */}
         <TabPanel value={tabValue} index={0}>
           {/* Search and Filters */}
-          <Paper sx={{ p: 3, mb: 4 }}>
+          <Paper sx={{ p: { xs: 2, sm: 3 }, mb: 4 }}>
             <Grid container spacing={3} alignItems="center">
               <Grid item xs={12} md={5}>
                 <TextField
@@ -907,10 +907,11 @@ export const CoursesPage: React.FC = () => {
                     page={pagination.current}
                     onChange={handlePageChange}
                     color="primary"
-                    size="large"
+                    size="medium"
                     showFirstButton
                     showLastButton
                     data-testid="courses-pagination"
+                    sx={{ '& .MuiPagination-ul': { flexWrap: 'nowrap' } }}
                   />
                 </Box>
               )}
@@ -1017,7 +1018,7 @@ export const CoursesPage: React.FC = () => {
             </Grid>
           )}
         </TabPanel>
-      </Container>
+      </PageContainer>
 
       {/* Share Dialog */}
       {shareDialog.course && (

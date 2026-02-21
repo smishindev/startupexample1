@@ -76,6 +76,7 @@ import { ShareService } from '../../services/shareService';
 import { ratingApi, type RatingSummary as RatingSummaryType, type CourseRating } from '../../services/ratingApi';
 import { RatingSummaryCard, RatingSubmitForm, ReviewsList } from '../../components/Rating';
 import { toast } from 'sonner';
+import { PageContainer, BOTTOM_NAV_PADDING } from '../../components/Responsive';
 
 interface Lesson {
   id: string;
@@ -659,7 +660,7 @@ export const CourseDetailPage: React.FC = () => {
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
         {user && <Header />}
-        <Container maxWidth="xl" sx={{ mt: 4, mb: 4, flex: 1 }}>
+        <PageContainer sx={{ flex: 1 }}>
           <Skeleton variant="rectangular" width="100%" height={300} sx={{ mb: 4, borderRadius: 2 }} />
           <Grid container spacing={4}>
             <Grid item xs={12} md={8}>
@@ -672,7 +673,7 @@ export const CourseDetailPage: React.FC = () => {
               <Skeleton variant="rectangular" width="100%" height={400} sx={{ borderRadius: 2 }} />
             </Grid>
           </Grid>
-        </Container>
+        </PageContainer>
       </Box>
     );
   }
@@ -681,7 +682,7 @@ export const CourseDetailPage: React.FC = () => {
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
         {user && <Header />}
-        <Container maxWidth="xl" sx={{ mt: 4, mb: 4, flex: 1 }}>
+        <PageContainer sx={{ flex: 1 }}>
           <Alert severity="error" sx={{ mb: 4 }}>
             {error || 'Course not found'}
           </Alert>
@@ -692,7 +693,7 @@ export const CourseDetailPage: React.FC = () => {
           >
             Back to Courses
           </Button>
-        </Container>
+        </PageContainer>
       </Box>
     );
   }
@@ -769,11 +770,11 @@ export const CourseDetailPage: React.FC = () => {
 
           <Grid container spacing={4} alignItems="center">
             <Grid item xs={12} md={7}>
-              <Typography variant="h3" sx={{ fontWeight: 800, mb: 2, lineHeight: 1.2 }}>
+              <Typography variant="h3" sx={{ fontWeight: 800, mb: 2, lineHeight: 1.2, fontSize: { xs: '1.75rem', sm: '2.25rem', md: '3rem' } }}>
                 {course.title}
               </Typography>
               
-              <Typography variant="h6" sx={{ mb: 3, color: 'rgba(255,255,255,0.9)', fontWeight: 400, lineHeight: 1.6 }}>
+              <Typography variant="h6" sx={{ mb: 3, color: 'rgba(255,255,255,0.9)', fontWeight: 400, lineHeight: 1.6, fontSize: { xs: '0.95rem', sm: '1.1rem', md: '1.25rem' } }}>
                 {course.description}
               </Typography>
 
@@ -905,7 +906,7 @@ export const CourseDetailPage: React.FC = () => {
         </Container>
       </Box>
 
-      <Container maxWidth="xl" sx={{ mb: 6 }}>
+      <Container maxWidth="xl" sx={{ mb: 6, pb: { xs: BOTTOM_NAV_PADDING, md: 0 } }}>
         <Grid container spacing={4}>
           {/* Main Content */}
           <Grid item xs={12} lg={8}>
@@ -913,14 +914,14 @@ export const CourseDetailPage: React.FC = () => {
             <Paper 
               elevation={0}
               sx={{ 
-                p: 4, 
+                p: { xs: 2.5, sm: 3, md: 4 }, 
                 mb: 4,
                 border: '1px solid',
                 borderColor: 'divider',
                 borderRadius: 3
               }}
             >
-              <Typography variant="h5" sx={{ fontWeight: 700, mb: 3 }}>
+              <Typography variant="h5" sx={{ fontWeight: 700, mb: 3, fontSize: { xs: '1.25rem', sm: '1.5rem' } }}>
                 What you'll learn
               </Typography>
               {course.whatYouWillLearn.length > 0 ? (
@@ -948,7 +949,7 @@ export const CourseDetailPage: React.FC = () => {
               <Paper 
                 elevation={0}
                 sx={{ 
-                  p: 4, 
+                  p: { xs: 2.5, sm: 3, md: 4 }, 
                   mb: 4,
                   border: '1px solid',
                   borderColor: 'divider',
@@ -1070,12 +1071,12 @@ export const CourseDetailPage: React.FC = () => {
               }}
             >
               <Box sx={{ 
-                p: 3, 
+                p: { xs: 2, sm: 3 }, 
                 borderBottom: '1px solid',
                 borderColor: 'divider',
                 bgcolor: 'background.paper'
               }}>
-                <Typography variant="h5" sx={{ fontWeight: 700, mb: 1 }}>
+                <Typography variant="h5" sx={{ fontWeight: 700, mb: 1, fontSize: { xs: '1.25rem', sm: '1.5rem' } }}>
                   Course Content
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
@@ -1100,7 +1101,7 @@ export const CourseDetailPage: React.FC = () => {
                   <AccordionSummary 
                     expandIcon={<ExpandMore />}
                     sx={{
-                      px: 3,
+                      px: { xs: 2, sm: 3 },
                       py: 2,
                       '&:hover': { bgcolor: 'action.hover' }
                     }}
@@ -1128,7 +1129,7 @@ export const CourseDetailPage: React.FC = () => {
                           disabled={lesson.isLocked && !course.isEnrolled}
                           data-testid={`course-detail-section-lesson-${lesson.id}-button`}
                           sx={{
-                            px: 3,
+                            px: { xs: 2, sm: 3 },
                             py: 2,
                             borderTop: '1px solid',
                             borderColor: 'divider',
@@ -1178,14 +1179,14 @@ export const CourseDetailPage: React.FC = () => {
             <Paper 
               elevation={0}
               sx={{ 
-                p: 4, 
+                p: { xs: 2.5, sm: 3, md: 4 }, 
                 mb: 4,
                 border: '1px solid',
                 borderColor: 'divider',
                 borderRadius: 3
               }}
             >
-              <Typography variant="h5" sx={{ fontWeight: 700, mb: 3 }}>
+              <Typography variant="h5" sx={{ fontWeight: 700, mb: 3, fontSize: { xs: '1.25rem', sm: '1.5rem' } }}>
                 Requirements
               </Typography>
               {course.requirements.length > 0 ? (
@@ -1221,19 +1222,19 @@ export const CourseDetailPage: React.FC = () => {
             <Paper 
               elevation={0}
               sx={{ 
-                p: 4,
+                p: { xs: 2.5, sm: 3, md: 4 },
                 border: '1px solid',
                 borderColor: 'divider',
                 borderRadius: 3
               }}
             >
-              <Typography variant="h5" sx={{ fontWeight: 700, mb: 3 }}>
+              <Typography variant="h5" sx={{ fontWeight: 700, mb: 3, fontSize: { xs: '1.25rem', sm: '1.5rem' } }}>
                 Your Instructor
               </Typography>
-              <Box sx={{ display: 'flex', gap: 3, alignItems: 'flex-start' }}>
+              <Box sx={{ display: 'flex', gap: { xs: 2, sm: 3 }, alignItems: 'flex-start', flexDirection: { xs: 'column', sm: 'row' } }}>
                 <Avatar 
                   src={course.instructor.avatar} 
-                  sx={{ width: 80, height: 80 }}
+                  sx={{ width: { xs: 64, sm: 80 }, height: { xs: 64, sm: 80 } }}
                 >
                   {course.instructor.name.charAt(0)}
                 </Avatar>
@@ -1267,14 +1268,14 @@ export const CourseDetailPage: React.FC = () => {
               data-section="reviews"
               elevation={0}
               sx={{ 
-                p: 4,
+                p: { xs: 2.5, sm: 3, md: 4 },
                 mt: 4,
                 border: '1px solid',
                 borderColor: 'divider',
                 borderRadius: 3
               }}
             >
-              <Typography variant="h5" sx={{ fontWeight: 700, mb: 3 }}>
+              <Typography variant="h5" sx={{ fontWeight: 700, mb: 3, fontSize: { xs: '1.25rem', sm: '1.5rem' } }}>
                 Student Reviews
               </Typography>
               
@@ -1313,11 +1314,11 @@ export const CourseDetailPage: React.FC = () => {
 
           {/* Sidebar */}
           <Grid item xs={12} lg={4}>
-            <Box sx={{ position: 'sticky', top: 20 }}>
+            <Box sx={{ position: { lg: 'sticky' }, top: { lg: 80 } }}>
               <Paper 
                 elevation={0}
                 sx={{ 
-                  p: 3,
+                  p: { xs: 2.5, sm: 3 },
                   border: '2px solid',
                   borderColor: 'divider',
                   borderRadius: 3
@@ -1801,10 +1802,11 @@ export const CourseDetailPage: React.FC = () => {
             You can now access all course materials and start learning immediately.
           </Typography>
         </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 3, gap: 1 }}>
+        <DialogActions sx={{ px: 3, pb: 3, gap: 1, flexDirection: { xs: 'column', sm: 'row' }, '& > :not(:first-of-type)': { ml: { xs: 0, sm: 1 } } }}>
           <Button 
             onClick={() => setEnrollmentDialog(false)}
-            sx={{ mr: 'auto' }}
+            sx={{ mr: { sm: 'auto' } }}
+            fullWidth={false}
           >
             Continue Browsing
           </Button>

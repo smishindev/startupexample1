@@ -27,7 +27,7 @@ axiosInstance.interceptors.request.use((config) => {
 // Response interceptor to handle authentication errors globally
 axiosInstance.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
     // Handle 401 Unauthorized and 403 Forbidden responses
     if (error.response?.status === 401 || error.response?.status === 403) {
       // Check if the error is due to invalid/expired token
@@ -40,8 +40,9 @@ axiosInstance.interceptors.response.use(
         errorMessage.includes('authentication') ||
         errorMessage.includes('expired')
       ) {
-        // Clear invalid auth data from localStorage
-        localStorage.removeItem('auth-storage');
+        // Clear auth state via store (updates both in-memory Zustand AND localStorage)
+        const { useAuthStore } = await import('../stores/authStore');
+        useAuthStore.getState().logout();
         
         // Redirect to login page if not already there
         if (!window.location.pathname.includes('/login')) {

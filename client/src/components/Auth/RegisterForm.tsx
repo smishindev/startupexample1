@@ -576,10 +576,10 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
           boxShadow: 3,
         }}
       >
-        <CardContent sx={{ p: 4 }}>
+        <CardContent sx={{ p: { xs: 2.5, sm: 4 } }}>
           <Box textAlign="center" mb={3}>
-            <PersonAdd sx={{ fontSize: 48, color: 'primary.main', mb: 2 }} />
-            <Typography variant="h4" component="h1" gutterBottom>
+            <PersonAdd sx={{ fontSize: { xs: 40, sm: 48 }, color: 'primary.main', mb: 2 }} />
+            <Typography variant="h4" component="h1" gutterBottom sx={{ fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
               Create Account
             </Typography>
             <Typography variant="body1" color="text.secondary">
@@ -587,7 +587,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
             </Typography>
           </Box>
 
-          <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
+          <Stepper activeStep={activeStep} alternativeLabel sx={{ mb: 4, '& .MuiStepLabel-label': { fontSize: { xs: '0.7rem', sm: '0.875rem' } } }}>
             {steps.map((label) => (
               <Step key={label}>
                 <StepLabel>{label}</StepLabel>
@@ -673,6 +673,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
               Already have an account?{' '}
               <Link
                 component="button"
+                type="button"
                 variant="body2"
                 underline="hover"
                 fontWeight="medium"

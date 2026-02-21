@@ -55,10 +55,10 @@ const Layout: React.FC = () => {
     setAnchorEl(null)
   }
 
-  const handleLogout = () => {
-    logout()
-    navigate('/')
+  const handleLogout = async () => {
     handleProfileMenuClose()
+    await logout()
+    navigate('/')
   }
 
   const menuItems = [

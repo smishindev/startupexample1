@@ -173,15 +173,26 @@ export const useAuthStore = create<AuthState>()(
           return;
         }
 
-        set({ isLoggingOut: true });
-
-        // Call logout endpoint if token exists to set user offline
+        // Capture token BEFORE clearing state (needed for server call)
         const { token } = get();
+
+        // Clear auth state IMMEDIATELY so route guards see isAuthenticated=false
+        // right away. This prevents race conditions where a navigation or page
+        // reload sees stale isAuthenticated=true in localStorage while the
+        // server call is in-flight.
+        set({
+          user: null,
+          token: null,
+          isAuthenticated: false,
+          error: null,
+          isLoggingOut: true,
+        });
+
+        // Call logout endpoint if token existed (fire-and-forget to set user offline)
         if (token) {
           try {
-            // Use a timeout to prevent hanging
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+            const timeoutId = setTimeout(() => controller.abort(), 5000);
             
             await fetch(`${API_BASE_URL}/auth/logout`, {
               method: 'POST',
@@ -199,18 +210,11 @@ export const useAuthStore = create<AuthState>()(
             } else {
               console.error('Logout endpoint error:', error);
             }
-            // Continue with logout even if API call fails
+            // Continue regardless — auth state is already cleared
           }
         }
 
-        // Clear auth state - socket disconnect will be handled by App.tsx useEffect cleanup
-        set({
-          user: null,
-          token: null,
-          isAuthenticated: false,
-          error: null,
-          isLoggingOut: false,
-        });
+        set({ isLoggingOut: false });
       },
 
       refreshToken: async (): Promise<boolean> => {

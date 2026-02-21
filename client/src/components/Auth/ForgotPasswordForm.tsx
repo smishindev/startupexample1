@@ -84,8 +84,8 @@ export const ForgotPasswordForm: React.FC = () => {
         px={2}
       >
         <Card sx={{ maxWidth: 400, width: '100%', boxShadow: 3 }}>
-          <CardContent sx={{ p: 4 }}>
-            <Typography variant="h5" component="h1" gutterBottom align="center">
+          <CardContent sx={{ p: { xs: 2.5, sm: 4 } }}>
+            <Typography variant="h5" component="h1" gutterBottom align="center" sx={{ fontSize: { xs: '1.3rem', sm: '1.5rem' } }}>
               Check Your Email
             </Typography>
             
@@ -150,10 +150,10 @@ export const ForgotPasswordForm: React.FC = () => {
       px={2}
     >
       <Card sx={{ maxWidth: 400, width: '100%', boxShadow: 3 }}>
-        <CardContent sx={{ p: 4 }}>
+        <CardContent sx={{ p: { xs: 2.5, sm: 4 } }}>
           <Box textAlign="center" mb={3}>
-            <Email sx={{ fontSize: 48, color: 'primary.main', mb: 2 }} />
-            <Typography variant="h4" component="h1" gutterBottom>
+            <Email sx={{ fontSize: { xs: 40, sm: 48 }, color: 'primary.main', mb: 2 }} />
+            <Typography variant="h4" component="h1" gutterBottom sx={{ fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
               Forgot Password?
             </Typography>
             <Typography variant="body1" color="text.secondary">

@@ -2,7 +2,7 @@
 
 **Purpose**: Systematic checklist to follow before implementing changes  
 **Goal**: Reduce errors, missing considerations, and broken functionality  
-**Last Updated**: February 19, 2026 - CourseSelector Reusable Dropdown System 🔽
+**Last Updated**: February 21, 2026 - Mobile Phase 1 Complete + Auth Bug Fixes 📱
 
 ---
 
@@ -50,6 +50,17 @@
 - [ ] Identified all pages that use this component
 
 **Recent Additions to Check:**
+- [x] **Mobile Optimization Phase 1 + Auth Bug Fixes** - PRODUCTION READY (Feb 21, 2026) 📱🔐
+  - New Responsive library at `client/src/components/Responsive/` (8 files: PageContainer, PageTitle, ResponsiveDialog, ResponsivePaper, ResponsiveStack, useResponsive, constants, index)
+  - **Every page** must use `PageContainer` instead of raw `<Container>` and `PageTitle` for headings
+  - **`<Link component="button">`** inside a `<Box component="form">` (or any `<form>`) MUST have `type="button"` — default is `type="submit"` which submits the form!
+  - **`logout()` is async** — always `await logout()` in handlers before calling `navigate()`
+  - **`logout()` clears state immediately** — do NOT read `token` from store after calling logout()
+  - **401 interceptors**: use `useAuthStore.getState().logout()` + skip redirect if already on `/login` (prevents infinite loops)
+  - **Never** `localStorage.removeItem('auth-storage')` directly — always go through `logout()`
+  - App.tsx stale-state guard: if `isAuthenticated && !token` on mount → call `logout()`
+  - Files (new): `components/Responsive/` (8 files)
+  - Files (modified): `LoginForm.tsx`, `RegisterForm.tsx`, `authStore.ts`, `HeaderV5.tsx`, `MobileNavDrawer.tsx`, `Layout.tsx`, `analyticsApi.ts`, `assessmentAnalyticsApi.ts`, `instructorApi.ts`, `lessonApi.ts`, `fileUploadApi.ts`, `axiosConfig.ts`, `App.tsx`, plus all 9 Phase 1 pages
 - [x] **CourseSelector Reusable Dropdown** - PRODUCTION READY (Feb 19, 2026) 🔽
   - Single component (`client/src/components/Common/CourseSelector.tsx`) replacing 9 inline course dropdowns
   - **Always use `getCoursesForDropdown()`** (not `getCourses()`) when populating for dropdowns — `getCourses()` defaults to `limit=12`

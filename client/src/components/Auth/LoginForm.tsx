@@ -118,10 +118,10 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
           boxShadow: 3,
         }}
       >
-        <CardContent sx={{ p: 4 }}>
+        <CardContent sx={{ p: { xs: 2.5, sm: 4 } }}>
           <Box textAlign="center" mb={3}>
-            <LoginIcon sx={{ fontSize: 48, color: 'primary.main', mb: 2 }} />
-            <Typography variant="h4" component="h1" gutterBottom>
+            <LoginIcon sx={{ fontSize: { xs: 40, sm: 48 }, color: 'primary.main', mb: 2 }} />
+            <Typography variant="h4" component="h1" gutterBottom sx={{ fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
               Welcome Back
             </Typography>
             <Typography variant="body1" color="text.secondary">
@@ -262,6 +262,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
                 Don't have an account?{' '}
                 <Link
                   component="button"
+                  type="button"
                   variant="body2"
                   underline="hover"
                   fontWeight="medium"

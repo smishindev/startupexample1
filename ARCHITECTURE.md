@@ -2406,6 +2406,15 @@ components/
 ├── Layout/
 │   ├── Layout.tsx - Main layout wrapper
 │   └── PublicLayout.tsx - Public pages layout
+├── Responsive/
+│   ├── constants.ts - Layout dimension constants (BOTTOM_NAV_HEIGHT, HEADER_HEIGHT, PAGE_PADDING_X, etc.)
+│   ├── useResponsive.ts - Hook: { isMobile, isTablet, isDesktop, isSmallMobile }
+│   ├── PageContainer.tsx - Authenticated page wrapper with responsive px + bottom-nav padding
+│   ├── PageTitle.tsx - Responsive h4/h5 typography for page headings
+│   ├── ResponsiveDialog.tsx - Dialog with auto-fullScreen on mobile
+│   ├── ResponsivePaper.tsx - Paper with responsive padding
+│   ├── ResponsiveStack.tsx - Stack that switches direction at configurable breakpoint
+│   └── index.ts - Barrel export
 ├── Dashboard/
 │   ├── StatCard.tsx - Dashboard stat display card
 │   ├── CourseCard.tsx - Dashboard course card with progress

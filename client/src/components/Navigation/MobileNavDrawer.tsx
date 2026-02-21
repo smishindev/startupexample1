@@ -68,9 +68,9 @@ export const MobileNavDrawer: React.FC<MobileNavDrawerProps> = ({ open, onClose 
   };
 
   // Handle logout
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
     onClose();
+    await logout();
     navigate('/login');
   };
 
@@ -78,7 +78,7 @@ export const MobileNavDrawer: React.FC<MobileNavDrawerProps> = ({ open, onClose 
   const handleSearch = (event: React.FormEvent) => {
     event.preventDefault();
     if (searchQuery.trim()) {
-      navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+      navigate(`/courses?search=${encodeURIComponent(searchQuery.trim())}`);
       setSearchQuery('');
       onClose();
     }

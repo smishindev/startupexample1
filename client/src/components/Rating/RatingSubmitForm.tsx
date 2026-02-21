@@ -98,7 +98,7 @@ export const RatingSubmitForm: React.FC<RatingSubmitFormProps> = ({
       <Paper 
         elevation={0} 
         sx={{ 
-          p: 3, 
+          p: { xs: 2, sm: 3 }, 
           border: '2px solid',
           borderColor: 'primary.main',
           borderRadius: 2,
@@ -134,7 +134,7 @@ export const RatingSubmitForm: React.FC<RatingSubmitFormProps> = ({
     <Paper 
       elevation={0}
       sx={{ 
-        p: 3, 
+        p: { xs: 2, sm: 3 }, 
         border: '1px solid',
         borderColor: 'divider',
         borderRadius: 2,

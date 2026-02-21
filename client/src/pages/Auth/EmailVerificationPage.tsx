@@ -126,13 +126,13 @@ export const EmailVerificationPage = () => {
         <Paper
           elevation={8}
           sx={{
-            p: 4,
+            p: { xs: 2.5, sm: 4 },
             borderRadius: 2,
           }}
         >
           <Box sx={{ textAlign: 'center', mb: 3 }}>
-            <MarkEmailRead sx={{ fontSize: 64, color: 'primary.main', mb: 2 }} />
-            <Typography variant="h4" gutterBottom fontWeight="bold">
+            <MarkEmailRead sx={{ fontSize: { xs: 48, sm: 64 }, color: 'primary.main', mb: 2 }} />
+            <Typography variant="h4" gutterBottom fontWeight="bold" sx={{ fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
               Verify Your Email
             </Typography>
             <Typography variant="body1" color="text.secondary">
@@ -173,9 +173,13 @@ export const EmailVerificationPage = () => {
                 maxLength: 6,
                 style: { 
                   textAlign: 'center', 
-                  fontSize: '24px', 
-                  letterSpacing: '8px',
                   fontWeight: 'bold',
+                },
+              }}
+              sx={{
+                '& .MuiInputBase-input': {
+                  fontSize: { xs: '20px', sm: '24px' },
+                  letterSpacing: { xs: '6px', sm: '8px' },
                 },
               }}
               helperText="Enter the 6-digit code from your email"

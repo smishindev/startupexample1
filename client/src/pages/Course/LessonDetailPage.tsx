@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box,
-  Container,
   Paper,
   Typography,
   IconButton,
@@ -20,6 +19,7 @@ import {
   FormControlLabel,
   Card,
   Grid,
+  useTheme,
 } from '@mui/material';
 import {
   ArrowBack,
@@ -48,6 +48,7 @@ import { ContentItem } from '../../components/Lesson/ContentItem';
 import { coursesApi } from '../../services/coursesApi';
 import { BookmarkApi } from '../../services/bookmarkApi';
 import { CommentsSection } from '../../components/Shared/CommentsSection';
+import { PageContainer } from '../../components/Responsive';
 
 interface ExtendedLessonContent {
   id: string;
@@ -115,6 +116,7 @@ const extractSavedPosition = (notes?: string): number => {
 export const LessonDetailPage: React.FC = () => {
   const { courseId, lessonId } = useParams<{ courseId: string; lessonId: string }>();
   const navigate = useNavigate();
+  const theme = useTheme();
   
   const [lesson, setLesson] = useState<ExtendedLesson | null>(null);
   const [allLessons, setAllLessons] = useState<Lesson[]>([]);
@@ -442,12 +444,12 @@ export const LessonDetailPage: React.FC = () => {
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
         <Header />
-        <Container maxWidth="xl" sx={{ mt: 4, mb: 4, flex: 1 }}>
+        <PageContainer sx={{ mt: 4, mb: 4, flex: 1 }}>
           <LinearProgress />
           <Typography variant="h6" sx={{ mt: 2, textAlign: 'center' }}>
             Loading lesson...
           </Typography>
-        </Container>
+        </PageContainer>
       </Box>
     );
   }
@@ -456,7 +458,7 @@ export const LessonDetailPage: React.FC = () => {
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
         <Header />
-        <Container maxWidth="xl" sx={{ mt: 4, mb: 4, flex: 1 }}>
+        <PageContainer sx={{ mt: 4, mb: 4, flex: 1 }}>
           <Typography variant="h6" color="error" sx={{ textAlign: 'center' }}>
             {error || 'Lesson not found'}
           </Typography>
@@ -468,7 +470,7 @@ export const LessonDetailPage: React.FC = () => {
           >
             Back to Course
           </Button>
-        </Container>
+        </PageContainer>
       </Box>
     );
   }
@@ -477,7 +479,7 @@ export const LessonDetailPage: React.FC = () => {
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       <Header />
       
-      <Container maxWidth="xl" sx={{ mt: 2, mb: 4, flex: 1 }}>
+      <PageContainer sx={{ mt: { xs: 1, md: 2 }, mb: 4, flex: 1 }}>
         {/* Breadcrumb Navigation */}
         <Box sx={{ 
           display: 'flex', 
@@ -792,7 +794,7 @@ export const LessonDetailPage: React.FC = () => {
                       backgroundColor: 'background.paper',
                       '& .MuiLinearProgress-bar': {
                         borderRadius: 4,
-                        background: 'linear-gradient(90deg, #667eea 0%, #764ba2 100%)',
+                        background: theme.custom.gradients.primary,
                       },
                     }}
                   />
@@ -871,8 +873,9 @@ export const LessonDetailPage: React.FC = () => {
                     key={assessment.id} 
                     sx={{ 
                       mb: 2, 
-                      p: 3, 
-                      border: '1px solid #e0e0e0', 
+                      p: { xs: 2, sm: 3 }, 
+                      border: '1px solid',
+                      borderColor: theme.custom.colors.border,
                       borderRadius: 2,
                       '&:hover': {
                         boxShadow: 2,
@@ -880,7 +883,7 @@ export const LessonDetailPage: React.FC = () => {
                       }
                     }}
                   >
-                    <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+                    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'stretch', sm: 'flex-start' }, justifyContent: 'space-between', gap: { xs: 2, sm: 0 } }}>
                       <Box sx={{ flex: 1 }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                           <Quiz sx={{ mr: 1, color: 'primary.main' }} />
@@ -975,7 +978,7 @@ export const LessonDetailPage: React.FC = () => {
                         </Box>
                       </Box>
                       
-                      <Box sx={{ ml: 3, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                      <Box sx={{ ml: { xs: 0, sm: 3 }, display: 'flex', flexDirection: 'column', gap: 1 }}>
                         {assessment.userProgress?.canTakeAssessment !== false ? (
                           <Button 
                             variant="contained" 
@@ -987,16 +990,16 @@ export const LessonDetailPage: React.FC = () => {
                             sx={{ 
                               minWidth: '140px',
                               background: assessment.userProgress?.status === 'passed' 
-                                ? 'linear-gradient(45deg, #4caf50 30%, #66bb6a 90%)'
+                                ? `linear-gradient(45deg, ${theme.palette.success.main} 30%, ${theme.palette.success.light} 90%)`
                                 : assessment.userProgress?.status === 'completed'
-                                ? 'linear-gradient(45deg, #ff9800 30%, #ffb74d 90%)'
-                                : 'linear-gradient(45deg, #667eea 30%, #764ba2 90%)',
+                                ? `linear-gradient(45deg, ${theme.palette.warning.main} 30%, ${theme.palette.warning.light} 90%)`
+                                : theme.custom.gradients.primary,
                               '&:hover': {
                                 background: assessment.userProgress?.status === 'passed'
-                                  ? 'linear-gradient(45deg, #388e3c 30%, #4caf50 90%)'
+                                  ? `linear-gradient(45deg, ${theme.palette.success.dark} 30%, ${theme.palette.success.main} 90%)`
                                   : assessment.userProgress?.status === 'completed'
-                                  ? 'linear-gradient(45deg, #f57c00 30%, #ff9800 90%)'
-                                  : 'linear-gradient(45deg, #5a67d8 30%, #6b46c1 90%)',
+                                  ? `linear-gradient(45deg, ${theme.palette.warning.dark} 30%, ${theme.palette.warning.main} 90%)`
+                                  : `linear-gradient(135deg, ${theme.palette.primary.dark} 0%, ${theme.palette.primary.main} 100%)`,
                               }
                             }}
                           >
@@ -1039,7 +1042,7 @@ export const LessonDetailPage: React.FC = () => {
                 ))}
                 
                 {/* Assessment completion hint */}
-                <Paper sx={{ p: 2, mt: 2, bgcolor: 'info.light', border: '1px solid #1976d2' }}>
+                <Paper sx={{ p: 2, mt: 2, bgcolor: 'info.light', border: '1px solid', borderColor: 'info.main' }}>
                   <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center' }}>
                     <Check sx={{ mr: 1, color: 'info.main' }} />
                     <strong>Tip:</strong> Complete assessments to test your understanding and reinforce your learning!
@@ -1143,7 +1146,7 @@ export const LessonDetailPage: React.FC = () => {
             </Paper>
           </Box>
         </Box>
-      </Container>
+      </PageContainer>
 
       {/* Table of Contents Drawer */}
       <Drawer

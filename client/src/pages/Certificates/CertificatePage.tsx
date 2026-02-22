@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  Container,
   Paper,
   Typography,
   Box,
@@ -16,6 +15,7 @@ import { Download, Verified, ArrowBack, Share } from '@mui/icons-material';
 import { certificatesApi } from '../../services/certificatesApi';
 import { format } from 'date-fns';
 import { HeaderV5 as Header } from '../../components/Navigation/HeaderV5';
+import { PageContainer } from '../../components/Responsive';
 import { useShare } from '../../hooks/useShare';
 import { ShareService } from '../../services/shareService';
 
@@ -150,9 +150,9 @@ export default function CertificatePage() {
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
         <Header />
-        <Container sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh', flex: 1 }}>
+        <PageContainer sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh', flex: 1 }}>
           <CircularProgress size={60} />
-        </Container>
+        </PageContainer>
       </Box>
     );
   }
@@ -161,9 +161,9 @@ export default function CertificatePage() {
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
         <Header />
-        <Container maxWidth="md" sx={{ py: 4, flex: 1 }}>
+        <PageContainer maxWidth="md" sx={{ pt: { xs: 2, md: 4 }, flex: 1 }}>
           <Alert 
-            severity="info" 
+            severity={error === 'Certificate not found' ? 'info' : 'error'}
             action={
               <Button color="inherit" size="small" onClick={() => navigate(-1)}>
                 Go Back
@@ -175,7 +175,7 @@ export default function CertificatePage() {
               : error
             }
           </Alert>
-        </Container>
+        </PageContainer>
       </Box>
     );
   }
@@ -184,11 +184,11 @@ export default function CertificatePage() {
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
         <Header />
-        <Container maxWidth="md" sx={{ py: 4, flex: 1 }}>
+        <PageContainer maxWidth="md" sx={{ pt: { xs: 2, md: 4 }, flex: 1 }}>
           <Alert severity="info">
             Complete the course to earn your certificate!
           </Alert>
-        </Container>
+        </PageContainer>
       </Box>
     );
   }
@@ -197,8 +197,8 @@ export default function CertificatePage() {
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       <Header />
       
-      <Container maxWidth="lg" sx={{ py: 4, flex: 1 }}>
-      <Box sx={{ mb: 3, display: 'flex', gap: 2 }}>
+      <PageContainer maxWidth="lg" sx={{ pt: { xs: 2, md: 4 }, flex: 1 }}>
+      <Box sx={{ mb: { xs: 2, md: 3 }, display: 'flex', gap: { xs: 1, md: 2 }, flexWrap: 'wrap' }}>
         <Button
           startIcon={<ArrowBack />}
           onClick={() => navigate(-1)}
@@ -229,7 +229,7 @@ export default function CertificatePage() {
         sx={{
           p: { xs: 4, md: 8 },
           textAlign: 'center',
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          background: (t: any) => t.custom.gradients.primary,
           color: 'white',
           position: 'relative',
           overflow: 'hidden',
@@ -353,7 +353,7 @@ export default function CertificatePage() {
           🎓 Congratulations on your achievement! Share your certificate with potential employers.
         </Typography>
       </Box>
-    </Container>
+    </PageContainer>
 
     {/* Snackbar for notifications */}
     <Snackbar

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box,
-  Container,
   Typography,
   Switch,
   FormControlLabel,
@@ -28,6 +27,7 @@ import {
   Info as InfoIcon,
 } from '@mui/icons-material';
 import { HeaderV5 as HeaderV4 } from '../../components/Navigation/HeaderV5';
+import { PageContainer, PageTitle } from '../../components/Responsive';
 import { toast } from 'react-hot-toast';
 import * as notificationPreferencesApi from '../../services/notificationPreferencesApi';
 
@@ -547,11 +547,11 @@ const NotificationSettingsPage: React.FC = () => {
     return (
       <>
         <HeaderV4 />
-        <Container maxWidth="lg" sx={{ py: 4 }}>
+        <PageContainer maxWidth="lg" sx={{ pt: { xs: 2, md: 4 } }}>
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
             <CircularProgress />
           </Box>
-        </Container>
+        </PageContainer>
       </>
     );
   }
@@ -559,13 +559,13 @@ const NotificationSettingsPage: React.FC = () => {
   return (
     <>
       <HeaderV4 />
-      <Container maxWidth="lg" sx={{ py: 4 }}>
+      <PageContainer maxWidth="lg" sx={{ pt: { xs: 2, md: 4 } }}>
         {/* Header */}
-        <Box sx={{ mb: 4 }}>
-          <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1 }}>
+        <Box sx={{ mb: { xs: 2, md: 4 } }}>
+          <PageTitle gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <NotificationsIcon fontSize="large" />
             Notification Settings
-          </Typography>
+          </PageTitle>
           <Typography variant="body1" color="text.secondary">
             Control how and when you receive notifications
           </Typography>
@@ -700,8 +700,8 @@ const NotificationSettingsPage: React.FC = () => {
                   const categoryEnabled = preferences.EnableProgressUpdates;
                   
                   return (
-                    <Box key={sub.name} sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
-                      <Box sx={{ flex: 1 }}>
+                    <Box key={sub.name} sx={{ display: 'flex', alignItems: 'flex-start', gap: { xs: 1, sm: 2 }, flexWrap: 'wrap' }}>
+                      <Box sx={{ flex: 1, minWidth: { xs: '100%', sm: 200 } }}>
                         <Typography variant="body2" sx={{ fontWeight: 'medium' }}>{sub.label}</Typography>
                         <Typography variant="caption" color="text.secondary">{sub.description}</Typography>
                       </Box>
@@ -794,8 +794,8 @@ const NotificationSettingsPage: React.FC = () => {
                   const categoryEnabled = preferences.EnableCourseUpdates;
                   
                   return (
-                    <Box key={sub.name} sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
-                      <Box sx={{ flex: 1 }}>
+                    <Box key={sub.name} sx={{ display: 'flex', alignItems: 'flex-start', gap: { xs: 1, sm: 2 }, flexWrap: 'wrap' }}>
+                      <Box sx={{ flex: 1, minWidth: { xs: '100%', sm: 200 } }}>
                         <Typography variant="body2" sx={{ fontWeight: 'medium' }}>{sub.label}</Typography>
                         <Typography variant="caption" color="text.secondary">{sub.description}</Typography>
                       </Box>
@@ -884,8 +884,8 @@ const NotificationSettingsPage: React.FC = () => {
                   const categoryEnabled = preferences.EnableAssessmentUpdates;
                   
                   return (
-                    <Box key={sub.name} sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
-                      <Box sx={{ flex: 1 }}>
+                    <Box key={sub.name} sx={{ display: 'flex', alignItems: 'flex-start', gap: { xs: 1, sm: 2 }, flexWrap: 'wrap' }}>
+                      <Box sx={{ flex: 1, minWidth: { xs: '100%', sm: 200 } }}>
                         <Typography variant="body2" sx={{ fontWeight: 'medium' }}>{sub.label}</Typography>
                         <Typography variant="caption" color="text.secondary">{sub.description}</Typography>
                       </Box>
@@ -974,8 +974,8 @@ const NotificationSettingsPage: React.FC = () => {
                   const categoryEnabled = preferences.EnableCommunityUpdates;
                   
                   return (
-                    <Box key={sub.name} sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
-                      <Box sx={{ flex: 1 }}>
+                    <Box key={sub.name} sx={{ display: 'flex', alignItems: 'flex-start', gap: { xs: 1, sm: 2 }, flexWrap: 'wrap' }}>
+                      <Box sx={{ flex: 1, minWidth: { xs: '100%', sm: 200 } }}>
                         <Typography variant="body2" sx={{ fontWeight: 'medium' }}>{sub.label}</Typography>
                         <Typography variant="caption" color="text.secondary">{sub.description}</Typography>
                       </Box>
@@ -1064,8 +1064,8 @@ const NotificationSettingsPage: React.FC = () => {
                   const categoryEnabled = preferences.EnableSystemAlerts;
                   
                   return (
-                    <Box key={sub.name} sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
-                      <Box sx={{ flex: 1 }}>
+                    <Box key={sub.name} sx={{ display: 'flex', alignItems: 'flex-start', gap: { xs: 1, sm: 2 }, flexWrap: 'wrap' }}>
+                      <Box sx={{ flex: 1, minWidth: { xs: '100%', sm: 200 } }}>
                         <Typography variant="body2" sx={{ fontWeight: 'medium' }}>{sub.label}</Typography>
                         <Typography variant="caption" color="text.secondary">{sub.description}</Typography>
                       </Box>
@@ -1136,7 +1136,7 @@ const NotificationSettingsPage: React.FC = () => {
             {saving ? 'Saving...' : 'Save Settings'}
           </Button>
         </Box>
-      </Container>
+      </PageContainer>
     </>
   );
 };

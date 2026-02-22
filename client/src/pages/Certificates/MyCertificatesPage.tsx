@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Container,
   Typography,
   Box,
   Card,
@@ -26,6 +25,7 @@ import {
 import { certificatesApi } from '../../services/certificatesApi';
 import { format } from 'date-fns';
 import { HeaderV5 as Header } from '../../components/Navigation/HeaderV5';
+import { PageContainer, PageTitle } from '../../components/Responsive';
 import { useShare } from '../../hooks/useShare';
 import { ShareService } from '../../services/shareService';
 
@@ -169,9 +169,12 @@ export default function MyCertificatesPage() {
 
   if (loading) {
     return (
-      <Container sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
-        <CircularProgress size={60} />
-      </Container>
+      <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+        <Header />
+        <PageContainer sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh', flex: 1 }}>
+          <CircularProgress size={60} />
+        </PageContainer>
+      </Box>
     );
   }
 
@@ -179,14 +182,14 @@ export default function MyCertificatesPage() {
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       <Header />
       
-      <Container maxWidth="lg" sx={{ py: 4, flex: 1 }}>
+      <PageContainer maxWidth="lg" sx={{ pt: { xs: 2, md: 4 }, flex: 1 }}>
       {/* Header */}
-      <Box sx={{ mb: 4 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-          <EmojiEvents sx={{ fontSize: 40, color: 'primary.main' }} />
-          <Typography variant="h4" fontWeight="bold">
+      <Box sx={{ mb: { xs: 2, md: 4 } }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, md: 2 }, mb: { xs: 1, md: 2 } }}>
+          <EmojiEvents sx={{ fontSize: { xs: 28, md: 40 }, color: 'primary.main' }} />
+          <PageTitle>
             My Certificates
-          </Typography>
+          </PageTitle>
         </Box>
         <Typography variant="body1" color="text.secondary">
           View and download all your earned course completion certificates
@@ -294,7 +297,7 @@ export default function MyCertificatesPage() {
                       sx={{
                         p: 1.5,
                         borderRadius: 2,
-                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                        background: (t: any) => t.custom.gradients.primary,
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center'
@@ -360,12 +363,13 @@ export default function MyCertificatesPage() {
                   </Box>
                 </CardContent>
 
-                <CardActions sx={{ p: 2, pt: 0 }}>
+                <CardActions sx={{ p: 2, pt: 0, flexWrap: 'wrap', gap: 1 }}>
                   <Button
                     fullWidth
                     variant="contained"
                     startIcon={<Visibility />}
                     onClick={() => handleViewCertificate(cert.VerificationCode)}
+                    sx={{ flex: { xs: '1 1 100%', sm: '1 1 auto' } }}
                   >
                     View Certificate
                   </Button>
@@ -402,7 +406,7 @@ export default function MyCertificatesPage() {
 
       {/* Share Dialog */}
       <ShareDialogComponent />
-    </Container>
+    </PageContainer>
     </Box>
   );
 }

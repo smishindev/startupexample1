@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
-  Container,
   Typography,
   Switch,
   FormControlLabel,
@@ -23,6 +22,7 @@ import {
   CircularProgress,
   TextField,
 } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 import {
   Settings as SettingsIcon,
   Security as SecurityIcon,
@@ -32,6 +32,7 @@ import {
   Download as DownloadIcon,
 } from '@mui/icons-material';
 import { HeaderV5 as HeaderV4 } from '../../components/Navigation/HeaderV5';
+import { PageContainer, PageTitle } from '../../components/Responsive';
 import { toast } from 'react-hot-toast';
 import * as settingsApi from '../../services/settingsApi';
 import AccountDeletionOptionsDialog from '../../components/AccountDeletionOptionsDialog';
@@ -40,6 +41,7 @@ import ArchiveCoursesDialog from '../../components/ArchiveCoursesDialog';
 import axiosInstance from '../../utils/axiosConfig';
 
 const SettingsPage: React.FC = () => {
+  const muiTheme = useTheme();
   // Loading state
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -51,7 +53,7 @@ const SettingsPage: React.FC = () => {
   const [allowMessages, setAllowMessages] = useState(true);
 
   // Appearance Settings
-  const [theme, setTheme] = useState('light');
+  const [colorTheme, setColorTheme] = useState('light');
   const [language, setLanguage] = useState('en');
   const [fontSize, setFontSize] = useState('medium');
 
@@ -126,7 +128,7 @@ const SettingsPage: React.FC = () => {
       setAllowMessages(settings.allowMessages);
       
       // Appearance
-      setTheme(settings.theme);
+      setColorTheme(settings.theme);
       setLanguage(settings.language);
       setFontSize(settings.fontSize);
       
@@ -160,7 +162,7 @@ const SettingsPage: React.FC = () => {
     try {
       setSaving(true);
       await settingsApi.updateSettings({
-        theme: theme as any,
+        theme: colorTheme as any,
         language: language as any,
         fontSize: fontSize as any
       });
@@ -328,12 +330,12 @@ const SettingsPage: React.FC = () => {
     return (
       <>
         <HeaderV4 />
-        <Container maxWidth="lg" sx={{ mt: 4, mb: 4, textAlign: 'center', py: 8 }}>
+        <PageContainer maxWidth="lg" sx={{ mt: { xs: 2, md: 4 }, mb: 4, textAlign: 'center', pt: 8 }}>
           <CircularProgress size={60} />
           <Typography variant="h6" sx={{ mt: 3 }}>
             Loading settings...
           </Typography>
-        </Container>
+        </PageContainer>
       </>
     );
   }
@@ -341,13 +343,13 @@ const SettingsPage: React.FC = () => {
   return (
     <>
       <HeaderV4 />
-      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+      <PageContainer maxWidth="lg" sx={{ mt: { xs: 2, md: 4 }, mb: 4 }}>
         {/* Header */}
-        <Box display="flex" alignItems="center" gap={2} mb={4}>
+        <Box display="flex" alignItems="center" gap={{ xs: 1, md: 2 }} mb={{ xs: 2, md: 4 }}>
           <SettingsIcon fontSize="large" color="primary" />
-          <Typography variant="h4" fontWeight="bold">
+          <PageTitle sx={{ mb: 0 }}>
             Settings
-          </Typography>
+          </PageTitle>
         </Box>
 
         <Stack spacing={3}>
@@ -478,9 +480,9 @@ const SettingsPage: React.FC = () => {
                   <FormControl fullWidth size="small">
                     <InputLabel>Color theme</InputLabel>
                     <Select
-                      value={theme}
+                      value={colorTheme}
                       label="Color theme"
-                      onChange={(e) => setTheme(e.target.value)}
+                      onChange={(e) => setColorTheme(e.target.value)}
                       data-testid="settings-theme-select"
                     >
                       <MenuItem value="light">Light</MenuItem>
@@ -600,10 +602,11 @@ const SettingsPage: React.FC = () => {
                       {(exportStatus.status === 'pending' || exportStatus.status === 'processing') && (
                         <Box 
                           sx={{ 
-                            p: 3, 
-                            bgcolor: '#fff3e0', 
+                            p: { xs: 2, sm: 3 }, 
+                            bgcolor: 'warning.50', 
                             borderRadius: 2, 
-                            border: '1px solid #ffb74d',
+                            border: '1px solid',
+                            borderColor: 'warning.400',
                             mb: 2 
                           }}
                         >
@@ -641,10 +644,11 @@ const SettingsPage: React.FC = () => {
                       {exportStatus.status === 'completed' && (
                         <Box 
                           sx={{ 
-                            p: 3, 
-                            bgcolor: '#e8f5e9', 
+                            p: { xs: 2, sm: 3 }, 
+                            bgcolor: 'success.50', 
                             borderRadius: 2, 
-                            border: '1px solid #81c784',
+                            border: '1px solid',
+                            borderColor: 'success.300',
                             mb: 2 
                           }}
                         >
@@ -656,7 +660,7 @@ const SettingsPage: React.FC = () => {
                             <table style={{ width: '100%', fontSize: '14px' }}>
                               <tbody>
                                 <tr>
-                                  <td style={{ padding: '4px 0', color: '#666' }}>
+                                  <td style={{ padding: '4px 0', color: muiTheme.palette.text.secondary }}>
                                     <strong>File Name:</strong>
                                   </td>
                                   <td style={{ padding: '4px 0', textAlign: 'right' }}>
@@ -664,7 +668,7 @@ const SettingsPage: React.FC = () => {
                                   </td>
                                 </tr>
                                 <tr>
-                                  <td style={{ padding: '4px 0', color: '#666' }}>
+                                  <td style={{ padding: '4px 0', color: muiTheme.palette.text.secondary }}>
                                     <strong>File Size:</strong>
                                   </td>
                                   <td style={{ padding: '4px 0', textAlign: 'right' }}>
@@ -672,7 +676,7 @@ const SettingsPage: React.FC = () => {
                                   </td>
                                 </tr>
                                 <tr>
-                                  <td style={{ padding: '4px 0', color: '#666' }}>
+                                  <td style={{ padding: '4px 0', color: muiTheme.palette.text.secondary }}>
                                     <strong>Completed:</strong>
                                   </td>
                                   <td style={{ padding: '4px 0', textAlign: 'right' }}>
@@ -680,16 +684,16 @@ const SettingsPage: React.FC = () => {
                                   </td>
                                 </tr>
                                 <tr>
-                                  <td style={{ padding: '4px 0', color: '#666' }}>
+                                  <td style={{ padding: '4px 0', color: muiTheme.palette.text.secondary }}>
                                     <strong>Expires:</strong>
                                   </td>
-                                  <td style={{ padding: '4px 0', textAlign: 'right', color: '#d32f2f' }}>
+                                  <td style={{ padding: '4px 0', textAlign: 'right', color: muiTheme.palette.error.main }}>
                                     {new Date(exportStatus.expiresAt).toLocaleDateString()} (7 days)
                                   </td>
                                 </tr>
                                 {exportStatus.downloadCount > 0 && (
                                   <tr>
-                                    <td style={{ padding: '4px 0', color: '#666' }}>
+                                    <td style={{ padding: '4px 0', color: muiTheme.palette.text.secondary }}>
                                       <strong>Downloads:</strong>
                                     </td>
                                     <td style={{ padding: '4px 0', textAlign: 'right' }}>
@@ -726,10 +730,11 @@ const SettingsPage: React.FC = () => {
                       {exportStatus.status === 'failed' && (
                         <Box 
                           sx={{ 
-                            p: 3, 
-                            bgcolor: '#ffebee', 
+                            p: { xs: 2, sm: 3 }, 
+                            bgcolor: 'error.50', 
                             borderRadius: 2, 
-                            border: '1px solid #e57373',
+                            border: '1px solid',
+                            borderColor: 'error.300',
                             mb: 2 
                           }}
                         >
@@ -754,10 +759,11 @@ const SettingsPage: React.FC = () => {
                       {exportStatus.status === 'expired' && (
                         <Box 
                           sx={{ 
-                            p: 3, 
-                            bgcolor: '#fafafa', 
+                            p: { xs: 2, sm: 3 }, 
+                            bgcolor: 'grey.50', 
                             borderRadius: 2, 
-                            border: '1px solid #bdbdbd',
+                            border: '1px solid',
+                            borderColor: 'grey.400',
                             mb: 2 
                           }}
                         >
@@ -923,7 +929,7 @@ const SettingsPage: React.FC = () => {
             courseCount={deletionOptions.content.totalCourses}
           />
         )}
-      </Container>
+      </PageContainer>
     </>
   );
 };

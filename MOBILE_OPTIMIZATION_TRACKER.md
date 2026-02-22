@@ -1,8 +1,8 @@
 # Mobile UI Optimization Tracker
 
 **Created**: February 19, 2026  
-**Last Updated**: February 21, 2026  
-**Status**: Phase 1 Complete + Theme Token System Built + 3-Round Bug Audit — Phase 2 Next  
+**Last Updated**: February 22, 2026  
+**Status**: Phase 2 Complete + 5-Round Bug Audit — 37/73 pages done — Phase 3 Next  
 **Goal**: Make every page fully responsive and mobile-optimized across the Mishin Learn Platform
 
 ---
@@ -109,21 +109,22 @@ Every page must meet ALL of these criteria to be marked "complete":
 
 | # | Page | File | Route | Current State | Status |
 |---|------|------|-------|---------------|--------|
-| 2.1 | **My Learning** | `pages/Learning/MyLearningPage.tsx` | `/my-learning` | Partial — responsive Grid only | ⬜ Not Started |
-| 2.2 | **Lesson Detail** | `pages/Course/LessonDetailPage.tsx` | `/courses/:id/lessons/:id` | Partial — some responsive sx | ⬜ Not Started |
-| 2.3 | **Notifications** | `pages/Notifications/NotificationsPage.tsx` | `/notifications` | Partial — some responsive sx | ⬜ Not Started |
-| 2.4 | **Profile** | `pages/Profile/ProfilePage.tsx` | `/profile` | Partial — responsive Grid | ⬜ Not Started |
-| 2.5 | **Settings** | `pages/Settings/SettingsPage.tsx` | `/settings` | None — no responsive code | ⬜ Not Started |
-| 2.6 | **Notification Settings** | `pages/Settings/NotificationSettingsPage.tsx` | `/settings/notifications` | Partial — xs={6} only, no multi-breakpoint | ⬜ Not Started |
-| 2.7 | **Student Progress** | `pages/Progress/StudentProgressPage.tsx` | `/smart-progress` | None — no responsive code | ⬜ Not Started |
-| 2.8 | **Student Assessments** | `pages/Assessment/StudentAssessmentDashboard.tsx` | `/my-assessments` | Partial — responsive Grid only | ⬜ Not Started |
-| 2.9 | **Assessment Taking** | `pages/Assessment/AssessmentTakingPage.tsx` | `/assessments/:id` | None — no responsive code | ⬜ Not Started |
-| 2.10 | **My Certificates** | `pages/Certificates/MyCertificatesPage.tsx` | `/my-certificates` | Partial — responsive Grid | ⬜ Not Started |
-| 2.11 | **Certificate View** | `pages/Certificates/CertificatePage.tsx` | `/courses/:id/certificate` | Partial — some responsive sx | ⬜ Not Started |
-| 2.12 | **Public Certificate** | `pages/Certificates/PublicCertificatePage.tsx` | `/certificate/:code` | Partial — some responsive sx | ⬜ Not Started |
-| 2.13 | **Bookmarks** (if separate page) | — | — | Check if embedded in other pages | ⬜ Not Started |
+| 2.1 | **My Learning** | `pages/Learning/MyLearningPage.tsx` | `/my-learning` | Fixed: PageContainer, PageTitle, theme tokens (gradients, `alpha()` shadows), responsive instructor/student layouts | ✅ Done |
+| 2.2 | **Lesson Detail** | `pages/Course/LessonDetailPage.tsx` | `/courses/:id/lessons/:id` | Fixed: PageContainer (3), useTheme, gradient tokens, assessment button palette hex → tokens | ✅ Done |
+| 2.3 | **Notifications** | `pages/Notifications/NotificationsPage.tsx` | `/notifications` | Fixed: PageContainer, PageTitle, responsive filter row (`flexWrap`, responsive `minWidth`) | ✅ Done |
+| 2.4 | **Profile** | `pages/Profile/ProfilePage.tsx` | `/profile` | Fixed: PageContainer (3), Tabs `variant="scrollable" scrollButtons="auto"`, responsive mt | ✅ Done |
+| 2.5 | **Settings** | `pages/Settings/SettingsPage.tsx` | `/settings` | Fixed: PageContainer, PageTitle, `useTheme` as `muiTheme` (avoids `theme` state collision), td hex→palette tokens | ✅ Done |
+| 2.6 | **Notification Settings** | `pages/Settings/NotificationSettingsPage.tsx` | `/settings/notifications` | Fixed: PageContainer, PageTitle, responsive header, subcategory `flexWrap`, `pt` not `py` | ✅ Done |
+| 2.7 | **Student Progress** | `pages/Progress/StudentProgressPage.tsx` | `/smart-progress` | Fixed: Added `PageContainer maxWidth="xl"` wrapper | ✅ Done |
+| 2.7b | **Student Progress Dashboard** | `components/Progress/StudentProgressDashboard.tsx` | (component) | Fixed: Tabs `scrollable`, removed internal padding (was doubling with PageContainer) | ✅ Done |
+| 2.8 | **Student Assessments** | `pages/Assessment/StudentAssessmentDashboard.tsx` | `/my-assessments` | Fixed: PageContainer (3), PageTitle, responsive grid/list/buttons, `pt` on all 3 return paths | ✅ Done |
+| 2.9 | **Assessment Taking** | `pages/Assessment/AssessmentTakingPage.tsx` | `/assessments/:id` | Fixed: PageContainer (2), alert `flexWrap`, `pt` on all return paths | ✅ Done |
+| 2.10 | **My Certificates** | `pages/Certificates/MyCertificatesPage.tsx` | `/my-certificates` | Fixed: PageContainer, PageTitle, gradient token `(t:any)=>`, CardActions `flexWrap`, Header in loading state | ✅ Done |
+| 2.11 | **Certificate View** | `pages/Certificates/CertificatePage.tsx` | `/courses/:id/certificate` | Fixed: PageContainer (5), gradient token, button bar `flexWrap`, `severity` split for error vs not-found | ✅ Done |
+| 2.12 | **Public Certificate** | `pages/Certificates/PublicCertificatePage.tsx` | `/certificate/:code` | Fixed: PageContainer (5), all with `disableBottomPad`, gradient token, responsive gap/mb | ✅ Done |
+| 2.13 | **Bookmarks** (if separate page) | — | — | Bookmarks are embedded in CourseDetailPage sidebar — no separate page exists | N/A |
 
-**Phase 2 Completion**: ⬜ 0/13
+**Phase 2 Completion**: ✅ 12/12 (+ 1 N/A)
 
 ---
 
@@ -199,11 +200,11 @@ Every page must meet ALL of these criteria to be marked "complete":
 |-------|-------|-----------|----------|
 | **Phase 0**: Global Shell | 15 | 15 | ✅ 100% |
 | **Phase 1**: Critical Path | 9 | 9 | ✅ 100% |
-| **Phase 2**: Core Student | 13 | 0 | ⬜ 0% |
+| **Phase 2**: Core Student | 13 | 13 | ✅ 100% |
 | **Phase 3**: Collaboration | 7 | 0 | ⬜ 0% |
 | **Phase 4**: Instructor | 19 | 0 | ⬜ 0% |
 | **Phase 5**: Secondary | 10 | 0 | ⬜ 0% |
-| **TOTAL** | **73** | **24** | **⬜ 32.9%** |
+| **TOTAL** | **73** | **37** | **🔄 50.7%** |
 
 ---
 
@@ -211,14 +212,24 @@ Every page must meet ALL of these criteria to be marked "complete":
 
 ### Pattern 1: Page Container with Bottom-Nav Padding
 ```tsx
-// EVERY authenticated page needs this
-const theme = useTheme();
-const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+// EVERY authenticated page — use PageContainer (never raw <Container>)
+import { PageContainer } from '../../components/Responsive';
 
-<Container maxWidth="xl" sx={{ mt: 4, mb: 4, px: { xs: 2, sm: 3 }, pb: { xs: 10, md: 0 } }}>
-  {/* Page content */}
-</Container>
+<PageContainer>
+  {/* page content — px, mt, mb, pb:{ xs:10, md:0 } applied automatically */}
+</PageContainer>
+
+// With extra top padding:
+<PageContainer sx={{ pt: 4 }}>
+  ...
+</PageContainer>
 ```
+
+> ⚠️ **CRITICAL — `py` vs `pt` rule**:  
+> PageContainer's base styles include `pb: { xs: 10, md: 0 }` for MobileBottomNav clearance.  
+> MUI's `sx` array merges later entries on top, and `py` expands to BOTH `paddingTop` AND `paddingBottom` — silently overriding the base `pb`.  
+> ✅ **Always use `pt:` (not `py:`) in consumer sx on authenticated pages.**  
+> ✅ For public/guest pages where MobileBottomNav doesn't render, add `disableBottomPad` prop — then `py:` is safe.
 
 ### Pattern 2: Responsive Typography
 ```tsx
@@ -363,12 +374,16 @@ The following pages may be unused (old versions superseded by newer implementati
 ## 🗓️ SESSION LOG
 
 | Session | Date | Work Done | Items Completed |
-|---------|------|-----------|-----------------|
+|---------|------|-----------|--------------------|
+> Sessions 1-5 are pre-Phase 2 (planning → Phase 0 → Phase 1 → Token System → Audit rounds)
+
 | 1 | Feb 19, 2026 | Created tracking document, audited all 55 pages | Planning only |
 | 2 | Feb 19, 2026 | Phase 0 complete: Audited & fixed all 15 global/shared components. Fixes: NotificationBell responsive width, PageHeader responsive sticky+breadcrumbs, MobileNavDrawer search route, CommentsSection responsive padding, RatingSummaryCard responsive padding/gap, RatingSubmitForm responsive padding. 0 TS errors. | 15/15 (Phase 0) |
 | 3 | Feb 21, 2026 | Phase 1 complete (9/9): Created Responsive library (8 files — PageContainer, PageTitle, ResponsiveDialog, ResponsivePaper, ResponsiveStack, useResponsive, constants, index). Applied to all 9 Phase 1 pages. Fixed auth bug: `<Link component="button">` inside `<form>` was submitting login form on Sign-Up click — fixed with `type="button"`. Fixed logout(): state now clears immediately before server call. Fixed `await logout()` in all nav handlers. Unified 401 interceptors across all API services. App.tsx stale-state guard added. Full Phase 1 audit: 0 TS errors across all 18 files. | 9/9 (Phase 1), cumulative 24/73 |
 | 4 | Feb 21, 2026 | Theme Token System: Merged `augmentedTheme` (was unused!) into single `createTheme` export. Extended palette with full 50-900 shades. Added `theme.custom.colors` (8 named tokens), `theme.custom.shadows` (9 named tokens), `theme.custom.radii` (7 named tokens). Created `tokens.ts` with 18 reusable sx fragments. Component overrides now use `baseRadius` variable. 0 TS errors. | Infrastructure (token system ready for Phase 2+) |
 | 5 | Feb 21, 2026 | Theme Token System — 3-Round Bug Audit: Round 1 found CRITICAL bug (borderRadius callbacks returned raw numbers → MUI ×12 multiplier → 192px instead of 16px; fixed to `px` strings) + wrong shadow RGBs (focusPrimary/image used old purple `rgba(102,126,234)`, focusSuccess used MUI default `rgba(76,175,80)`) + docs. Round 2 found duplicate shadow token (`shadows.soft` was identical to `shadows.card`; differentiated) + Rule 2 comment fix. Round 3 found `radii.full` JSDoc footgun (warning applied to all tokens but `full='50%'` must NOT get `px` suffix). Also fixed this tracker's own radii usage example (was showing the pre-fix incorrect raw-number pattern). 0 TS errors after every round. | 0 new pages (quality fixes to token system) |
+| 6 | Feb 22, 2026 | **Phase 2 complete (12 pages)**: MyLearningPage, LessonDetailPage, NotificationsPage, ProfilePage, SettingsPage, NotificationSettingsPage, StudentProgressPage + StudentProgressDashboard (component), StudentAssessmentDashboard, AssessmentTakingPage, MyCertificatesPage, CertificatePage, PublicCertificatePage. 2.13 (Bookmarks) confirmed N/A — feature embedded in CourseDetailPage sidebar. PageContainer, PageTitle, theme gradient/shadow tokens applied throughout. scrollable Tabs on ProfilePage + StudentProgressDashboard. `disableBottomPad` on PublicCertificatePage (all 4 return paths). 0 TS errors. | 12/12 (Phase 2), cumulative 37/73 |
+| 7 | Feb 22, 2026 | **Phase 2 — 5-round exhaustive bug audit**: Systemic `py→pt` fix on 8 files/15 instances (consumer `py` silently overrides PageContainer base `pb:{xs:10,md:0}`). ProfilePage Tabs `variant="scrollable"`. SettingsPage: `theme` state renamed `colorTheme` to avoid MUI `useTheme()` collision; td `#666`/`#d32f2f` → palette tokens. CertificatePage `severity` made conditional (`info` for not-found, `error` for API failure). PublicCertificatePage error path missing `disableBottomPad`. StudentProgressDashboard internal padding removed (double-padding with PageContainer). MyLearningPage 4 hardcoded `rgba()` shadows → `alpha(theme.palette.*,…)`. 0 TS errors after every round. | 0 new pages (quality assurance) |
 
 ---
 

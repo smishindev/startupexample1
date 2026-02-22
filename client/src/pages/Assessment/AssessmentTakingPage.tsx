@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { Box, Typography, Card, CardContent, Container, Button, Alert } from '@mui/material';
+import { Box, Typography, Card, CardContent, Button, Alert } from '@mui/material';
 import { HeaderV5 as Header } from '../../components/Navigation/HeaderV5';
+import { PageContainer } from '../../components/Responsive';
 import QuizTaker from '../../components/Assessment/QuizTaker';
 import { assessmentApi, AssessmentSubmission } from '../../services/assessmentApi';
 
@@ -61,7 +62,7 @@ export const AssessmentTakingPage: React.FC = () => {
     return (
       <Box>
         <Header />
-        <Container maxWidth="xl" sx={{ py: 4 }}>
+        <PageContainer maxWidth="xl" sx={{ pt: { xs: 2, md: 4 } }}>
           <Card>
             <CardContent>
               <Typography variant="h5" color="error">
@@ -72,7 +73,7 @@ export const AssessmentTakingPage: React.FC = () => {
               </Typography>
             </CardContent>
           </Card>
-        </Container>
+        </PageContainer>
       </Box>
     );
   }
@@ -80,11 +81,11 @@ export const AssessmentTakingPage: React.FC = () => {
   return (
     <Box>
       <Header />
-      <Container maxWidth="xl" sx={{ py: 4 }}>
+      <PageContainer maxWidth="xl" sx={{ pt: { xs: 2, md: 4 } }}>
         {/* Back to lesson link if available */}
         {returnUrl && (
           <Alert severity="info" sx={{ mb: 2 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1 }}>
               <Typography variant="body2">
                 You came from a lesson. Complete this assessment to test your understanding.
               </Typography>
@@ -92,7 +93,7 @@ export const AssessmentTakingPage: React.FC = () => {
                 data-testid="assessment-taking-back-to-lesson-button"
                 size="small" 
                 onClick={() => navigate(returnUrl)}
-                sx={{ ml: 2 }}
+                sx={{ ml: { xs: 0, sm: 2 } }}
               >
                 Back to Lesson
               </Button>
@@ -104,7 +105,7 @@ export const AssessmentTakingPage: React.FC = () => {
           assessmentId={assessmentId} 
           onComplete={handleAssessmentComplete}
         />
-      </Container>
+      </PageContainer>
     </Box>
   );
 };

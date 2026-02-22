@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
-  Container,
   Typography,
   Grid,
   Paper,
@@ -16,7 +15,8 @@ import {
   CircularProgress,
   alpha,
   Pagination,
-  Rating
+  Rating,
+  useTheme,
 } from '@mui/material';
 import {
   PlayArrow,
@@ -33,10 +33,10 @@ import { formatDistanceToNow } from 'date-fns';
 import { HeaderV5 as Header } from '../../components/Navigation/HeaderV5';
 import { enrollmentApi, Enrollment } from '../../services/enrollmentApi';
 import { useAuthStore } from '../../stores/authStore';
-import { useTheme } from '@mui/material';
 import { formatCategory, getCategoryGradient, getLevelColor } from '../../utils/courseHelpers';
 import { formatDuration } from '@shared/utils';
 import { useCatalogRealtimeUpdates } from '../../hooks/useCatalogRealtimeUpdates';
+import { PageContainer, PageTitle } from '../../components/Responsive';
 
 const MyLearningPage: React.FC = () => {
   const navigate = useNavigate();
@@ -202,9 +202,9 @@ const MyLearningPage: React.FC = () => {
     return (
       <Box>
         <Header />
-        <Container maxWidth="xl" sx={{ py: 4, display: 'flex', justifyContent: 'center' }}>
+        <PageContainer sx={{ pt: 4, display: 'flex', justifyContent: 'center' }}>
           <CircularProgress />
-        </Container>
+        </PageContainer>
       </Box>
     );
   }
@@ -212,11 +212,11 @@ const MyLearningPage: React.FC = () => {
   return (
     <Box>
       <Header />
-      <Container maxWidth="xl" sx={{ py: 4 }}>
-        <Typography variant="h4" component="h1" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+      <PageContainer sx={{ pt: { xs: 2, md: 4 } }}>
+        <PageTitle gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, md: 2 } }}>
           {isInstructor ? <Psychology color="primary" /> : <School color="primary" />}
           {isInstructor ? 'My Teaching' : 'My Learning'}
-        </Typography>
+        </PageTitle>
 
         {error && enrollments.length > 0 && (
           <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
@@ -225,9 +225,9 @@ const MyLearningPage: React.FC = () => {
         )}
 
         {enrollments.length === 0 ? (
-          <Paper sx={{ p: 6, textAlign: 'center' }}>
-            {isInstructor ? <Psychology sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} /> : <School sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />}
-            <Typography variant="h5" gutterBottom color="text.secondary">
+          <Paper sx={{ p: { xs: 3, sm: 4, md: 6 }, textAlign: 'center' }}>
+            {isInstructor ? <Psychology sx={{ fontSize: { xs: 48, md: 64 }, color: 'text.secondary', mb: 2 }} /> : <School sx={{ fontSize: { xs: 48, md: 64 }, color: 'text.secondary', mb: 2 }} />}
+            <Typography variant="h5" gutterBottom color="text.secondary" sx={{ fontSize: { xs: '1rem', sm: '1.125rem' } }}>
               {isInstructor ? 'No courses created yet' : 'No enrolled courses yet'}
             </Typography>
             <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
@@ -359,7 +359,7 @@ const MyLearningPage: React.FC = () => {
                       overflow: 'hidden',
                       '&:hover': {
                         transform: 'translateY(-8px)',
-                        boxShadow: '0 12px 24px rgba(0,0,0,0.15)',
+                        boxShadow: theme.custom.shadows.dialog,
                       },
                       '&::after': {
                         content: '""',
@@ -436,7 +436,7 @@ const MyLearningPage: React.FC = () => {
 
                       {(enrollment.Rating > 0 || enrollment.RatingCount > 0) && (
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1.5 }}>
-                          <Rating value={enrollment.Rating || 0} precision={0.1} readOnly size="small" sx={{ color: '#ffd700' }} />
+                          <Rating value={enrollment.Rating || 0} precision={0.1} readOnly size="small" sx={{ color: theme.custom.colors.gold }} />
                           <Typography variant="body2" sx={{ fontWeight: 700, color: 'text.primary', fontSize: '0.85rem' }}>
                             {Number(enrollment.Rating || 0).toFixed(1)}
                           </Typography>
@@ -494,7 +494,7 @@ const MyLearningPage: React.FC = () => {
                             boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.1)',
                             '& .MuiLinearProgress-bar': {
                               borderRadius: 5,
-                              boxShadow: '0 2px 4px rgba(102, 126, 234, 0.4)',
+                              boxShadow: theme.custom.shadows.focusPrimary,
                             },
                           }}
                         />
@@ -540,13 +540,13 @@ const MyLearningPage: React.FC = () => {
                           sx={{
                             py: 0.75,
                             borderRadius: 2,
-                            background: 'linear-gradient(45deg, #10b981 30%, #059669 90%)',
-                            boxShadow: '0 3px 5px 2px rgba(16, 185, 129, .3)',
+                            background: theme.custom.gradients.success,
+                            boxShadow: `0 3px 5px 2px ${alpha(theme.palette.success.main, 0.3)}`,
                             fontWeight: 600,
                             transition: 'all 0.2s ease',
                             '&:hover': {
                               transform: 'translateY(-2px)',
-                              boxShadow: '0 6px 10px 4px rgba(16, 185, 129, .3)',
+                              boxShadow: `0 6px 10px 4px ${alpha(theme.palette.success.main, 0.3)}`,
                             },
                           }}
                         >
@@ -596,13 +596,13 @@ const MyLearningPage: React.FC = () => {
                             sx={{
                               py: 0.75,
                               borderRadius: 2,
-                              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                              boxShadow: '0 4px 12px rgba(102, 126, 234, 0.4)',
+                              background: theme.custom.gradients.primary,
+                              boxShadow: theme.custom.shadows.image,
                               fontWeight: 600,
                               transition: 'all 0.3s ease',
                               '&:hover': {
                                 transform: 'translateY(-2px)',
-                                boxShadow: '0 6px 16px rgba(102, 126, 234, 0.5)',
+                              boxShadow: `0 6px 16px ${alpha(theme.palette.primary.main, 0.5)}`,
                               },
                             }}
                             data-testid={`my-learning-edit-course-${enrollment.courseId}-button`}
@@ -684,13 +684,13 @@ const MyLearningPage: React.FC = () => {
                           sx={{
                             py: 0.75,
                             borderRadius: 2,
-                            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                            boxShadow: '0 4px 12px rgba(102, 126, 234, 0.4)',
+                            background: theme.custom.gradients.primary,
+                            boxShadow: theme.custom.shadows.image,
                             fontWeight: 600,
                             transition: 'all 0.3s ease',
                             '&:hover': {
                               transform: 'translateY(-2px)',
-                              boxShadow: '0 6px 16px rgba(102, 126, 234, 0.5)',
+                              boxShadow: `0 6px 16px ${alpha(theme.palette.primary.main, 0.5)}`,
                             },
                           }}
                         >
@@ -735,7 +735,7 @@ const MyLearningPage: React.FC = () => {
             )}
           </>
         )}
-      </Container>
+      </PageContainer>
     </Box>
   );
 };

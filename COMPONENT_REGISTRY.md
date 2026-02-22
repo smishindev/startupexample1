@@ -1,6 +1,6 @@
 # Mishin Learn Platform - Component Registry
 
-**Last Updated**: February 21, 2026 - Theme Token System 🎨  
+**Last Updated**: February 22, 2026 - Mobile Optimization Phase 2 Complete 📱  
 **Purpose**: Quick reference for all major components, their dependencies, and relationships
 
 ---
@@ -33,9 +33,14 @@ const { isMobile, isTablet, isDesktop, isSmallMobile } = useResponsive();
 
 ### `PageContainer`
 **Path**: `Responsive/PageContainer.tsx`  
-**Purpose**: Replaces raw `<Container maxWidth="xl">` on every authenticated page. Adds `px: PAGE_PADDING_X` and `pb: { xs: BOTTOM_NAV_PADDING, md: 0 }` automatically.  
+**Purpose**: Replaces raw `<Container maxWidth="xl">` on every authenticated page. Adds `px: PAGE_PADDING_X` and `pb: { xs: BOTTOM_NAV_PADDING, md: 0 }` automatically via `sx={[baseStyles, ...consumerSx]}` (MUI array form).  
 **Props**: `maxWidth`, `disableBottomPad`, `sx`, standard Container props  
 **Usage**: `<PageContainer> ... </PageContainer>`
+
+> ⚠️ **CRITICAL — `py` vs `pt` rule**:  
+> Consumer `py:` in `sx` expands to both `paddingTop` AND `paddingBottom`, silently overriding the base `pb: { xs: 10, md: 0 }` for MobileBottomNav clearance. Any bottom content (pagination, save buttons, last cards) becomes hidden behind the 64px nav bar on mobile.  
+> **Rule**: Always use `pt:` (not `py:`) in authenticated page consumer sx.  
+> **Exception**: `disableBottomPad` pages (public/guest — no MobileBottomNav renders) may use `py:` safely.
 
 ### `PageTitle`
 **Path**: `Responsive/PageTitle.tsx`  
@@ -66,10 +71,10 @@ import { PageContainer, PageTitle, useResponsive, ResponsiveDialog,
          ResponsivePaper, ResponsiveStack, BOTTOM_NAV_HEIGHT, ... } from '../../components/Responsive';
 ```
 
-**Pages currently using Responsive library** (Phase 1 — 9 pages):
-- `LandingPage.tsx`, `Login.tsx`, `Register.tsx`
-- `ForgotPasswordForm.tsx`, `ResetPasswordForm.tsx`, `EmailVerificationPage.tsx`
-- `CoursesPage.tsx`, `CourseDetailPage.tsx`, `DashboardPage.tsx`
+**Pages currently using Responsive library** (Phase 1 + Phase 2 — 22 pages):
+- **Phase 1 (9)**: `LandingPage.tsx`, `Login.tsx`, `Register.tsx`, `ForgotPasswordForm.tsx`, `ResetPasswordForm.tsx`, `EmailVerificationPage.tsx`, `CoursesPage.tsx`, `CourseDetailPage.tsx`, `DashboardPage.tsx`
+- **Phase 2 (12)**: `MyLearningPage.tsx`, `LessonDetailPage.tsx`, `NotificationsPage.tsx`, `ProfilePage.tsx`, `SettingsPage.tsx`, `NotificationSettingsPage.tsx`, `StudentProgressPage.tsx`, `StudentAssessmentDashboard.tsx`, `AssessmentTakingPage.tsx`, `MyCertificatesPage.tsx`, `CertificatePage.tsx`, `PublicCertificatePage.tsx`
+- **Phase 2 component**: `StudentProgressDashboard.tsx` (wrapped by StudentProgressPage)
 
 ---
 

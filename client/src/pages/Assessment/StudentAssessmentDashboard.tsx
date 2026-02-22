@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box,
-  Container,
   Typography,
   Grid,
   Card,
@@ -31,6 +30,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { HeaderV5 as Header } from '../../components/Navigation/HeaderV5';
+import { PageContainer, PageTitle } from '../../components/Responsive';
 import { assessmentApi } from '../../services/assessmentApi';
 
 interface AssessmentProgress {
@@ -145,12 +145,12 @@ export const StudentAssessmentDashboard: React.FC = () => {
     return (
       <Box>
         <Header />
-        <Container maxWidth="xl" sx={{ py: 4 }}>
+        <PageContainer maxWidth="xl" sx={{ pt: { xs: 2, md: 4 } }}>
           <Box sx={{ textAlign: 'center' }}>
             <LinearProgress sx={{ mb: 2 }} />
             <Typography>Loading your assessment progress...</Typography>
           </Box>
-        </Container>
+        </PageContainer>
       </Box>
     );
   }
@@ -159,14 +159,14 @@ export const StudentAssessmentDashboard: React.FC = () => {
     return (
       <Box>
         <Header />
-        <Container maxWidth="xl" sx={{ py: 4 }}>
+        <PageContainer maxWidth="xl" sx={{ pt: { xs: 2, md: 4 } }}>
           <Alert severity="error" sx={{ mb: 2 }}>
             {error || 'Failed to load assessment data'}
           </Alert>
           <Button data-testid="student-assessment-retry-button" variant="contained" onClick={fetchAssessmentProgress}>
             Try Again
           </Button>
-        </Container>
+        </PageContainer>
       </Box>
     );
   }
@@ -174,20 +174,20 @@ export const StudentAssessmentDashboard: React.FC = () => {
   return (
     <Box>
       <Header />
-      <Container maxWidth="xl" sx={{ py: 4 }}>
+      <PageContainer maxWidth="xl" sx={{ pt: { xs: 2, md: 4 } }}>
         {/* Page Header */}
-        <Box sx={{ mb: 4 }}>
-          <Typography variant="h3" sx={{ fontWeight: 'bold', mb: 2, display: 'flex', alignItems: 'center' }}>
-            <SchoolIcon sx={{ mr: 2, fontSize: 40, color: 'primary.main' }} />
+        <Box sx={{ mb: { xs: 2, md: 4 } }}>
+          <PageTitle sx={{ mb: { xs: 1, md: 2 }, display: 'flex', alignItems: 'center' }}>
+            <SchoolIcon sx={{ mr: { xs: 1, md: 2 }, fontSize: { xs: 28, md: 40 }, color: 'primary.main' }} />
             My Assessment Dashboard
-          </Typography>
-          <Typography variant="h6" color="text.secondary">
+          </PageTitle>
+          <Typography variant="h6" color="text.secondary" sx={{ fontSize: { xs: '0.9rem', md: '1.25rem' } }}>
             Track your progress across all assessments and courses
           </Typography>
         </Box>
 
         {/* Overview Statistics */}
-        <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid container spacing={{ xs: 2, md: 3 }} sx={{ mb: { xs: 2, md: 4 } }}>
           <Grid item xs={12} md={3}>
             <Card>
               <CardContent>
@@ -307,14 +307,14 @@ export const StudentAssessmentDashboard: React.FC = () => {
                 <List>
                   {courseGroup.assessments.map((assessment, index) => (
                     <React.Fragment key={assessment.assessmentId}>
-                      <ListItem>
+                      <ListItem sx={{ flexWrap: 'wrap' }}>
                         <ListItemAvatar>
                           {getStatusIcon(assessment.progress.status)}
                         </ListItemAvatar>
                         <ListItemText
                           primary={
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                              <Typography variant="h6">{assessment.assessmentTitle}</Typography>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1, flexWrap: 'wrap' }}>
+                              <Typography variant="h6" sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>{assessment.assessmentTitle}</Typography>
                               {assessment.isAdaptive && (
                                 <Chip label="🧠 Adaptive" size="small" color="secondary" variant="outlined" />
                               )}
@@ -349,7 +349,7 @@ export const StudentAssessmentDashboard: React.FC = () => {
                             </Box>
                           }
                         />
-                        <Box sx={{ display: 'flex', gap: 1, ml: 2 }}>
+                        <Box sx={{ display: 'flex', gap: 1, ml: { xs: 0, sm: 2 }, mt: { xs: 1, sm: 0 }, flexWrap: 'wrap' }}>
                           {assessment.progress.canTakeAssessment ? (
                             <Button
                               data-testid={`student-assessment-take-${assessment.assessmentId}`}
@@ -385,7 +385,7 @@ export const StudentAssessmentDashboard: React.FC = () => {
             </Accordion>
           ))
         )}
-      </Container>
+      </PageContainer>
     </Box>
   );
 };

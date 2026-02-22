@@ -1,6 +1,6 @@
 ﻿# Mishin Learn Platform - Project Status & Memory
 
-**Last Updated**: February 21, 2026 - Theme Token System + 3-Round Bug Audit 🎨  
+**Last Updated**: February 22, 2026 - Mobile Optimization Phase 2 Complete + 5-Round Bug Audit 📱  
 **Developer**: Sergey Mishin (s.mishin.dev@gmail.com)  
 **AI Assistant Context**: This file serves as project memory for continuity across chat sessions
 
@@ -19,6 +19,7 @@
 **Analytics Hub**: Exhaustive 23-round audit — 68 total fixes, all services hardened, CoursePerformanceTable UI (February 18, 2026) 🔧  
 **CourseSelector**: Unified reusable course dropdown replacing 9 inline implementations; lazy rendering, type-to-search, helper text (February 19, 2026) 🔽  
 **Mobile Optimization Phase 1**: Responsive library (8 files) created; all 9 critical-path pages fully mobile-optimized (February 21, 2026) 📱  
+**Mobile Optimization Phase 2**: All 12 core student pages mobile-optimized; systemic `py→pt` bug fixed; 5-round exhaustive audit; 37/73 pages done (50.7%), 0 TypeScript errors (February 22, 2026) 📱  
 **Auth Bug Fixes**: `logout()` clears state immediately; `type="button"` on nav-links inside forms; all 401 interceptors unified; stale-state guard in App.tsx (February 21, 2026) 🔐  
 **Theme Token System**: Centralised design tokens in `theme/index.ts` (colors, shadows, radii, extended palette). `tokens.ts` with 18 reusable `sx` fragments. 3-round exhaustive bug audit — all bugs fixed, 0 TypeScript errors (February 21, 2026) 🎨
 
@@ -62,7 +63,66 @@
 
 ---
 
-## u{1F4F1} MOBILE OPTIMIZATION u{2014} PHASE 1 COMPLETE (February 21, 2026)
+## 📱 MOBILE OPTIMIZATION — PHASE 2 COMPLETE (February 22, 2026)
+
+**Activity**: Mobile-optimized all 12 core student pages (Phase 2.1–2.12). Phase 2.13 (Bookmarks) confirmed N/A — feature is embedded in CourseDetailPage sidebar. Followed up with 5 rounds of exhaustive auditing, finding and fixing a systemic bottom-nav padding bug, ProfilePage tab overflow, SettingsPage naming collision, hardcoded hex/rgba values, and Alert severity inconsistency.
+
+**Status**: ✅ **Complete** — 37/73 pages done (50.7%), 0 TypeScript errors after every round
+
+### **Phase 2 Pages Optimized (12/12)**
+
+| # | Page | Key Changes |
+|---|------|-------------|
+| 2.1 | `MyLearningPage.tsx` | PageContainer, PageTitle, gradient+`alpha()` shadow tokens, responsive instructor/student card layouts |
+| 2.2 | `LessonDetailPage.tsx` | PageContainer ×3, `useTheme`, gradient tokens, assessment button hex → palette tokens |
+| 2.3 | `NotificationsPage.tsx` | PageContainer, PageTitle, responsive filter row (`flexWrap`, responsive `minWidth`) |
+| 2.4 | `ProfilePage.tsx` | PageContainer ×3, Tabs `variant="scrollable" scrollButtons="auto"`, responsive mt |
+| 2.5 | `SettingsPage.tsx` | PageContainer, PageTitle, `useTheme` as `muiTheme` (avoids `theme` state collision), td hex → palette tokens |
+| 2.6 | `NotificationSettingsPage.tsx` | PageContainer, PageTitle, subcategory `flexWrap`, `pt` (not `py`) |
+| 2.7 | `StudentProgressPage.tsx` | Added `PageContainer maxWidth="xl"` wrapper |
+| 2.7b | `StudentProgressDashboard.tsx` | Tabs `scrollable`, removed internal padding (was doubling with PageContainer) |
+| 2.8 | `StudentAssessmentDashboard.tsx` | PageContainer ×3, PageTitle, responsive grid/list, `pt` on all 3 return paths |
+| 2.9 | `AssessmentTakingPage.tsx` | PageContainer ×2, alert `flexWrap`, `pt` on all return paths |
+| 2.10 | `MyCertificatesPage.tsx` | PageContainer, PageTitle, gradient token `(t:any)→`, CardActions `flexWrap`, Header in loading state |
+| 2.11 | `CertificatePage.tsx` | PageContainer ×5, gradient token, button bar `flexWrap`, `severity` conditional (info vs error) |
+| 2.12 | `PublicCertificatePage.tsx` | PageContainer ×5 all with `disableBottomPad`, gradient token, responsive gap/mb |
+
+### **Bugs Found & Fixed (5-Round Audit)**
+
+| Round | Severity | Bug | Fix |
+|-------|----------|-----|-----|
+| 1 | HIGH | `StudentProgressDashboard` internal `p:{xs:2,md:3}` doubled PageContainer's px | Removed internal padding |
+| 1 | HIGH | `MyCertificatesPage` loading path missing `<Header />` and outer wrapper | Added Header + Box wrapper |
+| 1 | MEDIUM | `LessonDetailPage` 8 hardcoded hex in assessment button gradients | Replaced with `theme.palette.success/warning.*` |
+| 1 | LOW | `MyLearningPage` redundant `component="h1"` on PageTitle | Removed (PageTitle sets it internally) |
+| 2 | HIGH | `ProfilePage` 4 icon+label Tabs missing scrollable variant | Added `variant="scrollable" scrollButtons="auto"` |
+| 2 | MEDIUM | `SettingsPage` 5× `#666` + 1× `#d32f2f` in inline `<td style>` | Replaced with `muiTheme.palette.text.secondary` / `.error.main` |
+| 2 | LOW | `PublicCertificatePage` missing `disableBottomPad` on error return path | Added |
+| 2 | LOW | `NotificationsPage` fixed `minWidth: 160` on filter dropdowns | Changed to `{ xs: 120, sm: 160 }` |
+| 3 | CRITICAL (systemic) | Consumer `py:` in PageContainer sx silently overrides base `pb:{xs:10,md:0}` — bottom content hidden behind MobileBottomNav on mobile | Replaced `py` → `pt` across 8 files, 15 instances |
+| 3 | LOW | `PublicCertificatePage` error path missing `disableBottomPad` (second instance) | Fixed |
+| 4 | MEDIUM | `MyLearningPage` 4 hardcoded `rgba(34,197,94,…)` + `rgba(99,102,241,…)` boxShadow | Replaced with `alpha(theme.palette.success/primary.main, …)` |
+| 4 | LOW | `SettingsPage` `theme` state variable + `useTheme()` naming collision | Renamed state to `colorTheme`/`setColorTheme` |
+| 4 | LOW | `CertificatePage` `severity="info"` for all error types | Split: `info` for not-found, `error` for API failures |
+
+### **CRITICAL Rule Discovered: `py` vs `pt` on PageContainer**
+```tsx
+// PageContainer base sx array: [...baseStyles, ...consumerSx]
+// MUI merges later array entries on top of earlier ones
+// `py` = shorthand for paddingTop + paddingBottom
+// ❌ WRONG — silently overrides baseline pb:{xs:10,md:0} (MobileBottomNav clearance)
+<PageContainer sx={{ py: 4 }}>  // bottom content hidden behind 64px nav bar!
+
+// ✅ CORRECT — only overrides paddingTop, leaves paddingBottom intact
+<PageContainer sx={{ pt: 4 }}>
+
+// ✅ Exception: public/guest pages use disableBottomPad (no MobileBottomNav renders)
+<PageContainer disableBottomPad sx={{ py: 4 }}>
+```
+
+---
+
+## 📱 MOBILE OPTIMIZATION — PHASE 1 COMPLETE (February 21, 2026)
 
 **Activity**: Built Responsive wrapper library (8 files), then fully mobile-optimized all 9 Phase 1 critical-path pages. Also diagnosed and fixed a subtle auth redirect bug where clicking "Sign Up" on the login page re-authenticated the user instead of navigating to /register.
 

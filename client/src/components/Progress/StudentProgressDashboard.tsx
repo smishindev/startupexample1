@@ -132,7 +132,7 @@ export const StudentProgressDashboard: React.FC = () => {
 
   if (loading) {
     return (
-      <Box sx={{ p: 3 }}>
+      <Box sx={{ py: { xs: 1, md: 2 } }}>
         <Typography>Loading your progress analytics...</Typography>
         <LinearProgress sx={{ mt: 2 }} />
       </Box>
@@ -141,7 +141,7 @@ export const StudentProgressDashboard: React.FC = () => {
 
   if (error) {
     return (
-      <Box sx={{ p: 3 }}>
+      <Box sx={{ py: { xs: 1, md: 2 } }}>
         <Alert severity="error" action={
           <Button color="inherit" size="small" onClick={loadProgressData} data-testid="student-progress-retry-button">
             Retry
@@ -155,7 +155,7 @@ export const StudentProgressDashboard: React.FC = () => {
 
   if (!analytics) {
     return (
-      <Box sx={{ p: 3, textAlign: 'center', py: 8 }}>
+      <Box sx={{ py: { xs: 2, md: 3 }, textAlign: 'center' }}>
         <Typography variant="h5" color="text.secondary" gutterBottom>
           No Progress Data Yet
         </Typography>
@@ -177,14 +177,14 @@ export const StudentProgressDashboard: React.FC = () => {
   const { basicProgress, performanceInsights, achievementMilestones } = analytics;
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box>
       {/* Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: { xs: 2, md: 4 }, flexWrap: 'wrap', gap: 1 }}>
         <Box>
-          <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold', mb: 1 }}>
+          <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold', mb: 1, fontSize: { xs: '1.5rem', md: '2.125rem' } }}>
             Your Learning Journey
           </Typography>
-          <Typography variant="h6" color="text.secondary">
+          <Typography variant="h6" color="text.secondary" sx={{ fontSize: { xs: '0.9rem', md: '1.25rem' } }}>
             Personalized insights and intelligent recommendations
           </Typography>
         </Box>
@@ -194,7 +194,7 @@ export const StudentProgressDashboard: React.FC = () => {
       </Box>
 
       {/* Overview Cards */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
+      <Grid container spacing={{ xs: 2, md: 3 }} sx={{ mb: { xs: 2, md: 4 } }}>
         {/* Progress Overview */}
         <Grid item xs={12} md={3}>
           <Card>
@@ -334,7 +334,8 @@ export const StudentProgressDashboard: React.FC = () => {
           onChange={(_, newValue) => setTabValue(newValue)}
           indicatorColor="primary"
           textColor="primary"
-          variant="fullWidth"
+          variant="scrollable"
+          scrollButtons="auto"
           data-testid="student-progress-tabs"
         >
           <Tab 
@@ -493,8 +494,8 @@ export const StudentProgressDashboard: React.FC = () => {
                         <RecommendationIcon />
                       </Avatar>
                     </ListItemIcon>
-                    <Box sx={{ flexGrow: 1, mr: 2 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                    <Box sx={{ flexGrow: 1, mr: { xs: 0, sm: 2 }, minWidth: 0 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1, flexWrap: 'wrap' }}>
                         <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
                           {recommendation.title}
                         </Typography>

@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   Box,
-  Container,
   Paper,
   Tabs,
   Tab,
@@ -40,6 +39,7 @@ import { useNavigate } from 'react-router-dom';
 import profileApi, { UserProfile, UpdatePersonalInfoData, UpdateBillingAddressData, ChangePasswordData } from '../../services/profileApi';
 import { useAuthStore } from '../../stores/authStore';
 import { HeaderV5 as HeaderV4 } from '../../components/Navigation/HeaderV5';
+import { PageContainer } from '../../components/Responsive';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -246,11 +246,11 @@ const ProfilePage: React.FC = () => {
     return (
       <>
         <HeaderV4 />
-        <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+        <PageContainer maxWidth="lg" sx={{ mt: { xs: 2, md: 4 }, mb: 4 }}>
           <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
             <CircularProgress />
           </Box>
-        </Container>
+        </PageContainer>
       </>
     );
   }
@@ -259,9 +259,9 @@ const ProfilePage: React.FC = () => {
     return (
       <>
         <HeaderV4 />
-        <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+        <PageContainer maxWidth="lg" sx={{ mt: { xs: 2, md: 4 }, mb: 4 }}>
           <Alert severity="error">{error || 'Profile not found'}</Alert>
-        </Container>
+        </PageContainer>
       </>
     );
   }
@@ -269,7 +269,7 @@ const ProfilePage: React.FC = () => {
   return (
     <>
       <HeaderV4 />
-      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+      <PageContainer maxWidth="lg" sx={{ mt: { xs: 2, md: 4 }, mb: 4 }}>
         <Paper elevation={3} sx={{ overflow: 'hidden' }}>
           {/* Header Section */}
           <Box sx={{ p: 3, bgcolor: 'primary.main', color: 'white' }}>
@@ -352,7 +352,7 @@ const ProfilePage: React.FC = () => {
 
           {/* Tabs */}
           <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-            <Tabs value={tabValue} onChange={handleTabChange} aria-label="profile tabs" data-testid="profile-tabs">
+            <Tabs value={tabValue} onChange={handleTabChange} aria-label="profile tabs" variant="scrollable" scrollButtons="auto" data-testid="profile-tabs">
               <Tab icon={<PersonIcon />} label="Personal Info" iconPosition="start" data-testid="profile-tab-personal" />
               <Tab icon={<LockIcon />} label="Password" iconPosition="start" data-testid="profile-tab-password" />
               <Tab icon={<CreditCardIcon />} label="Billing Address" iconPosition="start" data-testid="profile-tab-billing" />
@@ -648,7 +648,7 @@ const ProfilePage: React.FC = () => {
             </TabPanel>
           </Box>
         </Paper>
-      </Container>
+      </PageContainer>
     </>
   );
 };

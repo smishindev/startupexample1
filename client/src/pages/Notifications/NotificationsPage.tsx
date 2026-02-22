@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   Box,
-  Container,
   Typography,
   Stack,
   Chip,
@@ -35,6 +34,7 @@ import { notificationApi, Notification } from '../../services/notificationApi';
 import { useNotificationStore } from '../../stores/notificationStore';
 import { formatDistanceToNow } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
+import { PageContainer, PageTitle } from '../../components/Responsive';
 
 const NotificationItem: React.FC<{
   item: Notification;
@@ -222,13 +222,13 @@ export const NotificationsPage: React.FC = () => {
   return (
     <>
       <HeaderV4 />
-      <Container maxWidth="lg" sx={{ py: 4 }}>
-        <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
-          <Stack direction="row" spacing={1} alignItems="center">
+      <PageContainer maxWidth="lg" sx={{ pt: { xs: 2, md: 4 } }}>
+        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'flex-start', sm: 'center' }, justifyContent: 'space-between', mb: 2, gap: { xs: 1.5, sm: 0 } }}>
+          <PageTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0 }}>
             <NotificationsIcon />
-            <Typography variant="h5">Notifications</Typography>
-          </Stack>
-          <Stack direction="row" spacing={1}>
+            Notifications
+          </PageTitle>
+          <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap' }}>
             <Button
               startIcon={<SettingsIcon />}
               onClick={() => navigate('/settings/notifications')}
@@ -243,7 +243,7 @@ export const NotificationsPage: React.FC = () => {
             </Button>
             <Button onClick={fetchAll} data-testid="notifications-refresh-button">Refresh</Button>
           </Stack>
-        </Stack>
+        </Box>
 
         <Paper sx={{ p: 2, mb: 2 }}>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ xs: 'flex-start', sm: 'center' }}>
@@ -258,7 +258,7 @@ export const NotificationsPage: React.FC = () => {
               <ToggleButton value="unread" data-testid="notifications-show-unread">Unread</ToggleButton>
             </ToggleButtonGroup>
 
-            <FormControl size="small" sx={{ minWidth: 160 }}>
+            <FormControl size="small" sx={{ minWidth: { xs: 120, sm: 160 } }}>
               <InputLabel id="type-label">Type</InputLabel>
               <Select labelId="type-label" label="Type" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} data-testid="notifications-type-filter">
                 <MenuItem value="all">All</MenuItem>
@@ -272,7 +272,7 @@ export const NotificationsPage: React.FC = () => {
               </Select>
             </FormControl>
 
-            <FormControl size="small" sx={{ minWidth: 160 }}>
+            <FormControl size="small" sx={{ minWidth: { xs: 120, sm: 160 } }}>
               <InputLabel id="priority-label">Priority</InputLabel>
               <Select labelId="priority-label" label="Priority" value={priorityFilter} onChange={(e) => setPriorityFilter(e.target.value)} data-testid="notifications-priority-filter">
                 <MenuItem value="all">All</MenuItem>
@@ -292,7 +292,7 @@ export const NotificationsPage: React.FC = () => {
             </Box>
           ) : filtered.length === 0 ? (
             <Box sx={{ p: 6, textAlign: 'center' }}>
-              <NotificationsNoneIcon sx={{ fontSize: 56, color: 'text.secondary', mb: 1 }} />
+              <NotificationsNoneIcon sx={{ fontSize: { xs: 48, md: 56 }, color: 'text.secondary', mb: 1 }} />
               <Typography color="text.secondary">No notifications to show</Typography>
             </Box>
           ) : (
@@ -322,7 +322,7 @@ export const NotificationsPage: React.FC = () => {
             </>
           )}
         </Paper>
-      </Container>
+      </PageContainer>
     </>
   );
 };

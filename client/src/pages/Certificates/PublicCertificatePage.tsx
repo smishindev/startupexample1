@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  Container,
   Paper,
   Typography,
   Box,
@@ -16,6 +15,7 @@ import { Download, Verified, ArrowBack, Share } from '@mui/icons-material';
 import { certificatesApi } from '../../services/certificatesApi';
 import { format } from 'date-fns';
 import { HeaderV5 as Header } from '../../components/Navigation/HeaderV5';
+import { PageContainer } from '../../components/Responsive';
 import { useShare } from '../../hooks/useShare';
 import { ShareService } from '../../services/shareService';
 
@@ -156,9 +156,9 @@ export default function PublicCertificatePage() {
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
         <Header />
-        <Container sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh', flex: 1 }}>
+        <PageContainer disableBottomPad sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh', flex: 1 }}>
           <CircularProgress size={60} />
-        </Container>
+        </PageContainer>
       </Box>
     );
   }
@@ -167,7 +167,7 @@ export default function PublicCertificatePage() {
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
         <Header />
-        <Container maxWidth="md" sx={{ py: 4, flex: 1 }}>
+        <PageContainer disableBottomPad maxWidth="md" sx={{ py: { xs: 2, md: 4 }, flex: 1 }}>
           <Alert 
             severity="error" 
             action={
@@ -181,7 +181,7 @@ export default function PublicCertificatePage() {
               : error
             }
           </Alert>
-        </Container>
+        </PageContainer>
       </Box>
     );
   }
@@ -190,11 +190,11 @@ export default function PublicCertificatePage() {
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
         <Header />
-        <Container maxWidth="md" sx={{ py: 4, flex: 1 }}>
+        <PageContainer disableBottomPad maxWidth="md" sx={{ py: { xs: 2, md: 4 }, flex: 1 }}>
           <Alert severity="info">
             Certificate not found
           </Alert>
-        </Container>
+        </PageContainer>
       </Box>
     );
   }
@@ -203,9 +203,9 @@ export default function PublicCertificatePage() {
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       <Header />
       
-      <Container maxWidth="lg" sx={{ py: 4, flex: 1 }}>
+      <PageContainer disableBottomPad maxWidth="lg" sx={{ py: { xs: 2, md: 4 }, flex: 1 }}>
         {/* Action Buttons */}
-        <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap' }}>
+        <Box sx={{ display: 'flex', gap: { xs: 1, md: 2 }, mb: { xs: 2, md: 3 }, flexWrap: 'wrap' }}>
           <Button
             startIcon={<ArrowBack />}
             onClick={() => navigate('/')}
@@ -237,7 +237,7 @@ export default function PublicCertificatePage() {
           elevation={8}
           sx={{
             p: { xs: 3, md: 6 },
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            background: (t: any) => t.custom.gradients.primary,
             color: 'white',
             position: 'relative',
             overflow: 'hidden',
@@ -337,7 +337,7 @@ export default function PublicCertificatePage() {
             🎓 Congratulations on this achievement! This certificate is publicly shareable.
           </Typography>
         </Box>
-      </Container>
+      </PageContainer>
 
       {/* Snackbar for notifications */}
       <Snackbar

@@ -1,6 +1,6 @@
 ﻿# 🚀 Quick Reference - Development Workflow
 
-**Last Updated**: February 21, 2026 - Theme Token System + 3-Round Bug Audit 🎨
+**Last Updated**: February 22, 2026 - Mobile Optimization Phase 2 Complete 📱
 
 ---
 
@@ -20,11 +20,22 @@ import { PageContainer, PageTitle, useResponsive, ResponsiveDialog, ResponsiveSt
   {/* page content */}
 </PageContainer>
 
-// With override:
-<PageContainer sx={{ mt: 2 }}>
+// With extra top padding (MUST use pt: not py:):
+<PageContainer sx={{ pt: 2 }}>
+  ...
+</PageContainer>
+
+// Public/guest pages (no MobileBottomNav rendered) — use disableBottomPad:
+<PageContainer disableBottomPad>
   ...
 </PageContainer>
 ```
+
+> ⚠️ **CRITICAL — `py` vs `pt` in consumer `sx`**:  
+> PageContainer's base styles include `pb: { xs: 10, md: 0 }` for MobileBottomNav clearance.  
+> MUI's sx array merging means a consumer `py:` **silently overrides** that `pb`, hiding bottom content behind the 64px nav bar on mobile.  
+> ✅ **Only ever use `pt:` (not `py:`)** in authenticated page consumer sx.  
+> ✅ Use `disableBottomPad` on public/guest pages — then `py:` is safe.
 
 ### PageTitle — Responsive page heading
 ```tsx

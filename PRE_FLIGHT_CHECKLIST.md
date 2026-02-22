@@ -2,7 +2,7 @@
 
 **Purpose**: Systematic checklist to follow before implementing changes  
 **Goal**: Reduce errors, missing considerations, and broken functionality  
-**Last Updated**: February 21, 2026 - Theme Token System + 3-Round Bug Audit 🎨
+**Last Updated**: February 22, 2026 - Mobile Optimization Phase 2 Complete 📱
 
 ---
 
@@ -59,6 +59,21 @@
   - **`tokens.ts`**: 18 reusable `SxProps<Theme>` fragments — import and spread: `<Paper sx={{ ...cardSx }}>`
   - **Extended palette**: All 5 palettes have 50-900 shades → `sx={{ bgcolor: 'primary.50' }}` works
   - Files: `client/src/theme/index.ts`, `client/src/theme/tokens.ts`, `client/src/main.tsx`
+- [x] **Mobile Optimization Phase 2** - PRODUCTION READY (Feb 22, 2026) 📱
+  - 12 core student pages fully mobile-optimized (Phase 2.1–2.12). 37/73 pages done (50.7%). 0 TypeScript errors.
+  - **CRITICAL — `py` vs `pt` in PageContainer consumer sx**:
+    - PageContainer base includes `pb: { xs: 10, md: 0 }` for MobileBottomNav clearance
+    - Consumer `py:` SILENTLY OVERRIDES that `pb` (MUI array merge; `py` expands to paddingTop + paddingBottom)
+    - Bottom content (pagination, save buttons, last cards) will be hidden behind 64px nav bar on mobile!
+    - ✅ **Always use `pt:` (not `py:`) on authenticated pages**
+    - ✅ **Add `disableBottomPad` on public/guest pages** (where MobileBottomNav doesn't render) — then `py:` is safe
+  - **`useTheme()` naming collision**: if component has a state variable named `theme`, alias the hook: `const muiTheme = useTheme()`
+  - **Alert `severity`**: split conditional for "not found" vs actual API error: `severity={error === 'X not found' ? 'info' : 'error'}`
+  - **Tabs on mobile**: All `<Tabs>` must have `variant="scrollable" scrollButtons="auto"` — icon+label tabs overflow without it
+  - **`disableBottomPad` consistency**: ALL return paths (loading, error, main, not-found) must have `disableBottomPad` if any path has it
+  - **Header on every return path**: loading spinner AND error AND main all must render `<Header />`
+  - **Internal component padding**: if a component is wrapped by PageContainer in its parent, remove its own `px`/`p` to avoid double-padding
+  - Files (Phase 2): `MyLearningPage.tsx`, `LessonDetailPage.tsx`, `NotificationsPage.tsx`, `ProfilePage.tsx`, `SettingsPage.tsx`, `NotificationSettingsPage.tsx`, `StudentProgressPage.tsx`, `StudentProgressDashboard.tsx`, `StudentAssessmentDashboard.tsx`, `AssessmentTakingPage.tsx`, `MyCertificatesPage.tsx`, `CertificatePage.tsx`, `PublicCertificatePage.tsx`
 - [x] **Mobile Optimization Phase 1 + Auth Bug Fixes** - PRODUCTION READY (Feb 21, 2026) 📱🔐
   - New Responsive library at `client/src/components/Responsive/` (8 files: PageContainer, PageTitle, ResponsiveDialog, ResponsivePaper, ResponsiveStack, useResponsive, constants, index)
   - **Every page** must use `PageContainer` instead of raw `<Container>` and `PageTitle` for headings

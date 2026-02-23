@@ -225,7 +225,7 @@ export const CourseDetailsEditor: React.FC<CourseDetailsEditorProps> = ({ course
 
   return (
     <Box>
-      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
         <Typography variant="h5" fontWeight={600}>
           Course Details
         </Typography>

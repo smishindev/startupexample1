@@ -1,7 +1,8 @@
 import React from 'react';
 import { useParams } from 'react-router-dom';
-import { Box, Typography, Card, CardContent, Container } from '@mui/material';
+import { Box, Typography, Card, CardContent } from '@mui/material';
 import { HeaderV5 as Header } from '../../components/Navigation/HeaderV5';
+import { PageContainer } from '../../components/Responsive';
 import AssessmentManager from '../../components/Assessment/AssessmentManager';
 
 export const AssessmentManagementPage: React.FC = () => {
@@ -11,7 +12,7 @@ export const AssessmentManagementPage: React.FC = () => {
     return (
       <Box>
         <Header />
-        <Container maxWidth="xl" sx={{ py: 4 }}>
+        <PageContainer>
           <Card>
             <CardContent>
               <Typography variant="h5" color="error">
@@ -22,7 +23,7 @@ export const AssessmentManagementPage: React.FC = () => {
               </Typography>
             </CardContent>
           </Card>
-        </Container>
+        </PageContainer>
       </Box>
     );
   }
@@ -30,8 +31,8 @@ export const AssessmentManagementPage: React.FC = () => {
   return (
     <Box>
       <Header />
-      <Container maxWidth="xl" sx={{ py: 4 }}>
-        <Typography variant="h3" gutterBottom>
+      <PageContainer>
+        <Typography variant="h3" gutterBottom sx={{ fontSize: { xs: '1.5rem', sm: '2rem', md: '3rem' } }}>
           Assessment Management
         </Typography>
         <Typography variant="subtitle1" color="text.secondary" gutterBottom sx={{ mb: 4 }}>
@@ -39,7 +40,7 @@ export const AssessmentManagementPage: React.FC = () => {
         </Typography>
         
         <AssessmentManager lessonId={lessonId} />
-      </Container>
+      </PageContainer>
     </Box>
   );
 };

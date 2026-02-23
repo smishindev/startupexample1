@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box,
-  Container,
   Typography,
   Grid,
   Card,
@@ -34,6 +33,7 @@ import {
   Quiz as QuizIcon
 } from '@mui/icons-material';
 import { HeaderV5 as Header } from '../../components/Navigation/HeaderV5';
+import { PageContainer } from '../../components/Responsive';
 import { lessonApi, Lesson } from '../../services/lessonApi';
 import { assessmentApi, Assessment } from '../../services/assessmentApi';
 import { coursesApi } from '../../services/coursesApi';
@@ -154,11 +154,11 @@ export const CourseAssessmentManagementPage: React.FC = () => {
     return (
       <Box>
         <Header />
-        <Container maxWidth="xl" sx={{ py: 4 }}>
+        <PageContainer>
           <Alert severity="error">
             Course ID not found. Please navigate from a valid course.
           </Alert>
-        </Container>
+        </PageContainer>
       </Box>
     );
   }
@@ -167,9 +167,9 @@ export const CourseAssessmentManagementPage: React.FC = () => {
     return (
       <Box>
         <Header />
-        <Container maxWidth="xl" sx={{ py: 4 }}>
+        <PageContainer>
           <Typography>Loading course assessments...</Typography>
-        </Container>
+        </PageContainer>
       </Box>
     );
   }
@@ -178,14 +178,14 @@ export const CourseAssessmentManagementPage: React.FC = () => {
     return (
       <Box>
         <Header />
-        <Container maxWidth="xl" sx={{ py: 4 }}>
+        <PageContainer>
           <Alert severity="error" sx={{ mb: 3 }}>
             {error}
           </Alert>
           <Button onClick={loadCourseData} variant="contained" data-testid="course-assessment-retry-button">
             Retry
           </Button>
-        </Container>
+        </PageContainer>
       </Box>
     );
   }
@@ -193,7 +193,7 @@ export const CourseAssessmentManagementPage: React.FC = () => {
   return (
     <Box>
       <Header />
-      <Container maxWidth="xl" sx={{ py: 4 }}>
+      <PageContainer>
         {/* Breadcrumbs */}
         <Breadcrumbs sx={{ mb: 3 }}>
           <Link
@@ -220,7 +220,7 @@ export const CourseAssessmentManagementPage: React.FC = () => {
         {/* Header */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 4 }}>
           <Box>
-            <Typography variant="h3" gutterBottom>
+            <Typography variant="h3" gutterBottom sx={{ fontSize: { xs: '1.5rem', sm: '2rem', md: '3rem' } }}>
               Course Assessments
             </Typography>
             <Typography variant="h6" color="text.secondary" gutterBottom>
@@ -440,7 +440,7 @@ export const CourseAssessmentManagementPage: React.FC = () => {
             </Accordion>
           ))
         )}
-      </Container>
+      </PageContainer>
     </Box>
   );
 };

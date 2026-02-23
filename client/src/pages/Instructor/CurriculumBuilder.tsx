@@ -45,9 +45,9 @@ interface CurriculumBuilderProps {
 }
 
 const contentTypeIcons = {
-  video: <VideoIcon sx={{ color: '#f44336' }} />,
-  text: <TextIcon sx={{ color: '#2196f3' }} />,
-  quiz: <QuizIcon sx={{ color: '#ff9800' }} />
+  video: <VideoIcon color="error" />,
+  text: <TextIcon color="primary" />,
+  quiz: <QuizIcon color="warning" />
 };
 
 export const CurriculumBuilder: React.FC<CurriculumBuilderProps> = ({
@@ -236,7 +236,7 @@ export const CurriculumBuilder: React.FC<CurriculumBuilderProps> = ({
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
         <Typography variant="h5" fontWeight={600}>Course Curriculum</Typography>
         <Button
           variant="contained"
@@ -261,7 +261,7 @@ export const CurriculumBuilder: React.FC<CurriculumBuilderProps> = ({
             <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1.5 }}>
               Course Overview
             </Typography>
-            <Box sx={{ display: 'flex', gap: 4 }}>
+            <Box sx={{ display: 'flex', gap: { xs: 2, sm: 4 }, flexWrap: 'wrap' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <PlayIcon fontSize="small" />
                 <Typography variant="body2" fontWeight={500}>

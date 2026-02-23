@@ -1,7 +1,8 @@
 import React from 'react';
 import { useParams } from 'react-router-dom';
-import { Box, Typography, Container } from '@mui/material';
+import { Box, Typography } from '@mui/material';
 import { HeaderV5 as Header } from '../../components/Navigation/HeaderV5';
+import { PageContainer } from '../../components/Responsive';
 import QuizCreator from '../../components/Assessment/QuizCreator';
 
 export const AssessmentEditPage: React.FC = () => {
@@ -11,14 +12,14 @@ export const AssessmentEditPage: React.FC = () => {
     return (
       <Box>
         <Header />
-        <Container maxWidth="xl" sx={{ py: 4 }}>
+        <PageContainer>
           <Typography variant="h5" color="error">
             Assessment ID not found
           </Typography>
           <Typography variant="body1">
             Please navigate from a valid assessment to edit.
           </Typography>
-        </Container>
+        </PageContainer>
       </Box>
     );
   }
@@ -26,8 +27,8 @@ export const AssessmentEditPage: React.FC = () => {
   return (
     <Box>
       <Header />
-      <Container maxWidth="xl" sx={{ py: 4 }}>
-        <Typography variant="h3" gutterBottom>
+      <PageContainer>
+        <Typography variant="h3" gutterBottom sx={{ fontSize: { xs: '1.5rem', sm: '2rem', md: '3rem' } }}>
           Edit Assessment
         </Typography>
         <Typography variant="subtitle1" color="text.secondary" gutterBottom sx={{ mb: 4 }}>
@@ -35,7 +36,7 @@ export const AssessmentEditPage: React.FC = () => {
         </Typography>
         
         <QuizCreator assessmentId={assessmentId} />
-      </Container>
+      </PageContainer>
     </Box>
   );
 };

@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   Box,
-  Container,
   Typography,
   Paper,
   Table,
@@ -48,12 +47,15 @@ import {
   Close as CloseIcon
 } from '@mui/icons-material';
 import { HeaderV5 as Header } from '../../components/Navigation/HeaderV5';
+import { PageContainer } from '../../components/Responsive';
+import { useResponsive } from '../../components/Responsive/useResponsive';
 import { studentsApi, Student, StudentAnalytics, StudentFilters } from '../../services/studentsApi';
 import { instructorApi, PendingEnrollment } from '../../services/instructorApi';
 import { CourseSelector } from '../../components/Common/CourseSelector';
 import { toast } from 'sonner';
 
 const StudentManagement: React.FC = () => {
+  const { isMobile } = useResponsive();
   const [searchParams] = useSearchParams();
   const [students, setStudents] = useState<Student[]>([]);
   const [analytics, setAnalytics] = useState<StudentAnalytics | null>(null);
@@ -295,18 +297,21 @@ const StudentManagement: React.FC = () => {
 
   if (loading && students.length === 0) {
     return (
-      <Box sx={{ p: 3 }}>
-        <Typography variant="h4" gutterBottom>Student Management</Typography>
-        <LinearProgress />
-      </Box>
+      <>
+        <Header />
+        <PageContainer>
+          <Typography variant="h4" gutterBottom>Student Management</Typography>
+          <LinearProgress />
+        </PageContainer>
+      </>
     );
   }
 
   return (
     <>
       <Header />
-      <Container maxWidth="xl" sx={{ py: 4 }}>
-        <Typography variant="h4" gutterBottom>
+      <PageContainer>
+        <Typography variant="h4" gutterBottom sx={{ fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
           Student Management
         </Typography>
 
@@ -391,6 +396,8 @@ const StudentManagement: React.FC = () => {
           value={currentTab} 
           onChange={handleTabChange}
           aria-label="student management tabs"
+          variant={isMobile ? 'scrollable' : 'standard'}
+          scrollButtons="auto"
         >
           <Tab 
             value="active" 
@@ -759,7 +766,7 @@ const StudentManagement: React.FC = () => {
       </Menu>
 
       {/* Message Dialog */}
-      <Dialog open={messageDialogOpen} onClose={() => setMessageDialogOpen(false)} maxWidth="md" fullWidth disableEnforceFocus data-testid="student-management-message-dialog">
+      <Dialog open={messageDialogOpen} onClose={() => setMessageDialogOpen(false)} maxWidth="md" fullWidth fullScreen={isMobile} disableEnforceFocus data-testid="student-management-message-dialog">
         <DialogTitle>
           Send {messageForm.type === 'announcement' ? 'Announcement' : 'Message'}
           {selectedStudent && ` to ${selectedStudent.firstName} ${selectedStudent.lastName}`}
@@ -821,6 +828,7 @@ const StudentManagement: React.FC = () => {
           onClose={() => setActionDialogOpen(false)}
           maxWidth="sm"
           fullWidth
+          fullScreen={isMobile}
         >
           <DialogTitle>
             {actionType === 'approve' ? 'Approve Enrollment' : 'Reject Enrollment'}
@@ -873,7 +881,7 @@ const StudentManagement: React.FC = () => {
             </Button>
           </DialogActions>
         </Dialog>
-      </Container>
+      </PageContainer>
     </>
   );
 };

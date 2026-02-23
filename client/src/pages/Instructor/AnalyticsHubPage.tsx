@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box,
-  Container,
   Typography,
   Grid,
   Card,
@@ -28,6 +27,7 @@ import {
 import { Skeleton, Alert as MuiAlert } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { HeaderV5 as Header } from '../../components/Navigation/HeaderV5';
+import { PageContainer } from '../../components/Responsive';
 import { instructorApi, type InstructorStats } from '../../services/instructorApi';
 
 interface AnalyticsCard {
@@ -141,14 +141,14 @@ export const AnalyticsHubPage: React.FC = () => {
   return (
     <>
       <Header />
-      <Container maxWidth="xl" sx={{ py: 4 }}>
+      <PageContainer>
         {/* Header Section */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
-          <Box>
-            <Typography variant="h3" component="h1" sx={{ fontWeight: 'bold', mb: 1 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4, flexWrap: 'wrap', gap: 2 }}>
+          <Box sx={{ minWidth: 0, flex: 1 }}>
+            <Typography variant="h3" component="h1" sx={{ fontWeight: 'bold', mb: 1, fontSize: { xs: '1.5rem', sm: '2rem', md: '3rem' } }}>
               Analytics Hub
             </Typography>
-            <Typography variant="h6" color="text.secondary">
+            <Typography variant="h6" color="text.secondary" sx={{ fontSize: { xs: '0.875rem', sm: '1.25rem' } }}>
               Comprehensive insights and analytics for your teaching platform
             </Typography>
           </Box>
@@ -163,9 +163,9 @@ export const AnalyticsHubPage: React.FC = () => {
             {statsError}. Some stats may be unavailable.
           </MuiAlert>
         )}
-        <Paper sx={{ p: 3, mb: 4, background: 'linear-gradient(45deg, #2196f3 30%, #21cbf3 90%)' }}>
-          <Grid container spacing={3}>
-            <Grid item xs={12} md={3}>
+        <Paper sx={{ p: { xs: 2, sm: 3 }, mb: 4, background: 'linear-gradient(45deg, #2196f3 30%, #21cbf3 90%)' }}>
+          <Grid container spacing={{ xs: 2, sm: 3 }}>
+            <Grid item xs={6} md={3}>
               <Box sx={{ textAlign: 'center', color: 'white' }}>
                 <PerformanceIcon sx={{ fontSize: 32, mb: 1 }} />
                 {statsLoading ? (
@@ -180,7 +180,7 @@ export const AnalyticsHubPage: React.FC = () => {
                 </Typography>
               </Box>
             </Grid>
-            <Grid item xs={12} md={3}>
+            <Grid item xs={6} md={3}>
               <Box sx={{ textAlign: 'center', color: 'white' }}>
                 <StudentsIcon sx={{ fontSize: 32, mb: 1 }} />
                 {statsLoading ? (
@@ -195,7 +195,7 @@ export const AnalyticsHubPage: React.FC = () => {
                 </Typography>
               </Box>
             </Grid>
-            <Grid item xs={12} md={3}>
+            <Grid item xs={6} md={3}>
               <Box sx={{ textAlign: 'center', color: 'white' }}>
                 <TrendingUpIcon sx={{ fontSize: 32, mb: 1 }} />
                 {statsLoading ? (
@@ -210,7 +210,7 @@ export const AnalyticsHubPage: React.FC = () => {
                 </Typography>
               </Box>
             </Grid>
-            <Grid item xs={12} md={3}>
+            <Grid item xs={6} md={3}>
               <Box sx={{ textAlign: 'center', color: 'white' }}>
                 <AnalyticsIcon sx={{ fontSize: 32, mb: 1 }} />
                 {statsLoading ? (
@@ -334,7 +334,7 @@ export const AnalyticsHubPage: React.FC = () => {
             </Grid>
           ))}
         </Grid>
-      </Container>
+      </PageContainer>
     </>
   );
 };

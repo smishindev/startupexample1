@@ -7,7 +7,6 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box,
-  Container,
   Typography,
   Paper,
   Grid,
@@ -37,6 +36,7 @@ import {
 import axios from 'axios';
 import { useAuthStore } from '../../stores/authStore';
 import { HeaderV5 as Header } from '../../components/Navigation/HeaderV5';
+import { PageContainer } from '../../components/Responsive';
 import { CourseSelector } from '../../components/Common/CourseSelector';
 
 // Use environment variable or fallback to localhost
@@ -301,11 +301,11 @@ export const VideoAnalyticsPage: React.FC = () => {
   return (
     <>
     <Header />
-    <Container maxWidth="xl" sx={{ py: 4 }}>
+    <PageContainer>
       {/* Header */}
-      <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Box>
-          <Typography variant="h4" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+      <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
+        <Box sx={{ minWidth: 0, flex: 1 }}>
+          <Typography variant="h4" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1, fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
             <VideoIcon fontSize="large" color="primary" />
             Video Analytics
           </Typography>
@@ -325,7 +325,7 @@ export const VideoAnalyticsPage: React.FC = () => {
             label="Select Course"
             disabled={loading}
             required
-            sx={{ minWidth: 300 }}
+            sx={{ minWidth: { xs: 200, sm: 300 } }}
             testId="video-analytics-course-select"
             inputTestId="video-analytics-course-select-input"
           />
@@ -410,7 +410,7 @@ export const VideoAnalyticsPage: React.FC = () => {
           </Grid>
 
           {/* Video Analytics Table */}
-          <Paper sx={{ p: 3 }}>
+          <Paper sx={{ p: { xs: 2, sm: 3 } }}>
             <Typography variant="h6" gutterBottom>
               Video Performance Details
             </Typography>
@@ -523,7 +523,7 @@ export const VideoAnalyticsPage: React.FC = () => {
 
           {/* Insights */}
           {analytics.length > 0 && (
-            <Paper sx={{ p: 3, mt: 3 }}>
+            <Paper sx={{ p: { xs: 2, sm: 3 }, mt: 3 }}>
               <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <TrendingUpIcon color="primary" />
                 Key Insights
@@ -578,7 +578,7 @@ export const VideoAnalyticsPage: React.FC = () => {
           Select a course to view video analytics
         </Alert>
       ) : null}
-    </Container>
+    </PageContainer>
     </>
   );
 };

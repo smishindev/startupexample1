@@ -26,7 +26,7 @@ import {
   Warning as WarningIcon,
   Refresh as RefreshIcon
 } from '@mui/icons-material';
-import Container from '@mui/material/Container';
+
 import {
   LineChart,
   Line,
@@ -43,6 +43,8 @@ import {
   Legend
 } from 'recharts';
 import { HeaderV5 as Header } from '../Navigation/HeaderV5';
+import { PageContainer } from '../Responsive';
+import { useResponsive } from '../Responsive/useResponsive';
 import { 
   assessmentAnalyticsApi, 
   type CrossAssessmentAnalytics,
@@ -68,12 +70,13 @@ function TabPanel(props: TabPanelProps) {
       aria-labelledby={`analytics-tab-${index}`}
       {...other}
     >
-      {value === index && <Box sx={{ p: 3 }}>{children}</Box>}
+      {value === index && <Box sx={{ p: { xs: 1, sm: 2, md: 3 } }}>{children}</Box>}
     </div>
   );
 }
 
 export const EnhancedAssessmentAnalyticsDashboard: React.FC = () => {
+  const { isMobile } = useResponsive();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [tabValue, setTabValue] = useState(0);
@@ -163,9 +166,9 @@ export const EnhancedAssessmentAnalyticsDashboard: React.FC = () => {
   return (
     <Box>
       <Header />
-      <Container maxWidth="xl" sx={{ py: 4 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-          <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold' }}>
+      <PageContainer>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
+          <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold', fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
             Assessment Analytics Dashboard
           </Typography>
           <IconButton data-testid="assessment-analytics-refresh" onClick={loadData} color="primary" disabled={loading}>
@@ -173,7 +176,7 @@ export const EnhancedAssessmentAnalyticsDashboard: React.FC = () => {
           </IconButton>
         </Box>
 
-        <Tabs data-testid="assessment-analytics-tabs" value={tabValue} onChange={handleTabChange} sx={{ mb: 3 }}>
+        <Tabs data-testid="assessment-analytics-tabs" value={tabValue} onChange={handleTabChange} sx={{ mb: 3 }} variant={isMobile ? 'scrollable' : 'standard'} scrollButtons="auto">
           <Tab data-testid="assessment-analytics-tab-overview" label="Overview" />
           <Tab data-testid="assessment-analytics-tab-performance" label="Performance Analysis" />
           <Tab data-testid="assessment-analytics-tab-insights" label="Student Insights" />
@@ -640,7 +643,7 @@ export const EnhancedAssessmentAnalyticsDashboard: React.FC = () => {
         </TabPanel>
         </>
         )}
-      </Container>
+      </PageContainer>
     </Box>
   );
 };

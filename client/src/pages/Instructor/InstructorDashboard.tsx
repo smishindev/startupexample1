@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box,
-  Container,
   Typography,
   Grid,
   Card,
@@ -51,9 +50,11 @@ import { PageHeader } from '../../components/Navigation/PageHeader';
 import { instructorApi, InstructorStats, InstructorCourse, PendingEnrollment } from '../../services/instructorApi';
 import { formatCategory, getCategoryGradient } from '../../utils/courseHelpers';
 import { useCatalogRealtimeUpdates } from '../../hooks/useCatalogRealtimeUpdates';
+import { PageContainer, useResponsive } from '../../components/Responsive';
 
 export const InstructorDashboard: React.FC = () => {
   const navigate = useNavigate();
+  const { isMobile } = useResponsive();
   const [courses, setCourses] = useState<InstructorCourse[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -271,7 +272,7 @@ export const InstructorDashboard: React.FC = () => {
           </Button>
         }
       />
-      <Container maxWidth="xl" sx={{ py: 4 }}>
+      <PageContainer>
 
       {/* Stats Overview - 4 primary cards */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
@@ -331,7 +332,7 @@ export const InstructorDashboard: React.FC = () => {
         <Grid item xs={6} sm={3}>
           <Paper sx={{ p: 1.5, textAlign: 'center' }}>
             <Typography variant="body2" color="text.secondary">Avg Rating</Typography>
-            <Typography variant="h6" sx={{ color: '#ffc107' }}>
+            <Typography variant="h6" sx={{ color: 'warning.main' }}>
               {stats.avgRating > 0 ? `${Number(stats.avgRating).toFixed(1)} ★` : 'N/A'}
             </Typography>
           </Paper>
@@ -430,6 +431,8 @@ export const InstructorDashboard: React.FC = () => {
           onChange={handleStatusFilterChange}
           textColor="primary"
           indicatorColor="primary"
+          variant={isMobile ? 'scrollable' : 'standard'}
+          scrollButtons="auto"
           sx={{ minHeight: 36 }}
         >
           <Tab label="All" value="all" sx={{ minHeight: 36, py: 0 }} />
@@ -735,7 +738,7 @@ export const InstructorDashboard: React.FC = () => {
                       <Typography variant="body2" color="text.secondary">
                         Rating:
                       </Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 600, color: '#ffc107' }}>
+                      <Typography variant="body2" sx={{ fontWeight: 600, color: 'warning.main' }}>
                         {course.rating > 0 ? `${course.rating} ★` : 'N/A'}
                       </Typography>
                     </Box>
@@ -839,12 +842,12 @@ export const InstructorDashboard: React.FC = () => {
         </Typography>
       )}
 
-      </Container>
+      </PageContainer>
 
       {/* Floating Action Button */}
       <Fab
         color="primary"
-        sx={{ position: 'fixed', bottom: 24, right: 24 }}
+        sx={{ position: 'fixed', bottom: { xs: 88, md: 24 }, right: { xs: 16, md: 24 } }}
         onClick={() => navigate('/instructor/courses/create?type=blank')}
         data-testid="instructor-fab-create-course"
       >

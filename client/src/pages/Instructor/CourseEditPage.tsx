@@ -3,7 +3,6 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Box,
   Typography,
-  Container,
   Paper,
   Tabs,
   Tab,
@@ -25,6 +24,7 @@ import { CurriculumBuilder } from './CurriculumBuilder';
 import { CourseDetailsEditor } from './CourseDetailsEditor';
 import { CourseSettingsEditor } from '../../components/Instructor/CourseSettingsEditor';
 import { HeaderV5 as Header } from '../../components/Navigation/HeaderV5';
+import { PageContainer, useResponsive } from '../../components/Responsive';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -41,7 +41,7 @@ const TabPanel: React.FC<TabPanelProps> = ({ children, value, index, ...other })
       aria-labelledby={`course-tab-${index}`}
       {...other}
     >
-      {value === index && <Box sx={{ p: 3 }}>{children}</Box>}
+      {value === index && <Box sx={{ p: { xs: 1, sm: 2, md: 3 } }}>{children}</Box>}
     </div>
   );
 };
@@ -50,6 +50,7 @@ export const CourseEditPage: React.FC = () => {
   const { courseId } = useParams<{ courseId: string }>();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const { isMobile } = useResponsive();
   const [tabValue, setTabValue] = useState(0);
   const [course, setCourse] = useState<InstructorCourse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -133,11 +134,11 @@ export const CourseEditPage: React.FC = () => {
     return (
       <>
         <Header />
-        <Container maxWidth="xl" sx={{ py: 4 }}>
+        <PageContainer>
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
             <CircularProgress />
           </Box>
-        </Container>
+        </PageContainer>
       </>
     );
   }
@@ -146,11 +147,11 @@ export const CourseEditPage: React.FC = () => {
     return (
       <>
         <Header />
-        <Container maxWidth="xl" sx={{ py: 4 }}>
+        <PageContainer>
           <Alert severity="error">
             {error || 'Course not found'}
           </Alert>
-        </Container>
+        </PageContainer>
       </>
     );
   }
@@ -158,7 +159,7 @@ export const CourseEditPage: React.FC = () => {
   return (
     <>
       <Header />
-      <Container maxWidth="xl" sx={{ py: 4 }}>
+      <PageContainer>
       {/* Header */}
       <Box sx={{ mb: 4 }}>
         <Breadcrumbs sx={{ mb: 2 }}>
@@ -174,9 +175,9 @@ export const CourseEditPage: React.FC = () => {
           <Typography color="text.primary">Edit Course</Typography>
         </Breadcrumbs>
         
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-          <Box>
-            <Typography variant="h4" gutterBottom>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2, flexWrap: 'wrap', gap: 2 }}>
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography variant="h4" gutterBottom sx={{ fontSize: { xs: '1.5rem', sm: '1.75rem', md: '2.125rem' } }}>
               {course.title}
             </Typography>
             <Typography variant="body1" color="text.secondary" paragraph>
@@ -206,7 +207,7 @@ export const CourseEditPage: React.FC = () => {
       {/* Tabs */}
       <Paper sx={{ width: '100%' }}>
         <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-          <Tabs value={tabValue} onChange={handleTabChange} data-testid="course-edit-tabs">
+          <Tabs value={tabValue} onChange={handleTabChange} variant={isMobile ? 'scrollable' : 'fullWidth'} scrollButtons="auto" data-testid="course-edit-tabs">
             <Tab
               icon={<InfoIcon />}
               iconPosition="start"
@@ -279,7 +280,7 @@ export const CourseEditPage: React.FC = () => {
           />
         </TabPanel>
       </Paper>
-    </Container>
+    </PageContainer>
     </>
   );
 };

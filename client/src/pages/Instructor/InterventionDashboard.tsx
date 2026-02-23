@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box,
-  Container,
   Typography,
   Paper,
   Grid,
@@ -42,6 +41,8 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { instructorApi } from '../../services/instructorApi';
 import { HeaderV5 as Header } from '../../components/Navigation/HeaderV5';
+import { PageContainer } from '../../components/Responsive';
+import { useResponsive } from '../../components/Responsive/useResponsive';
 
 interface AtRiskStudent {
   UserId: string;
@@ -82,6 +83,7 @@ interface PendingAssessment {
 }
 
 export const InterventionDashboard: React.FC = () => {
+  const { isMobile } = useResponsive();
   const [activeTab, setActiveTab] = useState(0);
   const [atRiskStudents, setAtRiskStudents] = useState<AtRiskStudent[]>([]);
   const [lowProgressStudents, setLowProgressStudents] = useState<LowProgressStudent[]>([]);
@@ -150,11 +152,11 @@ export const InterventionDashboard: React.FC = () => {
   return (
     <>
       <Header />
-      <Container maxWidth="xl" sx={{ py: 4 }}>
+      <PageContainer>
         {/* Header */}
-        <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Box>
-            <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold' }}>
+        <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
+          <Box sx={{ minWidth: 0, flex: 1 }}>
+            <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold', fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
               🚨 Intervention Dashboard
             </Typography>
             <Typography variant="body1" color="text.secondary">
@@ -248,7 +250,8 @@ export const InterventionDashboard: React.FC = () => {
           onChange={(_, newValue) => setActiveTab(newValue)}
           indicatorColor="primary"
           textColor="primary"
-          variant="fullWidth"
+          variant={isMobile ? 'scrollable' : 'fullWidth'}
+          scrollButtons="auto"
           data-testid="intervention-dashboard-tabs"
         >
           <Tab
@@ -540,7 +543,7 @@ export const InterventionDashboard: React.FC = () => {
       )}
       </>
       )}
-      </Container>
+      </PageContainer>
     </>
   );
 };

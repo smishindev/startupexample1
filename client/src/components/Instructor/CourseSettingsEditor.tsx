@@ -189,7 +189,7 @@ export const CourseSettingsEditor: React.FC<CourseSettingsEditorProps> = ({ cour
 
   return (
     <Box>
-      <Paper elevation={2} sx={{ p: 3, mb: 3 }}>
+      <Paper elevation={2} sx={{ p: { xs: 2, sm: 3 }, mb: 3 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0 }}>
           <Typography variant="h6" gutterBottom sx={{ mb: 0 }}>
             Course Prerequisites
@@ -240,7 +240,7 @@ export const CourseSettingsEditor: React.FC<CourseSettingsEditorProps> = ({ cour
         )}
       </Paper>
 
-      <Paper elevation={2} sx={{ p: 3 }}>
+      <Paper elevation={2} sx={{ p: { xs: 2, sm: 3 } }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0 }}>
           <Typography variant="h6" gutterBottom sx={{ mb: 0 }}>
             Learning Outcomes
@@ -324,7 +324,7 @@ export const CourseSettingsEditor: React.FC<CourseSettingsEditorProps> = ({ cour
       </Paper>
 
       {/* Enrollment Controls Section (Phase 2) */}
-      <Paper elevation={2} sx={{ p: 3, mt: 3 }}>
+      <Paper elevation={2} sx={{ p: { xs: 2, sm: 3 }, mt: 3 }}>
         <Typography variant="h6" gutterBottom>
           Enrollment Controls
         </Typography>
@@ -430,7 +430,7 @@ export const CourseSettingsEditor: React.FC<CourseSettingsEditorProps> = ({ cour
       </Paper>
 
       {/* Certificate Settings Section (Phase 3) */}
-      <Paper elevation={2} sx={{ p: 3, mt: 3 }}>
+      <Paper elevation={2} sx={{ p: { xs: 2, sm: 3 }, mt: 3 }}>
         <Typography variant="h6" gutterBottom>
           Certificate Settings
         </Typography>
@@ -548,7 +548,7 @@ export const CourseSettingsEditor: React.FC<CourseSettingsEditorProps> = ({ cour
       </Paper>
 
       {/* Advanced Visibility Section (Phase 4) */}
-      <Paper elevation={2} sx={{ p: 3, mt: 3 }}>
+      <Paper elevation={2} sx={{ p: { xs: 2, sm: 3 }, mt: 3 }}>
         <Typography variant="h6" gutterBottom>
           Advanced Visibility
         </Typography>

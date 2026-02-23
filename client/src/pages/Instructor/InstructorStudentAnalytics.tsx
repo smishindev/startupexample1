@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box,
-  Container,
   Grid,
   Card,
   CardContent,
@@ -43,6 +42,8 @@ import {
   Refresh as RefreshIcon
 } from '@mui/icons-material';
 import { HeaderV5 as Header } from '../../components/Navigation/HeaderV5';
+import { PageContainer } from '../../components/Responsive';
+import { useResponsive } from '../../components/Responsive/useResponsive';
 import { useSearchParams } from 'react-router-dom';
 import { instructorApi } from '../../services/instructorApi';
 
@@ -60,6 +61,7 @@ interface StudentRiskData {
 }
 
 export const InstructorStudentAnalytics: React.FC = () => {
+  const { isMobile } = useResponsive();
   const [searchParams] = useSearchParams();
   const [students, setStudents] = useState<StudentRiskData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -201,14 +203,14 @@ export const InstructorStudentAnalytics: React.FC = () => {
   return (
     <Box>
       <Header />
-      <Container maxWidth="xl" sx={{ py: 4 }}>
+      <PageContainer>
         {/* Header */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
-          <Box>
-            <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold', mb: 1 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4, flexWrap: 'wrap', gap: 2 }}>
+          <Box sx={{ minWidth: 0, flex: 1 }}>
+            <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold', mb: 1, fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
               Student Analytics & Interventions
             </Typography>
-            <Typography variant="h6" color="text.secondary">
+            <Typography variant="h6" color="text.secondary" sx={{ fontSize: { xs: '0.875rem', sm: '1.25rem' } }}>
               AI-powered insights and intervention recommendations for your students
             </Typography>
           </Box>
@@ -465,6 +467,7 @@ export const InstructorStudentAnalytics: React.FC = () => {
           onClose={() => setInterventionDialog(false)}
           maxWidth="md"
           fullWidth
+          fullScreen={isMobile}
         >
           <DialogTitle>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -549,7 +552,7 @@ export const InstructorStudentAnalytics: React.FC = () => {
             </Button>
           </DialogActions>
         </Dialog>
-      </Container>
+      </PageContainer>
     </Box>
   );
 };

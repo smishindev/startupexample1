@@ -35,6 +35,7 @@ import {
 import { Lesson, LessonContent, lessonApi, createVideoContent, createTextContent } from '../../services/lessonApi';
 import { FileUpload } from '../../components/Upload/FileUpload';
 import { UploadedFile } from '../../services/fileUploadApi';
+import { useResponsive } from '../../components/Responsive';
 
 interface LessonEditorProps {
   open: boolean;
@@ -66,6 +67,7 @@ export const LessonEditor: React.FC<LessonEditorProps> = ({
   const [activeStep, setActiveStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { isMobile } = useResponsive();
 
   // Form state
   const [title, setTitle] = useState('');
@@ -501,7 +503,7 @@ export const LessonEditor: React.FC<LessonEditorProps> = ({
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth disableEnforceFocus>
+    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth fullScreen={isMobile} disableEnforceFocus>
       <DialogTitle>
         {lesson ? 'Edit Lesson' : 'Create New Lesson'}
       </DialogTitle>

@@ -53,6 +53,8 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { instructorApi, CourseFormData } from '../../services/instructorApi';
 import { FileUpload } from '../../components/Upload/FileUpload';
 import { UploadedFile, fileUploadApi } from '../../services/fileUploadApi';
+import { HeaderV5 as Header } from '../../components/Navigation/HeaderV5';
+import { PageContainer, PageTitle, useResponsive } from '../../components/Responsive';
 
 interface ContentItem {
   id: string;
@@ -110,6 +112,7 @@ export const CourseCreationForm: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { isMobile } = useResponsive();
   
   const [activeStep, setActiveStep] = useState(0);
   const [courseData, setCourseData] = useState<CourseFormData>({
@@ -804,7 +807,7 @@ export const CourseCreationForm: React.FC = () => {
         return (
           <Grid container spacing={3}>
             <Grid item xs={12} md={8}>
-              <Paper sx={{ p: 3 }}>
+              <Paper sx={{ p: { xs: 2, sm: 3 } }}>
                 <Typography variant="h6" gutterBottom>
                   Course Information
                 </Typography>
@@ -908,7 +911,7 @@ export const CourseCreationForm: React.FC = () => {
             </Grid>
             
             <Grid item xs={12} md={4}>
-              <Paper sx={{ p: 3 }}>
+              <Paper sx={{ p: { xs: 2, sm: 3 } }}>
                 <Typography variant="h6" gutterBottom>
                   Course Thumbnail
                 </Typography>
@@ -960,7 +963,7 @@ export const CourseCreationForm: React.FC = () => {
             </Grid>
             
             <Grid item xs={12}>
-              <Paper sx={{ p: 3 }}>
+              <Paper sx={{ p: { xs: 2, sm: 3 } }}>
                 <Typography variant="h6" gutterBottom>
                   Tags
                 </Typography>
@@ -996,7 +999,7 @@ export const CourseCreationForm: React.FC = () => {
         return (
           <Grid container spacing={3}>
             <Grid item xs={12} md={8}>
-              <Paper sx={{ p: 3 }}>
+              <Paper sx={{ p: { xs: 2, sm: 3 } }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
                   <Typography variant="h6">
                     Course Curriculum ({lessons.length} lessons)
@@ -1061,7 +1064,7 @@ export const CourseCreationForm: React.FC = () => {
             </Grid>
             
             <Grid item xs={12} md={4}>
-              <Paper sx={{ p: 3, mb: 3 }}>
+              <Paper sx={{ p: { xs: 2, sm: 3 }, mb: 3 }}>
                 <Typography variant="h6" gutterBottom>
                   Requirements
                 </Typography>
@@ -1090,7 +1093,7 @@ export const CourseCreationForm: React.FC = () => {
                 </Box>
               </Paper>
               
-              <Paper sx={{ p: 3 }}>
+              <Paper sx={{ p: { xs: 2, sm: 3 } }}>
                 <Typography variant="h6" gutterBottom>
                   What You'll Learn
                 </Typography>
@@ -1124,7 +1127,7 @@ export const CourseCreationForm: React.FC = () => {
       
       case 2:
         return (
-          <Paper sx={{ p: 3 }}>
+          <Paper sx={{ p: { xs: 2, sm: 3 } }}>
             <Typography variant="h6" gutterBottom>
               Course Settings
             </Typography>
@@ -1180,7 +1183,7 @@ export const CourseCreationForm: React.FC = () => {
       
       case 3:
         return (
-          <Paper sx={{ p: 3 }}>
+          <Paper sx={{ p: { xs: 2, sm: 3 } }}>
             <Typography variant="h6" gutterBottom>
               Preview & Publish
             </Typography>
@@ -1221,20 +1224,19 @@ export const CourseCreationForm: React.FC = () => {
   };
 
   return (
-    <Box sx={{ p: 3 }}>
+    <>
+      <Header />
+      <PageContainer>
       {/* Header */}
       <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" component="h1" gutterBottom>
+        <PageTitle subtitle={searchParams.get('type') === 'template' ? 'Starting with template' : 'Creating from scratch'}>
           Create New Course
-        </Typography>
-        <Typography variant="subtitle1" color="text.secondary">
-          {searchParams.get('type') === 'template' ? 'Starting with template' : 'Creating from scratch'}
-        </Typography>
+        </PageTitle>
       </Box>
 
       {/* Stepper */}
-      <Paper sx={{ p: 3, mb: 3 }}>
-        <Stepper activeStep={activeStep}>
+      <Paper sx={{ p: { xs: 2, sm: 3 }, mb: 3 }}>
+        <Stepper activeStep={activeStep} alternativeLabel={!isMobile} orientation={isMobile ? 'vertical' : 'horizontal'}>
           {steps.map((label) => (
             <Step key={label}>
               <StepLabel>{label}</StepLabel>
@@ -1247,7 +1249,7 @@ export const CourseCreationForm: React.FC = () => {
       {renderStepContent()}
 
       {/* Navigation */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 3 }}>
+      <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', mt: 3, gap: 2 }}>
         <Button
           variant="outlined"
           onClick={() => navigate('/instructor/dashboard')}
@@ -1304,6 +1306,7 @@ export const CourseCreationForm: React.FC = () => {
         onClose={closeLessonDialog}
         maxWidth="md"
         fullWidth
+        fullScreen={isMobile}
         disableEnforceFocus
       >
         <DialogTitle>Add New Lesson</DialogTitle>
@@ -1448,6 +1451,7 @@ export const CourseCreationForm: React.FC = () => {
         onClose={() => setContentDialogOpen(false)}
         maxWidth="sm"
         fullWidth
+        fullScreen={isMobile}
         disableEnforceFocus
       >
         <DialogTitle>
@@ -1663,6 +1667,7 @@ export const CourseCreationForm: React.FC = () => {
           )}
         </DialogActions>
       </Dialog>
-    </Box>
+      </PageContainer>
+    </>
   );
 };

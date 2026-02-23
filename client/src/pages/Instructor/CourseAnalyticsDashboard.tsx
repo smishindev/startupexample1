@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   Box,
-  Container,
   Typography,
   Card,
   CardContent,
@@ -52,6 +51,7 @@ import {
   Cell
 } from 'recharts';
 import { HeaderV5 as Header } from '../../components/Navigation/HeaderV5';
+import { PageContainer } from '../../components/Responsive';
 import { PageHeader } from '../../components/Navigation/PageHeader';
 import { analyticsApi, type CourseAnalytics, type DashboardAnalytics } from '../../services/analyticsApi';
 import { instructorApi, type InstructorCourse } from '../../services/instructorApi';
@@ -183,7 +183,7 @@ export const CourseAnalyticsDashboard: React.FC = () => {
           </Box>
         }
       />
-      <Container maxWidth="xl" sx={{ py: 4 }}>
+      <PageContainer>
 
         {coursesError && (
           <Alert severity="warning" sx={{ mb: 2 }}>{coursesError}</Alert>
@@ -213,7 +213,7 @@ export const CourseAnalyticsDashboard: React.FC = () => {
             )}
           </>
         )}
-      </Container>
+      </PageContainer>
     </>
   );
 };

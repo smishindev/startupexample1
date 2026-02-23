@@ -1,8 +1,8 @@
 # Mobile UI Optimization Tracker
 
 **Created**: February 19, 2026  
-**Last Updated**: February 22, 2026  
-**Status**: Phase 2 Complete + 5-Round Bug Audit — 37/73 pages done — Phase 3 Next  
+**Last Updated**: February 23, 2026  
+**Status**: Phase 3 Complete + 5-Round Bug Audit — 44/73 pages done — Phase 4 Next  
 **Goal**: Make every page fully responsive and mobile-optimized across the Mishin Learn Platform
 
 ---
@@ -133,15 +133,15 @@ Every page must meet ALL of these criteria to be marked "complete":
 
 | # | Page | File | Route | Current State | Status |
 |---|------|------|-------|---------------|--------|
-| 3.1 | **Chat / DM** | `pages/Chat/Chat.tsx` | `/chat` | None — 643 lines, fixed layout, NO mobile support | ⬜ Not Started |
-| 3.2 | **Live Sessions** | `pages/LiveSessions/LiveSessionsPage.tsx` | `/live-sessions` | None — no responsive code | ⬜ Not Started |
-| 3.3 | **Study Groups** | `pages/StudyGroups/StudyGroupsPage.tsx` | `/study-groups` | Partial — responsive Grid | ⬜ Not Started |
-| 3.4 | **Study Group Detail** | `pages/StudyGroups/StudyGroupDetailPage.tsx` | `/study-groups/:id` | None — no responsive code | ⬜ Not Started |
-| 3.5 | **Office Hours** | `pages/OfficeHours/OfficeHoursPage.tsx` | `/office-hours` | None — no responsive code | ⬜ Not Started |
-| 3.6 | **AI Tutoring** | `pages/Tutoring/Tutoring.tsx` | `/tutoring` | Partial — responsive Grid | ⬜ Not Started |
-| 3.7 | **Presence / Online Users** | `pages/Presence/PresencePage.tsx` | `/presence` | Partial — responsive Grid + sx | ⬜ Not Started |
+| 3.1 | **Chat / DM** | `pages/Chat/Chat.tsx` | `/chat` | Fixed: PageContainer, useResponsive+isMobile, mobile room/message toggle (ArrowBack), responsive bubbles+padding, Dialog fullScreen={isMobile}, Paper height calc(100vh-170px) mobile / calc(100vh-150px) desktop | ✅ Done |
+| 3.2 | **Live Sessions** | `pages/LiveSessions/LiveSessionsPage.tsx` | `/live-sessions` | Fixed: Container→PageContainer, responsive Paper padding p:{xs:2,sm:3,md:4} | ✅ Done |
+| 3.3 | **Study Groups** | `pages/StudyGroups/StudyGroupsPage.tsx` | `/study-groups` | Fixed: PageContainer maxWidth="lg", PageTitle, useResponsive+isMobile, scrollable Tabs on mobile (fullWidth on desktop), responsive header flexWrap+gap, search minWidth responsive, Create button size responsive | ✅ Done |
+| 3.4 | **Study Group Detail** | `pages/StudyGroups/StudyGroupDetailPage.tsx` | `/study-groups/:id` | Fixed: 3× Container→PageContainer maxWidth="lg", responsive Paper padding, h4/h5 responsive fontSize, Breadcrumbs overflow:auto + nowrap links | ✅ Done |
+| 3.5 | **Office Hours** | `pages/OfficeHours/OfficeHoursPage.tsx` | `/office-hours` | Fixed: PageContainer maxWidth="lg", PageTitle, useResponsive+isMobile, both instructor+student Tabs scrollable on mobile/fullWidth on desktop, disableBottomPad on error return | ✅ Done |
+| 3.6 | **AI Tutoring** | `pages/Tutoring/Tutoring.tsx` | `/tutoring` | Fixed: PageContainer maxWidth="xl", PageTitle with AIIcon, useResponsive+isMobile, ArrowBack, !isMobile auto-select guard, handleBackToSessions clears messages+suggestions, loading path has Header, Dialog fullScreen={isMobile}, responsive heights/widths, currentSuggestions cleared on session switch | ✅ Done |
+| 3.7 | **Presence / Online Users** | `pages/Presence/PresencePage.tsx` | `/presence` | Fixed: PageContainer maxWidth="lg", PageTitle, responsive Paper padding p:{xs:2,sm:3} | ✅ Done |
 
-**Phase 3 Completion**: ⬜ 0/7
+**Phase 3 Completion**: ✅ 7/7
 
 ---
 
@@ -201,10 +201,10 @@ Every page must meet ALL of these criteria to be marked "complete":
 | **Phase 0**: Global Shell | 15 | 15 | ✅ 100% |
 | **Phase 1**: Critical Path | 9 | 9 | ✅ 100% |
 | **Phase 2**: Core Student | 13 | 13 | ✅ 100% |
-| **Phase 3**: Collaboration | 7 | 0 | ⬜ 0% |
+| **Phase 3**: Collaboration | 7 | 7 | ✅ 100% |
 | **Phase 4**: Instructor | 19 | 0 | ⬜ 0% |
 | **Phase 5**: Secondary | 10 | 0 | ⬜ 0% |
-| **TOTAL** | **73** | **37** | **🔄 50.7%** |
+| **TOTAL** | **73** | **44** | **🔄 60.3%** |
 
 ---
 
@@ -384,6 +384,7 @@ The following pages may be unused (old versions superseded by newer implementati
 | 5 | Feb 21, 2026 | Theme Token System — 3-Round Bug Audit: Round 1 found CRITICAL bug (borderRadius callbacks returned raw numbers → MUI ×12 multiplier → 192px instead of 16px; fixed to `px` strings) + wrong shadow RGBs (focusPrimary/image used old purple `rgba(102,126,234)`, focusSuccess used MUI default `rgba(76,175,80)`) + docs. Round 2 found duplicate shadow token (`shadows.soft` was identical to `shadows.card`; differentiated) + Rule 2 comment fix. Round 3 found `radii.full` JSDoc footgun (warning applied to all tokens but `full='50%'` must NOT get `px` suffix). Also fixed this tracker's own radii usage example (was showing the pre-fix incorrect raw-number pattern). 0 TS errors after every round. | 0 new pages (quality fixes to token system) |
 | 6 | Feb 22, 2026 | **Phase 2 complete (12 pages)**: MyLearningPage, LessonDetailPage, NotificationsPage, ProfilePage, SettingsPage, NotificationSettingsPage, StudentProgressPage + StudentProgressDashboard (component), StudentAssessmentDashboard, AssessmentTakingPage, MyCertificatesPage, CertificatePage, PublicCertificatePage. 2.13 (Bookmarks) confirmed N/A — feature embedded in CourseDetailPage sidebar. PageContainer, PageTitle, theme gradient/shadow tokens applied throughout. scrollable Tabs on ProfilePage + StudentProgressDashboard. `disableBottomPad` on PublicCertificatePage (all 4 return paths). 0 TS errors. | 12/12 (Phase 2), cumulative 37/73 |
 | 7 | Feb 22, 2026 | **Phase 2 — 5-round exhaustive bug audit**: Systemic `py→pt` fix on 8 files/15 instances (consumer `py` silently overrides PageContainer base `pb:{xs:10,md:0}`). ProfilePage Tabs `variant="scrollable"`. SettingsPage: `theme` state renamed `colorTheme` to avoid MUI `useTheme()` collision; td `#666`/`#d32f2f` → palette tokens. CertificatePage `severity` made conditional (`info` for not-found, `error` for API failure). PublicCertificatePage error path missing `disableBottomPad`. StudentProgressDashboard internal padding removed (double-padding with PageContainer). MyLearningPage 4 hardcoded `rgba()` shadows → `alpha(theme.palette.*,…)`. 0 TS errors after every round. | 0 new pages (quality assurance) |
+| 8 | Feb 23, 2026 | **Phase 3 complete (7 pages)**: Chat.tsx (room/message mobile toggle, ArrowBack, responsive bubbles, fullScreen Dialog, Paper heights), LiveSessionsPage (PageContainer + responsive Paper), StudyGroupsPage (PageContainer+PageTitle, scrollable/fullWidth Tabs, responsive header/search/button), StudyGroupDetailPage (3× PageContainer, responsive Paper+typography+breadcrumbs), OfficeHoursPage (PageContainer+PageTitle, isMobile Tabs, disableBottomPad on error), Tutoring.tsx (PageContainer+PageTitle+ArrowBack, mobile auto-select guard, back clears messages+suggestions, loading has Header, fullScreen Dialog, responsive heights), PresencePage (PageContainer+PageTitle+responsive Paper). **5-round exhaustive bug audit — 8 bugs found and fixed**: B1 Tutoring auto-select bypassed session list on mobile (!isMobile guard); B2 Tutoring back didn't clear messages (setMessages([])); B3 Tutoring loading path missing Header; B4 All 7 pages doubled top spacing (removed pt:4/sx={{pt:4}} from all); B5 OfficeHours error path missing disableBottomPad; B6 Tutoring stale currentSuggestions across session switches (setCurrentSuggestions([]) in selectedSession useEffect); B7 Chat.tsx mobile Paper height calc(100vh-140px) too tall (→calc(100vh-170px)); B8 OfficeHours Tabs unconditionally scrollable on desktop (→isMobile?'scrollable':'fullWidth'). 0 TS errors after every round. | 7/7 (Phase 3), cumulative 44/73 |
 
 ---
 

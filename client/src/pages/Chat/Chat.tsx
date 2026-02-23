@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   Box,
-  Container,
   Paper,
   Typography,
   List,
@@ -26,7 +25,8 @@ import {
 import {
   Send as SendIcon,
   PersonAdd as PersonAddIcon,
-  Delete as DeleteIcon
+  Delete as DeleteIcon,
+  ArrowBack as ArrowBackIcon
 } from '@mui/icons-material';
 import { formatDistanceToNow } from 'date-fns';
 import { chatApi } from '../../services/chatApi';
@@ -34,6 +34,7 @@ import { socketService } from '../../services/socketService';
 import { useAuthStore } from '../../stores/authStore';
 import { HeaderV5 as Header } from '../../components/Navigation/HeaderV5';
 import { UserSearchDialog } from '../../components/Chat/UserSearchDialog';
+import { PageContainer, useResponsive } from '../../components/Responsive';
 
 interface ChatRoom {
   Id: string;
@@ -87,6 +88,7 @@ const Chat: React.FC = () => {
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   const { user } = useAuthStore();
+  const { isMobile } = useResponsive();
 
   // Auto-update timestamps
   useEffect(() => {
@@ -383,184 +385,235 @@ const Chat: React.FC = () => {
     };
   }, [selectedRoom, user?.id]);
 
+  // On mobile: selecting a room shows messages, back button returns to rooms list
+  const handleSelectRoom = (room: ChatRoom) => {
+    setSelectedRoom(room);
+  };
+
+  const handleBackToRooms = () => {
+    setSelectedRoom(null);
+    setMessages([]);
+  };
+
+  // Shared rooms list content
+  const roomsListContent = (
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
+        <Typography variant="h6">Messages</Typography>
+        <Button
+          startIcon={<PersonAddIcon />}
+          size="small"
+          sx={{ mt: 1 }}
+          fullWidth
+          variant="outlined"
+          onClick={() => setUserSearchOpen(true)}
+        >
+          New Message
+        </Button>
+      </Box>
+
+      {loading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+          <CircularProgress />
+        </Box>
+      ) : rooms.length === 0 ? (
+        <Box sx={{ p: 3, textAlign: 'center' }}>
+          <Typography variant="body2" color="text.secondary">
+            No conversations yet
+          </Typography>
+        </Box>
+      ) : (
+        <List sx={{ overflow: 'auto', flex: 1 }}>
+          {rooms.map((room) => (
+            <ListItem
+              key={room.Id}
+              disablePadding
+              secondaryAction={
+                <IconButton
+                  edge="end"
+                  aria-label="delete"
+                  onClick={(e) => handleDeleteClick(room, e)}
+                  size="small"
+                >
+                  <DeleteIcon fontSize="small" />
+                </IconButton>
+              }
+            >
+              <ListItemButton
+                selected={selectedRoom?.Id === room.Id}
+                onClick={() => handleSelectRoom(room)}
+              >
+                <ListItemAvatar>
+                  <Badge badgeContent={room.UnreadCount} color="primary">
+                    <Avatar>{room.Name.charAt(0)}</Avatar>
+                  </Badge>
+                </ListItemAvatar>
+                <ListItemText
+                  primary={room.Name}
+                  secondary={room.LastMessagePreview || 'No messages'}
+                  primaryTypographyProps={{ noWrap: true }}
+                  secondaryTypographyProps={{ noWrap: true }}
+                />
+              </ListItemButton>
+            </ListItem>
+          ))}
+        </List>
+      )}
+    </Box>
+  );
+
+  // Shared messages area content
+  const messagesAreaContent = (
+    <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%' }}>
+      {!selectedRoom ? (
+        <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', p: 3 }}>
+          <Typography variant="h6" color="text.secondary" textAlign="center">
+            Select a conversation to start messaging
+          </Typography>
+        </Box>
+      ) : (
+        <>
+          {/* Room Header */}
+          <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider', display: 'flex', alignItems: 'center', gap: 1 }}>
+            {isMobile && (
+              <IconButton onClick={handleBackToRooms} size="small" sx={{ mr: 0.5 }}>
+                <ArrowBackIcon />
+              </IconButton>
+            )}
+            <Box sx={{ flex: 1 }}>
+              <Typography variant="h6" noWrap>{selectedRoom.Name}</Typography>
+              {typingUsers.size > 0 && (
+                <Typography variant="caption" color="text.secondary">
+                  Someone is typing...
+                </Typography>
+              )}
+            </Box>
+          </Box>
+
+          {/* Messages */}
+          <Box sx={{ flex: 1, overflow: 'auto', p: { xs: 1.5, sm: 2 } }}>
+            {error && (
+              <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
+                {error}
+              </Alert>
+            )}
+
+            {messages.map((message) => {
+              const isOwn = message.UserId === user?.id;
+              const senderName = message.User
+                ? `${message.User.FirstName} ${message.User.LastName}`
+                : 'Unknown';
+
+              return (
+                <Box
+                  key={message.Id}
+                  sx={{
+                    display: 'flex',
+                    justifyContent: isOwn ? 'flex-end' : 'flex-start',
+                    mb: 2
+                  }}
+                >
+                  <Box sx={{ maxWidth: { xs: '85%', sm: '70%' } }}>
+                    {!isOwn && (
+                      <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
+                        {senderName}
+                      </Typography>
+                    )}
+                    <Paper
+                      elevation={1}
+                      sx={{
+                        p: 1.5,
+                        backgroundColor: isOwn ? 'primary.main' : 'grey.100',
+                        color: isOwn ? 'white' : 'text.primary'
+                      }}
+                    >
+                      <Typography variant="body2">{message.Content}</Typography>
+                    </Paper>
+                    <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
+                      {formatDistanceToNow(new Date(message.CreatedAt), { addSuffix: true })}
+                    </Typography>
+                  </Box>
+                </Box>
+              );
+            })}
+            <div ref={messagesEndRef} />
+          </Box>
+
+          {/* Message Input */}
+          <Box sx={{ p: { xs: 1.5, sm: 2 }, borderTop: 1, borderColor: 'divider' }}>
+            <TextField
+              fullWidth
+              placeholder="Type a message..."
+              value={newMessage}
+              onChange={(e) => {
+                setNewMessage(e.target.value);
+                handleTyping();
+              }}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSendMessage();
+                }
+              }}
+              disabled={sending}
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      onClick={handleSendMessage}
+                      disabled={sending || !newMessage.trim()}
+                      color="primary"
+                    >
+                      {sending ? <CircularProgress size={24} /> : <SendIcon />}
+                    </IconButton>
+                  </InputAdornment>
+                )
+              }}
+            />
+          </Box>
+        </>
+      )}
+    </Box>
+  );
+
   return (
     <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
       <Header />
-      
-      <Container maxWidth="xl" sx={{ mt: 3, mb: 3 }}>
-        <Paper elevation={2} sx={{ height: 'calc(100vh - 150px)', display: 'flex', overflow: 'hidden' }}>
-          
-          {/* Rooms List */}
-          <Box sx={{ width: 300, borderRight: 1, borderColor: 'divider', display: 'flex', flexDirection: 'column' }}>
-            <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
-              <Typography variant="h6">Messages</Typography>
-              <Button
-                startIcon={<PersonAddIcon />}
-                size="small"
-                sx={{ mt: 1 }}
-                fullWidth
-                variant="outlined"
-                onClick={() => setUserSearchOpen(true)}
-              >
-                New Message
-              </Button>
+
+      <PageContainer>
+        {isMobile ? (
+          /* Mobile: toggle between rooms list and chat messages */
+          <Paper
+            elevation={2}
+            sx={{
+              height: 'calc(100vh - 170px)',
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden'
+            }}
+          >
+            {selectedRoom ? messagesAreaContent : roomsListContent}
+          </Paper>
+        ) : (
+          /* Desktop: side-by-side layout */
+          <Paper
+            elevation={2}
+            sx={{
+              height: 'calc(100vh - 150px)',
+              display: 'flex',
+              overflow: 'hidden'
+            }}
+          >
+            {/* Rooms List Sidebar */}
+            <Box sx={{ width: 300, borderRight: 1, borderColor: 'divider', display: 'flex', flexDirection: 'column' }}>
+              {roomsListContent}
             </Box>
-            
-            {loading ? (
-              <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
-                <CircularProgress />
-              </Box>
-            ) : rooms.length === 0 ? (
-              <Box sx={{ p: 3, textAlign: 'center' }}>
-                <Typography variant="body2" color="text.secondary">
-                  No conversations yet
-                </Typography>
-              </Box>
-            ) : (
-              <List sx={{ overflow: 'auto', flex: 1 }}>
-                {rooms.map((room) => (
-                  <ListItem 
-                    key={room.Id} 
-                    disablePadding
-                    secondaryAction={
-                      <IconButton 
-                        edge="end" 
-                        aria-label="delete"
-                        onClick={(e) => handleDeleteClick(room, e)}
-                        size="small"
-                      >
-                        <DeleteIcon fontSize="small" />
-                      </IconButton>
-                    }
-                  >
-                    <ListItemButton
-                      selected={selectedRoom?.Id === room.Id}
-                      onClick={() => setSelectedRoom(room)}
-                    >
-                      <ListItemAvatar>
-                        <Badge badgeContent={room.UnreadCount} color="primary">
-                          <Avatar>{room.Name.charAt(0)}</Avatar>
-                        </Badge>
-                      </ListItemAvatar>
-                      <ListItemText
-                        primary={room.Name}
-                        secondary={room.LastMessagePreview || 'No messages'}
-                        primaryTypographyProps={{ noWrap: true }}
-                        secondaryTypographyProps={{ noWrap: true }}
-                      />
-                    </ListItemButton>
-                  </ListItem>
-                ))}
-              </List>
-            )}
-          </Box>
 
-          {/* Messages Area */}
-          <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-            {!selectedRoom ? (
-              <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Typography variant="h6" color="text.secondary">
-                  Select a conversation to start messaging
-                </Typography>
-              </Box>
-            ) : (
-              <>
-                {/* Room Header */}
-                <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
-                  <Typography variant="h6">{selectedRoom.Name}</Typography>
-                  {typingUsers.size > 0 && (
-                    <Typography variant="caption" color="text.secondary">
-                      Someone is typing...
-                    </Typography>
-                  )}
-                </Box>
-
-                {/* Messages */}
-                <Box sx={{ flex: 1, overflow: 'auto', p: 2 }}>
-                  {error && (
-                    <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
-                      {error}
-                    </Alert>
-                  )}
-                  
-                  {messages.map((message) => {
-                    const isOwn = message.UserId === user?.id;
-                    const senderName = message.User 
-                      ? `${message.User.FirstName} ${message.User.LastName}`
-                      : 'Unknown';
-
-                    return (
-                      <Box
-                        key={message.Id}
-                        sx={{
-                          display: 'flex',
-                          justifyContent: isOwn ? 'flex-end' : 'flex-start',
-                          mb: 2
-                        }}
-                      >
-                        <Box sx={{ maxWidth: '70%' }}>
-                          {!isOwn && (
-                            <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
-                              {senderName}
-                            </Typography>
-                          )}
-                          <Paper
-                            elevation={1}
-                            sx={{
-                              p: 1.5,
-                              backgroundColor: isOwn ? 'primary.main' : 'grey.100',
-                              color: isOwn ? 'white' : 'text.primary'
-                            }}
-                          >
-                            <Typography variant="body2">{message.Content}</Typography>
-                          </Paper>
-                          <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
-                            {formatDistanceToNow(new Date(message.CreatedAt), { addSuffix: true })}
-                          </Typography>
-                        </Box>
-                      </Box>
-                    );
-                  })}
-                  <div ref={messagesEndRef} />
-                </Box>
-
-                {/* Message Input */}
-                <Box sx={{ p: 2, borderTop: 1, borderColor: 'divider' }}>
-                  <TextField
-                    fullWidth
-                    placeholder="Type a message..."
-                    value={newMessage}
-                    onChange={(e) => {
-                      setNewMessage(e.target.value);
-                      handleTyping();
-                    }}
-                    onKeyPress={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        handleSendMessage();
-                      }
-                    }}
-                    disabled={sending}
-                    InputProps={{
-                      endAdornment: (
-                        <InputAdornment position="end">
-                          <IconButton
-                            onClick={handleSendMessage}
-                            disabled={sending || !newMessage.trim()}
-                            color="primary"
-                          >
-                            {sending ? <CircularProgress size={24} /> : <SendIcon />}
-                          </IconButton>
-                        </InputAdornment>
-                      )
-                    }}
-                  />
-                </Box>
-              </>
-            )}
-          </Box>
-        </Paper>
-      </Container>
+            {/* Messages Area */}
+            {messagesAreaContent}
+          </Paper>
+        )}
+      </PageContainer>
 
       <UserSearchDialog
         open={userSearchOpen}
@@ -571,6 +624,7 @@ const Chat: React.FC = () => {
       <Dialog
         open={deleteConfirmOpen}
         onClose={handleDeleteCancel}
+        fullScreen={isMobile}
       >
         <DialogTitle>Delete Conversation?</DialogTitle>
         <DialogContent>

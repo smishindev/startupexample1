@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link as RouterLink } from 'react-router-dom';
 import {
-  Container,
   Paper,
   Typography,
   Box,
@@ -25,6 +24,7 @@ import type { StudyGroup } from '../../types/studyGroup';
 import { useAuthStore } from '../../stores/authStore';
 import { HeaderV5 as Header } from '../../components/Navigation/HeaderV5';
 import { useStudyGroupSocket } from '../../hooks/useStudyGroupSocket';
+import { PageContainer } from '../../components/Responsive';
 
 const StudyGroupDetailPage: React.FC = () => {
   const { groupId } = useParams<{ groupId: string }>();
@@ -133,11 +133,11 @@ const StudyGroupDetailPage: React.FC = () => {
     return (
       <>
         <Header />
-        <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+        <PageContainer maxWidth="lg">
           <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
             <CircularProgress />
           </Box>
-        </Container>
+        </PageContainer>
       </>
     );
   }
@@ -146,7 +146,7 @@ const StudyGroupDetailPage: React.FC = () => {
     return (
       <>
         <Header />
-        <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+        <PageContainer maxWidth="lg">
           <Alert severity="error" sx={{ mb: 2 }}>
             {error || 'Study group not found'}
           </Alert>
@@ -160,7 +160,7 @@ const StudyGroupDetailPage: React.FC = () => {
               Back to Study Groups
             </Link>
           </Box>
-        </Container>
+        </PageContainer>
       </>
     );
   }
@@ -168,20 +168,20 @@ const StudyGroupDetailPage: React.FC = () => {
   return (
     <>
       <Header />
-      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+      <PageContainer maxWidth="lg">
         {/* Breadcrumbs */}
-      <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 3 }}>
+      <Breadcrumbs aria-label="breadcrumb" sx={{ mb: { xs: 2, sm: 3 }, overflow: 'auto' }}>
         <Link
           component={RouterLink}
           to="/study-groups"
           underline="hover"
           color="inherit"
-          sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}
+          sx={{ display: 'flex', alignItems: 'center', gap: 0.5, whiteSpace: 'nowrap' }}
         >
           <PeopleIcon fontSize="small" />
           Study Groups
         </Link>
-        <Typography color="text.primary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+        <Typography color="text.primary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }} noWrap>
           {group.Name}
         </Typography>
       </Breadcrumbs>
@@ -200,10 +200,10 @@ const StudyGroupDetailPage: React.FC = () => {
       </Box>
 
       {/* Group Info Card */}
-      <Paper sx={{ p: 3, mb: 3 }}>
-        <Box display="flex" alignItems="flex-start" justifyContent="space-between" mb={2}>
-          <Box flex={1}>
-            <Typography variant="h4" gutterBottom>
+      <Paper sx={{ p: { xs: 2, sm: 3 }, mb: 3 }}>
+        <Box display="flex" alignItems="flex-start" justifyContent="space-between" flexWrap="wrap" gap={2} mb={2}>
+          <Box flex={1} minWidth={0}>
+            <Typography variant="h4" gutterBottom sx={{ fontSize: { xs: '1.5rem', sm: '1.75rem', md: '2.125rem' } }}>
               {group.Name}
             </Typography>
             {group.Description && (
@@ -231,8 +231,8 @@ const StudyGroupDetailPage: React.FC = () => {
       </Paper>
 
       {/* Members List */}
-      <Paper sx={{ p: 3 }}>
-        <Typography variant="h5" gutterBottom sx={{ mb: 3 }}>
+      <Paper sx={{ p: { xs: 2, sm: 3 } }}>
+        <Typography variant="h5" gutterBottom sx={{ mb: 3, fontSize: { xs: '1.25rem', sm: '1.5rem' } }}>
           Group Members
         </Typography>
         <GroupMembersList
@@ -242,7 +242,7 @@ const StudyGroupDetailPage: React.FC = () => {
           onMemberUpdate={handleMembersUpdate}
         />
       </Paper>
-    </Container>
+    </PageContainer>
     </>
   );
 };

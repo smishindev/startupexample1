@@ -7,8 +7,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Box,
-  Container,
-  Typography,
   Tabs,
   Tab,
   Button,
@@ -46,6 +44,7 @@ import { presenceApi } from '../../services/presenceApi';
 import { socketService } from '../../services/socketService';
 import { HeaderV5 as Header } from '../../components/Navigation/HeaderV5';
 import { CourseSelector } from '../../components/Common/CourseSelector';
+import { PageContainer, PageTitle, useResponsive } from '../../components/Responsive';
 
 interface Course {
   Id: string;
@@ -58,6 +57,7 @@ export const StudyGroupsPage: React.FC = () => {
   const { user } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
+  const { isMobile } = useResponsive();
   const [activeTab, setActiveTab] = useState<TabValue>('my-groups');
   const [groups, setGroups] = useState<StudyGroup[]>([]);
   const [loading, setLoading] = useState(true);
@@ -346,17 +346,18 @@ export const StudyGroupsPage: React.FC = () => {
   return (
     <>
       <Header />
-      <Container maxWidth="lg" sx={{ py: 4 }}>
+      <PageContainer maxWidth="lg">
         {/* Header */}
-      <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Typography variant="h4" component="h1" sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <GroupIcon fontSize="large" color="primary" />
+      <Box sx={{ mb: { xs: 2, sm: 4 }, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
+        <PageTitle sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <GroupIcon fontSize={isMobile ? 'medium' : 'large'} color="primary" />
           Study Groups
-        </Typography>
+        </PageTitle>
         <Button
           variant="contained"
           startIcon={<AddIcon />}
           onClick={() => setCreateModalOpen(true)}
+          size={isMobile ? 'small' : 'medium'}
           data-testid="study-groups-create-button"
         >
           Create Group
@@ -365,7 +366,13 @@ export const StudyGroupsPage: React.FC = () => {
 
       {/* Tabs */}
       <Paper sx={{ mb: 3 }}>
-        <Tabs value={activeTab} onChange={handleTabChange} variant="fullWidth" data-testid="study-groups-tabs">
+        <Tabs
+          value={activeTab}
+          onChange={handleTabChange}
+          variant={isMobile ? 'scrollable' : 'fullWidth'}
+          scrollButtons="auto"
+          data-testid="study-groups-tabs"
+        >
           <Tab label="My Groups" value="my-groups" data-testid="study-groups-tab-my" />
           <Tab label="All Groups" value="all" data-testid="study-groups-tab-all" />
           <Tab label="By Course" value="course" data-testid="study-groups-tab-course" />
@@ -393,7 +400,7 @@ export const StudyGroupsPage: React.FC = () => {
                 </InputAdornment>
               ) : undefined
             }}
-            sx={{ flexGrow: 1, minWidth: 250 }}
+            sx={{ flexGrow: 1, minWidth: { xs: 150, sm: 250 } }}
           />
 
           {/* Course Filter */}
@@ -404,7 +411,7 @@ export const StudyGroupsPage: React.FC = () => {
               onChange={(id: string) => setSelectedCourse(id)}
               allOption={{ value: '', label: 'All Courses' }}
               label="Select Course"
-              sx={{ minWidth: 250 }}
+              sx={{ minWidth: { xs: 150, sm: 250 } }}
               testId="study-groups-course-select"
             />
           )}
@@ -463,7 +470,7 @@ export const StudyGroupsPage: React.FC = () => {
         groupId={selectedGroupForInvite?.id || ''}
         groupName={selectedGroupForInvite?.name || ''}
       />
-    </Container>
+    </PageContainer>
     </>
   );
 };

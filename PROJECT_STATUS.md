@@ -1,6 +1,6 @@
 ﻿# Mishin Learn Platform - Project Status & Memory
 
-**Last Updated**: February 22, 2026 - Mobile Optimization Phase 2 Complete + 5-Round Bug Audit 📱  
+**Last Updated**: February 23, 2026 - Mobile Optimization Phase 3 Complete + 5-Round Bug Audit 📱  
 **Developer**: Sergey Mishin (s.mishin.dev@gmail.com)  
 **AI Assistant Context**: This file serves as project memory for continuity across chat sessions
 
@@ -20,6 +20,7 @@
 **CourseSelector**: Unified reusable course dropdown replacing 9 inline implementations; lazy rendering, type-to-search, helper text (February 19, 2026) 🔽  
 **Mobile Optimization Phase 1**: Responsive library (8 files) created; all 9 critical-path pages fully mobile-optimized (February 21, 2026) 📱  
 **Mobile Optimization Phase 2**: All 12 core student pages mobile-optimized; systemic `py→pt` bug fixed; 5-round exhaustive audit; 37/73 pages done (50.7%), 0 TypeScript errors (February 22, 2026) 📱  
+**Mobile Optimization Phase 3**: All 7 Collaboration & Social pages mobile-optimized; 5-round exhaustive audit; 8 bugs found and fixed; 44/73 pages done (60.3%), 0 TypeScript errors (February 23, 2026) 📱  
 **Auth Bug Fixes**: `logout()` clears state immediately; `type="button"` on nav-links inside forms; all 401 interceptors unified; stale-state guard in App.tsx (February 21, 2026) 🔐  
 **Theme Token System**: Centralised design tokens in `theme/index.ts` (colors, shadows, radii, extended palette). `tokens.ts` with 18 reusable `sx` fragments. 3-round exhaustive bug audit — all bugs fixed, 0 TypeScript errors (February 21, 2026) 🎨
 
@@ -60,6 +61,39 @@
 
 **Reusable `sx` fragments** (import from `../../theme/tokens`):
 `cardSx`, `elevatedPaperSx`, `flatSurfaceSx`, `truncateSx`, `lineClamp2Sx`, `lineClamp3Sx`, `centeredFlexSx`, `spacedRowSx`, `inlineRowSx`, `clickableSx`, `focusRingSx`, `responsiveImageSx`, `avatarSx`, `statusDotSx`, `badgeSx`, `scrollRowSx`, `glassSx`, `srOnlySx`
+
+---
+
+## 📱 MOBILE OPTIMIZATION — PHASE 3 COMPLETE (February 23, 2026)
+
+**Activity**: Mobile-optimized all 7 Collaboration & Social pages (Phase 3.1–3.7). Followed up with 5 rounds of exhaustive auditing, finding and fixing 8 bugs including a Tutoring auto-select bypass on mobile, stale suggestions across session switches, a doubled top-spacing issue across all 7 pages, Chat mobile Paper height overlap, and OfficeHours Tabs unconditionally scrollable on desktop.
+
+**Status**: ✅ **Complete** — 44/73 pages done (60.3%), 0 TypeScript errors after every round
+
+### **Phase 3 Pages Optimized (7/7)**
+
+| # | Page | Key Changes |
+|---|------|-------------|
+| 3.1 | `Chat.tsx` | PageContainer, useResponsive+isMobile, mobile room/message toggle + ArrowBack, responsive bubble maxWidth+padding, Dialog fullScreen={isMobile}, Paper height calc(100vh-170px) mobile / calc(100vh-150px) desktop |
+| 3.2 | `LiveSessionsPage.tsx` | Container→PageContainer, responsive Paper padding p:{xs:2,sm:3,md:4} |
+| 3.3 | `StudyGroupsPage.tsx` | PageContainer maxWidth="lg", PageTitle, useResponsive+isMobile, Tabs variant scrollable-on-mobile/fullWidth-on-desktop, header flexWrap+gap, search minWidth responsive, Create button size responsive |
+| 3.4 | `StudyGroupDetailPage.tsx` | 3× Container→PageContainer maxWidth="lg", responsive Paper padding, h4/h5 responsive fontSize, Breadcrumbs overflow:auto + nowrap links |
+| 3.5 | `OfficeHoursPage.tsx` | PageContainer maxWidth="lg", PageTitle, useResponsive+isMobile, both Tabs scrollable-on-mobile/fullWidth-on-desktop, disableBottomPad on error return path |
+| 3.6 | `Tutoring.tsx` | PageContainer maxWidth="xl", PageTitle+AIIcon, useResponsive+isMobile, ArrowBack, !isMobile auto-select guard, handleBackToSessions clears messages+suggestions, loading path includes Header, Dialog fullScreen={isMobile}, responsive sidebar/chat heights, currentSuggestions cleared on session switch |
+| 3.7 | `PresencePage.tsx` | PageContainer maxWidth="lg", PageTitle, responsive Paper padding p:{xs:2,sm:3} |
+
+### **Bugs Fixed (5-Round Audit — 8 Total)**
+
+| Round | Severity | Bug | Fix |
+|-------|----------|-----|-----|
+| 1 | HIGH | `Tutoring.tsx` `loadSessions` auto-selected first session on mobile — bypassed session list view | Added `&& !isMobile` guard to auto-select call |
+| 1 | MEDIUM | `Tutoring.tsx` `handleBackToSessions` only cleared `selectedSession`, not messages | Added `setMessages([])` |
+| 1 | MEDIUM | `Tutoring.tsx` loading return had no `<Header />` — user saw blank spinner page | Wrapped in `<Box><Header/><PageContainer>...</PageContainer></Box>` |
+| 2 | HIGH (systemic) | All 7 Phase 3 pages had `pt:4` or `sx={{pt:4}}` on PageContainer — doubled top spacing to 64px | Removed all redundant `pt:4`/`sx={{pt:4}}` from all 7 pages |
+| 2 | LOW | `OfficeHoursPage.tsx` error return path missing `disableBottomPad` | Added `disableBottomPad` to error return's PageContainer |
+| 3 | MEDIUM | `Tutoring.tsx` `currentSuggestions` persisted when switching between sessions | Added `setCurrentSuggestions([])` to `selectedSession` useEffect cleanup |
+| 4 | MEDIUM | `Chat.tsx` mobile Paper height `calc(100vh-140px)` — bottom of paper overlapped MobileBottomNav (64px) | Changed to `calc(100vh-170px)` (18px clearance) |
+| 4 | MEDIUM | `OfficeHoursPage.tsx` both instructor+student Tabs unconditionally `variant="scrollable"` on desktop | Changed to `variant={isMobile?'scrollable':'fullWidth'}` on both tab groups |
 
 ---
 

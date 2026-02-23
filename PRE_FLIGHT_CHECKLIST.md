@@ -2,7 +2,7 @@
 
 **Purpose**: Systematic checklist to follow before implementing changes  
 **Goal**: Reduce errors, missing considerations, and broken functionality  
-**Last Updated**: February 22, 2026 - Mobile Optimization Phase 2 Complete 📱
+**Last Updated**: February 23, 2026 - Mobile Optimization Phase 3 Complete 📱
 
 ---
 
@@ -59,6 +59,18 @@
   - **`tokens.ts`**: 18 reusable `SxProps<Theme>` fragments — import and spread: `<Paper sx={{ ...cardSx }}>`
   - **Extended palette**: All 5 palettes have 50-900 shades → `sx={{ bgcolor: 'primary.50' }}` works
   - Files: `client/src/theme/index.ts`, `client/src/theme/tokens.ts`, `client/src/main.tsx`
+- [x] **Mobile Optimization Phase 3** - PRODUCTION READY (Feb 23, 2026) 📱
+  - 7 Collaboration & Social pages fully mobile-optimized (Phase 3.1–3.7). 44/73 pages done (60.3%). 8 bugs fixed across 5 audit rounds. 0 TypeScript errors.
+  - **Tutoring mobile auto-select guard**: `loadSessions` must check `&& !isMobile` before auto-selecting first session — on mobile the user must pick from the list
+  - **Back navigation clears state**: `handleBackToSessions` must call `setMessages([])` and `setCurrentSuggestions([])` — not just `setSelectedSession(null)`
+  - **Session switch clears suggestions**: add `setCurrentSuggestions([])` in the `selectedSession` useEffect — stale suggestions from prior session persist otherwise
+  - **Loading return must include `<Header />`**: all return-paths (loading, error, not-found, main) must render the header so layout remains consistent
+  - **Tabs on desktop**: use `variant={isMobile?'scrollable':'fullWidth'}` — unconditionally `scrollable` makes tabs look broken on desktop (left-aligned, truncated)
+  - **Chat mobile Paper height**: `calc(100vh-140px)` is too tall — use `calc(100vh-170px)` to clear MobileBottomNav (64px) + header (56px) + padding (50px)
+  - **Chat fullScreen Dialog**: always `fullScreen={isMobile}` on session/room create dialogs
+  - **`disableBottomPad` on all return paths**: if any authenticated return path has `disableBottomPad`, ALL return paths on that page must have it
+  - **No redundant `pt:4`**: PageContainer already applies `mt:4`; adding `pt:4` on the page doubles top spacing to 64px
+  - Files (Phase 3): `Chat.tsx`, `LiveSessionsPage.tsx`, `StudyGroupsPage.tsx`, `StudyGroupDetailPage.tsx`, `OfficeHoursPage.tsx`, `Tutoring.tsx`, `PresencePage.tsx`
 - [x] **Mobile Optimization Phase 2** - PRODUCTION READY (Feb 22, 2026) 📱
   - 12 core student pages fully mobile-optimized (Phase 2.1–2.12). 37/73 pages done (50.7%). 0 TypeScript errors.
   - **CRITICAL — `py` vs `pt` in PageContainer consumer sx**:

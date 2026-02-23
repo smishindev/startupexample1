@@ -6,7 +6,6 @@
 import React from 'react';
 import {
   Box,
-  Container,
   Grid,
   Card,
   CardContent,
@@ -17,6 +16,8 @@ import { usePresence } from '../../hooks/usePresence';
 import OnlineUsersList from '../../components/Presence/OnlineUsersList';
 import PresenceStatusSelector from '../../components/Presence/PresenceStatusSelector';
 import { HeaderV5 as Header } from '../../components/Navigation/HeaderV5';
+import { PageContainer } from '../../components/Responsive/PageContainer';
+import { PageTitle } from '../../components/Responsive/PageTitle';
 
 const PresencePage: React.FC = () => {
   const { isLoadingStatus } = usePresence({
@@ -32,13 +33,13 @@ const PresencePage: React.FC = () => {
   return (
     <Box>
       <Header />
-      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-        <Paper elevation={2} sx={{ p: 3, mb: 3 }}>
+      <PageContainer maxWidth="lg">
+        <Paper elevation={2} sx={{ p: { xs: 2, sm: 3 }, mb: 3 }}>
           <Grid container spacing={2} alignItems="center">
             <Grid item xs={12} md={6}>
-              <Typography variant="h4" gutterBottom>
+              <PageTitle gutterBottom>
                 Online Users
-              </Typography>
+              </PageTitle>
               <Typography variant="body2" color="text.secondary">
                 See who's currently active on the platform
               </Typography>
@@ -90,7 +91,7 @@ const PresencePage: React.FC = () => {
             </Card>
           </Grid>
         </Grid>
-      </Container>
+      </PageContainer>
     </Box>
   );
 };

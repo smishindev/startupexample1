@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   Box,
-  Container,
   Paper,
   Typography,
   List,
@@ -35,8 +34,12 @@ import {
   Person as PersonIcon,
   School as SchoolIcon,
   Lightbulb as LightbulbIcon,
-  Chat as ChatIcon
+  Chat as ChatIcon,
+  ArrowBack as ArrowBackIcon
 } from '@mui/icons-material';
+import { PageContainer } from '../../components/Responsive/PageContainer';
+import { PageTitle } from '../../components/Responsive/PageTitle';
+import { useResponsive } from '../../components/Responsive/useResponsive';
 import { formatDistanceToNow } from 'date-fns';
 import { 
   tutoringApi, 
@@ -69,6 +72,7 @@ const Tutoring: React.FC = () => {
   const [, setCurrentTime] = useState(Date.now()); // For auto-updating relative timestamps
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { isMobile } = useResponsive();
 
   // Available AI models with descriptions
   const availableModels = [
@@ -98,9 +102,9 @@ const Tutoring: React.FC = () => {
   useEffect(() => {
     if (selectedSession) {
       loadMessages(selectedSession.Id);
-      // Reset model selection to default when switching sessions
-      // In future, could load preferred model from session context
+      // Reset model selection and clear stale suggestions when switching sessions
       setSelectedModel('gpt-4o-mini');
+      setCurrentSuggestions([]);
     }
   }, [selectedSession]);
 
@@ -112,7 +116,7 @@ const Tutoring: React.FC = () => {
     try {
       const sessionsData = await tutoringApi.getSessions();
       setSessions(sessionsData);
-      if (sessionsData.length > 0 && !selectedSession) {
+      if (sessionsData.length > 0 && !selectedSession && !isMobile) {
         setSelectedSession(sessionsData[0]);
       }
     } catch (error) {
@@ -214,6 +218,15 @@ const Tutoring: React.FC = () => {
     }
   };
 
+  const handleSelectSession = (session: TutoringSession) => {
+    setSelectedSession(session);
+  };
+
+  const handleBackToSessions = () => {
+    setSelectedSession(null);
+    setMessages([]);
+  };
+
   const formatMessageContent = (content: string) => {
     // Simple formatting for code blocks
     const parts = content.split('```');
@@ -247,9 +260,12 @@ const Tutoring: React.FC = () => {
 
   if (loading) {
     return (
-      <Container maxWidth="xl" sx={{ py: 4, display: 'flex', justifyContent: 'center' }}>
-        <CircularProgress />
-      </Container>
+      <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+        <Header />
+        <PageContainer maxWidth="xl" sx={{ display: 'flex', justifyContent: 'center' }}>
+          <CircularProgress />
+        </PageContainer>
+      </Box>
     );
   }
 
@@ -257,11 +273,13 @@ const Tutoring: React.FC = () => {
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       <Header />
       
-      <Container maxWidth="xl" sx={{ py: 4, flex: 1 }}>
-        <Typography variant="h4" component="h1" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <AIIcon color="primary" />
+      <PageContainer maxWidth="xl" sx={{ flex: 1 }}>
+        <PageTitle
+          icon={<AIIcon color="primary" />}
+          gutterBottom
+        >
           AI Tutoring
-        </Typography>
+        </PageTitle>
 
       {error && (
         <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
@@ -270,9 +288,10 @@ const Tutoring: React.FC = () => {
       )}
 
       <Grid container spacing={3}>
-        {/* Sessions Sidebar */}
+        {/* Sessions Sidebar - hidden on mobile when a session is selected */}
+        {(!isMobile || !selectedSession) && (
         <Grid item xs={12} md={4}>
-          <Paper sx={{ height: '70vh', display: 'flex', flexDirection: 'column' }}>
+          <Paper sx={{ height: { xs: 'calc(100vh - 240px)', md: '70vh' }, display: 'flex', flexDirection: 'column' }}>
             <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Typography variant="h6">Tutoring Sessions</Typography>
@@ -302,7 +321,7 @@ const Tutoring: React.FC = () => {
                   <ListItem key={session.Id} disablePadding>
                     <ListItemButton
                       selected={selectedSession?.Id === session.Id}
-                      onClick={() => setSelectedSession(session)}
+                      onClick={() => handleSelectSession(session)}
                       data-testid={`tutoring-session-item-${session.Id}`}
                     >
                       <ListItemIcon>
@@ -329,7 +348,7 @@ const Tutoring: React.FC = () => {
           </Paper>
 
           {/* Recommendations */}
-          <Card sx={{ mt: 3 }}>
+          <Card sx={{ mt: { xs: 2, md: 3 } }}>
             <CardContent>
               <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
                 <LightbulbIcon color="primary" />
@@ -347,21 +366,30 @@ const Tutoring: React.FC = () => {
             </CardContent>
           </Card>
         </Grid>
+        )}
 
-        {/* Chat Area */}
+        {/* Chat Area - hidden on mobile when no session selected */}
+        {(!isMobile || selectedSession) && (
         <Grid item xs={12} md={8}>
           {selectedSession ? (
-            <Paper sx={{ height: '70vh', display: 'flex', flexDirection: 'column' }}>
+            <Paper sx={{ height: { xs: 'calc(100vh - 200px)', md: '70vh' }, display: 'flex', flexDirection: 'column' }}>
               {/* Header */}
-              <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                  <Box>
-                    <Typography variant="h6">{selectedSession.Title}</Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      AI-powered learning assistance
-                    </Typography>
+              <Box sx={{ p: { xs: 1.5, sm: 2 }, borderBottom: 1, borderColor: 'divider' }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1, flexWrap: 'wrap', gap: 1 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
+                    {isMobile && (
+                      <IconButton onClick={handleBackToSessions} size="small" edge="start">
+                        <ArrowBackIcon />
+                      </IconButton>
+                    )}
+                    <Box sx={{ minWidth: 0 }}>
+                      <Typography variant="h6" noWrap>{selectedSession.Title}</Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        AI-powered learning assistance
+                      </Typography>
+                    </Box>
                   </Box>
-                  <FormControl size="small" sx={{ minWidth: 200 }}>
+                  <FormControl size="small" sx={{ minWidth: { xs: 120, sm: 200 } }}>
                     <InputLabel>AI Model</InputLabel>
                     <Select
                       value={selectedModel}
@@ -405,7 +433,7 @@ const Tutoring: React.FC = () => {
                         justifyContent: message.Role === 'user' ? 'flex-end' : 'flex-start'
                       }}
                     >
-                      <Box sx={{ display: 'flex', maxWidth: '80%', alignItems: 'flex-start' }}>
+                      <Box sx={{ display: 'flex', maxWidth: { xs: '90%', sm: '80%' }, alignItems: 'flex-start' }}>
                         {message.Role === 'ai' && (
                           <Avatar sx={{ mr: 1, bgcolor: 'primary.main' }}>
                             <AIIcon />
@@ -482,7 +510,7 @@ const Tutoring: React.FC = () => {
               </Box>
             </Paper>
           ) : (
-            <Paper sx={{ height: '70vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Paper sx={{ height: { xs: 'calc(100vh - 200px)', md: '70vh' }, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Box sx={{ textAlign: 'center' }}>
                 <SchoolIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
                 <Typography variant="h6" color="text.secondary">
@@ -495,10 +523,11 @@ const Tutoring: React.FC = () => {
             </Paper>
           )}
         </Grid>
+        )}
       </Grid>
 
       {/* Create Session Dialog */}
-      <Dialog open={createSessionOpen} onClose={() => setCreateSessionOpen(false)} maxWidth="sm" fullWidth disableEnforceFocus>
+      <Dialog open={createSessionOpen} onClose={() => setCreateSessionOpen(false)} maxWidth="sm" fullWidth fullScreen={isMobile} disableEnforceFocus>
         <DialogTitle>Start New Tutoring Session</DialogTitle>
         <DialogContent>
           <TextField
@@ -569,7 +598,7 @@ const Tutoring: React.FC = () => {
           <Button onClick={handleCreateSession} variant="contained" data-testid="tutoring-dialog-create-button">Create Session</Button>
         </DialogActions>
       </Dialog>
-    </Container>
+    </PageContainer>
     </Box>
   );
 };

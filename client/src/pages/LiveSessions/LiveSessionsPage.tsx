@@ -5,8 +5,9 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Box, Container, Paper } from '@mui/material';
+import { Box, Paper } from '@mui/material';
 import { HeaderV5 as Header } from '../../components/Navigation/HeaderV5';
+import { PageContainer } from '../../components/Responsive';
 import { InstructorSessionsList } from '../../components/LiveSessions/InstructorSessionsList';
 import { StudentSessionsList } from '../../components/LiveSessions/StudentSessionsList';
 import { useAuthStore } from '../../stores/authStore';
@@ -67,11 +68,11 @@ export const LiveSessionsPage: React.FC = () => {
     >
       <Header />
       
-      <Container maxWidth="xl" sx={{ py: 4 }}>
+      <PageContainer>
         <Paper
           elevation={0}
           sx={{
-            p: 4,
+            p: { xs: 2, sm: 3, md: 4 },
             borderRadius: 3,
             backgroundColor: (theme) => theme.palette.background.paper,
           }}
@@ -82,7 +83,7 @@ export const LiveSessionsPage: React.FC = () => {
             <StudentSessionsList enrolledCourses={courses} />
           )}
         </Paper>
-      </Container>
+      </PageContainer>
     </Box>
   );
 };

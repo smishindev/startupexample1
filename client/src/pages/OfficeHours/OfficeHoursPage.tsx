@@ -6,7 +6,6 @@
 
 import React, { useState } from 'react';
 import {
-  Container,
   Box,
   Typography,
   Tabs,
@@ -20,6 +19,7 @@ import {
 } from '@mui/icons-material';
 import { useAuthStore } from '../../stores/authStore';
 import { HeaderV5 as Header } from '../../components/Navigation/HeaderV5';
+import { PageContainer, PageTitle, useResponsive } from '../../components/Responsive';
 import ScheduleManagement from '../../components/OfficeHours/ScheduleManagement';
 import QueueDisplay from '../../components/OfficeHours/QueueDisplay';
 import StudentQueueJoin from '../../components/OfficeHours/StudentQueueJoin';
@@ -27,6 +27,7 @@ import { useOfficeHoursSocket } from '../../hooks/useOfficeHoursSocket.js';
 
 const OfficeHoursPage: React.FC = () => {
   const { user } = useAuthStore();
+  const { isMobile } = useResponsive();
   const [tabValue, setTabValue] = useState(0);
   const [refreshKey, setRefreshKey] = useState(0);
   const [selectedInstructor, setSelectedInstructor] = useState<string>('');
@@ -53,11 +54,11 @@ const OfficeHoursPage: React.FC = () => {
     return (
       <>
         <Header />
-        <Container maxWidth="lg" sx={{ mt: 4 }}>
+        <PageContainer maxWidth="lg" disableBottomPad>
           <Alert severity="error">
             You must be logged in to access office hours.
           </Alert>
-        </Container>
+        </PageContainer>
       </>
     );
   }
@@ -65,12 +66,12 @@ const OfficeHoursPage: React.FC = () => {
   return (
     <>
       <Header />
-      <Container maxWidth="lg" sx={{ py: 4 }}>
+      <PageContainer maxWidth="lg">
         {/* Page Header */}
-        <Box mb={4}>
-          <Typography variant="h4" fontWeight="bold" gutterBottom>
+        <Box mb={{ xs: 2, sm: 4 }}>
+          <PageTitle>
             Office Hours
-          </Typography>
+          </PageTitle>
           <Typography variant="body1" color="text.secondary">
             {isInstructor
               ? 'Manage your office hours schedule and help students in your queue'
@@ -81,7 +82,13 @@ const OfficeHoursPage: React.FC = () => {
         {/* Instructor View */}
         {isInstructor && (
           <>
-            <Tabs value={tabValue} onChange={handleTabChange} sx={{ mb: 3 }}>
+            <Tabs
+              value={tabValue}
+              onChange={handleTabChange}
+              variant={isMobile ? 'scrollable' : 'fullWidth'}
+              scrollButtons="auto"
+              sx={{ mb: 3 }}
+            >
               <Tab icon={<ScheduleIcon />} label="My Schedule" iconPosition="start" data-testid="office-hours-schedule-tab" />
               <Tab icon={<QueueIcon />} label="Current Queue" iconPosition="start" data-testid="office-hours-queue-tab" />
             </Tabs>
@@ -109,7 +116,13 @@ const OfficeHoursPage: React.FC = () => {
         {/* Student View */}
         {!isInstructor && (
           <>
-            <Tabs value={tabValue} onChange={handleTabChange} sx={{ mb: 3 }}>
+            <Tabs
+              value={tabValue}
+              onChange={handleTabChange}
+              variant={isMobile ? 'scrollable' : 'fullWidth'}
+              scrollButtons="auto"
+              sx={{ mb: 3 }}
+            >
               <Tab icon={<StudentIcon />} label="Join Queue" iconPosition="start" data-testid="office-hours-join-tab" />
               <Tab icon={<QueueIcon />} label="View Queues" iconPosition="start" data-testid="office-hours-view-queues-tab" />
             </Tabs>
@@ -143,7 +156,7 @@ const OfficeHoursPage: React.FC = () => {
             )}
           </>
         )}
-      </Container>
+      </PageContainer>
     </>
   );
 };

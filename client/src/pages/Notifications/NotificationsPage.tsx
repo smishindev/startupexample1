@@ -34,7 +34,7 @@ import { notificationApi, Notification } from '../../services/notificationApi';
 import { useNotificationStore } from '../../stores/notificationStore';
 import { formatDistanceToNow } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
-import { PageContainer, PageTitle } from '../../components/Responsive';
+import { PageContainer, PageTitle, useResponsive } from '../../components/Responsive';
 
 const NotificationItem: React.FC<{
   item: Notification;
@@ -117,7 +117,7 @@ const NotificationItem: React.FC<{
         <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
           {item.Message}
         </Typography>
-        <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 1 }}>
+        <Stack direction="row" alignItems="center" sx={{ mt: 1, flexWrap: 'wrap', gap: 1 }}>
           <Chip label={item.Priority} size="small" color={priorityColor as any} />
           <Typography variant="caption" color="text.secondary">
             {formatDistanceToNow(new Date(item.CreatedAt), { addSuffix: true })}
@@ -138,6 +138,7 @@ const NotificationItem: React.FC<{
 
 export const NotificationsPage: React.FC = () => {
   const navigate = useNavigate();
+  const { isMobile } = useResponsive();
   const { notifications, setNotifications, removeNotification, markAsRead: markStoreAsRead, markAllAsRead: markAllStoreAsRead } = useNotificationStore();
   const [loading, setLoading] = useState(false);
   const [show, setShow] = useState<'all' | 'unread'>('all');
@@ -228,7 +229,7 @@ export const NotificationsPage: React.FC = () => {
             <NotificationsIcon />
             Notifications
           </PageTitle>
-          <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap' }}>
+          <Stack direction="row" sx={{ flexWrap: 'wrap', gap: 1 }}>
             <Button
               startIcon={<SettingsIcon />}
               onClick={() => navigate('/settings/notifications')}
@@ -312,6 +313,8 @@ export const NotificationsPage: React.FC = () => {
                       page={page} 
                       onChange={(_, val) => setPage(val)} 
                       color="primary"
+                      size={isMobile ? 'small' : 'medium'}
+                      siblingCount={isMobile ? 0 : 1}
                       showFirstButton
                       showLastButton
                       data-testid="notifications-pagination"

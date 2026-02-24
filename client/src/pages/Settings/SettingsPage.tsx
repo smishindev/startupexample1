@@ -32,7 +32,7 @@ import {
   Download as DownloadIcon,
 } from '@mui/icons-material';
 import { HeaderV5 as HeaderV4 } from '../../components/Navigation/HeaderV5';
-import { PageContainer, PageTitle } from '../../components/Responsive';
+import { PageContainer, PageTitle, useResponsive } from '../../components/Responsive';
 import { toast } from 'react-hot-toast';
 import * as settingsApi from '../../services/settingsApi';
 import AccountDeletionOptionsDialog from '../../components/AccountDeletionOptionsDialog';
@@ -42,6 +42,7 @@ import axiosInstance from '../../utils/axiosConfig';
 
 const SettingsPage: React.FC = () => {
   const muiTheme = useTheme();
+  const { isMobile } = useResponsive();
   // Loading state
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -829,6 +830,7 @@ const SettingsPage: React.FC = () => {
           onClose={() => !deleting && setDeleteDialog(false)}
           maxWidth="sm"
           fullWidth
+          fullScreen={isMobile}
           data-testid="settings-delete-dialog"
         >
           <DialogTitle sx={{ color: 'error.main' }}>

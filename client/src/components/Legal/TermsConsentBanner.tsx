@@ -23,6 +23,7 @@ import { Link as RouterLink, useLocation } from 'react-router-dom';
 import { getTermsAcceptanceStatus, acceptTerms, TermsStatus } from '../../services/termsApi';
 import { useAuthStore } from '../../stores/authStore';
 import { toast } from 'sonner';
+import { useResponsive } from '../../components/Responsive';
 
 interface TermsConsentBannerProps {
   onAccepted?: () => void;
@@ -31,6 +32,7 @@ interface TermsConsentBannerProps {
 const TermsConsentBanner: React.FC<TermsConsentBannerProps> = ({ onAccepted }) => {
   const { isAuthenticated } = useAuthStore();
   const location = useLocation();
+  const { isMobile } = useResponsive();
   const [status, setStatus] = useState<TermsStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [showDialog, setShowDialog] = useState(false);
@@ -135,6 +137,7 @@ const TermsConsentBanner: React.FC<TermsConsentBannerProps> = ({ onAccepted }) =
         open={showDialog}
         maxWidth="sm"
         fullWidth
+        fullScreen={isMobile}
         disableEscapeKeyDown
         onClose={(_, reason) => {
           // Only close via accept button, not backdrop click

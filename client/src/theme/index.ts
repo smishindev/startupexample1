@@ -408,6 +408,19 @@ export const theme = createTheme({
         },
       },
     },
+    // iOS Safari zooms in on focus when input font-size < 16px.
+    // Setting 1rem (16px) on the native input/textarea prevents that without
+    // disabling user zoom (which would be an a11y violation).
+    MuiInputBase: {
+      styleOverrides: {
+        input: {
+          fontSize: '1rem',
+        },
+        inputMultiline: {
+          fontSize: '1rem',
+        },
+      },
+    },
     MuiChip: {
       styleOverrides: {
         root: {

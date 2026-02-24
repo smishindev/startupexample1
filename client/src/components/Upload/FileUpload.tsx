@@ -18,6 +18,7 @@ import {
   Paper
 } from '@mui/material';
 import { fileUploadApi, UploadedFile, UploadProgress, UploadOptions } from '../../services/fileUploadApi';
+import { useResponsive } from '../Responsive/useResponsive';
 
 // Export methods that can be called via ref
 export interface FileUploadHandle {
@@ -81,6 +82,7 @@ export const FileUpload = forwardRef<FileUploadHandle, FileUploadProps>(({
   const [loading, setLoading] = useState(false);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [fileDescription, setFileDescription] = useState('');
+  const { isMobile } = useResponsive();
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -507,9 +509,9 @@ export const FileUpload = forwardRef<FileUploadHandle, FileUploadProps>(({
       {/* Pending File Preview (deferred upload mode) */}
       {deferUpload && pendingFile && (
         <Paper sx={{ p: 2, mt: 2, bgcolor: 'info.light' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
             {fileType === 'video' && previewUrl && (
-              <Box sx={{ width: 200, height: 112, bgcolor: 'black', borderRadius: 1, overflow: 'hidden' }}>
+              <Box sx={{ width: { xs: '100%', sm: 200 }, height: 112, bgcolor: 'black', borderRadius: 1, overflow: 'hidden' }}>
                 <video 
                   src={previewUrl} 
                   controls 
@@ -592,7 +594,7 @@ export const FileUpload = forwardRef<FileUploadHandle, FileUploadProps>(({
       )}
 
       {/* Upload Dialog */}
-      <Dialog open={uploadDialogOpen} onClose={() => setUploadDialogOpen(false)} maxWidth="sm" fullWidth disableEnforceFocus>
+      <Dialog open={uploadDialogOpen} onClose={() => setUploadDialogOpen(false)} maxWidth="sm" fullWidth fullScreen={isMobile} disableEnforceFocus>
         <DialogTitle>Upload {fileType}</DialogTitle>
         <DialogContent>
           <TextField

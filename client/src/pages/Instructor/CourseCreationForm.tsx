@@ -1542,6 +1542,7 @@ export const CourseCreationForm: React.FC = () => {
         onClose={() => uploadProgress.status !== 'uploading' && setUploadProgress(prev => ({ ...prev, isOpen: false }))}
         maxWidth="sm"
         fullWidth
+        fullScreen={isMobile}
         disableEnforceFocus
       >
         <DialogTitle>

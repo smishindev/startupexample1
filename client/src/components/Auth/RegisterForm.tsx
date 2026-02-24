@@ -38,6 +38,7 @@ import { Link as RouterLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore, RegisterData } from '../../stores/authStore';
 import { toast } from 'sonner';
 import { getCurrentTerms, CurrentTermsResponse } from '../../services/termsApi';
+import { useResponsive } from '../../components/Responsive';
 
 const learningStyles = [
   { value: 'visual', label: 'Visual (I learn best with images and diagrams)' },
@@ -60,6 +61,7 @@ interface RegisterFormProps {
 export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { isMobile } = useResponsive();
   const { register, isLoading, error, clearError } = useAuthStore();
   
   const [activeStep, setActiveStep] = useState(0);
@@ -696,6 +698,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
         }}
         maxWidth="sm"
         fullWidth
+        fullScreen={isMobile}
         data-testid="register-verification-dialog"
       >
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>

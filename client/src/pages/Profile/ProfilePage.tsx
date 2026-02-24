@@ -319,7 +319,7 @@ const ProfilePage: React.FC = () => {
                 <Typography variant="body1" sx={{ opacity: 0.9 }}>
                   {profile.email}
                 </Typography>
-                <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
+                <Stack direction="row" sx={{ mt: 1, flexWrap: 'wrap', gap: 1 }}>
                   <Chip
                     label={profile.role.toUpperCase()}
                     size="small"

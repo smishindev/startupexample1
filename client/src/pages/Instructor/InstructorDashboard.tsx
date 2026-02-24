@@ -827,7 +827,8 @@ export const InstructorDashboard: React.FC = () => {
             page={currentPage}
             onChange={handlePageChange}
             color="primary"
-            size="large"
+            size={isMobile ? 'small' : 'large'}
+            siblingCount={isMobile ? 0 : 1}
             showFirstButton
             showLastButton
             disabled={loading}

@@ -18,6 +18,7 @@ import { toast } from 'sonner';
 import { createGroup } from '../../services/studyGroupsApi';
 import type { CreateGroupData } from '../../types/studyGroup';
 import { CourseSelector } from '../Common/CourseSelector';
+import { useResponsive } from '../Responsive/useResponsive';
 
 interface Course {
   Id: string;
@@ -45,6 +46,7 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { isMobile } = useResponsive();
 
   const handleChange = (field: keyof CreateGroupData, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -113,6 +115,7 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
       onClose={handleClose}
       maxWidth="sm"
       fullWidth
+      fullScreen={isMobile}
       data-testid="create-group-modal"
     >
       <DialogTitle>Create Study Group</DialogTitle>

@@ -402,6 +402,7 @@ export default function MyCertificatesPage() {
         onClose={() => setSnackbar({ ...snackbar, open: false })}
         message={snackbar.message}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        sx={{ bottom: { xs: 88, md: 24 } }}
       />
 
       {/* Share Dialog */}

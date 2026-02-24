@@ -25,6 +25,7 @@ import { toast } from 'sonner';
 import { createSession } from '../../services/liveSessionsApi';
 import type { CreateSessionData } from '../../types/liveSession';
 import { CourseSelector } from '../Common/CourseSelector';
+import { useResponsive } from '../Responsive/useResponsive';
 
 interface CreateSessionModalProps {
   open: boolean;
@@ -53,6 +54,7 @@ export const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState<string>('');
+  const { isMobile } = useResponsive();
 
   const handleChange = (field: keyof CreateSessionData, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -157,6 +159,7 @@ export const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
       onClose={handleClose} 
       maxWidth="sm" 
       fullWidth
+      fullScreen={isMobile}
       data-testid="create-session-modal"
       PaperProps={{
         sx: { borderRadius: 2 }

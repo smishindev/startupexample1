@@ -1,6 +1,6 @@
 ﻿# 🚀 Quick Reference - Development Workflow
 
-**Last Updated**: February 24, 2026 - Mobile Optimization Phase 5 Complete 📱
+**Last Updated**: February 24, 2026 - Mobile Optimization Phases 6–18 Complete — 129 Sub-Component Items Fixed 📱
 
 ---
 
@@ -84,7 +84,99 @@ import { BOTTOM_NAV_HEIGHT, BOTTOM_NAV_PADDING, HEADER_HEIGHT_MOBILE } from '../
 
 ---
 
-## 🔐 Auth Safety Patterns (Added Feb 21, 2026)
+## � Sub-Component Mobile Patterns (Phases 6–18, Feb 24, 2026)
+
+Quick checklist when adding or editing any component/page:
+
+### Dialogs — always `fullScreen={isMobile}`
+```tsx
+const { isMobile } = useResponsive();
+<Dialog open={open} onClose={onClose} fullScreen={isMobile}>
+```
+> Use `<ResponsiveDialog>` from the Responsive library to get this automatically.
+
+### TableContainer — always `overflowX: 'auto'`
+```tsx
+<TableContainer sx={{ overflowX: 'auto' }}>
+  <Table>...</Table>
+</TableContainer>
+```
+
+### FABs + Snackbars behind MobileBottomNav — `bottom: { xs: 88, md: 24 }`
+```tsx
+// FAB:
+<Fab sx={{ position: 'fixed', bottom: { xs: 88, md: 24 }, right: 24 }}>
+
+// Snackbar:
+<Snackbar anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+          sx={{ bottom: { xs: 88, md: 24 } }}>
+```
+
+### Chip/tag rows with wrap — remove `spacing`, use `gap`
+```tsx
+// ❌ WRONG — Stack `spacing` adds negative margins that break flexWrap
+<Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap' }}>
+
+// ✅ CORRECT
+<Stack direction="row" sx={{ flexWrap: 'wrap', gap: 1 }}>
+// or:
+<Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+```
+
+### Tabs — always scrollable on mobile
+```tsx
+// Scrollable-always (simplest):
+<Tabs variant="scrollable" scrollButtons="auto">
+
+// Fullwidth on desktop, scrollable on mobile:
+<Tabs variant={isMobile ? 'scrollable' : 'fullWidth'} scrollButtons="auto">
+```
+
+### ListItemSecondaryAction overlap — responsive `pr` on `ListItem`
+```tsx
+// px ≈ (button count × 40px) / 8  — tune to match actual button area
+<ListItem sx={{ pr: { xs: 17, sm: 6 } }}>  // 3 icon buttons
+<ListItem sx={{ pr: { xs: 15, sm: 6 } }}>  // 2 icon buttons
+```
+
+### Pagination overflow — responsive size + siblingCount
+```tsx
+<Pagination
+  size={isMobile ? 'small' : 'large'}
+  siblingCount={isMobile ? 0 : 1}
+/>
+```
+
+### AccordionSummary text overflow
+```tsx
+// Container row:
+sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, alignItems: 'center' }}
+// Text element:
+sx={{ flex: 1, minWidth: 0 }}
+// Typography:
+<Typography noWrap>
+```
+
+### No hardcoded `@media` — custom breakpoints are sm:640 not sm:600
+```tsx
+// ❌ WRONG — misses custom sm:640 breakpoint
+'@media (max-width: 600px)': { paddingTop: '75%' }
+
+// ✅ CORRECT — uses MUI sx responsive object
+sx={{ paddingTop: { xs: '75%', sm: '56.25%' } }}
+```
+
+### Breadcrumbs with 3+ variable-length items
+```tsx
+<Breadcrumbs sx={{
+  '& .MuiBreadcrumbs-ol': { flexWrap: 'nowrap', overflow: 'auto' },
+  '& .MuiBreadcrumbs-li': { whiteSpace: 'nowrap' },
+}}>
+```
+
+---
+
+## �🔐 Auth Safety Patterns (Added Feb 21, 2026)
 
 ### `<Link component="button">` inside `<form>` — ALWAYS add `type="button"`
 ```tsx

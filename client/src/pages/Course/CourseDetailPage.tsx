@@ -76,7 +76,7 @@ import { ShareService } from '../../services/shareService';
 import { ratingApi, type RatingSummary as RatingSummaryType, type CourseRating } from '../../services/ratingApi';
 import { RatingSummaryCard, RatingSubmitForm, ReviewsList } from '../../components/Rating';
 import { toast } from 'sonner';
-import { PageContainer, BOTTOM_NAV_PADDING } from '../../components/Responsive';
+import { PageContainer, BOTTOM_NAV_PADDING, useResponsive } from '../../components/Responsive';
 
 interface Lesson {
   id: string;
@@ -150,6 +150,7 @@ export const CourseDetailPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuthStore();
+  const { isMobile } = useResponsive();
 
   // Preview mode when a preview token is present in the URL
   const isPreviewMode = !!previewToken;
@@ -1106,9 +1107,9 @@ export const CourseDetailPage: React.FC = () => {
                       '&:hover': { bgcolor: 'action.hover' }
                     }}
                   >
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', pr: 2 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                        <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', pr: 2, gap: 1 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, minWidth: 0, flex: 1 }}>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 600 }} noWrap>
                           {section.title}
                         </Typography>
                         {section.isCompleted && (
@@ -1787,6 +1788,7 @@ export const CourseDetailPage: React.FC = () => {
         onClose={() => setEnrollmentDialog(false)}
         maxWidth="sm"
         fullWidth
+        fullScreen={isMobile}
       >
         <DialogTitle>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -1844,7 +1846,7 @@ export const CourseDetailPage: React.FC = () => {
         autoHideDuration={4000}
         onClose={() => setSnackbar({ ...snackbar, open: false })}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-        sx={{ zIndex: 9999 }}
+        sx={{ zIndex: 9999, bottom: { xs: 88, md: 24 } }}
       >
         <Alert 
           onClose={() => setSnackbar({ ...snackbar, open: false })} 

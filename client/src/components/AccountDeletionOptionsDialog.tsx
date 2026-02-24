@@ -20,6 +20,7 @@ import {
   SwapHoriz as TransferIcon,
   DeleteForever as ForceDeleteIcon
 } from '@mui/icons-material';
+import { useResponsive } from './Responsive/useResponsive';
 
 interface InstructorStats {
   totalCourses: number;
@@ -48,6 +49,7 @@ const AccountDeletionOptionsDialog: React.FC<AccountDeletionOptionsDialogProps> 
   blockedReason
 }) => {
   const [selectedOption, setSelectedOption] = useState<'archive' | 'transfer' | 'force' | null>(null);
+  const { isMobile } = useResponsive();
 
   const handleContinue = () => {
     if (selectedOption) {
@@ -56,7 +58,7 @@ const AccountDeletionOptionsDialog: React.FC<AccountDeletionOptionsDialogProps> 
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth fullScreen={isMobile}>
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
         <WarningIcon color="warning" />
         Account Deletion - Action Required
@@ -72,7 +74,7 @@ const AccountDeletionOptionsDialog: React.FC<AccountDeletionOptionsDialogProps> 
           <Typography variant="subtitle2" gutterBottom color="text.secondary">
             Your Content Overview
           </Typography>
-          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 2, mt: 1 }}>
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' }, gap: 2, mt: 1 }}>
             <Box>
               <Typography variant="body2" color="text.secondary">Total Courses</Typography>
               <Typography variant="h6">{stats.totalCourses}</Typography>

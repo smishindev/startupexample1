@@ -290,7 +290,7 @@ const StudentQueueJoin: React.FC<StudentQueueJoinProps> = ({
               </Box>
             )}
 
-            <Stack direction="row" spacing={2} mb={2}>
+            <Stack direction="row" mb={2} sx={{ flexWrap: 'wrap', gap: 1 }}>
               {myQueueStatus.queueEntry.Status === 'waiting' && (
                 <Chip
                   label={`Position: ${myQueueStatus.position}`}

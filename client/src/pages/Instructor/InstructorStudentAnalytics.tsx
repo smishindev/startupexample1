@@ -350,7 +350,7 @@ export const InstructorStudentAnalytics: React.FC = () => {
         </Paper>
 
         {/* Student Risk Table */}
-        <TableContainer component={Paper}>
+        <TableContainer component={Paper} sx={{ overflowX: 'auto' }}>
           <Table>
             <TableHead>
               <TableRow>

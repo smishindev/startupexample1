@@ -318,7 +318,7 @@ const AssessmentManager: React.FC<AssessmentManagerProps> = ({ lessonId }) => {
             </Grid>
           ) : (
             // Table view for larger number of assessments
-            <TableContainer component={Paper}>
+            <TableContainer component={Paper} sx={{ overflowX: 'auto' }}>
               <Table>
                 <TableHead>
                   <TableRow>
@@ -390,7 +390,7 @@ const AssessmentManager: React.FC<AssessmentManagerProps> = ({ lessonId }) => {
       <Tooltip title="Create Assessment" key="fab-tooltip">
         <Fab
           color="primary"
-          sx={{ position: 'fixed', bottom: 24, right: 24 }}
+          sx={{ position: 'fixed', bottom: { xs: 88, md: 24 }, right: 24 }}
           onClick={handleCreateAssessment}
           data-testid="assessment-manager-fab"
         >

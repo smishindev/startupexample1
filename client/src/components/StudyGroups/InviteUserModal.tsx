@@ -27,6 +27,7 @@ import { toast } from 'sonner';
 import axios from 'axios';
 import { useAuthStore } from '../../stores/authStore';
 import { inviteUser } from '../../services/studyGroupsApi';
+import { useResponsive } from '../Responsive/useResponsive';
 
 const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3001';
 
@@ -52,6 +53,7 @@ export const InviteUserModal: React.FC<InviteUserModalProps> = ({
   groupName
 }) => {
   const token = useAuthStore((state) => state.token);
+  const { isMobile } = useResponsive();
   const [searchQuery, setSearchQuery] = useState('');
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
@@ -127,6 +129,7 @@ export const InviteUserModal: React.FC<InviteUserModalProps> = ({
       onClose={handleClose}
       maxWidth="sm"
       fullWidth
+      fullScreen={isMobile}
       data-testid="invite-user-modal"
     >
       <DialogTitle>

@@ -1,6 +1,6 @@
 # Mishin Learn Platform - Component Registry
 
-**Last Updated**: February 24, 2026 - Mobile Optimization Phase 5 Complete 📱  
+**Last Updated**: February 24, 2026 - Mobile Optimization Phases 6–18 Complete — 129 Sub-Component Items Fixed 📱  
 **Purpose**: Quick reference for all major components, their dependencies, and relationships
 
 ---
@@ -79,6 +79,7 @@ import { PageContainer, PageTitle, useResponsive, ResponsiveDialog,
 - **Phase 4 (19)**: `InstructorDashboard.tsx`, `CourseCreationForm.tsx`, `CourseEditPage.tsx`, `CourseDetailsEditor.tsx`, `CurriculumBuilder.tsx`, `LessonEditor.tsx`, `CourseSettingsEditor.tsx`, `StudentManagement.tsx`, `AnalyticsHubPage.tsx`, `CourseAnalyticsDashboard.tsx`, `VideoAnalyticsPage.tsx`, `EnhancedAssessmentAnalyticsDashboard.tsx`, `InstructorStudentAnalytics.tsx`, `InterventionDashboard.tsx`, `AssessmentManagementPage.tsx`, `CourseAssessmentManagementPage.tsx`, `AssessmentCreationPage.tsx`, `AssessmentEditPage.tsx`, `AssessmentViewPage.tsx`
 - **Phase 5 (6)**: `CourseCheckoutPage.tsx`, `PaymentSuccessPage.tsx`, `TransactionsPage.tsx`, `TermsOfServicePage.tsx`, `PrivacyPolicyPage.tsx`, `RefundPolicyPage.tsx`
 - **Note**: 4 legacy dead-code pages (`Analytics.tsx`, `Courses.tsx`, `Lesson.tsx`, `Profile.tsx`) were deleted in Phase 5 (Feb 24, 2026) — confirmed 0 imports, superseded by newer implementations
+- **Phases 6–18 (sub-components)**: No new pages added. 129 items fixed across existing pages/components — see `MOBILE_OPTIMIZATION_TRACKER.md` for full log. Key patterns: all Dialogs `fullScreen={isMobile}`, all TableContainers `overflowX:auto`, FABs/Snackbars `bottom:{xs:88,md:24}`, chip rows `flexWrap+gap`, iOS MuiInputBase fontSize, ListItemSecondaryAction responsive `pr`, Pagination responsive size, AccordionSummary `minWidth:0`, Stack `spacing→gap` when flexWrap, no hardcoded `@media` (use MUI sx objects), all `<Tabs>` `variant="scrollable" scrollButtons="auto"`
 
 ---
 

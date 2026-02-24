@@ -47,6 +47,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { getAIFeedback, requestAIInsights, formatAIFeedback, getDifficultyColor, getComprehensionColor, getLearningVelocityIcon, type AssessmentFeedbackAnalysis } from '../../services/aiFeedbackApi';
+import { useResponsive } from '../Responsive/useResponsive';
 
 interface Question {
   id: string;
@@ -122,6 +123,7 @@ export const AIEnhancedAssessmentResults: React.FC<AssessmentResultsProps> = ({
   onBackToCourse
 }) => {
   const navigate = useNavigate();
+  const { isMobile } = useResponsive();
   const [tabValue, setTabValue] = useState(0);
   const [aiFeedback, setAiFeedback] = useState<AssessmentFeedbackAnalysis | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
@@ -233,9 +235,9 @@ export const AIEnhancedAssessmentResults: React.FC<AssessmentResultsProps> = ({
   };
 
   return (
-    <Box sx={{ p: 3, maxWidth: 1200, mx: 'auto' }}>
+    <Box sx={{ p: { xs: 2, sm: 3 }, maxWidth: 1200, mx: 'auto' }}>
       {/* Main Results Card */}
-      <Paper sx={{ p: 4, mb: 3 }}>
+      <Paper sx={{ p: { xs: 2, sm: 3, md: 4 }, mb: 3 }}>
         <Box sx={{ textAlign: 'center', mb: 4 }}>
           <Box sx={{ mb: 2 }}>
             {results.passed ? (
@@ -369,7 +371,7 @@ export const AIEnhancedAssessmentResults: React.FC<AssessmentResultsProps> = ({
       {/* Tabbed Content */}
       <Paper sx={{ mb: 3 }}>
         <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-          <Tabs data-testid="assessment-results-tabs" value={tabValue} onChange={(_, newValue) => setTabValue(newValue)}>
+          <Tabs data-testid="assessment-results-tabs" value={tabValue} onChange={(_, newValue) => setTabValue(newValue)} variant={isMobile ? 'scrollable' : 'standard'} scrollButtons="auto">
             <Tab 
               data-testid="assessment-results-tab-review"
               label="Question Review" 
@@ -835,7 +837,7 @@ export const AIEnhancedAssessmentResults: React.FC<AssessmentResultsProps> = ({
       </Paper>
 
       {/* AI Insight Request Dialog */}
-      <Dialog open={insightDialog} onClose={() => setInsightDialog(false)} maxWidth="sm" fullWidth disableEnforceFocus>
+      <Dialog open={insightDialog} onClose={() => setInsightDialog(false)} maxWidth="sm" fullWidth fullScreen={isMobile} disableEnforceFocus>
         <DialogTitle>Request Additional AI Insights</DialogTitle>
         <DialogContent>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>

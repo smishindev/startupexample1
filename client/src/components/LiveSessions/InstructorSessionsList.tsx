@@ -318,6 +318,8 @@ export const InstructorSessionsList: React.FC<InstructorSessionsListProps> = ({
         value={activeTab}
         onChange={(_, newValue) => setActiveTab(newValue)}
         data-testid="live-sessions-instructor-tabs"
+        variant="scrollable"
+        scrollButtons="auto"
         sx={{
           mb: 3,
           borderBottom: 1,

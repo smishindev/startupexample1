@@ -35,6 +35,7 @@ import {
 } from '@mui/icons-material';
 import { useParams, useNavigate } from 'react-router-dom';
 import { assessmentApi, Assessment, Question, CreateAssessmentRequest } from '../../services/assessmentApi';
+import { useResponsive } from '../../components/Responsive';
 
 interface QuizCreatorProps {
   lessonId?: string;
@@ -50,6 +51,7 @@ const QuizCreator: React.FC<QuizCreatorProps> = ({
 }) => {
   const { lessonId: paramLessonId, assessmentId: paramAssessmentId } = useParams();
   const navigate = useNavigate();
+  const { isMobile } = useResponsive();
   
   const initialLessonId = propLessonId || paramLessonId;
   const assessmentId = propAssessmentId || paramAssessmentId;
@@ -746,6 +748,7 @@ const QuizCreator: React.FC<QuizCreatorProps> = ({
         onClose={() => setSettingsOpen(false)}
         maxWidth="sm"
         fullWidth
+        fullScreen={isMobile}
       >
         <DialogTitle>Assessment Settings</DialogTitle>
         <DialogContent>

@@ -17,6 +17,7 @@ import {
 } from '@mui/material';
 import axios from 'axios';
 import { useAuthStore } from '../../stores/authStore';
+import { useResponsive } from '../Responsive/useResponsive';
 
 const API_URL = 'http://localhost:3001/api';
 
@@ -48,6 +49,7 @@ interface UserSearchDialogProps {
 }
 
 export const UserSearchDialog: React.FC<UserSearchDialogProps> = ({ open, onClose, onSelectUser }) => {
+  const { isMobile } = useResponsive();
   const [searchQuery, setSearchQuery] = useState('');
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
@@ -101,7 +103,7 @@ export const UserSearchDialog: React.FC<UserSearchDialogProps> = ({ open, onClos
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth fullScreen={isMobile}>
       <DialogTitle>Start a Conversation</DialogTitle>
       <DialogContent>
         <TextField

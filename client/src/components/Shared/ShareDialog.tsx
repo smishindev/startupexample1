@@ -25,6 +25,7 @@ import {
   Email as EmailIcon,
 } from '@mui/icons-material';
 import { ShareService, ShareData } from '../../services/shareService';
+import { useResponsive } from '../Responsive/useResponsive';
 
 interface ShareDialogProps {
   open: boolean;
@@ -58,6 +59,7 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({
   preview,
   metadata,
 }) => {
+  const { isMobile } = useResponsive();
   const [snackbar, setSnackbar] = useState<{
     open: boolean;
     message: string;
@@ -170,6 +172,7 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({
         onClose={onClose}
         maxWidth="sm"
         fullWidth
+        fullScreen={isMobile}
         data-testid="share-dialog"
         PaperProps={{
           sx: {

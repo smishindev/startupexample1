@@ -200,7 +200,7 @@ const QueueDisplay: React.FC<QueueDisplayProps> = ({ instructorId, isInstructor,
         <Typography variant="h6" fontWeight="bold" gutterBottom>
           {isInstructor ? 'Current Queue' : 'Queue Status'}
         </Typography>
-        <Stack direction="row" spacing={2}>
+        <Stack direction="row" sx={{ flexWrap: 'wrap', gap: 1 }}>
           <Chip
             label={`${stats.waiting} Waiting`}
             color="warning"

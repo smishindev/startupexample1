@@ -501,7 +501,7 @@ const StudentManagement: React.FC = () => {
 
       {/* Students Table - Active Tab */}
       {currentTab === 'active' && (
-        <TableContainer component={Paper}>
+        <TableContainer component={Paper} sx={{ overflowX: 'auto' }}>
         <Table>
           <TableHead>
             <TableRow>
@@ -636,7 +636,7 @@ const StudentManagement: React.FC = () => {
 
       {/* Pending Enrollments Table - Pending Tab (Phase 2) */}
       {currentTab === 'pending' && (
-        <TableContainer component={Paper}>
+        <TableContainer component={Paper} sx={{ overflowX: 'auto' }}>
           {pendingLoading ? (
             <Box sx={{ p: 4, textAlign: 'center' }}>
               <LinearProgress />

@@ -195,7 +195,7 @@ export const CourseAssessmentManagementPage: React.FC = () => {
       <Header />
       <PageContainer>
         {/* Breadcrumbs */}
-        <Breadcrumbs sx={{ mb: 3 }}>
+        <Breadcrumbs sx={{ mb: 3, '& .MuiBreadcrumbs-ol': { flexWrap: 'nowrap', overflow: 'auto' }, '& .MuiBreadcrumbs-li': { whiteSpace: 'nowrap' } }}>
           <Link
             component="button"
             variant="body1"
@@ -300,12 +300,12 @@ export const CourseAssessmentManagementPage: React.FC = () => {
           lessons.map((lesson) => (
             <Accordion key={lesson.id} sx={{ mb: 2 }}>
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', mr: 2 }}>
-                  <Box>
-                    <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', mr: 2, flexWrap: 'wrap', gap: 1 }}>
+                  <Box sx={{ minWidth: 0, flex: 1 }}>
+                    <Typography variant="h6" sx={{ fontWeight: 'bold' }} noWrap>
                       {lesson.title}
                     </Typography>
-                    <Typography variant="body2" color="text.secondary">
+                    <Typography variant="body2" color="text.secondary" noWrap>
                       {lesson.description}
                     </Typography>
                   </Box>
@@ -347,10 +347,10 @@ export const CourseAssessmentManagementPage: React.FC = () => {
                     <List>
                       {lesson.assessments.map((assessment, index) => (
                         <React.Fragment key={assessment.id}>
-                          <ListItem>
+                          <ListItem sx={{ pr: { xs: 17, sm: 6 } }}>
                             <ListItemText
                               primary={
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
                                   <Typography variant="subtitle1" sx={{ fontWeight: 'medium' }}>
                                     {assessment.title}
                                   </Typography>

@@ -36,11 +36,12 @@ import { useAuthStore } from '../../stores/authStore';
 import { formatCategory, getCategoryGradient, getLevelColor } from '../../utils/courseHelpers';
 import { formatDuration } from '@shared/utils';
 import { useCatalogRealtimeUpdates } from '../../hooks/useCatalogRealtimeUpdates';
-import { PageContainer, PageTitle } from '../../components/Responsive';
+import { PageContainer, PageTitle, useResponsive } from '../../components/Responsive';
 
 const MyLearningPage: React.FC = () => {
   const navigate = useNavigate();
   const theme = useTheme();
+  const { isMobile } = useResponsive();
   const { user } = useAuthStore();
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -729,7 +730,8 @@ const MyLearningPage: React.FC = () => {
                   page={page} 
                   onChange={(_e, value) => setPage(value)}
                   color="primary"
-                  size="large"
+                  size={isMobile ? 'small' : 'large'}
+                  siblingCount={isMobile ? 0 : 1}
                 />
               </Box>
             )}

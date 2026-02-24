@@ -223,7 +223,7 @@ const AssessmentAnalytics: React.FC<AssessmentAnalyticsProps> = ({ assessmentId 
               <Typography variant="h6" gutterBottom>
                 Recent Submissions
               </Typography>
-              <TableContainer>
+              <TableContainer sx={{ overflowX: 'auto' }}>
                 <Table>
                   <TableHead>
                     <TableRow>

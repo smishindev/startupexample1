@@ -31,7 +31,7 @@ import { ShareDialog } from '../../components/Shared/ShareDialog';
 import { ShareService } from '../../services/shareService';
 import { useCatalogRealtimeUpdates } from '../../hooks/useCatalogRealtimeUpdates';
 import { toast } from 'sonner';
-import { PageContainer } from '../../components/Responsive';
+import { PageContainer, useResponsive } from '../../components/Responsive';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -106,6 +106,7 @@ const isNewCourse = (createdAt: string): boolean => {
 export const CoursesPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { isMobile } = useResponsive();
   const { isAuthenticated, user } = useAuthStore();
   const [tabValue, setTabValue] = useState(0);
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
@@ -907,11 +908,12 @@ export const CoursesPage: React.FC = () => {
                     page={pagination.current}
                     onChange={handlePageChange}
                     color="primary"
-                    size="medium"
+                    size={isMobile ? 'small' : 'medium'}
+                    siblingCount={isMobile ? 0 : 1}
                     showFirstButton
                     showLastButton
                     data-testid="courses-pagination"
-                    sx={{ '& .MuiPagination-ul': { flexWrap: 'nowrap' } }}
+                    sx={{ '& .MuiPagination-ul': { flexWrap: 'nowrap', justifyContent: 'center' } }}
                   />
                 </Box>
               )}
@@ -1074,7 +1076,7 @@ export const CoursesPage: React.FC = () => {
         autoHideDuration={4000}
         onClose={() => setSnackbar({ ...snackbar, open: false })}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-        sx={{ zIndex: 9999 }}
+        sx={{ zIndex: 9999, bottom: { xs: 88, md: 24 } }}
       >
         <Alert 
           onClose={() => setSnackbar({ ...snackbar, open: false })} 

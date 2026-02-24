@@ -335,7 +335,7 @@ export const InterventionDashboard: React.FC = () => {
                           <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 'bold' }}>
                             Risk Factors:
                           </Typography>
-                          <Stack direction="row" spacing={0.5} sx={{ mt: 0.5, flexWrap: 'wrap', gap: 0.5 }}>
+                          <Stack direction="row" sx={{ mt: 0.5, flexWrap: 'wrap', gap: 0.5 }}>
                             {student.RiskFactors.slice(0, 3).map((factor, idx) => (
                               <Chip key={idx} label={factor} size="small" variant="outlined" />
                             ))}
@@ -398,7 +398,7 @@ export const InterventionDashboard: React.FC = () => {
                 {lowProgressStudents.map((student, index) => (
                   <React.Fragment key={`${student.UserId}-${student.CourseId}`}>
                     {index > 0 && <Divider />}
-                    <ListItem>
+                    <ListItem sx={{ pr: { xs: 15, sm: 6 } }}>
                       <ListItemAvatar>
                         <Avatar sx={{ bgcolor: 'warning.main' }}>
                           {student.FirstName?.[0]?.toUpperCase() || ''}{student.LastName?.[0]?.toUpperCase() || ''}
@@ -418,7 +418,7 @@ export const InterventionDashboard: React.FC = () => {
                             <Typography variant="body2" component="span" display="block">
                               📚 {student.CourseName}
                             </Typography>
-                            <Box component="span" sx={{ mt: 0.5, display: 'flex', gap: 2 }}>
+                            <Box component="span" sx={{ mt: 0.5, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                               <Chip
                                 label={`${student.OverallProgress}% Complete`}
                                 size="small"
@@ -503,7 +503,7 @@ export const InterventionDashboard: React.FC = () => {
                             <Typography variant="body2" color="text.secondary" component="span" display="block">
                               📚 {assessment.CourseName}
                             </Typography>
-                            <Box component="span" sx={{ mt: 0.5, display: 'flex', gap: 1 }}>
+                            <Box component="span" sx={{ mt: 0.5, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                               <Chip
                                 label={`${assessment.AttemptsLeft} attempt${assessment.AttemptsLeft !== 1 ? 's' : ''} left`}
                                 size="small"

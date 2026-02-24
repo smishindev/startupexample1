@@ -358,10 +358,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         position: 'relative',
         backgroundColor: '#000',
         width: '100%',
-        paddingTop: '56.25%', // 16:9 aspect ratio
-        '@media (max-width: 600px)': {
-          paddingTop: '75%', // Taller aspect on mobile for better viewing
-        },
+        paddingTop: { xs: '75%', sm: '56.25%' }, // 16:9 on desktop, taller on mobile for better viewing
         cursor: showControls ? 'default' : 'none',
         '&:hover': {
           cursor: 'default',
@@ -503,7 +500,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
                 {isMuted ? <VolumeOff /> : <VolumeUp />}
               </IconButton>
             </Tooltip>
-            <Box sx={{ width: 80, ml: 1 }}>
+            <Box sx={{ width: 80, ml: 1, display: { xs: 'none', sm: 'flex' }, alignItems: 'center' }}>
               <Slider
                 size="small"
                 value={isMuted ? 0 : volume * 100}
@@ -522,7 +519,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
           <Box sx={{ flexGrow: 1 }} />
 
-          <Typography variant="body2" sx={{ color: 'white', minWidth: '100px', textAlign: 'center' }}>
+          <Typography variant="body2" sx={{ color: 'white', minWidth: { xs: '70px', sm: '100px' }, textAlign: 'center' }}>
             {formatTime(currentTime)} / {formatTime(duration)}
           </Typography>
 
@@ -533,13 +530,13 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           </Tooltip>
 
           <Tooltip title="Keyboard Shortcuts (?)">
-            <IconButton size="small" onClick={() => setShowKeyboardShortcuts(true)} sx={{ color: 'white' }} data-testid="video-shortcuts-button">
+            <IconButton size="small" onClick={() => setShowKeyboardShortcuts(true)} sx={{ color: 'white', display: { xs: 'none', sm: 'inline-flex' } }} data-testid="video-shortcuts-button">
               <Help />
             </IconButton>
           </Tooltip>
 
           <Tooltip title="Picture in Picture">
-            <IconButton size="small" onClick={togglePictureInPicture} sx={{ color: 'white' }} data-testid="video-pip-button">
+            <IconButton size="small" onClick={togglePictureInPicture} sx={{ color: 'white', display: { xs: 'none', sm: 'inline-flex' } }} data-testid="video-pip-button">
               <PictureInPicture />
             </IconButton>
           </Tooltip>
@@ -634,6 +631,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         autoHideDuration={2000}
         onClose={() => setShowSaveNotification(false)}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        sx={{ bottom: { xs: 88, md: 24 } }}
       >
         <Alert 
           severity="success" 

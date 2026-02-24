@@ -344,25 +344,25 @@ export const LessonEditor: React.FC<LessonEditorProps> = ({
           {content.map((item, index) => (
             <Accordion key={item.id || `fallback-${index}`} sx={{ mb: 1 }}>
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Box sx={{ display: 'flex', alignItems: 'center', flexGrow: 1 }}>
-                  <DragIcon sx={{ mr: 1, color: 'text.secondary' }} />
+                <Box sx={{ display: 'flex', alignItems: 'center', flexGrow: 1, flexWrap: 'wrap', gap: 0.5 }}>
+                  <DragIcon sx={{ mr: 1, color: 'text.secondary', display: { xs: 'none', sm: 'block' } }} />
                   {contentTypeIcons[item.type]}
-                  <Box sx={{ ml: 1, flexGrow: 1 }}>
-                    <Typography component="span" fontWeight={500}>
+                  <Box sx={{ ml: 1, flexGrow: 1, minWidth: 0 }}>
+                    <Typography component="span" fontWeight={500} noWrap sx={{ display: 'block' }}>
                       {contentTypeLabels[item.type]} #{index + 1}
                     </Typography>
                     {item.type === 'video' && item.data.fileName && (
-                      <Typography component="span" variant="body2" color="text.secondary" sx={{ ml: 1 }}>
+                      <Typography component="span" variant="body2" color="text.secondary" noWrap sx={{ ml: 1, display: { xs: 'none', sm: 'block' } }}>
                         - {item.data.fileName}
                       </Typography>
                     )}
                     {item.type === 'video' && !item.data.fileName && item.data.url && (
-                      <Typography component="span" variant="body2" color="text.secondary" sx={{ ml: 1 }}>
+                      <Typography component="span" variant="body2" color="text.secondary" noWrap sx={{ ml: 1, display: { xs: 'none', sm: 'block' } }}>
                         - {item.data.url.length > 40 ? item.data.url.substring(0, 40) + '...' : item.data.url}
                       </Typography>
                     )}
                     {item.type === 'text' && item.data.html && (
-                      <Typography component="span" variant="body2" color="text.secondary" sx={{ ml: 1 }}>
+                      <Typography component="span" variant="body2" color="text.secondary" noWrap sx={{ ml: 1, display: { xs: 'none', sm: 'block' } }}>
                         - {item.data.html.substring(0, 50).replace(/<[^>]*>/g, '')}...
                       </Typography>
                     )}

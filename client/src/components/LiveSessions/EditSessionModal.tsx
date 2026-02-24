@@ -23,6 +23,7 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { toast } from 'sonner';
 import { updateSession, getSessionById } from '../../services/liveSessionsApi';
 import type { UpdateSessionData } from '../../types/liveSession';
+import { useResponsive } from '../Responsive/useResponsive';
 
 interface EditSessionModalProps {
   open: boolean;
@@ -52,6 +53,7 @@ export const EditSessionModal: React.FC<EditSessionModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(false);
   const [apiError, setApiError] = useState<string>('');
+  const { isMobile } = useResponsive();
 
   // Fetch session data when modal opens
   useEffect(() => {
@@ -180,6 +182,7 @@ export const EditSessionModal: React.FC<EditSessionModalProps> = ({
       onClose={handleClose} 
       maxWidth="sm" 
       fullWidth
+      fullScreen={isMobile}
       data-testid="edit-session-modal"
       PaperProps={{
         sx: { borderRadius: 2 }

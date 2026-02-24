@@ -420,7 +420,7 @@ export const VideoAnalyticsPage: React.FC = () => {
                 No video content found in this course. Add videos to lessons to see analytics.
               </Alert>
             ) : (
-              <TableContainer>
+              <TableContainer sx={{ overflowX: 'auto' }}>
                 <Table>
                   <TableHead>
                     <TableRow>

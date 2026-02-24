@@ -2,7 +2,7 @@
 
 **Created**: February 19, 2026  
 **Last Updated**: February 24, 2026  
-**Status**: Phase 5 Complete + 4-Round Audit — 73/73 pages done (+ 4 legacy files deleted) — ALL PHASES COMPLETE ✅  
+**Status**: Phases 0–18 Complete — 73/73 pages + 56 component/theme fixes done — ALL PHASES COMPLETE ✅  
 **Goal**: Make every page fully responsive and mobile-optimized across the Mishin Learn Platform
 
 ---
@@ -194,6 +194,130 @@ Every page must meet ALL of these criteria to be marked "complete":
 
 ---
 
+### PHASE 6: Sub-component Dialogs (Post-Audit Fix)
+> Sub-components with their own `<Dialog>` that were not covered by Phase 0–5 page-level audits
+
+| # | Component | File | Issue | Status |
+|---|-----------|------|-------|--------|
+| 6.1 | **CreateSessionModal** | `components/LiveSessions/CreateSessionModal.tsx` | Added `fullScreen={isMobile}` — 6 TextFields + CourseSelector + datetime inside dialog | ✅ Done |
+| 6.2 | **EditSessionModal** | `components/LiveSessions/EditSessionModal.tsx` | Added `fullScreen={isMobile}` — 6 TextFields + datetime inside dialog | ✅ Done |
+| 6.3 | **CreateGroupModal** | `components/StudyGroups/CreateGroupModal.tsx` | Added `fullScreen={isMobile}` — 3 TextFields + CourseSelector inside dialog | ✅ Done |
+| 6.4 | **InviteUserModal** | `components/StudyGroups/InviteUserModal.tsx` | Added `fullScreen={isMobile}` — search + scrollable user list inside dialog | ✅ Done |
+| 6.5 | **ScheduleManagement** | `components/OfficeHours/ScheduleManagement.tsx` | Added `fullScreen={isMobile}` — schedule form with Select + TextFields | ✅ Done |
+| 6.6 | **CourseTransferDialog** | `components/CourseTransferDialog.tsx` | Added `fullScreen={isMobile}` — `maxWidth="md"` + TextField + scrollable instructor list | ✅ Done |
+| 6.7 | **AccountDeletionOptionsDialog** | `components/AccountDeletionOptionsDialog.tsx` | Added `fullScreen={isMobile}` + fixed hardcoded `gridTemplateColumns: 'repeat(2, 1fr)'` → `{ xs: '1fr', sm: 'repeat(2, 1fr)' }` | ✅ Done |
+| 6.8 | **UserSearchDialog** | `components/Chat/UserSearchDialog.tsx` | Added `fullScreen={isMobile}` — search + scrollable user list | ✅ Done |
+| 6.9 | **ShareDialog** | `components/Shared/ShareDialog.tsx` | Added `fullScreen={isMobile}` — social share button grid + copy link | ✅ Done |
+| 6.10 | **FileUpload** | `components/Upload/FileUpload.tsx` | Added `fullScreen={isMobile}` — description TextField + file input inside dialog | ✅ Done |
+| 6.11 | **AIEnhancedAssessmentResults** | `components/Assessment/AIEnhancedAssessmentResults.tsx` | Added `fullScreen={isMobile}` to insight Dialog (2 TextFields); Tabs `variant={isMobile?'scrollable':'standard'}`; outer Box `p:3→{xs:2,sm:3}`; Paper `p:4→{xs:2,sm:3,md:4}` | ✅ Done |
+| 6.12 | **VideoPlayer** | `components/Video/VideoPlayer.tsx` | Control bar overflow on 375px: hide volume slider `display:{xs:'none',sm:'flex'}` (mobile uses system volume); `minWidth:'100px'→{xs:'70px',sm:'100px'}` for time display; hide keyboard-shortcuts button on mobile `display:{xs:'none',sm:'inline-flex'}` (keyboard shortcuts useless on touch); hide PiP button on mobile (poor mobile browser support). Uses native MUI sx breakpoints — no `useResponsive` needed. | ✅ Done |
+
+**Phase 6 Completion**: ✅ 12/12
+
+---
+
+### PHASE 7: Data Table Horizontal Scroll (Post-Audit Fix)
+
+*Wide multi-column data tables had no overflow protection — silently clipped at 375px. Fix: `sx={{ overflowX: 'auto' }}` on each `TableContainer` enables native horizontal scroll on mobile without altering desktop layout.*
+
+| # | Component | File | Changes | Status |
+|---|-----------|------|---------|--------|
+| 7.1 | **VideoAnalyticsPage table** | `pages/Instructor/VideoAnalyticsPage.tsx` | 8-col table (Lesson/Video/Duration/Views/Completions/Rate/AvgWatchTime/Engagement): `<TableContainer sx={{ overflowX:'auto' }}>` | ✅ Done |
+| 7.2 | **StudentManagement active table** | `pages/Instructor/StudentManagement.tsx` | 8-col active-students table (Student/Course/Enrolled/Status/Progress/TimeSpent/LastAccess/Actions): `<TableContainer component={Paper} sx={{ overflowX:'auto' }}>` | ✅ Done |
+| 7.3 | **StudentManagement pending table** | `pages/Instructor/StudentManagement.tsx` | 4-col pending-enrollments table (Student/Course/Requested/Actions): `sx={{ overflowX:'auto' }}` | ✅ Done |
+| 7.4 | **InstructorStudentAnalytics table** | `pages/Instructor/InstructorStudentAnalytics.tsx` | 7-col student-risk table (Student/Course/RiskLevel/Progress/LastActivity/StrugglingAreas/Actions): `sx={{ overflowX:'auto' }}` | ✅ Done |
+| 7.5 | **CourseAnalyticsDashboard table** | `pages/Instructor/CourseAnalyticsDashboard.tsx` | 5-col courses table with `minWidth:220` + `minWidth:180` columns (Course/Students/AvgProgress/Completed/AvgTime): `sx={{ overflowX:'auto' }}` | ✅ Done |
+| 7.6 | **AssessmentAnalytics table** | `components/Assessment/AssessmentAnalytics.tsx` | 5-col Recent Submissions table (Student/Score/Time/Status/Submitted): `<TableContainer sx={{ overflowX:'auto' }}>` | ✅ Done |
+| 7.7 | **AssessmentManager table** | `components/Assessment/AssessmentManager.tsx` | 6-col assessments table (Assessment/Type/Questions/PassingScore/TimeLimit/Actions): `<TableContainer component={Paper} sx={{ overflowX:'auto' }}>` | ✅ Done |
+
+**Phase 7 Completion**: ✅ 7/7
+
+---
+
+### PHASE 8: Fixed-Position FAB Bottom Offset (Post-Audit Fix)
+
+*Fixed-position FABs with `bottom: 24` are hidden behind the MobileBottomNav (64px) + safe area on mobile. Fix: `bottom: {xs: 88, md: 24}` using native MUI sx breakpoints.*
+
+| # | Component | File | Changes | Status |
+|---|-----------|------|---------|--------|
+| 8.1 | **AssessmentManager FAB** | `components/Assessment/AssessmentManager.tsx` | "Create Assessment" Fab: `bottom: 24` → `bottom: { xs: 88, md: 24 }` | ✅ Done |
+
+**Phase 8 Completion**: ✅ 1/1
+
+---
+
+### PHASE 9: Chip Row Flex-Wrap (Post-Audit Fix)
+
+*Chip/status rows using `Stack direction="row"` without `flexWrap` would overflow narrow screens if 3+ chips render. Fix: remove `spacing` prop (conflicts with flexWrap via negative margins) and use `sx={{ flexWrap:'wrap', gap: 1 }}` instead.*
+
+| # | Component | File | Changes | Status |
+|---|-----------|------|---------|--------|
+| 9.1 | **QueueDisplay chip row** | `components/OfficeHours/QueueDisplay.tsx` | Header Chip row (Waiting + In Session + Avg Wait — up to 3 Chips): removed `spacing={2}`, added `sx={{ flexWrap:'wrap', gap:1 }}` | ✅ Done |
+| 9.2 | **StudentQueueJoin chip row** | `components/OfficeHours/StudentQueueJoin.tsx` | Status Chip row (Position + Status — up to 2 chips): removed `spacing={2}`, added `sx={{ flexWrap:'wrap', gap:1 }}` | ✅ Done |
+
+**Phase 9 Completion**: ✅ 2/2
+
+---
+
+### PHASE 10: iOS Safari Input Zoom Prevention (Theme-Level Fix)
+
+*iOS Safari auto-zooms the viewport when any `<input>` or `<textarea>` receives focus with font-size < 16px. MUI's default body font is 14px, so every TextField in the app triggered this zoom. Fix: single `MuiInputBase` style override in the global theme sets `fontSize: '1rem'` (16px) for all input slots. Covers TextField, Select, Autocomplete, DateTimePicker — everything that extends InputBase. Does NOT disable user zoom (that would be an accessibility violation).*
+
+| # | Component | File | Changes | Status |
+|---|-----------|------|---------|--------|
+| 10.1 | **Global input font-size** | `src/theme/index.ts` | Added `MuiInputBase.styleOverrides.input: { fontSize: '1rem' }` and `inputMultiline: { fontSize: '1rem' }` — prevents iOS Safari viewport zoom on input focus across all 73 pages | ✅ Done |
+
+**Phase 10 Completion**: ✅ 1/1
+
+---
+
+### PHASE 11: Missed fullScreen Dialogs — Second Pass
+
+*A second grep audit (`<Dialog` without `fullScreen` on the same line) found 6 more Dialogs that had either never been audited or had `isMobile` available but the prop missing. Confirm-only dialogs (1 sentence + 2 buttons) are intentionally skipped — fullScreen for those is poor UX.*
+
+| # | Component | File | Changes | Status |
+|---|-----------|------|---------|--------|
+| 11.1 | **Delete Account Dialog** | `pages/Settings/SettingsPage.tsx` | Added `useResponsive` import + hook + `fullScreen={isMobile}` to Delete Account confirmation dialog (password field + warning list + alert) | ✅ Done |
+| 11.2 | **Enrollment Success Dialog** | `pages/Course/CourseDetailPage.tsx` | Added `useResponsive` import + hook + `fullScreen={isMobile}` to post-enrollment success dialog | ✅ Done |
+| 11.3 | **Email Verification Dialog** | `components/Auth/RegisterForm.tsx` | Added `useResponsive` import + hook + `fullScreen={isMobile}` to post-registration email verification dialog | ✅ Done |
+| 11.4 | **Terms Acceptance Dialog** | `components/Legal/TermsConsentBanner.tsx` | Added `useResponsive` import + hook + `fullScreen={isMobile}` to updated-terms consent dialog (checkboxes + links) | ✅ Done |
+| 11.5 | **Assessment Settings Dialog** | `components/Assessment/QuizCreator.tsx` | Added `useResponsive` import + hook + `fullScreen={isMobile}` to quiz settings dialog (form fields) | ✅ Done |
+| 11.6 | **Upload Progress Dialog** | `pages/Instructor/CourseCreationForm.tsx` | `isMobile` already present — added `fullScreen={isMobile}` to upload progress dialog (progress bars + status) | ✅ Done |
+
+**Phase 11 Completion**: ✅ 6/6
+
+---
+
+### PHASE 12: Chip Row Flex-Wrap — Second Pass
+
+*Further grep audit of `Stack direction="row" spacing={1}` without `flexWrap` found 2 more chip rows that can overflow on narrow (375px) screens.*
+
+| # | Component | File | Changes | Status |
+|---|-----------|------|---------|--------|
+| 12.1 | **Profile header chip row** | `pages/Profile/ProfilePage.tsx` | Role chip + Email Verified chip row: removed `spacing={1}`, added `sx={{ flexWrap: 'wrap', gap: 1 }}` | ✅ Done |
+| 12.2 | **Notification item metadata row** | `pages/Notifications/NotificationsPage.tsx` | Priority chip + timestamp + Read/Unread chip + optional Action chip (up to 4 items): removed `spacing={1}`, added `sx={{ flexWrap: 'wrap', gap: 1 }}` | ✅ Done |
+
+**Phase 12 Completion**: ✅ 2/2
+
+---
+
+### PHASE 13: Snackbar Above MobileBottomNav + Global Transition Fix
+
+*Two independent issues: (1) Bottom-anchored Snackbars on authenticated pages sit behind the 64px MobileBottomNav; (2) `transition: all` on every element in index.css forces the browser to animate layout-affecting properties (width, height, padding, margin) on every DOM change — a major performance drain on low-end mobile, and it fights against MUI’s own targeted transitions.*
+
+| # | Component | File | Changes | Status |
+|---|-----------|------|---------|--------|
+| 13.1 | **VideoPlayer save Snackbar** | `components/Video/VideoPlayer.tsx` | Added `sx={{ bottom: { xs: 88, md: 24 } }}` to bottom-right progress-saved Snackbar | ✅ Done |
+| 13.2 | **CoursesPage feedback Snackbar** | `pages/Courses/CoursesPage.tsx` | Merged `bottom: { xs: 88, md: 24 }` into existing `sx={{ zIndex: 9999 }}` | ✅ Done |
+| 13.3 | **CourseDetailPage feedback Snackbar** | `pages/Course/CourseDetailPage.tsx` | Merged `bottom: { xs: 88, md: 24 }` into existing `sx={{ zIndex: 9999 }}` | ✅ Done |
+| 13.4 | **MyCertificatesPage Snackbar** | `pages/Certificates/MyCertificatesPage.tsx` | Added `sx={{ bottom: { xs: 88, md: 24 } }}` | ✅ Done |
+| 13.5 | **CertificatePage Snackbar** | `pages/Certificates/CertificatePage.tsx` | Added `sx={{ bottom: { xs: 88, md: 24 } }}` | ✅ Done |
+| 13.6 | **Global `transition: all` removed** | `src/index.css` | Replaced `* { transition: all 0.2s }` with scoped `transition-property` covering only visual props (color, background-color, border-color, box-shadow, opacity, fill, stroke) — eliminates layout-affecting transitions (width/height/padding/margin) that cause reflows and jank on every interaction on low-end mobile | ✅ Done |
+
+**Phase 13 Completion**: ✅ 6/6
+
+---
+
 ## 📊 OVERALL PROGRESS
 
 | Phase | Items | Completed | Progress |
@@ -204,7 +328,15 @@ Every page must meet ALL of these criteria to be marked "complete":
 | **Phase 3**: Collaboration | 7 | 7 | ✅ 100% |
 | **Phase 4**: Instructor | 19 | 19 | ✅ 100% |
 | **Phase 5**: Secondary | 10 | 10 | ✅ 100% |
-| **TOTAL** | **73** | **73** | **✅ 100%** |
+| **Phase 6**: Sub-component Dialogs + Media | 12 | 12 | ✅ 100% |
+| **Phase 7**: Data Table Overflow | 7 | 7 | ✅ 100% |
+| **Phase 8**: FAB Bottom Offset | 1 | 1 | ✅ 100% |
+| **Phase 9**: Chip Row Flex-Wrap | 2 | 2 | ✅ 100% |
+| **Phase 10**: iOS Input Zoom Prevention | 1 | 1 | ✅ 100% |
+| **Phase 11**: Missed fullScreen Dialogs — 2nd Pass | 6 | 6 | ✅ 100% |
+| **Phase 12**: Chip Row Flex-Wrap — 2nd Pass | 2 | 2 | ✅ 100% |
+| **Phase 13**: Snackbar Bottom Offset + Transition Fix | 6 | 6 | ✅ 100% |
+| **TOTAL** | **110** | **110** | **✅ 100%** |
 
 ---
 
@@ -385,6 +517,20 @@ All 4 legacy pages confirmed dead (0 imports in App.tsx) and **permanently delet
 | 8 | Feb 23, 2026 | **Phase 3 complete (7 pages)**: Chat.tsx (room/message mobile toggle, ArrowBack, responsive bubbles, fullScreen Dialog, Paper heights), LiveSessionsPage (PageContainer + responsive Paper), StudyGroupsPage (PageContainer+PageTitle, scrollable/fullWidth Tabs, responsive header/search/button), StudyGroupDetailPage (3× PageContainer, responsive Paper+typography+breadcrumbs), OfficeHoursPage (PageContainer+PageTitle, isMobile Tabs, disableBottomPad on error), Tutoring.tsx (PageContainer+PageTitle+ArrowBack, mobile auto-select guard, back clears messages+suggestions, loading has Header, fullScreen Dialog, responsive heights), PresencePage (PageContainer+PageTitle+responsive Paper). **5-round exhaustive bug audit — 8 bugs found and fixed**: B1 Tutoring auto-select bypassed session list on mobile (!isMobile guard); B2 Tutoring back didn't clear messages (setMessages([])); B3 Tutoring loading path missing Header; B4 All 7 pages doubled top spacing (removed pt:4/sx={{pt:4}} from all); B5 OfficeHours error path missing disableBottomPad; B6 Tutoring stale currentSuggestions across session switches (setCurrentSuggestions([]) in selectedSession useEffect); B7 Chat.tsx mobile Paper height calc(100vh-140px) too tall (→calc(100vh-170px)); B8 OfficeHours Tabs unconditionally scrollable on desktop (→isMobile?'scrollable':'fullWidth'). 0 TS errors after every round. | 7/7 (Phase 3), cumulative 44/73 |
 | 9 | Feb 23, 2026 | **Phase 4 complete (19 pages)**: All 19 Instructor pages mobile-optimized. InstructorDashboard (PageContainer+PageHeader, isMobile, scrollable Tabs, FAB `bottom:{xs:88,md:24}`, palette colors), CourseCreationForm (vertical Stepper on mobile, fullScreen dialogs), CourseEditPage (3× PageContainer, scrollable Tabs, responsive TabPanel padding), CourseDetailsEditor+CurriculumBuilder (embedded — flexWrap, palette color props), LessonEditor (Dialog fullScreen), CourseSettingsEditor (5 Papers responsive padding), StudentManagement (PageContainer, scrollable Tabs, 2× Dialog fullScreen), AnalyticsHubPage (PageContainer, responsive stats grid), CourseAnalyticsDashboard (PageContainer), VideoAnalyticsPage (PageContainer, responsive header+CourseSelector), EnhancedAssessmentAnalyticsDashboard (PageContainer, scrollable Tabs, responsive TabPanel), InstructorStudentAnalytics (PageContainer, Dialog fullScreen, responsive header), InterventionDashboard (PageContainer, scrollable Tabs), AssessmentManagementPage+CourseAssessmentManagementPage+AssessmentCreation/Edit/ViewPage (all PageContainer replacements, responsive h3 headings). **3-round exhaustive audit — 0 errors found** in all 3 passes. All original Containers were `maxWidth="xl"` (git-verified) — PageContainer default matches exactly. 0 TS errors throughout. | 19/19 (Phase 4), cumulative 63/73 |
 | 10 | Feb 24, 2026 | **Phase 5 complete (10/10)**: 6 pages mobile-optimized + 4 dead legacy files deleted. CourseCheckoutPage (PageContainer+PageTitle, `pt:4` on all 3 returns, Grid 5/7 split, responsive Paper padding), PaymentSuccessPage (PageContainer maxWidth="md", `pt:4` flat on all 3 returns, responsive h3/h4/h5 fontSize, responsive Paper padding), TransactionsPage (PageContainer+PageTitle, isMobile, Table→Card layout, Dialog fullScreen, responsive header/buttons), TermsOfServicePage+PrivacyPolicyPage+RefundPolicyPage (PageContainer disableBottomPad maxWidth="md" on ALL early-return paths, outer Box no py, responsive h3 fontSize, responsive Paper). Dead code deleted: `Analytics/Analytics.tsx`, `Courses/Courses.tsx`, `Lessons/Lesson.tsx`, `Profile/Profile.tsx` — all confirmed 0 imports (superseded by newer pages). **4-round exhaustive spacing audit** catching `pt+mt` stacking (14 fixes across 2 rounds), responsive `pt:{xs:4,md:8}` footgun on PaymentSuccessPage (1 fix in round 3), and a 4th clean pass. 0 TypeScript errors after every round. | 10/10 (Phase 5), cumulative 73/73 — ALL PHASES COMPLETE |
+| 11 | Feb 24, 2026 | **Phase 6 complete (11/11) — Sub-component Dialog audit**: Full filesystem scan revealed 11 sub-components with `<Dialog>` that were not covered by Phase 0–5 page-level work. All fixed: `CreateSessionModal`, `EditSessionModal` (LiveSessions), `CreateGroupModal`, `InviteUserModal` (StudyGroups), `ScheduleManagement` (OfficeHours), `CourseTransferDialog`, `AccountDeletionOptionsDialog` (also fixed hardcoded `gridTemplateColumns:'repeat(2,1fr)'` → responsive `{xs:'1fr',sm:'repeat(2,1fr)'}`), `UserSearchDialog` (Chat), `ShareDialog` (Shared), `FileUpload` (Upload), `AIEnhancedAssessmentResults` (Assessment — also fixed Tabs `scrollable` on mobile + outer padding `p:3→{xs:2,sm:3}` + Paper `p:4→{xs:2,sm:3,md:4}`). 0 TypeScript errors. | 11/11 (Phase 6), cumulative 84/84 |
+| 12 | Feb 24, 2026 | **Phase 6 item 6.12 — VideoPlayer control bar overflow**: Deep scan beyond dialogs. VideoPlayer control bar (single flex row) overflowed 375px: volume slider (80px) + time display (minWidth 100px) + 4 icon buttons crammed together. Fixes using native MUI sx breakpoints: hide volume slider `display:{xs:'none',sm:'flex'}` (mobile users control volume via device); `minWidth:'100px'→{xs:'70px',sm:'100px'}` for time display; hide keyboard-shortcuts `IconButton` on mobile `display:{xs:'none',sm:'inline-flex'}` (keyboard shortcuts irrelevant on touch screens); hide PiP `IconButton` on mobile (unreliable mobile browser support). No `useResponsive` hook needed — pure MUI sx breakpoints. `LessonManagement.tsx`/`LessonEditor.tsx` in `components/Lessons/` confirmed dead code (0 active page usages) — skipped. 0 TypeScript errors. | 1/1 (6.12), cumulative 85/85 |
+| 13 | Feb 24, 2026 | **Phase 7 — Data Table horizontal scroll audit**: Broad scan of all `TableContainer` usages across pages. Found 5 wide multi-column data tables with no horizontal overflow protection — all would silently clip on 375px. Fix: `sx={{ overflowX: 'auto' }}` added to each `TableContainer` enabling native horizontal scroll on mobile without changing desktop layout. Files fixed: `VideoAnalyticsPage.tsx` (8-col), `StudentManagement.tsx` active table (8-col) + pending table (4-col), `InstructorStudentAnalytics.tsx` (7-col), `CourseAnalyticsDashboard.tsx` (5-col with hardcoded minWidths). `TransactionsPage.tsx` already had full mobile Card layout (Phase 5) — confirmed OK. All charts use `ResponsiveContainer width="100%"` — confirmed OK. 0 TypeScript errors. | 5/5 (Phase 7), cumulative 90/90 |
+| 14 | Feb 24, 2026 | **Phase 7 extended + Phase 8 — Component-level tables + FAB offset**: Second pass found 2 more `TableContainer` usages in `components/` not covered by page-level Phase 7 scan: `AssessmentAnalytics.tsx` 5-col Recent Submissions + `AssessmentManager.tsx` 6-col assessments table — both got `sx={{ overflowX:'auto' }}` (Phase 7 items 7.6–7.7). Also found `AssessmentManager` FAB at hardcoded `bottom: 24` — hidden behind MobileBottomNav (64px tall) on mobile; fixed to `bottom: { xs: 88, md: 24 }` using native MUI sx breakpoints (Phase 8 item 8.1). `LessonManagement.tsx` FAB (`bottom: 16`) confirmed dead code — skipped. Also deleted dead code: `components/Lessons/LessonManagement.tsx` + `components/Lessons/LessonEditor.tsx` (0 active page usages — `pages/Instructor/LessonEditor.tsx` is the live one). 0 TypeScript errors. | 3 new (7.6, 7.7, 8.1), cumulative 93/93 |
+| 15 | Feb 24, 2026 | **Phase 9 — Chip row flex-wrap audit**: Scanned all `Stack direction="row"` usages in components for multi-Chip rows without `flexWrap`. Found 2 in `components/OfficeHours/`: `QueueDisplay.tsx` header row (up to 3 Chips: Waiting + In Session + Avg Wait) and `StudentQueueJoin.tsx` status row (up to 2 Chips: Position + Status). Both fixed: removed `spacing={2}` (MUI Stack uses negative-margin approach that conflicts with `flexWrap: wrap`), replaced with `sx={{ flexWrap:'wrap', gap:1 }}`. Full sweeps confirmed OK: all fixed-position elements correct; all `<Tabs>` have scrollable variants; all grids have `xs` breakpoints; all charts use `ResponsiveContainer`; all raw `<Container>` uses are on public/auth pages; `<table>` in SettingsPage is a constrained 2-col key/value summary (no overflow risk). 0 TypeScript errors. | 2/2 (Phase 9), cumulative 95/95 |
+| 16 | Feb 24, 2026 | **Phase 10 — iOS Safari input zoom prevention**: Final exhaustive scan. Discovered all MUI TextFields in the app (and all inputs extending `MuiInputBase`) render at 14px body font — below iOS Safari's 16px threshold that triggers automatic viewport zoom on input focus. This affects every form in all 73 pages. Fix: single `MuiInputBase` style override in `src/theme/index.ts` sets `fontSize: '1rem'` for both `input` and `inputMultiline` slots — covers TextField, Select, Autocomplete, DateTimePicker globally. Viewport meta confirmed correct (`width=device-width, initial-scale=1.0`, no `user-scalable=no`). Dead code: `components/Assessment/EnhancedAssessmentResults.tsx` deleted (superseded by AIEnhancedAssessmentResults — 0 active usages). Final sweeps confirmed clean: all fixed-position elements, all `<Tabs>`, all grids, all charts, fixed-height containers, DateTimePicker usage (inside fullScreen dialogs). 0 TypeScript errors. | 1/1 (Phase 10), cumulative 96/96 |
+| 17 | Feb 24, 2026 | **Phase 11 — Second-pass fullScreen dialog audit**: Grep audit (`<Dialog` without `fullScreen` on same line) across all .tsx files found 6 more dialogs missing `fullScreen={isMobile}`. Fixed: `SettingsPage` Delete Account dialog (password form + warning list — added `useResponsive` import + hook), `CourseDetailPage` Enrollment Success dialog (added `useResponsive` import + hook), `RegisterForm` Email Verification dialog (added `useResponsive` import + hook), `TermsConsentBanner` Terms Acceptance dialog (checkboxes + legal links — added `useResponsive` import + hook), `QuizCreator` Assessment Settings dialog (form fields — added `useResponsive` import + hook), `CourseCreationForm` Upload Progress dialog (`isMobile` already present — just added prop). Intentionally skipped: `CurriculumBuilder` delete-lesson confirm (1 sentence + 2 buttons) and `AdaptiveQuizTaker` submit confirm (1 sentence + 2 buttons) — fullScreen for confirm-only dialogs is poor UX. VideoPlayer keyboard shortcuts dialog already unreachable on mobile (button hidden with `display:{xs:'none'}`). 0 TypeScript errors. | 6/6 (Phase 11), cumulative 102/102 |
+| 18 | Feb 24, 2026 | **Phase 12 — Chip row flex-wrap 2nd pass**: Grep audit of `Stack direction="row" spacing={1}` without flexWrap. Found 2 more chip rows: `ProfilePage.tsx` header chip row (Role + Email Verified, visible on every profile visit) and `NotificationsPage.tsx` notification item metadata row (Priority chip + timestamp text + Read/Unread chip + optional ActionUrl chip — up to 4 items on 375px). Both fixed: removed `spacing={1}`, added `sx={{ flexWrap: 'wrap', gap: 1 }}`. Verified other `direction="row" spacing={1}` instances safe: 2× icon buttons (InterventionDashboard ListItemSecondaryAction), Clock+text (ScheduleManagement — always short), Button+Mark-read (NotificationsPage action row — 2 items max), `fullWidth TextField + Add button` (CourseSettingsEditor — fullWidth pushes button to right, fine), NotificationBell rows (inside constrained dropdown panel). 0 TypeScript errors. | 2/2 (Phase 12), cumulative 104/104 |
+| 19 | Feb 24, 2026 | **Phase 13 — Snackbar bottom offset + global transition fix**: Two independent issues found. (1) Grep for all `<Snackbar` usages: 5 bottom-anchored Snackbars on authenticated pages had no bottom offset — they render hidden behind the 64px MobileBottomNav. Fixed with `sx={{ bottom: { xs: 88, md: 24 } }}` (or merged into existing sx): VideoPlayer progress-saved Snackbar (bottom-right), CoursesPage, CourseDetailPage, MyCertificatesPage, CertificatePage. Skipped: ShareDialog (inside fullScreen dialog on mobile — bottom nav not visible), PublicCertificatePage (public page — no bottom nav), TokenExpirationWarning (top-anchored). (2) `src/index.css` had `* { transition: all 0.2s }` — a global rule that forces the browser to animate every CSS property including layout-affecting ones (width, height, padding, margin, transform) on every DOM change. On low-end mobile this causes constant reflows and jank. Replaced with scoped `transition-property: color, background-color, border-color, outline-color, box-shadow, opacity, fill, stroke` — covers only visual/non-layout properties. MUI handles its own component transitions independently. 0 TypeScript errors. | 6/6 (Phase 13), cumulative 110/110 |
+| 20 | Feb 24, 2026 | **Phase 14 — ListItemSecondaryAction overlap fix**: Deep audit of `ListItemSecondaryAction` usages. MUI reserves only 48px `paddingRight` for secondary actions, but multi-button action areas extend far beyond. (1) `CourseAssessmentManagementPage.tsx` — 3 small icon buttons (Edit+Analytics+Preview = ~118px) in `ListItemSecondaryAction`: added `sx={{ pr: { xs: 17, sm: 6 } }}` to `ListItem` (136px on mobile vs default 48px), plus `flexWrap: 'wrap'` on the primary text Box (title + 2 Chips). (2) `InterventionDashboard.tsx` low-progress section — 2 regular icon buttons (View+Message = ~104px): added `sx={{ pr: { xs: 15, sm: 6 } }}` to `ListItem` (120px on mobile). Also added `flexWrap: 'wrap'` to both chip rows in InterventionDashboard (low-progress 2-chip row used `gap: 2` without wrap → changed to `gap: 1, flexWrap: 'wrap'`; assessment at-risk 2-chip row added `flexWrap: 'wrap'`). CourseSettingsEditor confirmed safe (single delete button, already has `pr: 6` on text). Also verified: Snackbar Alert `minWidth: '300px'` NOT an issue (MUI Snackbar uses `left:8px;right:8px` on mobile → content area is viewport-16px ≥ 304px). All `whiteSpace: 'nowrap'` usages safe (hidden on mobile or inside scrollable parents). 0 TypeScript errors. | 4/4 (Phase 14), cumulative 114/114 |
+| 21 | Feb 24, 2026 | **Phase 15 — Pagination overflow fix**: Audited all `<Pagination>` and `<TablePagination>` usages. MUI Pagination with `size="large"` creates 40px buttons; with `showFirstButton`/`showLastButton` and default `siblingCount=1`, renders up to 11 buttons = 440px — overflows 375px. Fix: responsive `size` (`isMobile ? 'small' : 'large/medium'`) + `siblingCount={isMobile ? 0 : 1}` on all 4 Pagination components. (1) `MyLearningPage.tsx` — added `useResponsive` import+hook, `size='large'→{isMobile?'small':'large'}`, `siblingCount={isMobile?0:1}`. (2) `InstructorDashboard.tsx` — `isMobile` already available, same size+siblingCount fix. (3) `NotificationsPage.tsx` — added `useResponsive` import+hook, same responsive props. (4) `CoursesPage.tsx` — added `useResponsive` import+hook, same responsive props + kept `flexWrap:'nowrap'` with added `justifyContent:'center'`. `TablePagination` (CourseAnalyticsDashboard, StudentManagement) confirmed safe — uses flex layout with smaller nav buttons and text that compresses naturally. 0 TypeScript errors (full `tsc --noEmit` verified). | 4/4 (Phase 15), cumulative 118/118 |
+| 22 | Feb 24, 2026 | **Phase 16 — AccordionSummary + LessonEditor content row overflow**: Audited all AccordionSummary content rows and flex header rows without `flexWrap`/`minWidth:0`. (1) `CourseAssessmentManagementPage.tsx` — Lesson accordion summary: title + description text + chip in `space-between` without text truncation. Long lesson titles pushed chip offscreen. Fix: added `flexWrap:'wrap', gap:1` to container, `minWidth:0, flex:1` on text Box, `noWrap` on both Typography. (2) `CourseDetailPage.tsx` — Curriculum accordion summary: section title + "X lessons" in `space-between`. Fix: added `gap:1` to container, `minWidth:0, flex:1` on left Box, `noWrap` on title. (3) `LessonEditor.tsx` — Content item accordion with drag icon + type icon + label + filename + 3 action buttons in single row. Fix: added `flexWrap:'wrap', gap:0.5` to container, hidden drag icon on mobile `display:{xs:'none',sm:'block'}`, `minWidth:0` on label Box, `noWrap` on type label, hidden subtitle text (filename/URL/preview) on mobile `display:{xs:'none',sm:'block'}` (supplementary info, type+number sufficient for identification). All other AccordionSummary usages verified safe: NotificationSettingsPage (short emoji+labels), StudentAssessmentDashboard (uses flex:1 pattern), CourseDetailPage curriculum section (now fixed). All `space-between` rows without flexWrap verified: short label+value pairs (DashboardPage, MyLearningPage progress bars, InstructorDashboard stats), buttons hidden on mobile (LandingPage), inside constrained Cards (TransactionsPage), or breadcrumbs+small buttons (Legal pages). 0 TypeScript errors (full `tsc --noEmit` verified). | 4/4 (Phase 16), cumulative 122/122 |
+| 23 | Feb 24, 2026 | **Phase 17 — FileUpload preview + Stack spacing/flexWrap conflicts + CardActions audit**: Three categories fixed. (1) `FileUpload.tsx` — Deferred upload preview row had fixed `width: 200` video preview + flex text in horizontal layout inside fullScreen dialogs. On 375px the video box was too wide. Fix: `width: { xs: '100%', sm: 200 }` + `flexWrap: 'wrap'` on container, so video stacks above text on mobile. (2) `InterventionDashboard.tsx` at-risk card — Risk Factors chip row had `Stack direction="row" spacing={0.5} sx={{ flexWrap:'wrap', gap:0.5 }}` — the `spacing` prop creates negative margins that conflict with `flexWrap` (same bug pattern fixed in Phase 9). Fix: removed `spacing={0.5}`, kept `gap:0.5`. (3) `NotificationsPage.tsx` — Action button row had `Stack direction="row" spacing={1} sx={{ flexWrap:'wrap' }}` — same spacing+flexWrap conflict. Fix: removed `spacing={1}`, replaced with `gap:1` in sx. Verified: all remaining `Stack direction="row" spacing` usages are intentionally single-line (icon buttons, avatar+name) or use `direction={{ xs:'column', sm:'row' }}` for responsive stacking, or use `useFlexGap` (LandingPage popular searches). CardActions audit: MyCertificatesPage and StudyGroupCard already have `flexWrap:'wrap'`; InterventionDashboard and AnalyticsHubPage CardActions have small button+icon pairs that fit 375px. 0 TypeScript errors (full `tsc --noEmit` verified). | 3/3 (Phase 17), cumulative 125/125 |
+| 24 | Feb 24, 2026 | **Phase 18 — Breakpoint consistency + Tabs scroll + Breadcrumbs overflow**: Four fixes across three categories. (1) `VideoPlayer.tsx` — Hardcoded `@media (max-width: 600px)` for aspect ratio didn't match custom sm:640 breakpoint. Replaced with MUI sx responsive object `paddingTop: { xs: '75%', sm: '56.25%' }`. Verified no remaining hardcoded `@media` queries in any .tsx or .css files. (2) `StudentSessionsList.tsx` — Tabs component (4 tabs: All/Upcoming/Live Now/Past) missing `variant="scrollable" scrollButtons="auto"`. MUI default tab minWidth=90px × 4 = 360px, overflows 320px screens. Fix: added `variant="scrollable" scrollButtons="auto"`. (3) `InstructorSessionsList.tsx` — Same issue, 4 tabs missing scrollable variant. Fix: added `variant="scrollable" scrollButtons="auto"`. (4) `CourseAssessmentManagementPage.tsx` — Breadcrumbs with 3 items (Instructor Dashboard + variable course name + Assessments) could overflow on mobile. Fix: added `'& .MuiBreadcrumbs-ol': { flexWrap: 'nowrap', overflow: 'auto' }, '& .MuiBreadcrumbs-li': { whiteSpace: 'nowrap' }`. Exhaustive sweeps confirmed safe: all Grid spacing (MUI handles internally), all position:absolute (decorative/constrained), all large gap values (column layouts), all width/minWidth values (inside scrollable containers or small enough), all Stepper components (responsive orientation or vertical), Drawers (responsive width), Chat/Tutoring (proper mobile toggle), ToggleButtonGroup (2 items), all remaining Breadcrumbs (PageHeader already done, Legal/CourseEdit have ≤2 short items). 0 TypeScript errors (full `tsc --noEmit` verified). | 4/4 (Phase 18), cumulative 129/129 |
 
 ---
 

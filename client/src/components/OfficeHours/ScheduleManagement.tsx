@@ -39,6 +39,7 @@ import {
   getDayName,
   formatTime
 } from '../../types/officeHours';
+import { useResponsive } from '../Responsive/useResponsive';
 
 interface ScheduleManagementProps {
   instructorId: string;
@@ -51,6 +52,7 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = ({ instructorId, o
   const [error, setError] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingSchedule, setEditingSchedule] = useState<OfficeHoursSchedule | null>(null);
+  const { isMobile } = useResponsive();
   const [formData, setFormData] = useState<CreateScheduleData>({
     dayOfWeek: 1, // Monday
     startTime: '14:00',
@@ -272,7 +274,7 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = ({ instructorId, o
       )}
 
       {/* Create/Edit Dialog */}
-      <Dialog open={dialogOpen} onClose={handleCloseDialog} maxWidth="sm" fullWidth data-testid="schedule-dialog">
+      <Dialog open={dialogOpen} onClose={handleCloseDialog} maxWidth="sm" fullWidth fullScreen={isMobile} data-testid="schedule-dialog">
         <DialogTitle>
           {editingSchedule ? 'Edit Office Hours' : 'Add Office Hours'}
         </DialogTitle>

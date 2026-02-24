@@ -269,6 +269,8 @@ export const StudentSessionsList: React.FC<StudentSessionsListProps> = ({
         value={activeTab}
         onChange={(_, newValue) => setActiveTab(newValue)}
         data-testid="live-sessions-student-tabs"
+        variant="scrollable"
+        scrollButtons="auto"
         sx={{
           mb: 3,
           borderBottom: 1,

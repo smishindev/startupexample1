@@ -2,7 +2,7 @@
 
 **Purpose**: Systematic checklist to follow before implementing changes  
 **Goal**: Reduce errors, missing considerations, and broken functionality  
-**Last Updated**: February 24, 2026 - Mobile Optimization Phase 5 Complete 📱
+**Last Updated**: February 24, 2026 - Mobile Optimization Phases 6–18 Complete — 129 Sub-Component Items Fixed 📱
 
 ---
 
@@ -69,6 +69,22 @@
   - **Dead code cleanup**: Before mobile-optimizing a page, verify it’s actually imported in App.tsx. If it has 0 imports and a newer replacement exists, delete it instead.
   - Files (Phase 5): `CourseCheckoutPage.tsx`, `PaymentSuccessPage.tsx`, `TransactionsPage.tsx`, `TermsOfServicePage.tsx`, `PrivacyPolicyPage.tsx`, `RefundPolicyPage.tsx`
   - Files (deleted): `pages/Analytics/Analytics.tsx`, `pages/Courses/Courses.tsx`, `pages/Lessons/Lesson.tsx`, `pages/Profile/Profile.tsx`
+- [x] **Mobile Optimization Phases 6–18 (Sub-Components)** - PRODUCTION READY (Feb 24, 2026) 📱
+  - 129 items fixed across 13 phases — all sub-components, layouts, and theme-level fixes. 0 TypeScript errors throughout.
+  - **All `<Dialog>` must have `fullScreen={isMobile}`**: checked 18 dialogs across 12 files — missed dialogs in sub-components not covered by pages audit. Always grep for `<Dialog` after adding/editing components.
+  - **All `<TableContainer>` must have `overflowX: 'auto'`**: without it, wide tables force horizontal scroll on the whole page instead of just the table. 7 tables were missing this.
+  - **FABs AND Snackbars behind MobileBottomNav**: both need `bottom: { xs: 88, md: 24 }` — 88px = 64px nav + 24px clearance. FABs: 5 fixed. Snackbars: checked `anchorOrigin` + sx.
+  - **Chip row overflow — remove `spacing` when using `flexWrap`**: MUI `Stack spacing={X}` adds negative margins that conflict with `flexWrap`. Pattern: remove `spacing` prop entirely, use `sx={{ flexWrap: 'wrap', gap: 1 }}` directly on the Stack or Box.
+  - **iOS Safari auto-zoom on inputs**: any input with `font-size < 16px` triggers auto-zoom. Fix: `MuiInputBase: { styleOverrides: { root: { fontSize: '1rem' } } }` in theme `components` block. Done globally in `client/src/theme/index.ts`.
+  - **CSS `transition: all` causes layout reflows on mobile**: global `transition: all 0.2s` in `index.css` triggers layout recalcs on every scroll/interaction. Scoped to visual-only properties: `transition-property: color, background-color, border-color, box-shadow, opacity, transform`.
+  - **`ListItemSecondaryAction` overlap**: MUI reserves only 48px `paddingRight` for secondary actions. Multi-button areas extend far beyond 48px. Fix: `sx={{ pr: { xs: 17, sm: 6 } }}` on the `ListItem` (tune based on button count) — 17 = ~136px for 3 icon buttons on mobile.
+  - **Pagination overflow**: `size="large"` Pagination with `siblingCount=1` renders up to 11 buttons = 440px+, overflows 375px screen. Fix: `size={isMobile ? 'small' : 'large'}` + `siblingCount={isMobile ? 0 : 1}`.
+  - **AccordionSummary text overflow**: content rows inside AccordionSummary have no `minWidth:0` by default. Left-side content can push right-side chips/icons off screen. Fix: `minWidth: 0, flex: 1` on text container + `noWrap` on Typography — and `flexWrap: 'wrap', gap: 1` on the summary row.
+  - **Stack `spacing` + `flexWrap` conflict**: same as chip rows above — `spacing` prop and `flexWrap` are incompatible. When wrapping is desired, always use `gap` in `sx` instead of the `spacing` prop.
+  - **Never hardcode `@media (max-width: 600px)`**: custom breakpoints are `xs:0/sm:640/md:768/lg:1024/xl:1280` — hardcoded 600px misses the sm:640 boundary. Always use MUI sx responsive objects: `sx={{ paddingTop: { xs: '75%', sm: '56.25%' } }}`.
+  - **All `<Tabs>` need `variant="scrollable" scrollButtons="auto"`** (at minimum on mobile): `size="small"` tabs with default `minWidth=90px` × 4 tabs = 360px, overflows 320px screens. For desktop, use `variant={isMobile ? 'scrollable' : 'fullWidth'}` where fullWidth makes sense, or just always `"scrollable"`.
+  - **Breadcrumbs with long/variable items overflow**: add `'& .MuiBreadcrumbs-ol': { flexWrap: 'nowrap', overflow: 'auto' }, '& .MuiBreadcrumbs-li': { whiteSpace: 'nowrap' }` to the Breadcrumbs `sx` when 3+ items with variable-length text.
+  - Files: See `MOBILE_OPTIMIZATION_TRACKER.md` Session Log entries 1–24 for complete list.
 - [x] **Mobile Optimization Phase 4** - PRODUCTION READY (Feb 23, 2026) 📱
   - 19 Instructor pages fully mobile-optimized (Phase 4.1–4.19). 63/73 pages done (86.3%). 3-round audit — 0 errors found. 0 TypeScript errors.
   - **FAB above bottom nav**: Floating Action Buttons must use `bottom: { xs: 88, md: 24 }` — `xs:24` places FAB behind MobileBottomNav (64px bar) on mobile.

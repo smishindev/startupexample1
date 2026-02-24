@@ -24,6 +24,7 @@ import {
   CheckCircle as CheckIcon
 } from '@mui/icons-material';
 import axiosInstance from '../utils/axiosConfig';
+import { useResponsive } from './Responsive/useResponsive';
 
 interface EligibleInstructor {
   id: string;
@@ -52,6 +53,7 @@ const CourseTransferDialog: React.FC<CourseTransferDialogProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const { isMobile } = useResponsive();
 
   // Fetch eligible instructors when dialog opens
   useEffect(() => {
@@ -89,7 +91,7 @@ const CourseTransferDialog: React.FC<CourseTransferDialogProps> = ({
   const selectedInstructor = instructors.find(i => i.id === selectedInstructorId);
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth fullScreen={isMobile}>
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
         <TransferIcon color="primary" />
         Transfer Courses to Another Instructor

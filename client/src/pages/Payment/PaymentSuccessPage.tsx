@@ -7,7 +7,6 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Box,
-  Container,
   Paper,
   Typography,
   Button,
@@ -25,6 +24,7 @@ import LinkedInIcon from '@mui/icons-material/LinkedIn';
 import Confetti from 'react-confetti';
 import { coursesApi } from '../../services/coursesApi';
 import { HeaderV5 as HeaderV4 } from '../../components/Navigation/HeaderV5';
+import { PageContainer } from '../../components/Responsive';
 import { useAuthStore } from '../../stores/authStore';
 
 const PaymentSuccessPage: React.FC = () => {
@@ -133,12 +133,12 @@ const PaymentSuccessPage: React.FC = () => {
     return (
       <>
         <HeaderV4 />
-        <Container maxWidth="sm" sx={{ py: 8, textAlign: 'center' }}>
+        <PageContainer sx={{ pt: 4, textAlign: 'center' }}>
           <CircularProgress size={60} />
           <Typography variant="h6" sx={{ mt: 3 }}>
             Confirming your enrollment...
           </Typography>
-        </Container>
+        </PageContainer>
       </>
     );
   }
@@ -147,14 +147,14 @@ const PaymentSuccessPage: React.FC = () => {
     return (
       <>
         <HeaderV4 />
-        <Container maxWidth="sm" sx={{ py: 8 }}>
+        <PageContainer sx={{ pt: 4 }}>
           <Alert severity="error" sx={{ mb: 3 }}>
             {error || 'Failed to load course details'}
           </Alert>
           <Button variant="contained" onClick={() => navigate('/dashboard')} data-testid="payment-success-error-dashboard-button">
             Go to Dashboard
           </Button>
-        </Container>
+        </PageContainer>
       </>
     );
   }
@@ -170,11 +170,11 @@ const PaymentSuccessPage: React.FC = () => {
           numberOfPieces={500}
         />
       )}
-      <Container maxWidth="md" sx={{ py: 8 }}>
+      <PageContainer maxWidth="md" sx={{ pt: 4 }}>
         <Paper
           elevation={3}
           sx={{
-            p: 4,
+            p: { xs: 2, sm: 3, md: 4 },
             textAlign: 'center',
             background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
             color: 'white',
@@ -200,15 +200,15 @@ const PaymentSuccessPage: React.FC = () => {
           <Box sx={{ fontSize: '3rem', mb: 2 }}>
             🎉
           </Box>
-          <Typography variant="h3" gutterBottom fontWeight="bold">
+          <Typography variant="h3" gutterBottom fontWeight="bold" sx={{ fontSize: { xs: '1.75rem', sm: '2.25rem', md: '3rem' } }}>
             Congratulations!
           </Typography>
 
-          <Typography variant="h5" sx={{ mb: 2, opacity: 0.95 }}>
+          <Typography variant="h5" sx={{ mb: 2, opacity: 0.95, fontSize: { xs: '1rem', sm: '1.25rem', md: '1.5rem' } }}>
             You're now enrolled in
           </Typography>
 
-          <Typography variant="h4" fontWeight="bold" sx={{ mb: 3 }}>
+          <Typography variant="h4" fontWeight="bold" sx={{ mb: 3, fontSize: { xs: '1.25rem', sm: '1.5rem', md: '2.125rem' } }}>
             {course.Title}
           </Typography>
 
@@ -243,7 +243,7 @@ const PaymentSuccessPage: React.FC = () => {
           </Box>
         </Paper>
 
-        <Paper elevation={2} sx={{ p: 4 }}>
+        <Paper elevation={2} sx={{ p: { xs: 2, sm: 3, md: 4 } }}>
 
           <Box sx={{ bgcolor: 'primary.50', p: 3, borderRadius: 2, mb: 3, border: '1px solid', borderColor: 'primary.200' }}>
             <Typography variant="h6" gutterBottom color="primary.main" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -327,7 +327,7 @@ const PaymentSuccessPage: React.FC = () => {
             </Typography>
           </Box>
         </Paper>
-      </Container>
+      </PageContainer>
     </>
   );
 };

@@ -7,7 +7,6 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
-  Container,
   Paper,
   Typography,
   Button,
@@ -33,6 +32,9 @@ import {
   ListItemText,
   LinearProgress,
   Tooltip,
+  Stack,
+  Card,
+  CardContent,
 } from '@mui/material';
 import ReceiptIcon from '@mui/icons-material/Receipt';
 import RefreshIcon from '@mui/icons-material/Refresh';
@@ -43,9 +45,11 @@ import InfoIcon from '@mui/icons-material/Info';
 import { getUserTransactions, requestRefund, downloadInvoice, testCompleteTransaction, type Transaction } from '../../services/paymentApi';
 import { format } from 'date-fns';
 import { HeaderV5 as HeaderV4 } from '../../components/Navigation/HeaderV5';
+import { PageContainer, PageTitle, useResponsive } from '../../components/Responsive';
 
 const TransactionsPage: React.FC = () => {
   const navigate = useNavigate();
+  const { isMobile } = useResponsive();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -213,27 +217,31 @@ const TransactionsPage: React.FC = () => {
 
   if (loading) {
     return (
-      <Container maxWidth="lg" sx={{ py: 8, textAlign: 'center' }}>
-        <CircularProgress size={60} />
-        <Typography variant="h6" sx={{ mt: 3 }}>
-          Loading transactions...
-        </Typography>
-      </Container>
+      <>
+        <HeaderV4 />
+        <PageContainer sx={{ pt: 4, textAlign: 'center' }}>
+          <CircularProgress size={60} />
+          <Typography variant="h6" sx={{ mt: 3 }}>
+            Loading transactions...
+          </Typography>
+        </PageContainer>
+      </>
     );
   }
 
   return (
     <>
       <HeaderV4 />
-      <Container maxWidth="lg" sx={{ py: 6 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
-          <Typography variant="h4">
+      <PageContainer>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: { xs: 2, md: 4 }, flexWrap: 'wrap', gap: 1 }}>
+          <PageTitle>
             Transaction History
-          </Typography>
+          </PageTitle>
           <Button
             variant="outlined"
             startIcon={<RefreshIcon />}
             onClick={loadTransactions}
+            size={isMobile ? 'small' : 'medium'}
             data-testid="transactions-refresh-button"
           >
             Refresh
@@ -247,8 +255,8 @@ const TransactionsPage: React.FC = () => {
       )}
 
       {transactions.length === 0 ? (
-        <Paper elevation={2} sx={{ p: 6, textAlign: 'center' }}>
-          <ReceiptIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+        <Paper elevation={2} sx={{ p: { xs: 4, sm: 6 }, textAlign: 'center' }}>
+          <ReceiptIcon sx={{ fontSize: { xs: 48, sm: 64 }, color: 'text.secondary', mb: 2 }} />
           <Typography variant="h6" gutterBottom>
             No Transactions Yet
           </Typography>
@@ -259,7 +267,84 @@ const TransactionsPage: React.FC = () => {
             Browse Courses
           </Button>
         </Paper>
+      ) : isMobile ? (
+        /* Mobile: Card-based layout */
+        <Stack spacing={2}>
+          {transactions.map((transaction) => (
+            <Card key={transaction.Id} elevation={2}>
+              <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                  <Typography variant="subtitle2" fontWeight="bold" sx={{ flex: 1, mr: 1 }}>
+                    {transaction.CourseTitle || 'Course'}
+                  </Typography>
+                  {getStatusChip(transaction.Status, transaction)}
+                </Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
+                  <Typography variant="body2" color="text.secondary">
+                    {format(new Date(transaction.CreatedAt), 'MMM dd, yyyy')}
+                  </Typography>
+                  <Typography variant="body2" fontWeight="bold">
+                    ${transaction.Amount.toFixed(2)} {transaction.Currency.toUpperCase()}
+                  </Typography>
+                </Box>
+                <Divider sx={{ mb: 1.5 }} />
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
+                  {transaction.InvoiceNumber && transaction.InvoiceId && (
+                    <Button
+                      size="small"
+                      variant="text"
+                      startIcon={<DownloadIcon />}
+                      onClick={() => handleDownloadInvoice(transaction.InvoiceId!)}
+                      data-testid="transactions-download-invoice-button"
+                    >
+                      {transaction.InvoiceNumber}
+                    </Button>
+                  )}
+                  <Box sx={{ display: 'flex', gap: 1, ml: 'auto' }}>
+                    {transaction.Status === 'pending' && transaction.StripePaymentIntentId && (
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        color="success"
+                        startIcon={<CheckCircleIcon />}
+                        onClick={() => handleTestComplete(transaction)}
+                        data-testid="transactions-test-complete-button"
+                      >
+                        Test Complete
+                      </Button>
+                    )}
+                    {transaction.Status === 'completed' && (
+                      isRefundEligible(transaction) ? (
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          color="error"
+                          onClick={() => handleRefundClick(transaction)}
+                          data-testid="transactions-request-refund-button"
+                        >
+                          Refund
+                        </Button>
+                      ) : (
+                        <Tooltip title={getRefundIneligibilityReason(transaction) || 'Not eligible'}>
+                          <span>
+                            <Button size="small" variant="outlined" color="error" disabled data-testid="transactions-request-refund-button-disabled">
+                              Refund
+                            </Button>
+                          </span>
+                        </Tooltip>
+                      )
+                    )}
+                    {transaction.Status === 'refunded' && (
+                      <Chip label="Refunded" size="small" color="default" icon={<CheckCircleIcon />} />
+                    )}
+                  </Box>
+                </Box>
+              </CardContent>
+            </Card>
+          ))}
+        </Stack>
       ) : (
+        /* Desktop: Table layout */
         <TableContainer component={Paper} elevation={2}>
           <Table>
             <TableHead>
@@ -371,6 +456,7 @@ const TransactionsPage: React.FC = () => {
         onClose={() => setRefundDialog({ open: false, transaction: null })}
         maxWidth="md"
         fullWidth
+        fullScreen={isMobile}
         data-testid="transactions-refund-dialog"
       >
         <DialogTitle>
@@ -505,7 +591,7 @@ const TransactionsPage: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
-    </Container>
+    </PageContainer>
     </>
   );
 };

@@ -1,6 +1,6 @@
 # Mishin Learn Platform - Component Registry
 
-**Last Updated**: February 23, 2026 - Mobile Optimization Phase 3 Complete 📱  
+**Last Updated**: February 24, 2026 - Mobile Optimization Phase 5 Complete 📱  
 **Purpose**: Quick reference for all major components, their dependencies, and relationships
 
 ---
@@ -71,10 +71,14 @@ import { PageContainer, PageTitle, useResponsive, ResponsiveDialog,
          ResponsivePaper, ResponsiveStack, BOTTOM_NAV_HEIGHT, ... } from '../../components/Responsive';
 ```
 
-**Pages currently using Responsive library** (Phase 1 + Phase 2 — 22 pages):
+**Pages currently using Responsive library** (All Phases 1–5 — 69 active pages):
 - **Phase 1 (9)**: `LandingPage.tsx`, `Login.tsx`, `Register.tsx`, `ForgotPasswordForm.tsx`, `ResetPasswordForm.tsx`, `EmailVerificationPage.tsx`, `CoursesPage.tsx`, `CourseDetailPage.tsx`, `DashboardPage.tsx`
 - **Phase 2 (12)**: `MyLearningPage.tsx`, `LessonDetailPage.tsx`, `NotificationsPage.tsx`, `ProfilePage.tsx`, `SettingsPage.tsx`, `NotificationSettingsPage.tsx`, `StudentProgressPage.tsx`, `StudentAssessmentDashboard.tsx`, `AssessmentTakingPage.tsx`, `MyCertificatesPage.tsx`, `CertificatePage.tsx`, `PublicCertificatePage.tsx`
 - **Phase 2 component**: `StudentProgressDashboard.tsx` (wrapped by StudentProgressPage)
+- **Phase 3 (7)**: `Chat.tsx`, `LiveSessionsPage.tsx`, `StudyGroupsPage.tsx`, `StudyGroupDetailPage.tsx`, `OfficeHoursPage.tsx`, `Tutoring.tsx`, `PresencePage.tsx`
+- **Phase 4 (19)**: `InstructorDashboard.tsx`, `CourseCreationForm.tsx`, `CourseEditPage.tsx`, `CourseDetailsEditor.tsx`, `CurriculumBuilder.tsx`, `LessonEditor.tsx`, `CourseSettingsEditor.tsx`, `StudentManagement.tsx`, `AnalyticsHubPage.tsx`, `CourseAnalyticsDashboard.tsx`, `VideoAnalyticsPage.tsx`, `EnhancedAssessmentAnalyticsDashboard.tsx`, `InstructorStudentAnalytics.tsx`, `InterventionDashboard.tsx`, `AssessmentManagementPage.tsx`, `CourseAssessmentManagementPage.tsx`, `AssessmentCreationPage.tsx`, `AssessmentEditPage.tsx`, `AssessmentViewPage.tsx`
+- **Phase 5 (6)**: `CourseCheckoutPage.tsx`, `PaymentSuccessPage.tsx`, `TransactionsPage.tsx`, `TermsOfServicePage.tsx`, `PrivacyPolicyPage.tsx`, `RefundPolicyPage.tsx`
+- **Note**: 4 legacy dead-code pages (`Analytics.tsx`, `Courses.tsx`, `Lesson.tsx`, `Profile.tsx`) were deleted in Phase 5 (Feb 24, 2026) — confirmed 0 imports, superseded by newer implementations
 
 ---
 

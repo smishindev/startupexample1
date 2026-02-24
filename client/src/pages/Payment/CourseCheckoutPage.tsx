@@ -7,7 +7,6 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box,
-  Container,
   Paper,
   Typography,
   Button,
@@ -26,6 +25,7 @@ import { createPaymentIntent } from '../../services/paymentApi';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import LockIcon from '@mui/icons-material/Lock';
 import { HeaderV5 as HeaderV4 } from '../../components/Navigation/HeaderV5';
+import { PageContainer, PageTitle } from '../../components/Responsive';
 
 const stripePromise = loadStripe((import.meta as any).env?.VITE_STRIPE_PUBLISHABLE_KEY || '');
 
@@ -283,40 +283,46 @@ const CourseCheckoutPage: React.FC = () => {
 
   if (loading) {
     return (
-      <Container maxWidth="md" sx={{ py: 8, textAlign: 'center' }}>
-        <CircularProgress size={60} />
-        <Typography variant="h6" sx={{ mt: 3 }}>
-          Loading checkout...
-        </Typography>
-      </Container>
+      <>
+        <HeaderV4 />
+        <PageContainer sx={{ pt: 4, textAlign: 'center' }}>
+          <CircularProgress size={60} />
+          <Typography variant="h6" sx={{ mt: 3 }}>
+            Loading checkout...
+          </Typography>
+        </PageContainer>
+      </>
     );
   }
 
   if (error || !course || !clientSecret || !stripeOptions) {
     return (
-      <Container maxWidth="md" sx={{ py: 8 }}>
-        <Alert severity="error" sx={{ mb: 3 }}>
-          {error || 'Failed to load checkout'}
-        </Alert>
-        <Button variant="contained" onClick={() => navigate('/courses')} data-testid="checkout-error-back-button">
-          Back to Courses
-        </Button>
-      </Container>
+      <>
+        <HeaderV4 />
+        <PageContainer sx={{ pt: 4 }}>
+          <Alert severity="error" sx={{ mb: 3 }}>
+            {error || 'Failed to load checkout'}
+          </Alert>
+          <Button variant="contained" onClick={() => navigate('/courses')} data-testid="checkout-error-back-button">
+            Back to Courses
+          </Button>
+        </PageContainer>
+      </>
     );
   }
 
   return (
     <>
       <HeaderV4 />
-      <Container maxWidth="lg" sx={{ py: 6 }}>
-        <Typography variant="h4" gutterBottom sx={{ mb: 4 }}>
+      <PageContainer sx={{ pt: 4 }}>
+        <PageTitle sx={{ mb: { xs: 2, md: 4 } }}>
           Complete Your Purchase
-        </Typography>
+        </PageTitle>
 
       <Grid container spacing={4}>
         {/* Order Summary */}
         <Grid item xs={12} md={5}>
-          <Paper elevation={2} sx={{ p: 3 }}>
+          <Paper elevation={2} sx={{ p: { xs: 2, sm: 3 } }}>
             <Typography variant="h6" gutterBottom>
               Order Summary
             </Typography>
@@ -384,7 +390,7 @@ const CourseCheckoutPage: React.FC = () => {
 
         {/* Payment Form */}
         <Grid item xs={12} md={7}>
-          <Paper elevation={2} sx={{ p: 3 }}>
+          <Paper elevation={2} sx={{ p: { xs: 2, sm: 3 } }}>
             <Typography variant="h6" gutterBottom>
               Payment Information
             </Typography>
@@ -403,7 +409,7 @@ const CourseCheckoutPage: React.FC = () => {
           </Box>
         </Grid>
       </Grid>
-    </Container>
+    </PageContainer>
     </>
   );
 };

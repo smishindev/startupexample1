@@ -1,6 +1,6 @@
 ﻿# Mishin Learn Platform - Project Status & Memory
 
-**Last Updated**: February 23, 2026 - Mobile Optimization Phase 4 Complete + 3-Round Audit 📱  
+**Last Updated**: February 24, 2026 - Mobile Optimization Phase 5 Complete + Dead Code Cleanup 📱  
 **Developer**: Sergey Mishin (s.mishin.dev@gmail.com)  
 **AI Assistant Context**: This file serves as project memory for continuity across chat sessions
 
@@ -20,6 +20,7 @@
 **CourseSelector**: Unified reusable course dropdown replacing 9 inline implementations; lazy rendering, type-to-search, helper text (February 19, 2026) 🔽  
 **Mobile Optimization Phase 1**: Responsive library (8 files) created; all 9 critical-path pages fully mobile-optimized (February 21, 2026) 📱  
 **Mobile Optimization Phase 2**: All 12 core student pages mobile-optimized; systemic `py→pt` bug fixed; 5-round exhaustive audit; 37/73 pages done (50.7%), 0 TypeScript errors (February 22, 2026) 📱  
+**Mobile Optimization Phase 5**: All 6 Payment/Legal pages mobile-optimized; 4 dead legacy pages deleted; 4-round exhaustive audit (0 errors); 73/73 pages done (100%), 0 TypeScript errors (February 24, 2026) 📱  
 **Mobile Optimization Phase 4**: All 19 Instructor pages mobile-optimized; 3-round exhaustive audit (0 errors found); 63/73 pages done (86.3%), 0 TypeScript errors (February 23, 2026) 📱  
 **Mobile Optimization Phase 3**: All 7 Collaboration & Social pages mobile-optimized; 5-round exhaustive audit; 8 bugs found and fixed; 44/73 pages done (60.3%), 0 TypeScript errors (February 23, 2026) 📱  
 **Auth Bug Fixes**: `logout()` clears state immediately; `type="button"` on nav-links inside forms; all 401 interceptors unified; stale-state guard in App.tsx (February 21, 2026) 🔐  
@@ -62,6 +63,43 @@
 
 **Reusable `sx` fragments** (import from `../../theme/tokens`):
 `cardSx`, `elevatedPaperSx`, `flatSurfaceSx`, `truncateSx`, `lineClamp2Sx`, `lineClamp3Sx`, `centeredFlexSx`, `spacedRowSx`, `inlineRowSx`, `clickableSx`, `focusRingSx`, `responsiveImageSx`, `avatarSx`, `statusDotSx`, `badgeSx`, `scrollRowSx`, `glassSx`, `srOnlySx`
+
+---
+
+## 📱 MOBILE OPTIMIZATION — PHASE 5 COMPLETE (February 24, 2026)
+
+**Activity**: Mobile-optimized all 6 Payment & Legal pages (Phase 5.1–5.6) and deleted 4 dead legacy pages (Phase 5.7–5.10). Followed up with 4 rounds of exhaustive spacing audits — catching `pt`+`mt` stacking across all pages, a responsive `pt:{xs:4,md:8}` breakpoint footgun on PaymentSuccessPage, and doing a final clean pass. All 73 tracked pages are now complete.
+
+**Status**: ✅ **Complete** — 73/73 pages done (100%), 0 TypeScript errors after every round
+
+### **Phase 5 Pages Optimized (6/6)**
+
+| # | Page | Key Changes |
+|---|------|-------------|
+| 5.1 | `CourseCheckoutPage.tsx` | PageContainer+PageTitle, `pt:4` on all 3 return paths, Grid 5/7 split → stacks on mobile, Paper `p:{xs:2,sm:3}` on both panels |
+| 5.2 | `PaymentSuccessPage.tsx` | PageContainer `maxWidth="md"`, `pt:4` flat on all 3 return paths (fixed responsive `pt:{xs:4,md:8}` footgun), responsive h3/h4/h5 fontSize, Paper `p:{xs:2,sm:3,md:4}` |
+| 5.3 | `TransactionsPage.tsx` | PageContainer+PageTitle, `useResponsive`+`isMobile`, Table→Card layout on mobile (`Stack`+`Card`), Dialog `fullScreen={isMobile}`, Refresh button `size={isMobile?'small':'medium'}`, responsive header `flexWrap+gap` |
+| 5.4 | `TermsOfServicePage.tsx` | PageContainer `disableBottomPad maxWidth="md"` on all 3 early-return paths (no pt on any), outer Box no `py`, responsive h3 `fontSize:{xs:'1.75rem',sm:'2.25rem',md:'3rem'}`, Paper `p:{xs:3,md:5}` |
+| 5.5 | `PrivacyPolicyPage.tsx` | Identical pattern to TermsOfServicePage |
+| 5.6 | `RefundPolicyPage.tsx` | Identical pattern to TermsOfServicePage |
+
+### **Dead Code Deleted (4 legacy pages)**
+
+| # | File | Reason |
+|---|------|--------|
+| 5.7 | `pages/Analytics/Analytics.tsx` | 0 imports in App.tsx — superseded by `AnalyticsHubPage.tsx` |
+| 5.8 | `pages/Courses/Courses.tsx` | 0 imports in App.tsx — superseded by `CoursesPage.tsx` |
+| 5.9 | `pages/Lessons/Lesson.tsx` | 0 imports in App.tsx — superseded by `LessonDetailPage.tsx` |
+| 5.10 | `pages/Profile/Profile.tsx` | 0 imports in App.tsx — superseded by `ProfilePage.tsx` |
+
+### **Audit Result: 4 Rounds, 0 Errors in Final Pass**
+
+| Round | Finding | Fix |
+|-------|---------|-----|
+| 1 | Legal pages: outer `<Box py:4>` doubled vertical spacing with PageContainer `mt:4`+`mb:4` | Removed `py:4` from all 3 outer Boxes |
+| 2 | Systemic: `pt:8`→`pt:4` on 5 loading/error states; removed `pt:4` on 9 legal page early returns | 14 fixes — `pt`+`mt` stacking was ~96px instead of ~64px |
+| 3 | `PaymentSuccessPage` main return had `pt:{xs:4,md:8}` | Fixed to flat `pt:4` |
+| 4 | Full re-read of all 6 files | 0 errors — all return paths consistent |
 
 ---
 

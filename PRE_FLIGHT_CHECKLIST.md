@@ -2,7 +2,7 @@
 
 **Purpose**: Systematic checklist to follow before implementing changes  
 **Goal**: Reduce errors, missing considerations, and broken functionality  
-**Last Updated**: February 23, 2026 - Mobile Optimization Phase 3 Complete 📱
+**Last Updated**: February 24, 2026 - Mobile Optimization Phase 5 Complete 📱
 
 ---
 
@@ -59,6 +59,25 @@
   - **`tokens.ts`**: 18 reusable `SxProps<Theme>` fragments — import and spread: `<Paper sx={{ ...cardSx }}>`
   - **Extended palette**: All 5 palettes have 50-900 shades → `sx={{ bgcolor: 'primary.50' }}` works
   - Files: `client/src/theme/index.ts`, `client/src/theme/tokens.ts`, `client/src/main.tsx`
+- [x] **Mobile Optimization Phase 5** - PRODUCTION READY (Feb 24, 2026) 📱
+  - 6 Payment/Legal pages fully mobile-optimized + 4 dead legacy pages deleted. 73/73 pages done (100%). 4 spacing audit rounds. 0 TypeScript errors.
+  - **`pt` vs `mt` stacking**: PageContainer adds `mt:4` (32px). If a loading/error return also applies `pt:4/8`, the total top gap doubles to 64–96px. **Always use flat `pt:4`** on authenticated pages; early-return paths should use no `pt` at all (let `mt:4` stand alone).
+  - **No responsive `pt` breakpoints**: `pt: { xs: 4, md: 8 }` inflates desktop to 96px total. Use flat `pt:4` on ALL return paths of a single page for consistency.
+  - **`disableBottomPad` on legal/public pages**: TermsOfServicePage, PrivacyPolicyPage, RefundPolicyPage all have `<Header />` but NO MobileBottomNav — use `disableBottomPad` on ALL return paths including loading/error early returns.
+  - **No `py:` even on legal pages**: The outer `<Box>` wrapping a legal page must not use `py:X`; that doubles top/bottom with PageContainer’s own `mt:4`/`mb:4`. Use plain `<Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>`.
+  - **Table→Card on mobile**: TransactionsPage uses `isMobile ? <Stack><Card/> : <Table>` pattern. Always import `Stack`, `Card`, `CardContent` from MUI for the mobile branch.
+  - **Dead code cleanup**: Before mobile-optimizing a page, verify it’s actually imported in App.tsx. If it has 0 imports and a newer replacement exists, delete it instead.
+  - Files (Phase 5): `CourseCheckoutPage.tsx`, `PaymentSuccessPage.tsx`, `TransactionsPage.tsx`, `TermsOfServicePage.tsx`, `PrivacyPolicyPage.tsx`, `RefundPolicyPage.tsx`
+  - Files (deleted): `pages/Analytics/Analytics.tsx`, `pages/Courses/Courses.tsx`, `pages/Lessons/Lesson.tsx`, `pages/Profile/Profile.tsx`
+- [x] **Mobile Optimization Phase 4** - PRODUCTION READY (Feb 23, 2026) 📱
+  - 19 Instructor pages fully mobile-optimized (Phase 4.1–4.19). 63/73 pages done (86.3%). 3-round audit — 0 errors found. 0 TypeScript errors.
+  - **FAB above bottom nav**: Floating Action Buttons must use `bottom: { xs: 88, md: 24 }` — `xs:24` places FAB behind MobileBottomNav (64px bar) on mobile.
+  - **Stepper on mobile**: `CourseCreationForm` pattern — `orientation={isMobile?'vertical':'horizontal'}` + `alternativeLabel={!isMobile}` (horizontal steppers need `alternativeLabel` on desktop to prevent label overflow).
+  - **TabPanel padding**: Tab panel content should use `p:{xs:1,sm:2,md:3}` — not fixed padding that wastes space on narrow screens.
+  - **Tabs fullWidth on desktop**: `variant={isMobile?'scrollable':'fullWidth'}` — unconditionally `fullWidth` on a page with many tabs makes them too small; unconditionally `scrollable` looks broken on desktop.
+  - **Embedded components** (CourseDetailsEditor, CurriculumBuilder, LessonEditor, CourseSettingsEditor): Do NOT add PageContainer — they are rendered inside CourseEditPage’s existing PageContainer. Fix flexWrap/padding inline.
+  - **Palette color props vs hex**: MUI icon components accept `color="error"` | `"primary"` | `"warning"` etc. — never use `sx={{ color: '#f44336' }}` when a semantic prop exists.
+  - Files (Phase 4): All 19 Instructor pages + 4 embedded components (see MOBILE_OPTIMIZATION_TRACKER.md Phase 4 table)
 - [x] **Mobile Optimization Phase 3** - PRODUCTION READY (Feb 23, 2026) 📱
   - 7 Collaboration & Social pages fully mobile-optimized (Phase 3.1–3.7). 44/73 pages done (60.3%). 8 bugs fixed across 5 audit rounds. 0 TypeScript errors.
   - **Tutoring mobile auto-select guard**: `loadSessions` must check `&& !isMobile` before auto-selecting first session — on mobile the user must pick from the list

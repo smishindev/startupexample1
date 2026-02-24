@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box,
-  Container,
   Typography,
   Paper,
   CircularProgress,
@@ -20,6 +19,7 @@ import {
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { getCurrentTerms, TermsVersion } from '../../services/termsApi';
 import { format } from 'date-fns';
+import { PageContainer } from '../../components/Responsive';
 
 const TermsOfServicePage: React.FC = () => {
   const navigate = useNavigate();
@@ -49,31 +49,33 @@ const TermsOfServicePage: React.FC = () => {
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
-        <CircularProgress />
-      </Box>
+      <PageContainer disableBottomPad maxWidth="md">
+        <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
+          <CircularProgress />
+        </Box>
+      </PageContainer>
     );
   }
 
   if (error) {
     return (
-      <Container maxWidth="md" sx={{ py: 4 }}>
+      <PageContainer disableBottomPad maxWidth="md">
         <Alert severity="error">{error}</Alert>
-      </Container>
+      </PageContainer>
     );
   }
 
   if (!terms) {
     return (
-      <Container maxWidth="md" sx={{ py: 4 }}>
+      <PageContainer disableBottomPad maxWidth="md">
         <Alert severity="info">No Terms of Service available at this time.</Alert>
-      </Container>
+      </PageContainer>
     );
   }
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', py: 4 }}>
-      <Container maxWidth="md">
+    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
+      <PageContainer disableBottomPad maxWidth="md">
         {/* Navigation */}
         <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Breadcrumbs>
@@ -110,7 +112,7 @@ const TermsOfServicePage: React.FC = () => {
           {/* Header */}
           <Box sx={{ mb: 4, textAlign: 'center' }}>
             <GavelIcon sx={{ fontSize: 48, color: 'primary.main', mb: 2 }} />
-            <Typography variant="h3" component="h1" fontWeight="bold" gutterBottom>
+            <Typography variant="h3" component="h1" fontWeight="bold" gutterBottom sx={{ fontSize: { xs: '1.75rem', sm: '2.25rem', md: '3rem' } }}>
               {terms.Title}
             </Typography>
             <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, flexWrap: 'wrap' }}>
@@ -176,7 +178,7 @@ const TermsOfServicePage: React.FC = () => {
             </Typography>
           </Box>
         </Paper>
-      </Container>
+      </PageContainer>
     </Box>
   );
 };

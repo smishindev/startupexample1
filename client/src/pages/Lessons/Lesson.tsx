@@ -1,1 +1,0 @@
-import React from 'react'; import { Typography, Box } from '@mui/material'; const Lesson: React.FC = () => { return ( <Box> <Typography variant="h4" fontWeight="bold">Lesson</Typography> <Typography variant="body1" sx={{ mt: 2 }}>Lesson content and interactive learning - Coming soon!</Typography> </Box> ) }; export default Lesson

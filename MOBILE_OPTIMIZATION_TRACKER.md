@@ -1,8 +1,8 @@
 # Mobile UI Optimization Tracker
 
 **Created**: February 19, 2026  
-**Last Updated**: February 23, 2026  
-**Status**: Phase 4 Complete + 3-Round Audit — 63/73 pages done — Phase 5 Next  
+**Last Updated**: February 24, 2026  
+**Status**: Phase 5 Complete + 4-Round Audit — 73/73 pages done (+ 4 legacy files deleted) — ALL PHASES COMPLETE ✅  
 **Goal**: Make every page fully responsive and mobile-optimized across the Mishin Learn Platform
 
 ---
@@ -179,18 +179,18 @@ Every page must meet ALL of these criteria to be marked "complete":
 
 | # | Page | File | Route | Current State | Status |
 |---|------|------|-------|---------------|--------|
-| 5.1 | **Course Checkout** | `pages/Payment/CourseCheckoutPage.tsx` | `/checkout/:id` | Partial — responsive Grid | ⬜ Not Started |
-| 5.2 | **Payment Success** | `pages/Payment/PaymentSuccessPage.tsx` | `/payment/success` | None — no responsive code | ⬜ Not Started |
-| 5.3 | **Transactions** | `pages/Profile/TransactionsPage.tsx` | `/transactions` | None — no responsive code | ⬜ Not Started |
-| 5.4 | **Terms of Service** | `pages/Legal/TermsOfServicePage.tsx` | `/terms` | Partial — some responsive sx | ⬜ Not Started |
-| 5.5 | **Privacy Policy** | `pages/Legal/PrivacyPolicyPage.tsx` | `/privacy` | Partial — some responsive sx | ⬜ Not Started |
-| 5.6 | **Refund Policy** | `pages/Legal/RefundPolicyPage.tsx` | `/refund-policy` | Partial — some responsive sx | ⬜ Not Started |
-| 5.7 | **Analytics (old)** | `pages/Analytics/Analytics.tsx` | (if used) | None — verify if still used | ⬜ Not Started |
-| 5.8 | **Courses (old)** | `pages/Courses/Courses.tsx` | (if used) | None — verify if still used | ⬜ Not Started |
-| 5.9 | **Lesson (old)** | `pages/Lessons/Lesson.tsx` | (if used) | None — verify if still used | ⬜ Not Started |
-| 5.10 | **Profile (old)** | `pages/Profile/Profile.tsx` | (if used) | None — verify if still used | ⬜ Not Started |
+| 5.1 | **Course Checkout** | `pages/Payment/CourseCheckoutPage.tsx` | `/checkout/:id` | Fixed: PageContainer+PageTitle, all 3 return paths `pt:4`, responsive Grid 5/7 split, Paper `p:{xs:2,sm:3}` | ✅ Done |
+| 5.2 | **Payment Success** | `pages/Payment/PaymentSuccessPage.tsx` | `/payment/success` | Fixed: PageContainer maxWidth="md", all 3 return paths `pt:4` (flat), responsive h3/h4/h5 fontSize, Paper `p:{xs:2,sm:3,md:4}`, confetti window-resize handler | ✅ Done |
+| 5.3 | **Transactions** | `pages/Profile/TransactionsPage.tsx` | `/profile/transactions` | Fixed: PageContainer+PageTitle, useResponsive+isMobile, Table→Card layout on mobile, Dialog `fullScreen={isMobile}`, Refresh button `size={isMobile?'small':'medium'}`, responsive header flexWrap+gap | ✅ Done |
+| 5.4 | **Terms of Service** | `pages/Legal/TermsOfServicePage.tsx` | `/terms` | Fixed: PageContainer `disableBottomPad maxWidth="md"` on all 3 early-return paths, outer Box without `py`, responsive h3 fontSize, Paper `p:{xs:3,md:5}` | ✅ Done |
+| 5.5 | **Privacy Policy** | `pages/Legal/PrivacyPolicyPage.tsx` | `/privacy` | Fixed: Identical pattern to TermsOfServicePage — disableBottomPad, no py, responsive h3, responsive Paper | ✅ Done |
+| 5.6 | **Refund Policy** | `pages/Legal/RefundPolicyPage.tsx` | `/refund-policy` | Fixed: Identical pattern to TermsOfServicePage — disableBottomPad, no py, responsive h3, responsive Paper | ✅ Done |
+| 5.7 | **Analytics (old)** | `pages/Analytics/Analytics.tsx` | (unused) | **Deleted** — confirmed 0 imports in App.tsx; superseded by `AnalyticsHubPage.tsx` | ✅ Deleted |
+| 5.8 | **Courses (old)** | `pages/Courses/Courses.tsx` | (unused) | **Deleted** — confirmed 0 imports in App.tsx; superseded by `CoursesPage.tsx` | ✅ Deleted |
+| 5.9 | **Lesson (old)** | `pages/Lessons/Lesson.tsx` | (unused) | **Deleted** — confirmed 0 imports in App.tsx; superseded by `LessonDetailPage.tsx` | ✅ Deleted |
+| 5.10 | **Profile (old)** | `pages/Profile/Profile.tsx` | (unused) | **Deleted** — confirmed 0 imports in App.tsx; superseded by `ProfilePage.tsx` | ✅ Deleted |
 
-**Phase 5 Completion**: ⬜ 0/10
+**Phase 5 Completion**: ✅ 10/10 (6 optimized + 4 dead-code deleted)
 
 ---
 
@@ -203,8 +203,8 @@ Every page must meet ALL of these criteria to be marked "complete":
 | **Phase 2**: Core Student | 13 | 13 | ✅ 100% |
 | **Phase 3**: Collaboration | 7 | 7 | ✅ 100% |
 | **Phase 4**: Instructor | 19 | 19 | ✅ 100% |
-| **Phase 5**: Secondary | 10 | 0 | ⬜ 0% |
-| **TOTAL** | **73** | **63** | **🔄 86.3%** |
+| **Phase 5**: Secondary | 10 | 10 | ✅ 100% |
+| **TOTAL** | **73** | **73** | **✅ 100%** |
 
 ---
 
@@ -360,14 +360,12 @@ To prevent painful MUI version upgrades in the future, all design primitives are
 - [ ] Check MobileBottomNav is visible and not overlapping content
 - [ ] Check modals/dialogs don't have unreachable buttons
 
-### Deprecated/Unused Pages to Investigate
-The following pages may be unused (old versions superseded by newer implementations):
-- `pages/Analytics/Analytics.tsx` — possibly replaced by AnalyticsHubPage
-- `pages/Courses/Courses.tsx` — possibly replaced by CoursesPage
-- `pages/Lessons/Lesson.tsx` — possibly replaced by LessonDetailPage
-- `pages/Profile/Profile.tsx` — possibly replaced by ProfilePage
-
-**Action**: Verify if these are still routed in App.tsx. If not, skip optimization.
+### Deprecated/Unused Pages — Deleted (Feb 24, 2026)
+All 4 legacy pages confirmed dead (0 imports in App.tsx) and **permanently deleted**:
+- ~~`pages/Analytics/Analytics.tsx`~~ — superseded by `AnalyticsHubPage.tsx`
+- ~~`pages/Courses/Courses.tsx`~~ — superseded by `CoursesPage.tsx`
+- ~~`pages/Lessons/Lesson.tsx`~~ — superseded by `LessonDetailPage.tsx`
+- ~~`pages/Profile/Profile.tsx`~~ — superseded by `ProfilePage.tsx`
 
 ---
 
@@ -386,6 +384,7 @@ The following pages may be unused (old versions superseded by newer implementati
 | 7 | Feb 22, 2026 | **Phase 2 — 5-round exhaustive bug audit**: Systemic `py→pt` fix on 8 files/15 instances (consumer `py` silently overrides PageContainer base `pb:{xs:10,md:0}`). ProfilePage Tabs `variant="scrollable"`. SettingsPage: `theme` state renamed `colorTheme` to avoid MUI `useTheme()` collision; td `#666`/`#d32f2f` → palette tokens. CertificatePage `severity` made conditional (`info` for not-found, `error` for API failure). PublicCertificatePage error path missing `disableBottomPad`. StudentProgressDashboard internal padding removed (double-padding with PageContainer). MyLearningPage 4 hardcoded `rgba()` shadows → `alpha(theme.palette.*,…)`. 0 TS errors after every round. | 0 new pages (quality assurance) |
 | 8 | Feb 23, 2026 | **Phase 3 complete (7 pages)**: Chat.tsx (room/message mobile toggle, ArrowBack, responsive bubbles, fullScreen Dialog, Paper heights), LiveSessionsPage (PageContainer + responsive Paper), StudyGroupsPage (PageContainer+PageTitle, scrollable/fullWidth Tabs, responsive header/search/button), StudyGroupDetailPage (3× PageContainer, responsive Paper+typography+breadcrumbs), OfficeHoursPage (PageContainer+PageTitle, isMobile Tabs, disableBottomPad on error), Tutoring.tsx (PageContainer+PageTitle+ArrowBack, mobile auto-select guard, back clears messages+suggestions, loading has Header, fullScreen Dialog, responsive heights), PresencePage (PageContainer+PageTitle+responsive Paper). **5-round exhaustive bug audit — 8 bugs found and fixed**: B1 Tutoring auto-select bypassed session list on mobile (!isMobile guard); B2 Tutoring back didn't clear messages (setMessages([])); B3 Tutoring loading path missing Header; B4 All 7 pages doubled top spacing (removed pt:4/sx={{pt:4}} from all); B5 OfficeHours error path missing disableBottomPad; B6 Tutoring stale currentSuggestions across session switches (setCurrentSuggestions([]) in selectedSession useEffect); B7 Chat.tsx mobile Paper height calc(100vh-140px) too tall (→calc(100vh-170px)); B8 OfficeHours Tabs unconditionally scrollable on desktop (→isMobile?'scrollable':'fullWidth'). 0 TS errors after every round. | 7/7 (Phase 3), cumulative 44/73 |
 | 9 | Feb 23, 2026 | **Phase 4 complete (19 pages)**: All 19 Instructor pages mobile-optimized. InstructorDashboard (PageContainer+PageHeader, isMobile, scrollable Tabs, FAB `bottom:{xs:88,md:24}`, palette colors), CourseCreationForm (vertical Stepper on mobile, fullScreen dialogs), CourseEditPage (3× PageContainer, scrollable Tabs, responsive TabPanel padding), CourseDetailsEditor+CurriculumBuilder (embedded — flexWrap, palette color props), LessonEditor (Dialog fullScreen), CourseSettingsEditor (5 Papers responsive padding), StudentManagement (PageContainer, scrollable Tabs, 2× Dialog fullScreen), AnalyticsHubPage (PageContainer, responsive stats grid), CourseAnalyticsDashboard (PageContainer), VideoAnalyticsPage (PageContainer, responsive header+CourseSelector), EnhancedAssessmentAnalyticsDashboard (PageContainer, scrollable Tabs, responsive TabPanel), InstructorStudentAnalytics (PageContainer, Dialog fullScreen, responsive header), InterventionDashboard (PageContainer, scrollable Tabs), AssessmentManagementPage+CourseAssessmentManagementPage+AssessmentCreation/Edit/ViewPage (all PageContainer replacements, responsive h3 headings). **3-round exhaustive audit — 0 errors found** in all 3 passes. All original Containers were `maxWidth="xl"` (git-verified) — PageContainer default matches exactly. 0 TS errors throughout. | 19/19 (Phase 4), cumulative 63/73 |
+| 10 | Feb 24, 2026 | **Phase 5 complete (10/10)**: 6 pages mobile-optimized + 4 dead legacy files deleted. CourseCheckoutPage (PageContainer+PageTitle, `pt:4` on all 3 returns, Grid 5/7 split, responsive Paper padding), PaymentSuccessPage (PageContainer maxWidth="md", `pt:4` flat on all 3 returns, responsive h3/h4/h5 fontSize, responsive Paper padding), TransactionsPage (PageContainer+PageTitle, isMobile, Table→Card layout, Dialog fullScreen, responsive header/buttons), TermsOfServicePage+PrivacyPolicyPage+RefundPolicyPage (PageContainer disableBottomPad maxWidth="md" on ALL early-return paths, outer Box no py, responsive h3 fontSize, responsive Paper). Dead code deleted: `Analytics/Analytics.tsx`, `Courses/Courses.tsx`, `Lessons/Lesson.tsx`, `Profile/Profile.tsx` — all confirmed 0 imports (superseded by newer pages). **4-round exhaustive spacing audit** catching `pt+mt` stacking (14 fixes across 2 rounds), responsive `pt:{xs:4,md:8}` footgun on PaymentSuccessPage (1 fix in round 3), and a 4th clean pass. 0 TypeScript errors after every round. | 10/10 (Phase 5), cumulative 73/73 — ALL PHASES COMPLETE |
 
 ---
 

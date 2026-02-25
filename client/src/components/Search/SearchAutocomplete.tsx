@@ -368,7 +368,13 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
           transition
           disablePortal
           style={{
-            width: containerRef.current?.offsetWidth || 'auto',
+            width: (() => {
+              const containerWidth = containerRef.current?.offsetWidth ?? 240;
+              if (variant === 'header') {
+                return Math.min(Math.max(containerWidth, 400), window.innerWidth - 16);
+              }
+              return containerWidth || 'auto';
+            })(),
             zIndex: 1300,
           }}
           modifiers={[

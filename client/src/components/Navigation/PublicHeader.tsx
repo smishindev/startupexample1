@@ -210,6 +210,7 @@ export const PublicHeader: React.FC<PublicHeaderProps> = ({ hideSearch = false, 
               variant="header"
               placeholder="Search courses..."
               testIdPrefix="public-header-mobile-search"
+              onNavigate={() => setMobileMenuOpen(false)}
             />
           </Box>
         )}

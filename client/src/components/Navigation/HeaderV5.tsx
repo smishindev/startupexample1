@@ -184,8 +184,8 @@ export const HeaderV5: React.FC = () => {
             </Box>
           )}
 
-          {/* Spacer */}
-          <Box sx={{ flexGrow: 1 }} />
+          {/* Spacer – collapse when mobile search is expanded so it gets full width */}
+          {!(isMobile && searchExpanded) && <Box sx={{ flexGrow: 1 }} />}
 
           {/* Search */}
           {isMobile ? (
@@ -204,6 +204,8 @@ export const HeaderV5: React.FC = () => {
                     variant="header"
                     placeholder="Search courses..."
                     testIdPrefix="header-search-mobile"
+                    autoFocus
+                    onNavigate={() => setSearchExpanded(false)}
                   />
                 </Box>
                 <IconButton

@@ -4,7 +4,7 @@
  * Used in PublicHeader and LandingPage hero search.
  */
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useLayoutEffect } from 'react';
 import {
   Box,
   Typography,
@@ -125,10 +125,14 @@ interface SearchAutocompleteProps {
   placeholder?: string;
   /** Called on form submission (Enter key) with the query string */
   onSubmit?: (query: string) => void;
+  /** Called whenever the component triggers navigation (result click, view all, submit) */
+  onNavigate?: () => void;
   /** Additional test ID prefix */
   testIdPrefix?: string;
   /** Show the "Search" button (hero variant) */
   showButton?: boolean;
+  /** Auto-focus the input when mounted */
+  autoFocus?: boolean;
 }
 
 // ─── Component ────────────────────────────────────────────────────────
@@ -137,8 +141,10 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
   variant,
   placeholder = 'What do you want to learn?',
   onSubmit,
+  onNavigate,
   testIdPrefix = 'search-autocomplete',
   showButton = false,
+  autoFocus = false,
 }) => {
   const navigate = useNavigate();
   const [query, setQuery] = useState('');
@@ -148,6 +154,7 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
   const [focusedIndex, setFocusedIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const popperRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const requestIdRef = useRef(0); // Guard against stale responses from out-of-order API calls
 
@@ -212,6 +219,7 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
       navigate(`/courses?search=${encodeURIComponent(query.trim())}`);
     }
     setQuery('');
+    onNavigate?.();
   };
 
   const handleResultClick = (courseId: string) => {
@@ -219,6 +227,7 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
     setIsOpen(false);
     setQuery('');
     navigate(`/courses/${courseId}`);
+    onNavigate?.();
   };
 
   const handleViewAll = () => {
@@ -227,6 +236,7 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
     setIsOpen(false);
     navigate(`/courses?search=${encodeURIComponent(query.trim())}`);
     setQuery('');
+    onNavigate?.();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -263,6 +273,7 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
         }
         break;
       case 'Escape':
+        e.stopPropagation(); // Prevent parent drawer/modal from also closing
         setIsOpen(false);
         setFocusedIndex(-1);
         break;
@@ -275,10 +286,27 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
     }
   };
 
-  const handleClickAway = () => {
+  const handleClickAway = (event: MouseEvent | TouchEvent) => {
+    // Don't close if the click landed inside the portal-rendered Popper dropdown
+    if (popperRef.current && popperRef.current.contains(event.target as Node)) {
+      return;
+    }
     setIsOpen(false);
     setFocusedIndex(-1);
   };
+
+  // Programmatically focus the input when autoFocus is requested.
+  // Native autoFocus is unreliable on mobile (browsers ignore it to avoid
+  // surprise keyboard pop-ups), so we use a layout-effect + small delay.
+  useLayoutEffect(() => {
+    if (autoFocus) {
+      // Immediate attempt (works on desktop)
+      inputRef.current?.focus();
+      // Delayed attempt (handles drawer/modal exit animations)
+      const timer = setTimeout(() => inputRef.current?.focus(), 350);
+      return () => clearTimeout(timer);
+    }
+  }, [autoFocus]);
 
   // Cleanup debounce on unmount
   useEffect(() => {
@@ -291,7 +319,11 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
 
   return (
     <ClickAwayListener onClickAway={handleClickAway}>
-      <SearchContainer ref={containerRef} variant={variant}>
+      <SearchContainer
+        ref={containerRef}
+        variant={variant}
+        onClick={() => inputRef.current?.focus()}
+      >
         <form onSubmit={handleSubmit} style={{ width: '100%' }}>
           <SearchInputWrapper variant={variant}>
             {/* Search Icon */}
@@ -322,6 +354,7 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
               onChange={handleInputChange}
               onKeyDown={handleKeyDown}
               onFocus={handleFocus}
+              autoFocus={autoFocus}
               searchVariant={variant}
               inputProps={{
                 'aria-label': 'search courses',
@@ -366,7 +399,7 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
           anchorEl={containerRef.current}
           placement="bottom-start"
           transition
-          disablePortal
+          ref={popperRef}
           style={{
             width: (() => {
               const containerWidth = containerRef.current?.offsetWidth ?? 240;
@@ -375,7 +408,7 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
               }
               return containerWidth || 'auto';
             })(),
-            zIndex: 1300,
+            zIndex: 1500,
           }}
           modifiers={[
             {

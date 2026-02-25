@@ -16,21 +16,20 @@ import {
   Avatar,
   IconButton,
   Collapse,
-  InputBase,
   alpha,
   useTheme,
 } from '@mui/material';
 import {
   Close as CloseIcon,
-  Search as SearchIcon,
   ExpandLess,
   ExpandMore,
   AccountCircle,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { navGroups, profileMenuItems, filterByRole } from '../../config/navigation';
+import { navGroups, filterByRole } from '../../config/navigation';
 import { useAuthStore } from '../../stores/authStore';
 import PresenceStatusSelector from '../Presence/PresenceStatusSelector';
+import { SearchAutocomplete } from '../Search/SearchAutocomplete';
 
 interface MobileNavDrawerProps {
   /** Whether the drawer is open */
@@ -43,15 +42,12 @@ export const MobileNavDrawer: React.FC<MobileNavDrawerProps> = ({ open, onClose 
   const theme = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, logout } = useAuthStore();
+  const { user } = useAuthStore();
   
   // Track which groups are expanded
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
     learning: true, // Default expanded
   });
-  
-  // Search state
-  const [searchQuery, setSearchQuery] = useState('');
 
   // Toggle group expansion
   const toggleGroup = (groupId: string) => {
@@ -67,31 +63,12 @@ export const MobileNavDrawer: React.FC<MobileNavDrawerProps> = ({ open, onClose 
     onClose();
   };
 
-  // Handle logout
-  const handleLogout = async () => {
-    onClose();
-    await logout();
-    navigate('/login');
-  };
-
-  // Handle search
-  const handleSearch = (event: React.FormEvent) => {
-    event.preventDefault();
-    if (searchQuery.trim()) {
-      navigate(`/courses?search=${encodeURIComponent(searchQuery.trim())}`);
-      setSearchQuery('');
-      onClose();
-    }
-  };
-
   // Check if path is active
   const isActive = (path: string) => 
     location.pathname === path || location.pathname.startsWith(path + '/');
 
   // Filter groups by role
   const visibleGroups = filterByRole(navGroups, user?.role);
-  const visibleProfileItems = filterByRole(profileMenuItems, user?.role);
-
   // Get dynamic label for My Learning
   const getDynamicLabel = (itemId: string, defaultLabel: string) => {
     if (itemId === 'my-learning' && user?.role === 'instructor') {
@@ -163,29 +140,13 @@ export const MobileNavDrawer: React.FC<MobileNavDrawerProps> = ({ open, onClose 
       </Box>
 
       {/* Search */}
-      <Box sx={{ p: 2, borderBottom: `1px solid ${theme.palette.divider}` }}>
-        <Box
-          component="form"
-          onSubmit={handleSearch}
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            backgroundColor: alpha(theme.palette.primary.main, 0.04),
-            borderRadius: 2,
-            px: 2,
-            py: 0.5,
-            border: `1px solid ${theme.palette.divider}`,
-          }}
-        >
-          <SearchIcon sx={{ color: 'text.secondary', mr: 1 }} />
-          <InputBase
-            placeholder="Search courses..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            sx={{ flex: 1, fontSize: '0.9rem' }}
-            data-testid="mobile-drawer-search"
-          />
-        </Box>
+      <Box sx={{ px: 2, py: 1.5, borderBottom: `1px solid ${theme.palette.divider}` }}>
+        <SearchAutocomplete
+          variant="header"
+          placeholder="Search courses..."
+          testIdPrefix="drawer-search"
+          onNavigate={onClose}
+        />
       </Box>
 
       {/* Navigation Groups */}
@@ -265,49 +226,6 @@ export const MobileNavDrawer: React.FC<MobileNavDrawerProps> = ({ open, onClose 
         </List>
       </Box>
 
-      {/* Profile Section */}
-      <Divider />
-      <List sx={{ py: 1 }}>
-        {visibleProfileItems.map((item) => {
-          if (item.action === 'divider') {
-            return <Divider key={item.id} sx={{ my: 0.5 }} />;
-          }
-
-          return (
-            <ListItemButton
-              key={item.id}
-              onClick={() => {
-                if (item.action === 'logout') {
-                  handleLogout();
-                } else if (item.path) {
-                  handleNavigate(item.path);
-                }
-              }}
-              data-testid={`header-mobile-profile-${item.label.toLowerCase()}`}
-              sx={{
-                py: 1,
-                color: item.action === 'logout' ? theme.palette.error.main : 'inherit',
-              }}
-            >
-              <ListItemIcon
-                sx={{
-                  minWidth: 40,
-                  color: item.action === 'logout' ? theme.palette.error.main : 'inherit',
-                }}
-              >
-                {item.icon}
-              </ListItemIcon>
-              <ListItemText
-                primary={item.label}
-                primaryTypographyProps={{
-                  fontSize: '0.875rem',
-                  fontWeight: item.action === 'logout' ? 500 : 400,
-                }}
-              />
-            </ListItemButton>
-          );
-        })}
-      </List>
     </Drawer>
   );
 };

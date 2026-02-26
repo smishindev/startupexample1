@@ -3,7 +3,6 @@
  */
 
 export { HeaderV5 } from './HeaderV5';
-export { PageHeader } from './PageHeader';
 export { MegaMenuDropdown } from './MegaMenuDropdown';
 export { MobileBottomNav } from './MobileBottomNav';
 export { MobileNavDrawer } from './MobileNavDrawer';

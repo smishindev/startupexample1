@@ -46,11 +46,10 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 import { HeaderV5 as Header } from '../../components/Navigation/HeaderV5';
-import { PageHeader } from '../../components/Navigation/PageHeader';
 import { instructorApi, InstructorStats, InstructorCourse, PendingEnrollment } from '../../services/instructorApi';
 import { formatCategory, getCategoryGradient } from '../../utils/courseHelpers';
 import { useCatalogRealtimeUpdates } from '../../hooks/useCatalogRealtimeUpdates';
-import { PageContainer, useResponsive } from '../../components/Responsive';
+import { PageContainer, PageTitle, useResponsive } from '../../components/Responsive';
 
 export const InstructorDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -256,23 +255,26 @@ export const InstructorDashboard: React.FC = () => {
   return (
     <>
       <Header />
-      <PageHeader
-        title="Instructor Dashboard"
-        subtitle="Manage your courses and track your teaching performance"
-        icon={<SchoolIcon sx={{ fontSize: 32 }} />}
-        actions={
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => navigate('/instructor/courses/create?type=blank')}
-            sx={{ borderRadius: 2 }}
-            data-testid="instructor-create-course-header-button"
-          >
-            Create Course
-          </Button>
-        }
-      />
       <PageContainer>
+
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 2, mb: 3 }}>
+        <PageTitle
+          subtitle="Manage your courses and track your teaching performance"
+          icon={<SchoolIcon sx={{ fontSize: 28 }} />}
+        >
+          Instructor Dashboard
+        </PageTitle>
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={() => navigate('/instructor/courses/create?type=blank')}
+          sx={{ borderRadius: 2 }}
+          size={isMobile ? 'small' : 'medium'}
+          data-testid="instructor-create-course-header-button"
+        >
+          Create Course
+        </Button>
+      </Box>
 
       {/* Stats Overview - 4 primary cards */}
       <Grid container spacing={3} sx={{ mb: 3 }}>

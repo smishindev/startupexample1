@@ -2417,7 +2417,6 @@ components/
 │   ├── MegaMenuDropdown.tsx - Desktop dropdown menus with icons/descriptions
 │   ├── MobileBottomNav.tsx - Fixed bottom navigation for mobile (64px)
 │   ├── MobileNavDrawer.tsx - Full-screen mobile navigation drawer
-│   ├── PageHeader.tsx - Page-specific header component
 │   └── index.ts - Barrel exports
 ├── Layout/
 │   ├── Layout.tsx - Main layout wrapper

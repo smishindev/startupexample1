@@ -2,7 +2,7 @@
 
 **Purpose**: Systematic checklist to follow before implementing changes  
 **Goal**: Reduce errors, missing considerations, and broken functionality  
-**Last Updated**: February 24, 2026 - Mobile Optimization Phases 6–18 Complete — 129 Sub-Component Items Fixed 📱
+**Last Updated**: February 26, 2026 - Sticky PageHeader UX Fix — InstructorDashboard + CourseAnalyticsDashboard Refactored 🎨
 
 ---
 
@@ -69,6 +69,12 @@
   - **Dead code cleanup**: Before mobile-optimizing a page, verify it’s actually imported in App.tsx. If it has 0 imports and a newer replacement exists, delete it instead.
   - Files (Phase 5): `CourseCheckoutPage.tsx`, `PaymentSuccessPage.tsx`, `TransactionsPage.tsx`, `TermsOfServicePage.tsx`, `PrivacyPolicyPage.tsx`, `RefundPolicyPage.tsx`
   - Files (deleted): `pages/Analytics/Analytics.tsx`, `pages/Courses/Courses.tsx`, `pages/Lessons/Lesson.tsx`, `pages/Profile/Profile.tsx`
+- [x] **Sticky PageHeader UX Fix** - PRODUCTION READY (Feb 26, 2026) 🎨
+  - `PageHeader` component deleted — it was a sticky sub-header consuming ~100px of fixed mobile screen space, used by only 2 pages out of 73.
+  - **Never use sticky sub-headers between AppBar and page content**: use inline `PageTitle` (non-sticky, scrolls with content) for all page headings.
+  - **All page headings must use** `PageTitle` from `../../components/Responsive` — consistent with all 73 pages in the platform.
+  - Files (deleted): `components/Navigation/PageHeader.tsx`, barrel export removed from `Navigation/index.ts`
+  - Files (updated): `InstructorDashboard.tsx`, `CourseAnalyticsDashboard.tsx`
 - [x] **Mobile Optimization Phases 6–18 (Sub-Components)** - PRODUCTION READY (Feb 24, 2026) 📱
   - 129 items fixed across 13 phases — all sub-components, layouts, and theme-level fixes. 0 TypeScript errors throughout.
   - **All `<Dialog>` must have `fullScreen={isMobile}`**: checked 18 dialogs across 12 files — missed dialogs in sub-components not covered by pages audit. Always grep for `<Dialog` after adding/editing components.

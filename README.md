@@ -4,7 +4,7 @@
 
 An innovative EdTech startup providing personalized learning experiences through AI tutoring, adaptive content delivery, and comprehensive progress analytics.
 
-**Last Major Update**: February 24, 2026 - Mobile Optimization Phases 6–18 Complete — All Sub-Components Exhaustively Fixed (129 Total Items) 📱  
+**Last Major Update**: February 26, 2026 - Sticky PageHeader UX Fix — Instructor pages now use inline PageTitle (consistent with all 73 pages, ~100px mobile screen space reclaimed) 🎨  
 **Code Quality**: Grade A (95/100) - 85% type safety, 70% logging coverage, 0 TypeScript errors
 
 ## 🚀 Features
@@ -25,6 +25,7 @@ An innovative EdTech startup providing personalized learning experiences through
   - **Reusable Component**: Two variants (header: compact for nav bars, hero: larger for landing page with button)
   - **Universal Integration**: PublicHeader (guest), HeaderV5 (authenticated), LandingPage hero
   - **Bug Fixes**: Regex global flag drift, DOM prop warnings, modulo-by-zero crashes, stale debounce cleanup
+- **Sticky PageHeader UX Fix** — Removed sticky `PageHeader` component from InstructorDashboard and CourseAnalyticsDashboard; both now use inline `PageTitle` (non-sticky, scrolls with content — consistent with all 71 other pages); reclaims ~100px of fixed mobile screen space; `PageHeader.tsx` deleted (February 26, 2026) 🎨
 - **Mobile Optimization Phases 6–18** - Exhaustive sub-component audit; **129 total items fixed** across 13 passes (February 24, 2026) 📱
   - **Phase 6–11**: Dialogs `fullScreen={isMobile}` (18 dialogs across 12 sub-components), TableContainer `overflowX:auto` (7 tables), FAB/Snackbar bottom offset for MobileBottomNav (`bottom:{xs:88,md:24}`), chip/tag rows `flexWrap+gap`, iOS Safari zoom prevention (MuiInputBase `fontSize:1rem` in theme)
   - **Phase 12–14**: Chip rows 2nd pass, Snackbar bottom offset + CSS `transition:all` scoped to visual-only properties, ListItemSecondaryAction button overlap (responsive `pr` on ListItem)

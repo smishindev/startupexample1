@@ -51,8 +51,7 @@ import {
   Cell
 } from 'recharts';
 import { HeaderV5 as Header } from '../../components/Navigation/HeaderV5';
-import { PageContainer } from '../../components/Responsive';
-import { PageHeader } from '../../components/Navigation/PageHeader';
+import { PageContainer, PageTitle } from '../../components/Responsive';
 import { analyticsApi, type CourseAnalytics, type DashboardAnalytics } from '../../services/analyticsApi';
 import { instructorApi, type InstructorCourse } from '../../services/instructorApi';
 import { CourseSelector } from '../../components/Common/CourseSelector';
@@ -158,32 +157,34 @@ export const CourseAnalyticsDashboard: React.FC = () => {
   return (
     <>
       <Header />
-      <PageHeader
-        title="Analytics Hub"
-        subtitle={selectedCourse === 'dashboard' 
-          ? 'Overview of all your courses' 
-          : courses.find(c => c.id?.toString() === selectedCourse)?.title || 'Course Analytics'
-        }
-        icon={<TrendingUpIcon sx={{ fontSize: 32 }} />}
-        actions={
-          <Box display="flex" alignItems="center" gap={1}>
-            <IconButton onClick={handleRefresh} color="primary" size="small" disabled={loading} data-testid="course-analytics-refresh-button">
-              <RefreshIcon />
-            </IconButton>
-            <CourseSelector
-              courses={courses}
-              value={selectedCourse}
-              onChange={(id: string) => setSelectedCourse(id)}
-              allOption={{ value: 'dashboard', label: 'All Courses Overview' }}
-              disabled={loading}
-              size="small"
-              sx={{ minWidth: 200 }}
-              testId="course-analytics-course-select"
-            />
-          </Box>
-        }
-      />
       <PageContainer>
+
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 2, mb: 3 }}>
+        <PageTitle
+          subtitle={selectedCourse === 'dashboard' 
+            ? 'Overview of all your courses' 
+            : courses.find(c => c.id?.toString() === selectedCourse)?.title || 'Course Analytics'
+          }
+          icon={<TrendingUpIcon sx={{ fontSize: 28 }} />}
+        >
+          Analytics Hub
+        </PageTitle>
+        <Box display="flex" alignItems="center" gap={1}>
+          <IconButton onClick={handleRefresh} color="primary" size="small" disabled={loading} data-testid="course-analytics-refresh-button">
+            <RefreshIcon />
+          </IconButton>
+          <CourseSelector
+            courses={courses}
+            value={selectedCourse}
+            onChange={(id: string) => setSelectedCourse(id)}
+            allOption={{ value: 'dashboard', label: 'All Courses Overview' }}
+            disabled={loading}
+            size="small"
+            sx={{ minWidth: 200 }}
+            testId="course-analytics-course-select"
+          />
+        </Box>
+      </Box>
 
         {coursesError && (
           <Alert severity="warning" sx={{ mb: 2 }}>{coursesError}</Alert>

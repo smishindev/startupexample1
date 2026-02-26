@@ -1,6 +1,6 @@
 ﻿# Mishin Learn Platform - Project Status & Memory
 
-**Last Updated**: February 24, 2026 - Mobile Optimization Phases 6–18 Complete — 129 Sub-Component Items Fixed 📱  
+**Last Updated**: February 26, 2026 - Sticky PageHeader UX Fix — InstructorDashboard + CourseAnalyticsDashboard Refactored to Inline PageTitle 🎨  
 **Developer**: Sergey Mishin (s.mishin.dev@gmail.com)  
 **AI Assistant Context**: This file serves as project memory for continuity across chat sessions
 
@@ -20,6 +20,7 @@
 **CourseSelector**: Unified reusable course dropdown replacing 9 inline implementations; lazy rendering, type-to-search, helper text (February 19, 2026) 🔽  
 **Mobile Optimization Phase 1**: Responsive library (8 files) created; all 9 critical-path pages fully mobile-optimized (February 21, 2026) 📱  
 **Mobile Optimization Phase 2**: All 12 core student pages mobile-optimized; systemic `py→pt` bug fixed; 5-round exhaustive audit; 37/73 pages done (50.7%), 0 TypeScript errors (February 22, 2026) 📱  
+**Sticky PageHeader UX Fix**: Removed sticky `PageHeader` component (deleted); `InstructorDashboard` + `CourseAnalyticsDashboard` now use inline `PageTitle` (scrolls with content — consistent with all other 71 pages); freed ~100px fixed mobile screen space; `Navigation/index.ts` barrel export updated; 0 TypeScript errors (February 26, 2026) 🎨  
 **Mobile Optimization Phases 6–18**: Exhaustive sub-component audit — 129 items fixed across dialogs, tables, FABs, Snackbars, chip rows, iOS zoom, transitions, ListItemSecondaryAction, Pagination, AccordionSummary, FileUpload, Stack conflicts, breakpoints, Tabs, Breadcrumbs; 0 TypeScript errors throughout (February 24, 2026) 📱  
 **Mobile Optimization Phase 5**: All 6 Payment/Legal pages mobile-optimized; 4 dead legacy pages deleted; 4-round exhaustive audit (0 errors); 73/73 pages done (100%), 0 TypeScript errors (February 24, 2026) 📱  
 **Mobile Optimization Phase 4**: All 19 Instructor pages mobile-optimized; 3-round exhaustive audit (0 errors found); 63/73 pages done (86.3%), 0 TypeScript errors (February 23, 2026) 📱  
@@ -155,7 +156,7 @@
 
 | # | Page | Key Changes |
 |---|------|-------------|
-| 4.1 | `InstructorDashboard.tsx` | Container→PageContainer+PageHeader, useResponsive+isMobile, Tabs scrollable on mobile, FAB `bottom:{xs:88,md:24}`, `#ffc107`→`warning.main` |
+| 4.1 | `InstructorDashboard.tsx` | Container→PageContainer+PageTitle (inline, non-sticky — PageHeader deleted Feb 26, 2026), useResponsive+isMobile, Tabs scrollable on mobile, FAB `bottom:{xs:88,md:24}`, `#ffc107`→`warning.main` |
 | 4.2 | `CourseCreationForm.tsx` | Header+PageContainer, Stepper `orientation={isMobile?'vertical':'horizontal'}` + `alternativeLabel={!isMobile}`, 2× Dialog `fullScreen={isMobile}` |
 | 4.3 | `CourseEditPage.tsx` | 3× Container→PageContainer (loading/error/main), Tabs `variant={isMobile?'scrollable':'fullWidth'}`, TabPanel `p:{xs:1,sm:2,md:3}` |
 | 4.4 | `CourseDetailsEditor.tsx` | header `flexWrap+gap` (embedded component, no PageContainer) |
@@ -180,7 +181,7 @@
 | Round | Scope | Result |
 |-------|-------|--------|
 | 1 | PageContainer props, Container removals, all JSX checked | ✅ 0 errors |
-| 2 | `useResponsive`/`isMobile` balance, no Container imports, Dialog fullScreen, PageHeader padding | ✅ 0 errors |
+| 2 | `useResponsive`/`isMobile` balance, no Container imports, Dialog fullScreen, page title padding | ✅ 0 errors |
 | 3 | TypeScript compiler: 0 errors; grep: 0 Container remnants | ✅ 0 errors |
 
 ---

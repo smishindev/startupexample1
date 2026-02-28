@@ -3062,6 +3062,43 @@ lessons.map(lesson => {
 
 ---
 
+### Lesson Content Item Renderers (Updated February 28, 2026)
+
+**Directory**: `client/src/components/Lesson/`
+
+These components render individual lesson content items on the student-facing LessonDetailPage. They are all routed through `ContentItem.tsx` which switches on `content.type`.
+
+#### ContentItem (Router)
+**Path**: `client/src/components/Lesson/ContentItem.tsx`  
+**Purpose**: Routes to the correct renderer based on `content.type` (`video` → VideoContentItem, `text` → TextContentItem, `quiz` → QuizContentItem). Passes all props including `content` through `{...props}`.
+
+#### VideoContentItem
+**Path**: `client/src/components/Lesson/VideoContentItem.tsx` (~225 lines)  
+**Purpose**: Video content renderer with player, transcript, and progress tracking  
+**Title Logic** (Feb 28, 2026): Custom title from `content.data?.title` displayed with smart fallback — custom title alone if no real file, custom title + `: filename` if file exists, or `Video #N: filename` as default  
+**Components Used**: `VideoPlayer`, `VideoTranscript`  
+**Services Used**: `videoProgressApi`
+
+#### TextContentItem
+**Path**: `client/src/components/Lesson/TextContentItem.tsx` (~100 lines)  
+**Purpose**: Text/article content renderer with Markdown/HTML display  
+**Title Logic** (Feb 28, 2026): Uses `content.data?.title || 'Text Content #N'` fallback
+
+#### QuizContentItem
+**Path**: `client/src/components/Lesson/QuizContentItem.tsx` (~45 lines)  
+**Purpose**: Quiz placeholder content renderer  
+**Title Logic** (Feb 28, 2026): Uses `content.data?.title || 'Quiz #N'` fallback
+
+#### Custom Title Data Flow
+```
+Instructor sets title (LessonEditor / CourseCreationForm)
+→ stored in item.data.title (ContentJson array)
+→ backend stores in Lessons.ContentJson (NVARCHAR(MAX))
+→ student renderers display custom title or auto-generated fallback
+```
+
+---
+
 ### InstructorDashboard
 **Path**: `client/src/pages/Instructor/InstructorDashboard.tsx`  
 **Route**: `/instructor/dashboard`  
@@ -3084,9 +3121,9 @@ lessons.map(lesson => {
 - MUI Grid, Card, etc.
 
 **Related Components**:
-- `CourseCreationForm` - Create new course
+- `CourseCreationForm` - Create new course (includes optional content title field)
 - `CourseDetailPage` - Preview course
-- `LessonEditor` - Edit lessons
+- `LessonEditor` - Edit lessons (includes inline content title editing)
 
 **Used By**:
 - App.tsx route (`/instructor/dashboard`)

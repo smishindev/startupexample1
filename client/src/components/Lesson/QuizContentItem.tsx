@@ -12,6 +12,7 @@ interface QuizContentItemProps {
 }
 
 export const QuizContentItem: React.FC<QuizContentItemProps> = ({
+  content,
   index,
   onComplete,
   isCompleted
@@ -20,7 +21,7 @@ export const QuizContentItem: React.FC<QuizContentItemProps> = ({
     <Paper elevation={2} sx={{ p: 3, textAlign: 'center' }}>
       <QuizIcon sx={{ fontSize: 60, color: 'primary.main', mb: 2 }} />
       <Typography variant="h5" gutterBottom>
-        Quiz #{index + 1}
+        {content.data?.title || `Quiz #${index + 1}`}
       </Typography>
       <Alert severity="info" sx={{ my: 2 }}>
         Quiz functionality coming soon! This feature will be available in a future update.

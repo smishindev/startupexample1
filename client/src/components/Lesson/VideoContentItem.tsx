@@ -167,7 +167,9 @@ export const VideoContentItem: React.FC<VideoContentItemProps> = ({
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Box>
             <Typography variant="h6" gutterBottom>
-              Video #{index + 1}: {fileName}
+              {content.data?.title
+                ? `${content.data.title}${content.data?.fileName || content.data?.originalName ? `: ${content.data.fileName || content.data.originalName}` : ''}`
+                : `Video #${index + 1}: ${fileName}`}
             </Typography>
             <Typography variant="body2" color="text.secondary">
               {videoDurationMinutes > 0 ? `${videoDurationMinutes} minutes` : 'Video content'}

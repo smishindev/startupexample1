@@ -2437,6 +2437,11 @@ components/
 ├── Video/
 │   ├── VideoPlayer.tsx - Video player with progress
 │   └── VideoTranscript.tsx - Interactive transcript
+├── Lesson/
+│   ├── ContentItem.tsx - Router: delegates to Video/Text/Quiz renderer by content.type
+│   ├── VideoContentItem.tsx - Video content with player, transcript, progress
+│   ├── TextContentItem.tsx - Text/article content with Markdown/HTML
+│   └── QuizContentItem.tsx - Quiz placeholder content
 └── Auth/
     ├── ProtectedRoute.tsx - Auth guard
     └── TokenExpirationWarning.tsx - Session warning

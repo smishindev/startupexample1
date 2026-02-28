@@ -1417,7 +1417,7 @@ export const CourseCreationForm: React.FC = () => {
                         {getLessonIcon(item.type)}
                       </ListItemIcon>
                       <ListItemText
-                        primary={`${item.type.charAt(0).toUpperCase() + item.type.slice(1)} Content #${index + 1}`}
+                        primary={item.data?.title || `${item.type.charAt(0).toUpperCase() + item.type.slice(1)} Content #${index + 1}`}
                         secondary={
                           item.type === 'video' 
                             ? (item.data.fileName || item.data.url || 'Not configured')
@@ -1459,6 +1459,21 @@ export const CourseCreationForm: React.FC = () => {
         </DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Title (optional)"
+                value={currentContentItem.data?.title || ''}
+                onChange={(e) => setCurrentContentItem(prev => ({
+                  ...prev,
+                  data: { ...prev.data, title: e.target.value }
+                }))}
+                placeholder={`e.g. Introduction, Setup Tutorial...`}
+                helperText="Leave blank to use the default name"
+                inputProps={{ maxLength: 100 }}
+                data-testid="course-creation-content-title-input"
+              />
+            </Grid>
             {currentContentItem.type === 'video' && (
               <>
                 <Grid item xs={12}>

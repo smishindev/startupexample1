@@ -30,7 +30,10 @@ import {
   Article as TextIcon,
   Quiz as QuizIcon,
   KeyboardArrowUp as ArrowUpIcon,
-  KeyboardArrowDown as ArrowDownIcon
+  KeyboardArrowDown as ArrowDownIcon,
+  Edit as EditIcon,
+  Check as CheckIcon,
+  Close as CloseIcon
 } from '@mui/icons-material';
 import { Lesson, LessonContent, lessonApi, createVideoContent, createTextContent } from '../../services/lessonApi';
 import { FileUpload } from '../../components/Upload/FileUpload';
@@ -79,6 +82,10 @@ export const LessonEditor: React.FC<LessonEditorProps> = ({
   // File upload state for each content item
   const [useFileUpload, setUseFileUpload] = useState<{ [key: number]: boolean }>({});
 
+  // Inline title editing state
+  const [editingTitleIndex, setEditingTitleIndex] = useState<number | null>(null);
+  const [editingTitleValue, setEditingTitleValue] = useState('');
+
   const steps = ['Basic Information', 'Content', 'Settings'];
 
   useEffect(() => {
@@ -120,6 +127,8 @@ export const LessonEditor: React.FC<LessonEditorProps> = ({
       setContent([]);
     }
     setActiveStep(0);
+    setEditingTitleIndex(null);
+    setEditingTitleValue('');
     if (!lesson) setError(null); // Only clear error for new lessons
   }, [open, lesson]);
 
@@ -218,6 +227,15 @@ export const LessonEditor: React.FC<LessonEditorProps> = ({
   };
 
   const removeContent = (index: number) => {
+    // Reset title editing if removing the item being edited, or adjust index
+    if (editingTitleIndex !== null) {
+      if (editingTitleIndex === index) {
+        setEditingTitleIndex(null);
+        setEditingTitleValue('');
+      } else if (editingTitleIndex > index) {
+        setEditingTitleIndex(editingTitleIndex - 1);
+      }
+    }
     setContent(prev => prev.filter((_, i) => i !== index));
   };
 
@@ -229,9 +247,19 @@ export const LessonEditor: React.FC<LessonEditorProps> = ({
       return;
     }
 
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+
+    // Track title editing index through reorder
+    if (editingTitleIndex !== null) {
+      if (editingTitleIndex === index) {
+        setEditingTitleIndex(targetIndex);
+      } else if (editingTitleIndex === targetIndex) {
+        setEditingTitleIndex(index);
+      }
+    }
+
     setContent(prev => {
       const newContent = [...prev];
-      const targetIndex = direction === 'up' ? index - 1 : index + 1;
       [newContent[index], newContent[targetIndex]] = [newContent[targetIndex], newContent[index]];
       return newContent;
     });
@@ -262,6 +290,30 @@ export const LessonEditor: React.FC<LessonEditorProps> = ({
       ...prev,
       [index]: !prev[index]
     }));
+  };
+
+  const getContentTitle = (item: LessonContent, index: number) => {
+    return item.data?.title || `${contentTypeLabels[item.type]} #${index + 1}`;
+  };
+
+  const startEditingTitle = (e: React.MouseEvent, index: number, item: LessonContent) => {
+    e.stopPropagation();
+    setEditingTitleIndex(index);
+    setEditingTitleValue(item.data?.title || '');
+  };
+
+  const confirmTitleEdit = (e: React.MouseEvent, index: number) => {
+    e.stopPropagation();
+    const trimmed = editingTitleValue.trim();
+    updateContent(index, { title: trimmed || undefined });
+    setEditingTitleIndex(null);
+    setEditingTitleValue('');
+  };
+
+  const cancelTitleEdit = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingTitleIndex(null);
+    setEditingTitleValue('');
   };
 
   const renderBasicInfo = () => (
@@ -348,20 +400,57 @@ export const LessonEditor: React.FC<LessonEditorProps> = ({
                   <DragIcon sx={{ mr: 1, color: 'text.secondary', display: { xs: 'none', sm: 'block' } }} />
                   {contentTypeIcons[item.type]}
                   <Box sx={{ ml: 1, flexGrow: 1, minWidth: 0 }}>
-                    <Typography component="span" fontWeight={500} noWrap sx={{ display: 'block' }}>
-                      {contentTypeLabels[item.type]} #{index + 1}
-                    </Typography>
-                    {item.type === 'video' && item.data.fileName && (
+                    {editingTitleIndex === index ? (
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }} onClick={(e) => e.stopPropagation()}>
+                        <TextField
+                          size="small"
+                          value={editingTitleValue}
+                          onChange={(e) => setEditingTitleValue(e.target.value)}
+                          placeholder={`${contentTypeLabels[item.type]} #${index + 1}`}
+                          autoFocus
+                          onKeyDown={(e) => {
+                            e.stopPropagation();
+                            if (e.key === 'Enter') confirmTitleEdit(e as any, index);
+                            if (e.key === 'Escape') cancelTitleEdit(e as any);
+                          }}
+                          sx={{ flexGrow: 1, '& .MuiInputBase-input': { py: 0.5, fontSize: '0.875rem' } }}
+                          inputProps={{ maxLength: 100 }}
+                          data-testid={`lesson-editor-content-title-input-${index}`}
+                        />
+                        <IconButton size="small" onClick={(e) => confirmTitleEdit(e, index)} color="success" title="Save title">
+                          <CheckIcon fontSize="small" />
+                        </IconButton>
+                        <IconButton size="small" onClick={(e) => cancelTitleEdit(e)} color="default" title="Cancel">
+                          <CloseIcon fontSize="small" />
+                        </IconButton>
+                      </Box>
+                    ) : (
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        <Typography component="span" fontWeight={500} noWrap sx={{ display: 'block' }}>
+                          {getContentTitle(item, index)}
+                        </Typography>
+                        <IconButton
+                          size="small"
+                          onClick={(e) => startEditingTitle(e, index, item)}
+                          title="Rename"
+                          sx={{ opacity: 0.6, '&:hover': { opacity: 1 } }}
+                          data-testid={`lesson-editor-content-rename-${index}`}
+                        >
+                          <EditIcon sx={{ fontSize: 16 }} />
+                        </IconButton>
+                      </Box>
+                    )}
+                    {editingTitleIndex !== index && item.type === 'video' && item.data.fileName && (
                       <Typography component="span" variant="body2" color="text.secondary" noWrap sx={{ ml: 1, display: { xs: 'none', sm: 'block' } }}>
                         - {item.data.fileName}
                       </Typography>
                     )}
-                    {item.type === 'video' && !item.data.fileName && item.data.url && (
+                    {editingTitleIndex !== index && item.type === 'video' && !item.data.fileName && item.data.url && (
                       <Typography component="span" variant="body2" color="text.secondary" noWrap sx={{ ml: 1, display: { xs: 'none', sm: 'block' } }}>
                         - {item.data.url.length > 40 ? item.data.url.substring(0, 40) + '...' : item.data.url}
                       </Typography>
                     )}
-                    {item.type === 'text' && item.data.html && (
+                    {editingTitleIndex !== index && item.type === 'text' && item.data.html && (
                       <Typography component="span" variant="body2" color="text.secondary" noWrap sx={{ ml: 1, display: { xs: 'none', sm: 'block' } }}>
                         - {item.data.html.substring(0, 50).replace(/<[^>]*>/g, '')}...
                       </Typography>

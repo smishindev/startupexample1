@@ -184,7 +184,7 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = ({ instructorId, o
   return (
     <Box>
       {/* Header */}
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
         <Typography variant="h6" fontWeight="bold">
           My Office Hours Schedule
         </Typography>
@@ -192,6 +192,8 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = ({ instructorId, o
           variant="contained"
           startIcon={<AddIcon />}
           onClick={() => handleOpenDialog()}
+          size={isMobile ? 'small' : 'medium'}
+          sx={{ textTransform: 'none', borderRadius: '12px' }}
           data-testid="schedule-add-button"
         >
           Add Schedule

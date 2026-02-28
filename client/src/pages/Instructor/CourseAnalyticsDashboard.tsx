@@ -327,7 +327,7 @@ const DashboardView: React.FC<{ data: DashboardAnalytics }> = ({ data }) => {
                   </LineChart>
                 </ResponsiveContainer>
               ) : (
-                <Box display="flex" flexDirection="column" alignItems="center" justifyContent="center" height="100%">
+                <Box display="flex" flexDirection="column" alignItems="center" justifyContent="center" height="100%" textAlign="center">
                   <Typography variant="body1" color="text.secondary" gutterBottom>
                     No enrollment data available
                   </Typography>
@@ -720,7 +720,7 @@ const CourseView: React.FC<{
                   </PieChart>
                 </ResponsiveContainer>
               ) : (
-                <Box display="flex" flexDirection="column" alignItems="center" justifyContent="center" height="100%">
+                <Box display="flex" flexDirection="column" alignItems="center" justifyContent="center" height="100%" textAlign="center">
                   <Typography variant="body1" color="text.secondary" gutterBottom>
                     No student progress data yet
                   </Typography>

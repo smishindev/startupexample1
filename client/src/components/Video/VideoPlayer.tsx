@@ -444,7 +444,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           left: 0,
           right: 0,
           background: 'linear-gradient(transparent, rgba(0,0,0,0.8))',
-          p: 2,
+          p: { xs: 1, sm: 2 },
           opacity: showControls ? 1 : 0,
           transition: 'opacity 0.3s ease',
           zIndex: 3,
@@ -475,7 +475,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         </Box>
 
         {/* Control Buttons */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.25, sm: 1 } }}>
           <Tooltip title="Previous 10s">
             <IconButton size="small" onClick={() => skip(-10)} sx={{ color: 'white' }} data-testid="video-skip-backward">
               <Replay10 />
@@ -494,7 +494,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
             </IconButton>
           </Tooltip>
 
-          <Box sx={{ display: 'flex', alignItems: 'center', ml: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', ml: { xs: 0, sm: 1 } }}>
             <Tooltip title={isMuted ? 'Unmute' : 'Mute'}>
               <IconButton size="small" onClick={toggleMute} sx={{ color: 'white' }} data-testid="video-mute-toggle">
                 {isMuted ? <VolumeOff /> : <VolumeUp />}

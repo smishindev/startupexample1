@@ -175,8 +175,8 @@ export const CourseEditPage: React.FC = () => {
           <Typography color="text.primary">Edit Course</Typography>
         </Breadcrumbs>
         
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2, flexWrap: 'wrap', gap: 2 }}>
-          <Box sx={{ flex: 1, minWidth: 0 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2, flexDirection: { xs: 'column', sm: 'row' }, gap: 2 }}>
+          <Box sx={{ flex: 1, minWidth: 0, width: '100%' }}>
             <Typography variant="h4" gutterBottom sx={{ fontSize: { xs: '1.5rem', sm: '1.75rem', md: '2.125rem' } }}>
               {course.title}
             </Typography>

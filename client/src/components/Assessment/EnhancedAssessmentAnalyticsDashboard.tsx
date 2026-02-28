@@ -302,7 +302,7 @@ export const EnhancedAssessmentAnalyticsDashboard: React.FC = () => {
                         </LineChart>
                       </ResponsiveContainer>
                     ) : (
-                      <Box display="flex" flexDirection="column" alignItems="center" justifyContent="center" height="100%">
+                      <Box display="flex" flexDirection="column" alignItems="center" justifyContent="center" height="100%" textAlign="center">
                         <Typography variant="body1" color="text.secondary" gutterBottom>
                           No performance trend data available
                         </Typography>
@@ -343,7 +343,7 @@ export const EnhancedAssessmentAnalyticsDashboard: React.FC = () => {
                         </PieChart>
                       </ResponsiveContainer>
                     ) : (
-                      <Box display="flex" flexDirection="column" alignItems="center" justifyContent="center" height="100%">
+                      <Box display="flex" flexDirection="column" alignItems="center" justifyContent="center" height="100%" textAlign="center">
                         <Typography variant="body2" color="text.secondary" gutterBottom>
                           No assessment types data
                         </Typography>
@@ -509,7 +509,7 @@ export const EnhancedAssessmentAnalyticsDashboard: React.FC = () => {
                       </BarChart>
                     </ResponsiveContainer>
                   ) : (
-                    <Box height={400} display="flex" flexDirection="column" alignItems="center" justifyContent="center">
+                    <Box height={400} display="flex" flexDirection="column" alignItems="center" justifyContent="center" textAlign="center">
                       <Typography variant="body1" color="text.secondary" gutterBottom>
                         No assessment type data available
                       </Typography>

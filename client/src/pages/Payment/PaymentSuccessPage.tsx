@@ -313,11 +313,11 @@ const PaymentSuccessPage: React.FC = () => {
             <Typography variant="body1" fontWeight="bold" color="success.dark" gutterBottom>
               💡 What's Next?
             </Typography>
-            <Typography variant="body2" color="text.secondary">
-              • Start with the first lesson to build momentum
-              • Join the course discussion forum
-              • Complete your profile for personalized recommendations
-              • Set a learning schedule to stay on track
+            <Typography variant="body2" color="text.secondary" component="ul" sx={{ pl: 2, m: 0, listStyle: 'disc', '& li': { mb: 0.5 } }}>
+              <li>Start with the first lesson to build momentum</li>
+              <li>Join the course discussion forum</li>
+              <li>Complete your profile for personalized recommendations</li>
+              <li>Set a learning schedule to stay on track</li>
             </Typography>
           </Box>
 

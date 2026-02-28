@@ -35,6 +35,7 @@ import {
   Stack,
   Card,
   CardContent,
+  Pagination,
 } from '@mui/material';
 import ReceiptIcon from '@mui/icons-material/Receipt';
 import RefreshIcon from '@mui/icons-material/Refresh';
@@ -53,6 +54,8 @@ const TransactionsPage: React.FC = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const rowsPerPage = 10;
   const [refundDialog, setRefundDialog] = useState<{
     open: boolean;
     transaction: Transaction | null;
@@ -65,6 +68,7 @@ const TransactionsPage: React.FC = () => {
       setLoading(true);
       const data = await getUserTransactions();
       setTransactions(data);
+      setPage(1);
       setError(null);
     } catch (err) {
       console.error('Error loading transactions:', err);
@@ -215,6 +219,17 @@ const TransactionsPage: React.FC = () => {
     return null;
   };
 
+  const totalPages = Math.ceil(transactions.length / rowsPerPage);
+  const paginatedTransactions = transactions.slice(
+    (page - 1) * rowsPerPage,
+    page * rowsPerPage
+  );
+
+  const handlePageChange = (_event: React.ChangeEvent<unknown>, value: number) => {
+    setPage(value);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   if (loading) {
     return (
       <>
@@ -270,7 +285,7 @@ const TransactionsPage: React.FC = () => {
       ) : isMobile ? (
         /* Mobile: Card-based layout */
         <Stack spacing={2}>
-          {transactions.map((transaction) => (
+          {paginatedTransactions.map((transaction) => (
             <Card key={transaction.Id} elevation={2}>
               <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
@@ -342,9 +357,27 @@ const TransactionsPage: React.FC = () => {
               </CardContent>
             </Card>
           ))}
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+              <Pagination
+                count={totalPages}
+                page={page}
+                onChange={handlePageChange}
+                color="primary"
+                size={isMobile ? 'small' : 'medium'}
+                siblingCount={0}
+                showFirstButton
+                showLastButton
+                data-testid="transactions-pagination"
+              />
+            </Box>
+          )}
         </Stack>
       ) : (
         /* Desktop: Table layout */
+        <>
         <TableContainer component={Paper} elevation={2}>
           <Table>
             <TableHead>
@@ -358,7 +391,7 @@ const TransactionsPage: React.FC = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {transactions.map((transaction) => (
+              {paginatedTransactions.map((transaction) => (
                 <TableRow key={transaction.Id}>
                   <TableCell>
                     {format(new Date(transaction.CreatedAt), 'MMM dd, yyyy')}
@@ -448,6 +481,24 @@ const TransactionsPage: React.FC = () => {
             </TableBody>
           </Table>
         </TableContainer>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+            <Pagination
+              count={totalPages}
+              page={page}
+              onChange={handlePageChange}
+              color="primary"
+              size="medium"
+              siblingCount={1}
+              showFirstButton
+              showLastButton
+              data-testid="transactions-pagination"
+            />
+          </Box>
+        )}
+        </>
       )}
 
       {/* Enhanced Refund Dialog */}

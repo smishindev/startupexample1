@@ -237,12 +237,12 @@ export const CurriculumBuilder: React.FC<CurriculumBuilderProps> = ({
   return (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
-        <Typography variant="h5" fontWeight={600}>Course Curriculum</Typography>
+        <Typography variant="h5" fontWeight={600} sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' } }}>Course Curriculum</Typography>
         <Button
           variant="contained"
           startIcon={<AddIcon />}
           onClick={handleAddLesson}
-          size="large"
+          size="medium"
           data-testid="curriculum-builder-add-lesson-button"
         >
           Add Lesson
@@ -299,20 +299,20 @@ export const CurriculumBuilder: React.FC<CurriculumBuilderProps> = ({
                 }}
               >
                 <CardContent sx={{ '&:last-child': { pb: 2 } }}>
-                  <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: { xs: 1.5, sm: 2 } }}>
                     <Box 
                       sx={{ 
                         display: 'flex', 
                         alignItems: 'center', 
-                        minWidth: 50,
-                        px: 1.5,
+                        minWidth: { xs: 40, sm: 50 },
+                        px: { xs: 1, sm: 1.5 },
                         py: 0.5,
                         bgcolor: 'primary.main',
                         color: 'primary.contrastText',
                         borderRadius: 1
                       }}
                     >
-                      <DragIcon sx={{ mr: 0.5, fontSize: 18 }} />
+                      <DragIcon sx={{ mr: 0.5, fontSize: 18, display: { xs: 'none', sm: 'block' } }} />
                       <Typography variant="h6" fontWeight={600}>
                         {index + 1}
                       </Typography>
@@ -320,7 +320,7 @@ export const CurriculumBuilder: React.FC<CurriculumBuilderProps> = ({
                     
                     <Box sx={{ flexGrow: 1 }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
-                        <Typography variant="h6" fontWeight={600} sx={{ flexGrow: 1 }}>
+                        <Typography variant="h6" fontWeight={600} sx={{ flexGrow: 1, fontSize: { xs: '1rem', sm: '1.25rem' } }}>
                           {lesson.title}
                         </Typography>
                         {lesson.isRequired && (

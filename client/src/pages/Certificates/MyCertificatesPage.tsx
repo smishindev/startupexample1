@@ -211,7 +211,7 @@ export default function MyCertificatesPage() {
                 <CardContent>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <School color="primary" />
-                    <Typography variant="h4" fontWeight="bold">
+                    <Typography variant="h4" fontWeight="bold" sx={{ fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
                       {certificates.length}
                     </Typography>
                   </Box>
@@ -226,7 +226,7 @@ export default function MyCertificatesPage() {
                 <CardContent>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <Verified color="success" />
-                    <Typography variant="h4" fontWeight="bold">
+                    <Typography variant="h4" fontWeight="bold" sx={{ fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
                       {certificates.filter(c => c.FinalScore && c.FinalScore >= 90).length}
                     </Typography>
                   </Box>
@@ -241,7 +241,7 @@ export default function MyCertificatesPage() {
                 <CardContent>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <EmojiEvents sx={{ color: 'warning.main' }} />
-                    <Typography variant="h4" fontWeight="bold">
+                    <Typography variant="h4" fontWeight="bold" sx={{ fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
                       {Math.round(certificates.reduce((sum, c) => sum + c.TotalHoursSpent, 0) / 60)}
                     </Typography>
                   </Box>

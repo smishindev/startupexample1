@@ -188,55 +188,55 @@ export const StudentAssessmentDashboard: React.FC = () => {
 
         {/* Overview Statistics */}
         <Grid container spacing={{ xs: 2, md: 3 }} sx={{ mb: { xs: 2, md: 4 } }}>
-          <Grid item xs={12} md={3}>
+          <Grid item xs={6} md={3}>
             <Card>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <Box>
-                    <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+                    <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'primary.main', fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
                       {data.totalAssessments}
                     </Typography>
-                    <Typography color="text.secondary">
+                    <Typography color="text.secondary" variant="body2">
                       Total Assessments
                     </Typography>
                   </Box>
-                  <QuizIcon sx={{ fontSize: 40, color: 'primary.main' }} />
+                  <QuizIcon sx={{ fontSize: { xs: 28, sm: 40 }, color: 'primary.main' }} />
                 </Box>
               </CardContent>
             </Card>
           </Grid>
 
-          <Grid item xs={12} md={3}>
+          <Grid item xs={6} md={3}>
             <Card>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <Box>
-                    <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'success.main' }}>
+                    <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'success.main', fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
                       {data.completedAssessments}
                     </Typography>
-                    <Typography color="text.secondary">
+                    <Typography color="text.secondary" variant="body2">
                       Completed
                     </Typography>
                   </Box>
-                  <CheckCircleIcon sx={{ fontSize: 40, color: 'success.main' }} />
+                  <CheckCircleIcon sx={{ fontSize: { xs: 28, sm: 40 }, color: 'success.main' }} />
                 </Box>
               </CardContent>
             </Card>
           </Grid>
 
-          <Grid item xs={12} md={3}>
+          <Grid item xs={6} md={3}>
             <Card>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <Box>
-                    <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'warning.main' }}>
+                    <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'warning.main', fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
                       {calculateOverallProgress()}%
                     </Typography>
-                    <Typography color="text.secondary">
+                    <Typography color="text.secondary" variant="body2">
                       Overall Progress
                     </Typography>
                   </Box>
-                  <TrendingUpIcon sx={{ fontSize: 40, color: 'warning.main' }} />
+                  <TrendingUpIcon sx={{ fontSize: { xs: 28, sm: 40 }, color: 'warning.main' }} />
                 </Box>
                 <LinearProgress 
                   variant="determinate" 
@@ -247,19 +247,19 @@ export const StudentAssessmentDashboard: React.FC = () => {
             </Card>
           </Grid>
 
-          <Grid item xs={12} md={3}>
+          <Grid item xs={6} md={3}>
             <Card>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <Box>
-                    <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'info.main' }}>
+                    <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'info.main', fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
                       {calculatePassRate()}%
                     </Typography>
-                    <Typography color="text.secondary">
+                    <Typography color="text.secondary" variant="body2">
                       Pass Rate
                     </Typography>
                   </Box>
-                  <TrendingUpIcon sx={{ fontSize: 40, color: 'info.main' }} />
+                  <TrendingUpIcon sx={{ fontSize: { xs: 28, sm: 40 }, color: 'info.main' }} />
                 </Box>
               </CardContent>
             </Card>
@@ -267,7 +267,7 @@ export const StudentAssessmentDashboard: React.FC = () => {
         </Grid>
 
         {/* Assessments by Course */}
-        <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 3 }}>
+        <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 3, fontSize: { xs: '1.25rem', sm: '1.5rem' } }}>
           Assessments by Course
         </Typography>
 
@@ -292,7 +292,7 @@ export const StudentAssessmentDashboard: React.FC = () => {
                     />
                   )}
                   <Box sx={{ flex: 1 }}>
-                    <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                    <Typography variant="h6" sx={{ fontWeight: 'bold', fontSize: { xs: '1rem', sm: '1.25rem' } }}>
                       {courseGroup.courseTitle}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">

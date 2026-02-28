@@ -1356,7 +1356,7 @@ export const CourseDetailPage: React.FC = () => {
                     {course.price > 0 ? (
                       <>
                         <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 2, mb: 1 }}>
-                          <Typography variant="h3" sx={{ fontWeight: 800 }}>
+                          <Typography variant="h3" sx={{ fontWeight: 800, fontSize: { xs: '1.75rem', sm: '3rem' } }}>
                             {formatCurrency(course.price)}
                           </Typography>
                           {course.originalPrice && (
@@ -1378,7 +1378,7 @@ export const CourseDetailPage: React.FC = () => {
                         )}
                       </>
                     ) : (
-                      <Typography variant="h3" sx={{ fontWeight: 800, color: 'success.main' }}>
+                      <Typography variant="h3" sx={{ fontWeight: 800, color: 'success.main', fontSize: { xs: '1.75rem', sm: '3rem' } }}>
                         FREE
                       </Typography>
                     )}

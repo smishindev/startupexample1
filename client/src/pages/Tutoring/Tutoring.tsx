@@ -512,7 +512,7 @@ const Tutoring: React.FC = () => {
           ) : (
             <Paper sx={{ height: { xs: 'calc(100vh - 200px)', md: '70vh' }, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Box sx={{ textAlign: 'center' }}>
-                <SchoolIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+                <SchoolIcon sx={{ fontSize: { xs: 48, sm: 64 }, color: 'text.secondary', mb: 2 }} />
                 <Typography variant="h6" color="text.secondary">
                   Select a tutoring session to start learning
                 </Typography>

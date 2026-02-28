@@ -43,7 +43,7 @@ export const StatCard: React.FC<StatCardProps> = ({
         {title}
       </Typography>
     </Box>
-    <Typography variant="h3" sx={{ fontWeight: 'bold', mb: 1 }}>
+    <Typography variant="h3" sx={{ fontWeight: 'bold', mb: 1, fontSize: { xs: '1.75rem', sm: '3rem' } }}>
       {value}
     </Typography>
     <Typography variant="body2" sx={{ opacity: 0.8 }}>

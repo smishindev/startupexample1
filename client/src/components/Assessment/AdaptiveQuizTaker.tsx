@@ -516,11 +516,11 @@ const AdaptiveQuizTaker: React.FC<AdaptiveQuizTakerProps> = ({ assessmentId: pro
 
   if (!assessmentStarted) {
     return (
-      <Card sx={{ maxWidth: 600, mx: 'auto', mt: 4 }}>
-        <CardContent>
+      <Card sx={{ maxWidth: 600, mx: 'auto', mt: { xs: 2, sm: 4 } }}>
+        <CardContent sx={{ px: { xs: 2, sm: 3 } }}>
           <Box display="flex" alignItems="center" mb={3}>
-            <AdaptiveIcon color="primary" sx={{ mr: 2, fontSize: 32 }} />
-            <Typography variant="h4">
+            <AdaptiveIcon color="primary" sx={{ mr: { xs: 1, sm: 2 }, fontSize: { xs: 28, sm: 32 } }} />
+            <Typography variant="h4" sx={{ fontSize: { xs: '1.25rem', sm: '2.125rem' } }}>
               {assessment.title}
             </Typography>
           </Box>
@@ -600,12 +600,12 @@ const AdaptiveQuizTaker: React.FC<AdaptiveQuizTakerProps> = ({ assessmentId: pro
   return (
     <Box>
       {/* Header with progress and timer */}
-      <Paper sx={{ p: 2, mb: 3 }}>
+      <Paper sx={{ p: { xs: 1.5, sm: 2 }, mb: { xs: 2, sm: 3 } }}>
         <Grid container alignItems="center" spacing={2}>
           <Grid item xs={12} sm={6}>
-            <Box display="flex" alignItems="center">
-              <AdaptiveIcon color="primary" sx={{ mr: 1 }} />
-              <Typography variant="h6">
+            <Box display="flex" alignItems="center" minWidth={0}>
+              <AdaptiveIcon color="primary" sx={{ mr: 1, flexShrink: 0 }} />
+              <Typography variant="h6" noWrap sx={{ fontSize: { xs: '0.95rem', sm: '1.25rem' } }}>
                 {assessment.title} - Question {answeredQuestions.length + 1}
               </Typography>
             </Box>
@@ -629,7 +629,7 @@ const AdaptiveQuizTaker: React.FC<AdaptiveQuizTakerProps> = ({ assessmentId: pro
       </Paper>
 
       {/* Progress indicator */}
-      <Paper sx={{ p: 2, mb: 3 }}>
+      <Paper sx={{ p: { xs: 1.5, sm: 2 }, mb: { xs: 2, sm: 3 } }}>
         <Typography variant="body2" gutterBottom>
           Progress: {answeredQuestions.length} questions answered
         </Typography>
@@ -663,7 +663,7 @@ const AdaptiveQuizTaker: React.FC<AdaptiveQuizTakerProps> = ({ assessmentId: pro
             {renderQuestion(currentQuestion)}
           </Box>
 
-          <Box mt={4} display="flex" justifyContent="space-between" alignItems="center">
+          <Box mt={{ xs: 2, sm: 4 }} display="flex" flexDirection={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', sm: 'center' }} gap={1}>
             <Box>
               <Chip
                 label={`Difficulty: ${currentQuestion.difficulty}/10`}
@@ -678,6 +678,7 @@ const AdaptiveQuizTaker: React.FC<AdaptiveQuizTakerProps> = ({ assessmentId: pro
               onClick={submitAnswer}
               disabled={submitting || !currentAnswer}
               startIcon={submitting ? <CircularProgress size={20} /> : null}
+              fullWidth={false}
             >
               {submitting ? 'Submitting...' : 'Submit Answer'}
             </Button>

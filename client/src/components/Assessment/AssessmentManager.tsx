@@ -323,10 +323,10 @@ const AssessmentManager: React.FC<AssessmentManagerProps> = ({ lessonId }) => {
                 <TableHead>
                   <TableRow>
                     <TableCell>Assessment</TableCell>
-                    <TableCell>Type</TableCell>
-                    <TableCell align="center">Questions</TableCell>
+                    <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>Type</TableCell>
+                    <TableCell align="center" sx={{ display: { xs: 'none', sm: 'table-cell' } }}>Questions</TableCell>
                     <TableCell align="center">Passing Score</TableCell>
-                    <TableCell align="center">Time Limit</TableCell>
+                    <TableCell align="center" sx={{ display: { xs: 'none', sm: 'table-cell' } }}>Time Limit</TableCell>
                     <TableCell align="center">Actions</TableCell>
                   </TableRow>
                 </TableHead>
@@ -345,7 +345,7 @@ const AssessmentManager: React.FC<AssessmentManagerProps> = ({ lessonId }) => {
                           </Box>
                         </Box>
                       </TableCell>
-                      <TableCell>
+                      <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                           {getAssessmentIcon(assessment.type, 'icon-table')}
                           <Chip
@@ -357,13 +357,13 @@ const AssessmentManager: React.FC<AssessmentManagerProps> = ({ lessonId }) => {
                           />
                         </Box>
                       </TableCell>
-                      <TableCell align="center">
+                      <TableCell align="center" sx={{ display: { xs: 'none', sm: 'table-cell' } }}>
                         {assessment.questionCount || 0}
                       </TableCell>
                       <TableCell align="center">
                         {assessment.passingScore}%
                       </TableCell>
-                      <TableCell align="center">
+                      <TableCell align="center" sx={{ display: { xs: 'none', sm: 'table-cell' } }}>
                         {assessment.timeLimit ? `${assessment.timeLimit}m` : 'None'}
                       </TableCell>
                       <TableCell align="center">

@@ -398,11 +398,11 @@ const TraditionalQuizTaker: React.FC<TraditionalQuizTakerProps> = ({ assessmentI
   // Assessment not started yet
   if (!assessmentStarted) {
     return (
-      <Box sx={{ p: 3, maxWidth: 800, mx: 'auto' }}>
-        <Paper sx={{ p: 4 }}>
+      <Box sx={{ p: { xs: 1.5, sm: 3 }, maxWidth: 800, mx: 'auto' }}>
+        <Paper sx={{ p: { xs: 2, sm: 4 } }}>
           <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-            <QuizIcon sx={{ fontSize: 40, color: 'primary.main', mr: 2 }} />
-            <Typography variant="h4" fontWeight="bold">
+            <QuizIcon sx={{ fontSize: { xs: 30, sm: 40 }, color: 'primary.main', mr: { xs: 1, sm: 2 } }} />
+            <Typography variant="h4" fontWeight="bold" sx={{ fontSize: { xs: '1.25rem', sm: '2.125rem' } }}>
               {assessment.title}
             </Typography>
           </Box>
@@ -462,11 +462,13 @@ const TraditionalQuizTaker: React.FC<TraditionalQuizTakerProps> = ({ assessmentI
             </Alert>
           )}
 
-          <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
+          <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2, justifyContent: 'center' }}>
             <Button
               variant="outlined"
               onClick={() => navigate(-1)}
               data-testid="assessment-cancel-button"
+              fullWidth
+              sx={{ maxWidth: { sm: 'fit-content' } }}
             >
               Cancel
             </Button>
@@ -476,6 +478,8 @@ const TraditionalQuizTaker: React.FC<TraditionalQuizTakerProps> = ({ assessmentI
               disabled={!canTakeAssessment || loading}
               size="large"
               data-testid="assessment-start-button"
+              fullWidth
+              sx={{ maxWidth: { sm: 'fit-content' } }}
             >
               Start Assessment
             </Button>
@@ -573,15 +577,15 @@ const TraditionalQuizTaker: React.FC<TraditionalQuizTakerProps> = ({ assessmentI
 
   // Assessment in progress
   return (
-    <Box sx={{ p: 3, maxWidth: 900, mx: 'auto' }}>
+    <Box sx={{ p: { xs: 1, sm: 3 }, maxWidth: 900, mx: 'auto' }}>
       {/* Header with timer and progress */}
-      <Paper sx={{ p: 2, mb: 3, position: 'sticky', top: 0, zIndex: 1 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Typography variant="h6">
+      <Paper sx={{ p: { xs: 1.5, sm: 2 }, mb: { xs: 2, sm: 3 }, position: 'sticky', top: 0, zIndex: 1 }}>
+        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', alignItems: { xs: 'stretch', sm: 'center' }, gap: 1 }}>
+          <Typography variant="h6" noWrap sx={{ fontSize: { xs: '0.95rem', sm: '1.25rem' } }}>
             {assessment.title}
           </Typography>
           
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 2 }, justifyContent: { xs: 'space-between', sm: 'flex-end' } }}>
             {timeRemaining !== null && (
               <Box sx={{ display: 'flex', alignItems: 'center' }}>
                 <TimerIcon sx={{ mr: 1, color: timeRemaining < 300 ? 'error.main' : 'text.secondary' }} />

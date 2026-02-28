@@ -216,7 +216,8 @@ export const CourseCard: React.FC<CourseCardProps> = ({
     <Card
       data-testid={`course-card-${course.id}`}
       sx={{
-        height: variant === 'enrolled' ? 'auto' : 420,
+        height: variant === 'enrolled' ? 'auto' : { xs: 'auto', sm: 420 },
+        minHeight: variant === 'enrolled' ? undefined : { sm: 420 },
         display: 'flex',
         flexDirection: 'column',
         cursor: 'pointer',
@@ -224,7 +225,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({
         position: 'relative',
         overflow: 'hidden',
         '&:hover': {
-          transform: 'translateY(-8px)',
+          transform: { xs: 'translateY(-4px)', sm: 'translateY(-8px)' },
           boxShadow: '0 12px 24px rgba(0,0,0,0.15)',
         },
         '&::after': {
@@ -320,7 +321,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({
       {/* Course Image/Thumbnail */}
       <Box
         sx={{
-          height: 200,
+          height: { xs: 160, sm: 200 },
           backgroundImage: course.thumbnail 
             ? `url(${course.thumbnail})`
             : getCategoryGradient(),
@@ -464,7 +465,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({
         </Box>
 
         {/* Course Stats */}
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 2 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: { xs: 1, sm: 2 } }}>
           {course.rating > 0 ? (
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
               <Rating value={course.rating} precision={0.1} size="small" readOnly />

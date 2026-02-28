@@ -237,8 +237,8 @@ export const CourseAssessmentManagementPage: React.FC = () => {
           <Grid item xs={12} sm={4}>
             <Card>
               <CardContent sx={{ textAlign: 'center' }}>
-                <AssignmentIcon color="primary" sx={{ fontSize: 40, mb: 1 }} />
-                <Typography variant="h4" component="div">
+                <AssignmentIcon color="primary" sx={{ fontSize: { xs: 32, sm: 40 }, mb: 1 }} />
+                <Typography variant="h4" component="div" sx={{ fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
                   {getTotalAssessments()}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
@@ -250,8 +250,8 @@ export const CourseAssessmentManagementPage: React.FC = () => {
           <Grid item xs={12} sm={4}>
             <Card>
               <CardContent sx={{ textAlign: 'center' }}>
-                <SchoolIcon color="primary" sx={{ fontSize: 40, mb: 1 }} />
-                <Typography variant="h4" component="div">
+                <SchoolIcon color="primary" sx={{ fontSize: { xs: 32, sm: 40 }, mb: 1 }} />
+                <Typography variant="h4" component="div" sx={{ fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
                   {lessons.length}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
@@ -263,8 +263,8 @@ export const CourseAssessmentManagementPage: React.FC = () => {
           <Grid item xs={12} sm={4}>
             <Card>
               <CardContent sx={{ textAlign: 'center' }}>
-                <QuizIcon color="primary" sx={{ fontSize: 40, mb: 1 }} />
-                <Typography variant="h4" component="div">
+                <QuizIcon color="primary" sx={{ fontSize: { xs: 32, sm: 40 }, mb: 1 }} />
+                <Typography variant="h4" component="div" sx={{ fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
                   {lessons.filter(l => l.assessments.length > 0).length}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">

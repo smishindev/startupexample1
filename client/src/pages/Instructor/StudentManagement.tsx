@@ -300,7 +300,7 @@ const StudentManagement: React.FC = () => {
       <>
         <Header />
         <PageContainer>
-          <Typography variant="h4" gutterBottom>Student Management</Typography>
+          <Typography variant="h4" gutterBottom sx={{ fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>Student Management</Typography>
           <LinearProgress />
         </PageContainer>
       </>
@@ -506,12 +506,12 @@ const StudentManagement: React.FC = () => {
           <TableHead>
             <TableRow>
               <TableCell>Student</TableCell>
-              <TableCell>Course</TableCell>
-              <TableCell>Enrolled</TableCell>
+              <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>Course</TableCell>
+              <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>Enrolled</TableCell>
               <TableCell>Status</TableCell>
               <TableCell>Progress</TableCell>
-              <TableCell>Time Spent</TableCell>
-              <TableCell>Last Access</TableCell>
+              <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>Time Spent</TableCell>
+              <TableCell sx={{ display: { xs: 'none', lg: 'table-cell' } }}>Last Access</TableCell>
               <TableCell>Actions</TableCell>
             </TableRow>
           </TableHead>
@@ -553,13 +553,13 @@ const StudentManagement: React.FC = () => {
                       </Box>
                     </TableCell>
                     
-                    <TableCell>
+                    <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
                       <Typography variant="body2">
                         {student.enrollment.courseTitle}
                       </Typography>
                     </TableCell>
                     
-                    <TableCell>
+                    <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>
                       <Typography variant="body2">
                         {formatDate(student.enrollment.enrolledAt)}
                       </Typography>
@@ -578,7 +578,7 @@ const StudentManagement: React.FC = () => {
                         <LinearProgress
                           variant="determinate"
                           value={student.progress.overall}
-                          sx={{ width: 100, mb: 0.5 }}
+                          sx={{ width: { xs: 60, sm: 100 }, mb: 0.5 }}
                         />
                         <Typography variant="caption">
                           {student.progress.overall}%
@@ -586,13 +586,13 @@ const StudentManagement: React.FC = () => {
                       </Box>
                     </TableCell>
                     
-                    <TableCell>
+                    <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
                       <Typography variant="body2">
                         {formatTime(student.progress.timeSpent)}
                       </Typography>
                     </TableCell>
                     
-                    <TableCell>
+                    <TableCell sx={{ display: { xs: 'none', lg: 'table-cell' } }}>
                       <Typography variant="body2">
                         {student.progress.lastAccessedAt 
                           ? formatDate(student.progress.lastAccessedAt)

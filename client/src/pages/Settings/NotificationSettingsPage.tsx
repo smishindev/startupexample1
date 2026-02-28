@@ -27,7 +27,7 @@ import {
   Info as InfoIcon,
 } from '@mui/icons-material';
 import { HeaderV5 as HeaderV4 } from '../../components/Navigation/HeaderV5';
-import { PageContainer, PageTitle } from '../../components/Responsive';
+import { PageContainer, PageTitle, useResponsive } from '../../components/Responsive';
 import { toast } from 'react-hot-toast';
 import * as notificationPreferencesApi from '../../services/notificationPreferencesApi';
 
@@ -408,6 +408,7 @@ const NotificationSettingsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [preferences, setPreferences] = useState<NotificationPreferences | null>(null);
+  const { isMobile } = useResponsive();
 
   useEffect(() => {
     loadPreferences();
@@ -580,8 +581,8 @@ const NotificationSettingsPage: React.FC = () => {
         </Alert>
 
         {/* Global Controls */}
-        <Paper elevation={2} sx={{ p: 3, mb: 3 }}>
-          <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold', mb: 2 }}>
+        <Paper elevation={2} sx={{ p: { xs: 2, sm: 3 }, mb: 3 }}>
+          <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold', mb: 2, fontSize: { xs: '1rem', sm: '1.25rem' } }}>
             🌐 Global Controls
           </Typography>
           
@@ -625,7 +626,7 @@ const NotificationSettingsPage: React.FC = () => {
             />
 
             {preferences.EnableEmailNotifications && (
-              <Box sx={{ pl: 4 }}>
+              <Box sx={{ pl: { xs: 2, sm: 4 } }}>
                 <FormControl fullWidth size="small">
                   <InputLabel>Email Frequency</InputLabel>
                   <Select
@@ -667,15 +668,16 @@ const NotificationSettingsPage: React.FC = () => {
           {/* Progress Updates */}
           <Accordion defaultExpanded data-testid="notifications-settings-category-progress-accordion">
             <AccordionSummary expandIcon={<ExpandMoreIcon />} data-testid="notifications-settings-category-progress-accordion-summary">
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, width: '100%' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 2 }, width: '100%' }}>
                 <Switch
                   checked={getToggleValue('EnableProgressUpdates')}
                   onChange={handleCategoryToggle('EnableProgressUpdates')}
                   onClick={(e) => e.stopPropagation()}
+                  size={isMobile ? 'small' : 'medium'}
                   data-testid="notifications-settings-category-progress-switch"
                 />
-                <Box sx={{ flex: 1 }}>
-                  <Typography variant="h6">📊 Progress Updates</Typography>
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <Typography variant="h6" noWrap sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>📊 Progress Updates</Typography>
                   <Typography variant="caption" color="text.secondary">
                     Lesson completions, milestones, progress summaries
                   </Typography>
@@ -684,12 +686,13 @@ const NotificationSettingsPage: React.FC = () => {
                   label={preferences.EnableProgressUpdates ? 'Enabled' : 'Disabled'} 
                   color={preferences.EnableProgressUpdates ? 'success' : 'default'}
                   size="small"
+                  sx={{ display: { xs: 'none', sm: 'flex' } }}
                 />
               </Box>
             </AccordionSummary>
             <AccordionDetails>
               <Stack spacing={2}>
-                <Alert severity="info" sx={{ mb: 1 }}>
+                <Alert severity="info" sx={{ mb: 1, display: { xs: 'none', sm: 'flex' } }}>
                   <Typography variant="caption">
                     <strong>Tip:</strong> Shift+Click a switch to set it to "Inherit" (follows category setting)
                   </Typography>
@@ -761,15 +764,16 @@ const NotificationSettingsPage: React.FC = () => {
           {/* Course Updates */}
           <Accordion data-testid="notifications-settings-category-course-accordion">
             <AccordionSummary expandIcon={<ExpandMoreIcon />} data-testid="notifications-settings-category-course-accordion-summary">
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, width: '100%' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 2 }, width: '100%' }}>
                 <Switch
                   checked={getToggleValue('EnableCourseUpdates')}
                   onChange={handleCategoryToggle('EnableCourseUpdates')}
                   onClick={(e) => e.stopPropagation()}
+                  size={isMobile ? 'small' : 'medium'}
                   data-testid="notifications-settings-category-course-switch"
                 />
-                <Box sx={{ flex: 1 }}>
-                  <Typography variant="h6">📚 Course Updates</Typography>
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <Typography variant="h6" noWrap sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>📚 Course Updates</Typography>
                   <Typography variant="caption" color="text.secondary">
                     New lessons, live sessions, course announcements
                   </Typography>
@@ -778,12 +782,13 @@ const NotificationSettingsPage: React.FC = () => {
                   label={preferences.EnableCourseUpdates ? 'Enabled' : 'Disabled'} 
                   color={preferences.EnableCourseUpdates ? 'success' : 'default'}
                   size="small"
+                  sx={{ display: { xs: 'none', sm: 'flex' } }}
                 />
               </Box>
             </AccordionSummary>
             <AccordionDetails>
               <Stack spacing={2}>
-                <Alert severity="info" sx={{ mb: 1 }}>
+                <Alert severity="info" sx={{ mb: 1, display: { xs: 'none', sm: 'flex' } }}>
                   <Typography variant="caption">
                     <strong>Tip:</strong> Shift+Click any switch to set it to "Inherit" from the category setting.
                   </Typography>
@@ -851,15 +856,16 @@ const NotificationSettingsPage: React.FC = () => {
           {/* Assessment Updates */}
           <Accordion data-testid="notifications-settings-category-assessment-accordion">
             <AccordionSummary expandIcon={<ExpandMoreIcon />} data-testid="notifications-settings-category-assessment-accordion-summary">
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, width: '100%' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 2 }, width: '100%' }}>
                 <Switch
                   checked={getToggleValue('EnableAssessmentUpdates')}
                   onChange={handleCategoryToggle('EnableAssessmentUpdates')}
                   onClick={(e) => e.stopPropagation()}
+                  size={isMobile ? 'small' : 'medium'}
                   data-testid="notifications-settings-category-assessment-switch"
                 />
-                <Box sx={{ flex: 1 }}>
-                  <Typography variant="h6">📝 Assessment Updates</Typography>
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <Typography variant="h6" noWrap sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>📝 Assessment Updates</Typography>
                   <Typography variant="caption" color="text.secondary">
                     Grading, due dates, new assessments
                   </Typography>
@@ -868,12 +874,13 @@ const NotificationSettingsPage: React.FC = () => {
                   label={preferences.EnableAssessmentUpdates ? 'Enabled' : 'Disabled'} 
                   color={preferences.EnableAssessmentUpdates ? 'success' : 'default'}
                   size="small"
+                  sx={{ display: { xs: 'none', sm: 'flex' } }}
                 />
               </Box>
             </AccordionSummary>
             <AccordionDetails>
               <Stack spacing={2}>
-                <Alert severity="info" sx={{ mb: 1 }}>
+                <Alert severity="info" sx={{ mb: 1, display: { xs: 'none', sm: 'flex' } }}>
                   <Typography variant="caption">
                     <strong>Tip:</strong> Shift+Click any switch to set it to "Inherit" from the category setting.
                   </Typography>
@@ -941,15 +948,16 @@ const NotificationSettingsPage: React.FC = () => {
           {/* Community Updates */}
           <Accordion data-testid="notifications-settings-category-community-accordion">
             <AccordionSummary expandIcon={<ExpandMoreIcon />} data-testid="notifications-settings-category-community-accordion-summary">
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, width: '100%' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 2 }, width: '100%' }}>
                 <Switch
                   checked={getToggleValue('EnableCommunityUpdates')}
                   onChange={handleCategoryToggle('EnableCommunityUpdates')}
                   onClick={(e) => e.stopPropagation()}
+                  size={isMobile ? 'small' : 'medium'}
                   data-testid="notifications-settings-category-community-switch"
                 />
-                <Box sx={{ flex: 1 }}>
-                  <Typography variant="h6">👥 Community Updates</Typography>
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <Typography variant="h6" noWrap sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>👥 Community Updates</Typography>
                   <Typography variant="caption" color="text.secondary">
                     Comments, mentions, study groups
                   </Typography>
@@ -958,12 +966,13 @@ const NotificationSettingsPage: React.FC = () => {
                   label={preferences.EnableCommunityUpdates ? 'Enabled' : 'Disabled'} 
                   color={preferences.EnableCommunityUpdates ? 'success' : 'default'}
                   size="small"
+                  sx={{ display: { xs: 'none', sm: 'flex' } }}
                 />
               </Box>
             </AccordionSummary>
             <AccordionDetails>
               <Stack spacing={2}>
-                <Alert severity="info" sx={{ mb: 1 }}>
+                <Alert severity="info" sx={{ mb: 1, display: { xs: 'none', sm: 'flex' } }}>
                   <Typography variant="caption">
                     <strong>Tip:</strong> Shift+Click any switch to set it to "Inherit" from the category setting.
                   </Typography>
@@ -1031,15 +1040,16 @@ const NotificationSettingsPage: React.FC = () => {
           {/* System Alerts */}
           <Accordion data-testid="notifications-settings-category-system-accordion">
             <AccordionSummary expandIcon={<ExpandMoreIcon />} data-testid="notifications-settings-category-system-accordion-summary">
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, width: '100%' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 2 }, width: '100%' }}>
                 <Switch
                   checked={getToggleValue('EnableSystemAlerts')}
                   onChange={handleCategoryToggle('EnableSystemAlerts')}
                   onClick={(e) => e.stopPropagation()}
+                  size={isMobile ? 'small' : 'medium'}
                   data-testid="notifications-settings-category-system-switch"
                 />
-                <Box sx={{ flex: 1 }}>
-                  <Typography variant="h6">⚙️ System Alerts</Typography>
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <Typography variant="h6" noWrap sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>⚙️ System Alerts</Typography>
                   <Typography variant="caption" color="text.secondary">
                     Payments, certificates, security alerts
                   </Typography>
@@ -1048,12 +1058,13 @@ const NotificationSettingsPage: React.FC = () => {
                   label={preferences.EnableSystemAlerts ? 'Enabled' : 'Disabled'} 
                   color={preferences.EnableSystemAlerts ? 'success' : 'default'}
                   size="small"
+                  sx={{ display: { xs: 'none', sm: 'flex' } }}
                 />
               </Box>
             </AccordionSummary>
             <AccordionDetails>
               <Stack spacing={2}>
-                <Alert severity="info" sx={{ mb: 1 }}>
+                <Alert severity="info" sx={{ mb: 1, display: { xs: 'none', sm: 'flex' } }}>
                   <Typography variant="caption">
                     <strong>Tip:</strong> Shift+Click any switch to set it to "Inherit" from the category setting.
                   </Typography>
@@ -1127,7 +1138,8 @@ const NotificationSettingsPage: React.FC = () => {
         <Box sx={{ mt: 4, display: 'flex', justifyContent: 'flex-end' }}>
           <Button
             variant="contained"
-            size="large"
+            size={isMobile ? 'medium' : 'large'}
+            fullWidth={isMobile}
             onClick={savePreferences}
             disabled={saving}
             startIcon={saving ? <CircularProgress size={20} /> : <CheckCircleIcon />}

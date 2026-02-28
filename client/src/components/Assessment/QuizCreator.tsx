@@ -330,12 +330,12 @@ const QuizCreator: React.FC<QuizCreatorProps> = ({
   }
 
   return (
-    <Box sx={{ p: 3, maxWidth: 1200, mx: 'auto' }}>
+    <Box sx={{ p: { xs: 1.5, sm: 3 }, maxWidth: 1200, mx: 'auto' }}>
       {/* Header */}
-      <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <QuizIcon sx={{ fontSize: 32, color: 'primary.main' }} />
-          <Typography variant="h4" fontWeight="bold">
+      <Box sx={{ mb: 3, display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'stretch', sm: 'center' }, justifyContent: 'space-between', gap: { xs: 1.5, sm: 0 } }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 2 } }}>
+          <QuizIcon sx={{ fontSize: { xs: 24, sm: 32 }, color: 'primary.main' }} />
+          <Typography variant="h4" fontWeight="bold" sx={{ fontSize: { xs: '1.25rem', sm: '2.125rem' } }}>
             {isEditing ? 'Edit Assessment' : 'Create New Assessment'}
           </Typography>
         </Box>
@@ -346,8 +346,9 @@ const QuizCreator: React.FC<QuizCreatorProps> = ({
             variant="outlined"
             startIcon={<SettingsIcon />}
             onClick={() => setSettingsOpen(true)}
+            size={isMobile ? 'small' : 'medium'}
           >
-            Settings
+            {isMobile ? '' : 'Settings'}
           </Button>
           <Button
             data-testid="quiz-creator-preview-button"
@@ -355,8 +356,9 @@ const QuizCreator: React.FC<QuizCreatorProps> = ({
             startIcon={<PreviewIcon />}
             onClick={() => setPreviewOpen(true)}
             disabled={questions.length === 0}
+            size={isMobile ? 'small' : 'medium'}
           >
-            Preview
+            {isMobile ? '' : 'Preview'}
           </Button>
           <Button
             data-testid="quiz-creator-save-button"
@@ -364,8 +366,9 @@ const QuizCreator: React.FC<QuizCreatorProps> = ({
             startIcon={<SaveIcon />}
             onClick={saveAssessment}
             disabled={saving}
+            size={isMobile ? 'small' : 'medium'}
           >
-            {saving ? 'Saving...' : (isEditing ? 'Update' : 'Create')} Assessment
+            {saving ? 'Saving...' : isMobile ? 'Save' : `${isEditing ? 'Update' : 'Create'} Assessment`}
           </Button>
         </Box>
       </Box>
@@ -435,13 +438,13 @@ const QuizCreator: React.FC<QuizCreatorProps> = ({
           {/* Questions Section */}
           <Card>
             <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2, flexWrap: 'wrap', gap: 1 }}>
                 <Typography variant="h6">
                   Questions ({questions.length})
                 </Typography>
                 
                 <Box sx={{ display: 'flex', gap: 1 }}>
-                  {questionTypes.slice(0, 4).map((type) => (
+                  {!isMobile && questionTypes.slice(0, 4).map((type) => (
                     <Tooltip key={type.value} title={`Add ${type.label}`}>
                       <Button
                         size="small"
@@ -458,6 +461,7 @@ const QuizCreator: React.FC<QuizCreatorProps> = ({
                     variant="contained"
                     startIcon={<AddIcon />}
                     onClick={() => addQuestion()}
+                    size={isMobile ? 'small' : 'medium'}
                   >
                     Add Question
                   </Button>
@@ -478,24 +482,27 @@ const QuizCreator: React.FC<QuizCreatorProps> = ({
                       sx={{ mb: 1 }}
                     >
                       <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, width: '100%' }}>
-                          <DragIcon sx={{ color: 'text.secondary' }} />
-                          <Typography sx={{ flexGrow: 1 }}>
-                            Question {index + 1}: {question.question?.slice(0, 60) || 'Untitled question'}
-                            {question.question && question.question.length > 60 && '...'}
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 2 }, width: '100%', minWidth: 0 }}>
+                          {!isMobile && <DragIcon sx={{ color: 'text.secondary', flexShrink: 0 }} />}
+                          <Typography noWrap sx={{ flexGrow: 1, minWidth: 0, fontSize: { xs: '0.875rem', sm: '1rem' } }}>
+                            Q{index + 1}: {question.question?.slice(0, isMobile ? 30 : 60) || 'Untitled question'}
+                            {question.question && question.question.length > (isMobile ? 30 : 60) && '...'}
                           </Typography>
                           <Chip
                             label={questionTypes.find(t => t.value === question.type)?.label || question.type}
                             size="small"
                             color="primary"
                             variant="outlined"
+                            sx={{ flexShrink: 0 }}
                           />
-                          <Chip
-                            label={`Difficulty: ${question.difficulty || 5}`}
-                            size="small"
-                            color="secondary"
-                            variant="outlined"
-                          />
+                          {!isMobile && (
+                            <Chip
+                              label={`Difficulty: ${question.difficulty || 5}`}
+                              size="small"
+                              color="secondary"
+                              variant="outlined"
+                            />
+                          )}
                         </Box>
                       </AccordionSummary>
                       
@@ -516,7 +523,7 @@ const QuizCreator: React.FC<QuizCreatorProps> = ({
                               />
                             </Grid>
                             
-                            <Grid item xs={6}>
+                            <Grid item xs={12} sm={6}>
                               <FormControl fullWidth>
                                 <InputLabel>Question Type</InputLabel>
                                 <Select
@@ -537,7 +544,7 @@ const QuizCreator: React.FC<QuizCreatorProps> = ({
                               </FormControl>
                             </Grid>
                             
-                            <Grid item xs={6}>
+                            <Grid item xs={12} sm={6}>
                               <TextField
                                 data-testid={`quiz-creator-question-difficulty-${index}`}
                                 fullWidth

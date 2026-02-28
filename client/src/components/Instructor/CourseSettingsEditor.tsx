@@ -744,13 +744,15 @@ export const CourseSettingsEditor: React.FC<CourseSettingsEditorProps> = ({ cour
         )}
       </Paper>
 
-      <Box sx={{ mt: 3, display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+      <Box sx={{ mt: 3, display: 'flex', flexDirection: { xs: 'column-reverse', sm: 'row' }, gap: 2, justifyContent: 'flex-end' }}>
         <Button
           variant="outlined"
           onClick={handleCancel}
           disabled={loading || !hasChanges()}
           startIcon={<CancelIcon />}
           data-testid="course-settings-cancel-button"
+          fullWidth
+          sx={{ maxWidth: { sm: 'fit-content' } }}
         >
           Cancel
         </Button>
@@ -760,6 +762,8 @@ export const CourseSettingsEditor: React.FC<CourseSettingsEditorProps> = ({ cour
           disabled={loading || !hasChanges()}
           startIcon={loading ? <CircularProgress size={20} /> : <SaveIcon />}
           data-testid="course-settings-save-button"
+          fullWidth
+          sx={{ maxWidth: { sm: 'fit-content' } }}
         >
           {loading ? 'Saving...' : 'Save Settings'}
         </Button>

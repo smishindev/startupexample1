@@ -246,8 +246,8 @@ export default function PublicCertificatePage() {
               position: 'absolute',
               top: -50,
               right: -50,
-              width: 200,
-              height: 200,
+              width: { xs: 120, sm: 200 },
+              height: { xs: 120, sm: 200 },
               borderRadius: '50%',
               background: 'rgba(255,255,255,0.1)',
             },
@@ -256,8 +256,8 @@ export default function PublicCertificatePage() {
               position: 'absolute',
               bottom: -30,
               left: -30,
-              width: 150,
-              height: 150,
+              width: { xs: 100, sm: 150 },
+              height: { xs: 100, sm: 150 },
               borderRadius: '50%',
               background: 'rgba(255,255,255,0.1)',
             }
@@ -267,7 +267,7 @@ export default function PublicCertificatePage() {
             {/* Header */}
             <Box sx={{ textAlign: 'center', mb: 4 }}>
               <Verified sx={{ fontSize: 60, mb: 2, opacity: 0.9 }} />
-              <Typography variant="h3" fontWeight="bold" gutterBottom>
+              <Typography variant="h3" fontWeight="bold" gutterBottom sx={{ fontSize: { xs: '1.5rem', sm: '2rem', md: '3rem' } }}>
                 Certificate of Completion
               </Typography>
               <Divider sx={{ my: 2, bgcolor: 'rgba(255,255,255,0.3)' }} />
@@ -275,17 +275,17 @@ export default function PublicCertificatePage() {
 
             {/* Certificate Content */}
             <Box sx={{ textAlign: 'center', mb: 4 }}>
-              <Typography variant="h6" sx={{ mb: 2, opacity: 0.9 }}>
+              <Typography variant="h6" sx={{ mb: 2, opacity: 0.9, fontSize: { xs: '0.95rem', sm: '1.25rem' } }}>
                 This certifies that
               </Typography>
-              <Typography variant="h3" fontWeight="bold" sx={{ mb: 3 }}>
+              <Typography variant="h3" fontWeight="bold" sx={{ mb: 3, fontSize: { xs: '1.5rem', sm: '2rem', md: '3rem' } }}>
                 {certificate.StudentName}
               </Typography>
               
-              <Typography variant="h6" sx={{ mb: 2, opacity: 0.9 }}>
+              <Typography variant="h6" sx={{ mb: 2, opacity: 0.9, fontSize: { xs: '0.95rem', sm: '1.25rem' } }}>
                 has successfully completed
               </Typography>
-              <Typography variant="h4" fontWeight="bold" sx={{ mb: 4 }}>
+              <Typography variant="h4" fontWeight="bold" sx={{ mb: 4, fontSize: { xs: '1.25rem', sm: '1.75rem', md: '2.125rem' } }}>
                 {certificate.CourseTitle}
               </Typography>
 

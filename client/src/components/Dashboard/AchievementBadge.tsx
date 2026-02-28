@@ -24,7 +24,7 @@ export const AchievementBadge: React.FC<{ achievement: Achievement }> = ({ achie
         borderRadius: 2,
       }}
     >
-      <Typography variant="h4" sx={{ mb: 1 }}>
+      <Typography variant="h4" sx={{ mb: 1, fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
         {achievement.icon}
       </Typography>
       <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 0.5 }}>

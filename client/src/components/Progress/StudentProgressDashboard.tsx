@@ -196,7 +196,7 @@ export const StudentProgressDashboard: React.FC = () => {
       {/* Overview Cards */}
       <Grid container spacing={{ xs: 2, md: 3 }} sx={{ mb: { xs: 2, md: 4 } }}>
         {/* Progress Overview */}
-        <Grid item xs={12} md={3}>
+        <Grid item xs={6} md={3}>
           <Card>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
@@ -212,7 +212,7 @@ export const StudentProgressDashboard: React.FC = () => {
                   </Typography>
                 </Box>
               </Box>
-              <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1 }}>
+              <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1, fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
                 {basicProgress.completedCourses}/{basicProgress.totalCourses}
               </Typography>
               <Typography variant="body2" color="text.secondary">
@@ -223,7 +223,7 @@ export const StudentProgressDashboard: React.FC = () => {
         </Grid>
 
         {/* Performance Insights */}
-        <Grid item xs={12} md={3}>
+        <Grid item xs={6} md={3}>
           <Card>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
@@ -242,7 +242,7 @@ export const StudentProgressDashboard: React.FC = () => {
                   />
                 </Box>
               </Box>
-              <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1 }}>
+              <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1, fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
                 {Math.round(performanceInsights.engagementScore)}%
               </Typography>
               <Typography variant="body2" color="text.secondary">
@@ -253,7 +253,7 @@ export const StudentProgressDashboard: React.FC = () => {
         </Grid>
 
         {/* Learning Velocity */}
-        <Grid item xs={12} md={3}>
+        <Grid item xs={6} md={3}>
           <Card>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
@@ -269,7 +269,7 @@ export const StudentProgressDashboard: React.FC = () => {
                   </Typography>
                 </Box>
               </Box>
-              <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1 }}>
+              <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1, fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
                 {performanceInsights.learningVelocity}
               </Typography>
               <Typography variant="body2" color="text.secondary">
@@ -280,7 +280,7 @@ export const StudentProgressDashboard: React.FC = () => {
         </Grid>
 
         {/* Risk Assessment */}
-        <Grid item xs={12} md={3}>
+        <Grid item xs={6} md={3}>
           <Card>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
@@ -298,7 +298,7 @@ export const StudentProgressDashboard: React.FC = () => {
                   />
                 </Box>
               </Box>
-              <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1 }}>
+              <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1, fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
                 {Math.round(performanceInsights.consistencyScore)}%
               </Typography>
               <Typography variant="body2" color="text.secondary">
@@ -392,7 +392,7 @@ export const StudentProgressDashboard: React.FC = () => {
                     <Typography variant="body2" color="text.secondary">
                       Total Time Invested
                     </Typography>
-                    <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+                    <Typography variant="h4" sx={{ fontWeight: 'bold', fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
                       {Math.round(basicProgress.totalTimeSpent)} hours
                     </Typography>
                   </Box>
@@ -400,7 +400,7 @@ export const StudentProgressDashboard: React.FC = () => {
                     <Typography variant="body2" color="text.secondary">
                       Active Courses
                     </Typography>
-                    <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+                    <Typography variant="h4" sx={{ fontWeight: 'bold', fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
                       {basicProgress.inProgressCourses}
                     </Typography>
                   </Box>
@@ -562,8 +562,8 @@ export const StudentProgressDashboard: React.FC = () => {
             <Grid item xs={12} md={4}>
               <Card>
                 <CardContent sx={{ textAlign: 'center' }}>
-                  <AchievementIcon sx={{ fontSize: 48, color: 'success.main', mb: 2 }} />
-                  <Typography variant="h3" sx={{ fontWeight: 'bold', color: 'success.main' }}>
+                  <AchievementIcon sx={{ fontSize: { xs: 36, sm: 48 }, color: 'success.main', mb: 2 }} />
+                  <Typography variant="h3" sx={{ fontWeight: 'bold', color: 'success.main', fontSize: { xs: '1.75rem', sm: '3rem' } }}>
                     {achievementMilestones.completed}
                   </Typography>
                   <Typography variant="body1">
@@ -576,8 +576,8 @@ export const StudentProgressDashboard: React.FC = () => {
             <Grid item xs={12} md={4}>
               <Card>
                 <CardContent sx={{ textAlign: 'center' }}>
-                  <StarIcon sx={{ fontSize: 48, color: 'primary.main', mb: 2 }} />
-                  <Typography variant="h3" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+                  <StarIcon sx={{ fontSize: { xs: 36, sm: 48 }, color: 'primary.main', mb: 2 }} />
+                  <Typography variant="h3" sx={{ fontWeight: 'bold', color: 'primary.main', fontSize: { xs: '1.75rem', sm: '3rem' } }}>
                     {achievementMilestones.inProgress}
                   </Typography>
                   <Typography variant="body1">
@@ -590,8 +590,8 @@ export const StudentProgressDashboard: React.FC = () => {
             <Grid item xs={12} md={4}>
               <Card>
                 <CardContent sx={{ textAlign: 'center' }}>
-                  <TimelineIcon sx={{ fontSize: 48, color: 'info.main', mb: 2 }} />
-                  <Typography variant="h3" sx={{ fontWeight: 'bold', color: 'info.main' }}>
+                  <TimelineIcon sx={{ fontSize: { xs: 36, sm: 48 }, color: 'info.main', mb: 2 }} />
+                  <Typography variant="h3" sx={{ fontWeight: 'bold', color: 'info.main', fontSize: { xs: '1.75rem', sm: '3rem' } }}>
                     {achievementMilestones.upcoming}
                   </Typography>
                   <Typography variant="body1">

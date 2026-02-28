@@ -260,7 +260,7 @@ export const CourseDetailsEditor: React.FC<CourseDetailsEditorProps> = ({ course
                     alt="Course thumbnail"
                     sx={{ 
                       width: '100%', 
-                      height: 200, 
+                      height: { xs: 160, sm: 200 }, 
                       objectFit: 'cover',
                       borderRadius: 1,
                       cursor: 'pointer'
@@ -286,7 +286,7 @@ export const CourseDetailsEditor: React.FC<CourseDetailsEditorProps> = ({ course
               ) : (
                 <Box
                   sx={{
-                    height: 200,
+                    height: { xs: 160, sm: 200 },
                     border: '2px dashed',
                     borderColor: 'divider',
                     borderRadius: 1,
@@ -304,7 +304,7 @@ export const CourseDetailsEditor: React.FC<CourseDetailsEditorProps> = ({ course
                   }}
                   onClick={handleThumbnailClick}
                 >
-                  <ImageIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 1 }} />
+                  <ImageIcon sx={{ fontSize: { xs: 36, sm: 48 }, color: 'text.secondary', mb: 1 }} />
                   <Typography variant="body2" color="text.secondary">
                     Click to upload thumbnail
                   </Typography>

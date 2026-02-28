@@ -182,15 +182,15 @@ export const InterventionDashboard: React.FC = () => {
       <>
       {/* Summary Cards */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} md={4}>
+        <Grid item xs={6} md={4}>
           <Card sx={{ bgcolor: '#fff3e0', border: '2px solid #ff9800' }}>
             <CardContent>
               <Stack direction="row" spacing={2} alignItems="center">
-                <Avatar sx={{ bgcolor: '#ff9800', width: 56, height: 56 }}>
+                <Avatar sx={{ bgcolor: '#ff9800', width: { xs: 40, sm: 56 }, height: { xs: 40, sm: 56 } }}>
                   <WarningIcon fontSize="large" />
                 </Avatar>
                 <Box>
-                  <Typography variant="h3" sx={{ fontWeight: 'bold' }}>
+                  <Typography variant="h3" sx={{ fontWeight: 'bold', fontSize: { xs: '1.75rem', sm: '3rem' } }}>
                     {atRiskStudents.length}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
@@ -202,15 +202,15 @@ export const InterventionDashboard: React.FC = () => {
           </Card>
         </Grid>
 
-        <Grid item xs={12} md={4}>
+        <Grid item xs={6} md={4}>
           <Card sx={{ bgcolor: '#e3f2fd', border: '2px solid #2196f3' }}>
             <CardContent>
               <Stack direction="row" spacing={2} alignItems="center">
-                <Avatar sx={{ bgcolor: '#2196f3', width: 56, height: 56 }}>
+                <Avatar sx={{ bgcolor: '#2196f3', width: { xs: 40, sm: 56 }, height: { xs: 40, sm: 56 } }}>
                   <TrendingDownIcon fontSize="large" />
                 </Avatar>
                 <Box>
-                  <Typography variant="h3" sx={{ fontWeight: 'bold' }}>
+                  <Typography variant="h3" sx={{ fontWeight: 'bold', fontSize: { xs: '1.75rem', sm: '3rem' } }}>
                     {lowProgressStudents.length}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
@@ -226,11 +226,11 @@ export const InterventionDashboard: React.FC = () => {
           <Card sx={{ bgcolor: '#f3e5f5', border: '2px solid #9c27b0' }}>
             <CardContent>
               <Stack direction="row" spacing={2} alignItems="center">
-                <Avatar sx={{ bgcolor: '#9c27b0', width: 56, height: 56 }}>
+                <Avatar sx={{ bgcolor: '#9c27b0', width: { xs: 40, sm: 56 }, height: { xs: 40, sm: 56 } }}>
                   <AssignmentIcon fontSize="large" />
                 </Avatar>
                 <Box>
-                  <Typography variant="h3" sx={{ fontWeight: 'bold' }}>
+                  <Typography variant="h3" sx={{ fontWeight: 'bold', fontSize: { xs: '1.75rem', sm: '3rem' } }}>
                     {pendingAssessments.length}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">

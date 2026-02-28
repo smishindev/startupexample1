@@ -227,7 +227,7 @@ export const InstructorStudentAnalytics: React.FC = () => {
         <>
         {/* Risk Summary Cards */}
         <Grid container spacing={3} sx={{ mb: 4 }}>
-          <Grid item xs={12} md={3}>
+          <Grid item xs={6} md={3}>
             <Card>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
@@ -241,14 +241,14 @@ export const InstructorStudentAnalytics: React.FC = () => {
                     </Typography>
                   </Box>
                 </Box>
-                <Typography variant="h3" sx={{ fontWeight: 'bold', color: 'error.main' }}>
+                <Typography variant="h3" sx={{ fontWeight: 'bold', color: 'error.main', fontSize: { xs: '1.75rem', sm: '3rem' } }}>
                   {riskSummary.high}
                 </Typography>
               </CardContent>
             </Card>
           </Grid>
 
-          <Grid item xs={12} md={3}>
+          <Grid item xs={6} md={3}>
             <Card>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
@@ -262,14 +262,14 @@ export const InstructorStudentAnalytics: React.FC = () => {
                     </Typography>
                   </Box>
                 </Box>
-                <Typography variant="h3" sx={{ fontWeight: 'bold', color: 'warning.main' }}>
+                <Typography variant="h3" sx={{ fontWeight: 'bold', color: 'warning.main', fontSize: { xs: '1.75rem', sm: '3rem' } }}>
                   {riskSummary.medium}
                 </Typography>
               </CardContent>
             </Card>
           </Grid>
 
-          <Grid item xs={12} md={3}>
+          <Grid item xs={6} md={3}>
             <Card>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
@@ -283,14 +283,14 @@ export const InstructorStudentAnalytics: React.FC = () => {
                     </Typography>
                   </Box>
                 </Box>
-                <Typography variant="h3" sx={{ fontWeight: 'bold', color: 'success.main' }}>
+                <Typography variant="h3" sx={{ fontWeight: 'bold', color: 'success.main', fontSize: { xs: '1.75rem', sm: '3rem' } }}>
                   {riskSummary.low}
                 </Typography>
               </CardContent>
             </Card>
           </Grid>
 
-          <Grid item xs={12} md={3}>
+          <Grid item xs={6} md={3}>
             <Card>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
@@ -304,7 +304,7 @@ export const InstructorStudentAnalytics: React.FC = () => {
                     </Typography>
                   </Box>
                 </Box>
-                <Typography variant="h3" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+                <Typography variant="h3" sx={{ fontWeight: 'bold', color: 'primary.main', fontSize: { xs: '1.75rem', sm: '3rem' } }}>
                   {students.reduce((sum, s) => sum + s.recommendedActions.length, 0)}
                 </Typography>
               </CardContent>
@@ -355,11 +355,11 @@ export const InstructorStudentAnalytics: React.FC = () => {
             <TableHead>
               <TableRow>
                 <TableCell>Student</TableCell>
-                <TableCell>Course</TableCell>
+                <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>Course</TableCell>
                 <TableCell>Risk Level</TableCell>
                 <TableCell>Progress</TableCell>
-                <TableCell>Last Activity</TableCell>
-                <TableCell>Struggling Areas</TableCell>
+                <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>Last Activity</TableCell>
+                <TableCell sx={{ display: { xs: 'none', lg: 'table-cell' } }}>Struggling Areas</TableCell>
                 <TableCell>Actions</TableCell>
               </TableRow>
             </TableHead>
@@ -377,7 +377,7 @@ export const InstructorStudentAnalytics: React.FC = () => {
                         </Typography>
                       </Box>
                     </TableCell>
-                    <TableCell>
+                    <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
                       <Typography variant="body2">
                         {student.courseName}
                       </Typography>
@@ -400,12 +400,12 @@ export const InstructorStudentAnalytics: React.FC = () => {
                         )}
                       </Box>
                     </TableCell>
-                    <TableCell>
+                    <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>
                       <Typography variant="body2">
                         {student.lastActivity}
                       </Typography>
                     </TableCell>
-                    <TableCell>
+                    <TableCell sx={{ display: { xs: 'none', lg: 'table-cell' } }}>
                       {student.strugglingAreas.length > 0 ? (
                         <Box>
                           {student.strugglingAreas.slice(0, 2).map((area, index) => (

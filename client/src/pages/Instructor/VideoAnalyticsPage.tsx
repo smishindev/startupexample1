@@ -36,7 +36,7 @@ import {
 import axios from 'axios';
 import { useAuthStore } from '../../stores/authStore';
 import { HeaderV5 as Header } from '../../components/Navigation/HeaderV5';
-import { PageContainer } from '../../components/Responsive';
+import { PageContainer, useResponsive } from '../../components/Responsive';
 import { CourseSelector } from '../../components/Common/CourseSelector';
 
 // Use environment variable or fallback to localhost
@@ -117,6 +117,7 @@ export const VideoAnalyticsPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [coursesLoading, setCoursesLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { isMobile } = useResponsive();
 
   // Fetch instructor's courses
   useEffect(() => {
@@ -315,7 +316,7 @@ export const VideoAnalyticsPage: React.FC = () => {
         </Box>
         
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <IconButton onClick={fetchAnalytics} color="primary" size="large" disabled={loading} data-testid="video-analytics-refresh-button">
+          <IconButton onClick={fetchAnalytics} color="primary" size={isMobile ? 'medium' : 'large'} disabled={loading} data-testid="video-analytics-refresh-button">
             <RefreshIcon />
           </IconButton>
           <CourseSelector
@@ -325,7 +326,7 @@ export const VideoAnalyticsPage: React.FC = () => {
             label="Select Course"
             disabled={loading}
             required
-            sx={{ minWidth: { xs: 200, sm: 300 } }}
+            sx={{ minWidth: { xs: 160, sm: 300 } }}
             testId="video-analytics-course-select"
             inputTestId="video-analytics-course-select-input"
           />
@@ -355,7 +356,7 @@ export const VideoAnalyticsPage: React.FC = () => {
                       Total Videos
                     </Typography>
                   </Box>
-                  <Typography variant="h4">{overallStats.totalVideos}</Typography>
+                  <Typography variant="h4" sx={{ fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>{overallStats.totalVideos}</Typography>
                 </CardContent>
               </Card>
             </Grid>
@@ -369,7 +370,7 @@ export const VideoAnalyticsPage: React.FC = () => {
                       Total Views
                     </Typography>
                   </Box>
-                  <Typography variant="h4">{overallStats.totalViews}</Typography>
+                  <Typography variant="h4" sx={{ fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>{overallStats.totalViews}</Typography>
                 </CardContent>
               </Card>
             </Grid>
@@ -383,7 +384,7 @@ export const VideoAnalyticsPage: React.FC = () => {
                       Completions
                     </Typography>
                   </Box>
-                  <Typography variant="h4">{overallStats.totalCompletions}</Typography>
+                  <Typography variant="h4" sx={{ fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>{overallStats.totalCompletions}</Typography>
                   <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
                     {overallStats.avgCompletionRate.toFixed(1)}% avg rate
                   </Typography>
@@ -400,7 +401,7 @@ export const VideoAnalyticsPage: React.FC = () => {
                       Watch Time
                     </Typography>
                   </Box>
-                  <Typography variant="h4">{formatHours(overallStats.totalWatchTimeHours)}h</Typography>
+                  <Typography variant="h4" sx={{ fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>{formatHours(overallStats.totalWatchTimeHours)}h</Typography>
                   <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
                     {formatDuration(overallStats.avgWatchTime)} avg
                   </Typography>
@@ -425,12 +426,12 @@ export const VideoAnalyticsPage: React.FC = () => {
                   <TableHead>
                     <TableRow>
                       <TableCell>Lesson</TableCell>
-                      <TableCell>Video</TableCell>
-                      <TableCell align="center">Duration</TableCell>
+                      <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>Video</TableCell>
+                      <TableCell align="center" sx={{ display: { xs: 'none', sm: 'table-cell' } }}>Duration</TableCell>
                       <TableCell align="center">Views</TableCell>
-                      <TableCell align="center">Completions</TableCell>
+                      <TableCell align="center" sx={{ display: { xs: 'none', md: 'table-cell' } }}>Completions</TableCell>
                       <TableCell align="center">Completion Rate</TableCell>
-                      <TableCell align="center">Avg Watch Time</TableCell>
+                      <TableCell align="center" sx={{ display: { xs: 'none', sm: 'table-cell' } }}>Avg Watch Time</TableCell>
                       <TableCell align="center">Engagement</TableCell>
                     </TableRow>
                   </TableHead>
@@ -440,11 +441,11 @@ export const VideoAnalyticsPage: React.FC = () => {
                       .map((video) => (
                         <TableRow key={video.contentItemId} hover>
                           <TableCell>
-                            <Typography variant="body2" fontWeight="medium">
+                            <Typography variant="body2" fontWeight="medium" sx={{ maxWidth: { xs: 120, sm: 'none' }, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                               {video.lessonTitle}
                             </Typography>
                           </TableCell>
-                          <TableCell>
+                          <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
                             <Chip 
                               label={`Video ${video.videoIndex + 1}`} 
                               size="small" 
@@ -452,7 +453,7 @@ export const VideoAnalyticsPage: React.FC = () => {
                               variant="outlined"
                             />
                           </TableCell>
-                          <TableCell align="center">
+                          <TableCell align="center" sx={{ display: { xs: 'none', sm: 'table-cell' } }}>
                             <Typography variant="body2">
                               {formatDuration(video.duration)}
                             </Typography>
@@ -464,7 +465,7 @@ export const VideoAnalyticsPage: React.FC = () => {
                               icon={<PlayIcon />}
                             />
                           </TableCell>
-                          <TableCell align="center">
+                          <TableCell align="center" sx={{ display: { xs: 'none', md: 'table-cell' } }}>
                             <Chip 
                               label={video.completions} 
                               size="small"
@@ -494,7 +495,7 @@ export const VideoAnalyticsPage: React.FC = () => {
                               </Typography>
                             </Box>
                           </TableCell>
-                          <TableCell align="center">
+                          <TableCell align="center" sx={{ display: { xs: 'none', sm: 'table-cell' } }}>
                             <Typography variant="body2">
                               {formatDuration(video.avgWatchTime)}
                             </Typography>

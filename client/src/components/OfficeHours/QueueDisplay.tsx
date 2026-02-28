@@ -39,6 +39,7 @@ import UserPresenceBadge from '../Presence/UserPresenceBadge';
 import { presenceApi } from '../../services/presenceApi';
 import { socketService } from '../../services/socketService';
 import type { PresenceStatus } from '../../types/presence';
+import { useResponsive } from '../Responsive';
 
 interface QueueDisplayProps {
   instructorId: string;
@@ -47,6 +48,7 @@ interface QueueDisplayProps {
 }
 
 const QueueDisplay: React.FC<QueueDisplayProps> = ({ instructorId, isInstructor, onQueueUpdate }) => {
+  const { isMobile } = useResponsive();
   const [queue, setQueue] = useState<QueueEntry[]>([]);
   const [stats, setStats] = useState<QueueStats>({ waiting: 0, admitted: 0 });
   const [loading, setLoading] = useState(true);
@@ -245,10 +247,10 @@ const QueueDisplay: React.FC<QueueDisplayProps> = ({ instructorId, isInstructor,
                 borderLeft: entry.Status === QueueStatus.Waiting ? '4px solid #ff9800' : '4px solid #1976d2'
               }}
             >
-              <CardContent>
-                <Box display="flex" justifyContent="space-between" alignItems="flex-start">
+              <CardContent sx={{ px: { xs: 1.5, sm: 2 } }}>
+                <Box display="flex" flexDirection={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', sm: 'flex-start' }} gap={{ xs: 1.5, sm: 0 }}>
                   {/* Student Info */}
-                  <Box display="flex" gap={2} flex={1}>
+                  <Box display="flex" gap={{ xs: 1.5, sm: 2 }} flex={1} minWidth={0}>
                     <Badge
                       badgeContent={entry.Position || index + 1}
                       color="primary"
@@ -291,7 +293,7 @@ const QueueDisplay: React.FC<QueueDisplayProps> = ({ instructorId, isInstructor,
                         </Box>
                       )}
 
-                      <Stack direction="row" spacing={2} mt={1}>
+                      <Stack direction="row" spacing={2} mt={1} flexWrap="wrap" useFlexGap>
                         <Typography variant="caption" color="text.secondary">
                           <ClockIcon fontSize="inherit" /> Joined {getWaitTime(entry)}
                         </Typography>
@@ -305,16 +307,16 @@ const QueueDisplay: React.FC<QueueDisplayProps> = ({ instructorId, isInstructor,
                   </Box>
 
                   {/* Status and Actions */}
-                  <Box textAlign="right">
+                  <Box textAlign={{ xs: 'left', sm: 'right' }} display="flex" flexDirection={{ xs: 'row', sm: 'column' }} alignItems={{ xs: 'center', sm: 'flex-end' }} gap={1} flexWrap="wrap">
                     <Chip
                       label={getQueueStatusLabel(entry.Status as QueueStatus)}
                       color={getQueueStatusColor(entry.Status as QueueStatus)}
                       size="small"
-                      sx={{ mb: 2 }}
+                      sx={{ mb: { xs: 0, sm: 2 } }}
                     />
 
                     {isInstructor && (
-                      <Stack spacing={1}>
+                      <Stack direction={{ xs: 'row', sm: 'column' }} spacing={1}>
                         {entry.Status === QueueStatus.Waiting && (
                           <Button
                             size="small"

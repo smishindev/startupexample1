@@ -1582,7 +1582,7 @@ export const CourseCreationForm: React.FC = () => {
                 <Box sx={{ textAlign: 'center', py: 3 }}>
                   <CheckCircleIcon 
                     sx={{ 
-                      fontSize: 80, 
+                      fontSize: { xs: 56, sm: 80 }, 
                       color: 'success.main',
                       mb: 2
                     }} 

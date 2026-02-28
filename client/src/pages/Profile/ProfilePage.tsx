@@ -39,7 +39,7 @@ import { useNavigate } from 'react-router-dom';
 import profileApi, { UserProfile, UpdatePersonalInfoData, UpdateBillingAddressData, ChangePasswordData } from '../../services/profileApi';
 import { useAuthStore } from '../../stores/authStore';
 import { HeaderV5 as HeaderV4 } from '../../components/Navigation/HeaderV5';
-import { PageContainer } from '../../components/Responsive';
+import { PageContainer, useResponsive } from '../../components/Responsive';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -71,6 +71,7 @@ const ProfilePage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const { isMobile } = useResponsive();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -272,14 +273,14 @@ const ProfilePage: React.FC = () => {
       <PageContainer maxWidth="lg" sx={{ mt: { xs: 2, md: 4 }, mb: 4 }}>
         <Paper elevation={3} sx={{ overflow: 'hidden' }}>
           {/* Header Section */}
-          <Box sx={{ p: 3, bgcolor: 'primary.main', color: 'white' }}>
+          <Box sx={{ p: { xs: 2, sm: 3 }, bgcolor: 'primary.main', color: 'white' }}>
             <Grid container spacing={2} alignItems="center">
               <Grid item>
                 <Box sx={{ position: 'relative', display: 'inline-block' }}>
                   <Avatar
                     src={profile.avatar || undefined}
                     alt={`${profile.firstName} ${profile.lastName}`}
-                    sx={{ width: 80, height: 80, bgcolor: 'primary.dark' }}
+                    sx={{ width: { xs: 60, sm: 80 }, height: { xs: 60, sm: 80 }, bgcolor: 'primary.dark' }}
                   >
                     {profile.firstName?.[0]?.toUpperCase() || ''}{profile.lastName?.[0]?.toUpperCase() || ''}
                   </Avatar>
@@ -313,7 +314,7 @@ const ProfilePage: React.FC = () => {
                 </Box>
               </Grid>
               <Grid item xs>
-                <Typography variant="h4" fontWeight="bold">
+                <Typography variant="h4" fontWeight="bold" sx={{ fontSize: { xs: '1.25rem', sm: '2.125rem' } }}>
                   {profile.firstName} {profile.lastName}
                 </Typography>
                 <Typography variant="body1" sx={{ opacity: 0.9 }}>
@@ -360,7 +361,7 @@ const ProfilePage: React.FC = () => {
             </Tabs>
           </Box>
 
-          <Box sx={{ p: 3 }}>
+          <Box sx={{ p: { xs: 2, sm: 3 } }}>
             {/* Tab 1: Personal Info */}
             <TabPanel value={tabValue} index={0}>
               <Typography variant="h6" gutterBottom fontWeight="bold">

@@ -258,7 +258,7 @@ export const StudentSessionsList: React.FC<StudentSessionsListProps> = ({
           allOption={{ value: 'all', label: 'All Courses' }}
           size="small"
           placeholder="Filter by course..."
-          sx={{ mb: 3, minWidth: 250 }}
+          sx={{ mb: 3, minWidth: { xs: 0, sm: 250 }, width: { xs: '100%', sm: 'auto' } }}
           testId="live-sessions-student-course-autocomplete"
           inputTestId="live-sessions-student-course-autocomplete-input"
         />

@@ -238,8 +238,8 @@ export default function CertificatePage() {
             position: 'absolute',
             top: -50,
             right: -50,
-            width: 200,
-            height: 200,
+            width: { xs: 120, sm: 200 },
+            height: { xs: 120, sm: 200 },
             borderRadius: '50%',
             background: 'rgba(255, 255, 255, 0.1)',
           },
@@ -248,15 +248,15 @@ export default function CertificatePage() {
             position: 'absolute',
             bottom: -50,
             left: -50,
-            width: 200,
-            height: 200,
+            width: { xs: 120, sm: 200 },
+            height: { xs: 120, sm: 200 },
             borderRadius: '50%',
             background: 'rgba(255, 255, 255, 0.1)',
           }
         }}
       >
         <Box sx={{ position: 'relative', zIndex: 1 }}>
-          <Verified sx={{ fontSize: 100, mb: 2, opacity: 0.9 }} />
+          <Verified sx={{ fontSize: { xs: 60, sm: 100 }, mb: 2, opacity: 0.9 }} />
           
           <Typography 
             variant="h3" 
@@ -264,7 +264,8 @@ export default function CertificatePage() {
             fontWeight="bold"
             sx={{ 
               fontFamily: 'Georgia, serif',
-              textShadow: '2px 2px 4px rgba(0,0,0,0.2)'
+              textShadow: '2px 2px 4px rgba(0,0,0,0.2)',
+              fontSize: { xs: '1.5rem', sm: '2rem', md: '3rem' }
             }}
           >
             Certificate of Completion
@@ -272,8 +273,8 @@ export default function CertificatePage() {
           
           <Divider sx={{ my: 3, bgcolor: 'rgba(255,255,255,0.3)', mx: 'auto', maxWidth: 400 }} />
           
-          <Box sx={{ my: 5 }}>
-            <Typography variant="h6" gutterBottom sx={{ fontStyle: 'italic', opacity: 0.9 }}>
+          <Box sx={{ my: { xs: 3, sm: 5 } }}>
+            <Typography variant="h6" gutterBottom sx={{ fontStyle: 'italic', opacity: 0.9, fontSize: { xs: '0.95rem', sm: '1.25rem' } }}>
               This certifies that
             </Typography>
             <Typography 
@@ -283,12 +284,13 @@ export default function CertificatePage() {
               sx={{ 
                 my: 2,
                 fontFamily: 'Georgia, serif',
-                textShadow: '2px 2px 4px rgba(0,0,0,0.2)'
+                textShadow: '2px 2px 4px rgba(0,0,0,0.2)',
+                fontSize: { xs: '1.5rem', sm: '2rem', md: '3rem' }
               }}
             >
               {certificate.StudentName}
             </Typography>
-            <Typography variant="h6" gutterBottom sx={{ fontStyle: 'italic', opacity: 0.9 }}>
+            <Typography variant="h6" gutterBottom sx={{ fontStyle: 'italic', opacity: 0.9, fontSize: { xs: '0.95rem', sm: '1.25rem' } }}>
               has successfully completed
             </Typography>
             <Typography 
@@ -298,7 +300,8 @@ export default function CertificatePage() {
               sx={{ 
                 my: 2,
                 fontFamily: 'Georgia, serif',
-                textShadow: '2px 2px 4px rgba(0,0,0,0.2)'
+                textShadow: '2px 2px 4px rgba(0,0,0,0.2)',
+                fontSize: { xs: '1.5rem', sm: '2rem', md: '3rem' }
               }}
             >
               {certificate.CourseTitle}
@@ -307,15 +310,15 @@ export default function CertificatePage() {
 
           <Divider sx={{ my: 3, bgcolor: 'rgba(255,255,255,0.3)', mx: 'auto', maxWidth: 400 }} />
 
-          <Box sx={{ my: 4, display: 'flex', flexDirection: 'column', gap: 1 }}>
-            <Typography variant="h6">
+          <Box sx={{ my: { xs: 3, sm: 4 }, display: 'flex', flexDirection: 'column', gap: 1 }}>
+            <Typography variant="h6" sx={{ fontSize: { xs: '0.95rem', sm: '1.25rem' } }}>
               Instructor: <strong>{certificate.InstructorName}</strong>
             </Typography>
-            <Typography variant="h6">
+            <Typography variant="h6" sx={{ fontSize: { xs: '0.95rem', sm: '1.25rem' } }}>
               Completion Date: <strong>{format(new Date(certificate.CompletionDate), 'MMMM dd, yyyy')}</strong>
             </Typography>
             {certificate.FinalScore !== null && (
-              <Typography variant="h6">
+              <Typography variant="h6" sx={{ fontSize: { xs: '0.95rem', sm: '1.25rem' } }}>
                 Final Score: <strong>{certificate.FinalScore.toFixed(1)}%</strong>
               </Typography>
             )}

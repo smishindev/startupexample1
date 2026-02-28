@@ -48,7 +48,7 @@ import { ContentItem } from '../../components/Lesson/ContentItem';
 import { coursesApi } from '../../services/coursesApi';
 import { BookmarkApi } from '../../services/bookmarkApi';
 import { CommentsSection } from '../../components/Shared/CommentsSection';
-import { PageContainer } from '../../components/Responsive';
+import { PageContainer, useResponsive } from '../../components/Responsive';
 
 interface ExtendedLessonContent {
   id: string;
@@ -117,6 +117,7 @@ export const LessonDetailPage: React.FC = () => {
   const { courseId, lessonId } = useParams<{ courseId: string; lessonId: string }>();
   const navigate = useNavigate();
   const theme = useTheme();
+  const { isMobile } = useResponsive();
   
   const [lesson, setLesson] = useState<ExtendedLesson | null>(null);
   const [allLessons, setAllLessons] = useState<Lesson[]>([]);
@@ -488,13 +489,15 @@ export const LessonDetailPage: React.FC = () => {
           py: 1,
           justifyContent: 'space-between'
         }}>
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', minWidth: 0, flex: 1, mr: 1 }}>
             <IconButton 
               onClick={() => navigate(`/courses/${courseId}`)}
               sx={{ 
                 mr: 1,
+                flexShrink: 0,
                 '&:hover': { bgcolor: 'action.hover' }
               }}
+              size={isMobile ? 'small' : 'medium'}
               data-testid="lesson-detail-back-button"
             >
               <ArrowBack />
@@ -502,22 +505,24 @@ export const LessonDetailPage: React.FC = () => {
             <Typography 
               variant="body2" 
               color="text.secondary"
+              noWrap
               sx={{ 
                 display: 'flex',
                 alignItems: 'center',
-                gap: 1
+                gap: 0.5,
+                minWidth: 0
               }}
             >
-              <span style={{ fontWeight: 500 }}>{lesson.courseTitle}</span>
-              <span>/</span>
-              <span>{lesson.title}</span>
+              <Box component="span" sx={{ fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flexShrink: 1, minWidth: 0 }}>{lesson.courseTitle}</Box>
+              <Box component="span" sx={{ flexShrink: 0 }}>/</Box>
+              <Box component="span" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flexShrink: 1, minWidth: 0 }}>{lesson.title}</Box>
             </Typography>
           </Box>
           {/* Table of Contents Button - Always visible */}
           {allLessons.length > 0 && (
             <IconButton 
               onClick={() => setShowTableOfContents(!showTableOfContents)} 
-              size="large"
+              size={isMobile ? 'medium' : 'large'}
               sx={{ 
                 border: '1px solid',
                 borderColor: 'divider',
@@ -538,8 +543,8 @@ export const LessonDetailPage: React.FC = () => {
                 <Grid item xs={12} md={6}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                     <Box sx={{ 
-                      width: 60, 
-                      height: 60, 
+                      width: { xs: 48, sm: 60 }, 
+                      height: { xs: 48, sm: 60 }, 
                       borderRadius: '50%', 
                       bgcolor: 'primary.main',
                       display: 'flex',
@@ -547,7 +552,8 @@ export const LessonDetailPage: React.FC = () => {
                       justifyContent: 'center',
                       color: 'white',
                       fontWeight: 'bold',
-                      fontSize: '1.2rem'
+                      fontSize: { xs: '1rem', sm: '1.2rem' },
+                      flexShrink: 0
                     }}>
                       {allLessons.length > 0 ? Math.round((progress.lessonProgress?.filter((lp: any) => lp.CompletedAt).length || 0) / allLessons.length * 100) : 0}%
                     </Box>
@@ -674,7 +680,7 @@ export const LessonDetailPage: React.FC = () => {
                 <Button
                   variant="contained"
                   color="primary"
-                  size="large"
+                  size={isMobile ? 'medium' : 'large'}
                   fullWidth
                   onClick={() => navigate(`/courses/${courseId}/lessons/${lesson.nextLessonId}`)}
                   startIcon={<PlayCircleOutline />}
@@ -690,17 +696,17 @@ export const LessonDetailPage: React.FC = () => {
             <Paper 
               elevation={0} 
               sx={{ 
-                p: 3, 
+                p: { xs: 2, sm: 3 }, 
                 mb: 3,
                 border: '1px solid',
                 borderColor: 'divider',
                 borderRadius: 2
               }}
             >
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-                <Box sx={{ flex: 1 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1.5, flexWrap: 'wrap' }}>
-                    <Typography variant="h4" sx={{ fontWeight: 700, fontSize: { xs: '1.75rem', md: '2rem' } }}>
+              <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', alignItems: { xs: 'stretch', sm: 'flex-start' }, mb: 2, gap: { xs: 1.5, sm: 0 } }}>
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 2 }, mb: 1.5, flexWrap: 'wrap' }}>
+                    <Typography variant="h4" sx={{ fontWeight: 700, fontSize: { xs: '1.5rem', sm: '1.75rem', md: '2rem' } }}>
                       {lesson.title}
                     </Typography>
                     {isInstructorPreview && (
@@ -726,17 +732,17 @@ export const LessonDetailPage: React.FC = () => {
                     {lesson.description}
                   </Typography>
                   
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.5, sm: 2 }, flexWrap: 'wrap', rowGap: 0.5 }}>
                     <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                       <strong>Instructor:</strong> {lesson.instructorName}
                     </Typography>
-                    <Typography variant="body2" color="text.secondary">•</Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ display: { xs: 'none', sm: 'block' } }}>•</Typography>
                     <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                       <strong>Duration:</strong> {lesson.duration}
                     </Typography>
                     {lesson.content && lesson.content.length > 0 && (
                       <>
-                        <Typography variant="body2" color="text.secondary">•</Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ display: { xs: 'none', sm: 'block' } }}>•</Typography>
                         <Typography variant="body2" color="text.secondary">
                           <strong>Content:</strong> {lesson.content.length} item{lesson.content.length !== 1 ? 's' : ''}
                           {!isInstructorPreview && (
@@ -750,9 +756,10 @@ export const LessonDetailPage: React.FC = () => {
                   </Box>
                 </Box>
                 
-                <Box sx={{ display: 'flex', gap: 1, ml: 2 }}>
+                <Box sx={{ display: 'flex', gap: 1, ml: { xs: 0, sm: 2 }, alignSelf: { xs: 'flex-end', sm: 'flex-start' } }}>
                   <IconButton 
                     onClick={handleBookmark}
+                    size={isMobile ? 'small' : 'medium'}
                     data-testid="lesson-bookmark-button"
                     sx={{ 
                       border: '1px solid',
@@ -764,6 +771,7 @@ export const LessonDetailPage: React.FC = () => {
                   </IconButton>
                   <IconButton 
                     onClick={handleShare}
+                    size={isMobile ? 'small' : 'medium'}
                     data-testid="lesson-share-button"
                     sx={{ 
                       border: '1px solid',
@@ -802,34 +810,35 @@ export const LessonDetailPage: React.FC = () => {
               )}
 
               {/* Action Buttons */}
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 3, gap: 2, flexWrap: 'wrap' }}>
+              <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', alignItems: { xs: 'stretch', sm: 'center' }, mt: 3, gap: 2 }}>
                 {!isInstructorPreview && !lesson.completed && (
                   <Button 
                     variant="contained" 
                     onClick={handleMarkComplete}
-                    size="large"
+                    size={isMobile ? 'medium' : 'large'}
                     startIcon={<CheckCircle />}
                     data-testid="lesson-mark-complete-button"
                     sx={{ 
-                      px: 4,
-                      py: 1.5,
+                      px: { xs: 2, sm: 4 },
+                      py: { xs: 1, sm: 1.5 },
                       borderRadius: 2,
                       fontWeight: 600,
                       textTransform: 'none',
-                      fontSize: '1rem'
+                      fontSize: { xs: '0.875rem', sm: '1rem' }
                     }}
                   >
                     Mark as Complete
                   </Button>
                 )}
                 
-                <Box sx={{ display: 'flex', gap: 1.5, ml: 'auto' }}>
+                <Box sx={{ display: 'flex', gap: 1.5, ml: { xs: 0, sm: 'auto' }, justifyContent: { xs: 'space-between', sm: 'flex-end' } }}>
                   {lesson.previousLessonId && (
                     <Button
                       variant="outlined"
+                      size={isMobile ? 'small' : 'medium'}
                       onClick={() => navigate(`/courses/${courseId}/lessons/${lesson.previousLessonId}`)}
                       sx={{ 
-                        px: 3,
+                        px: { xs: 2, sm: 3 },
                         py: 1,
                         borderRadius: 2,
                         fontWeight: 600,
@@ -842,9 +851,10 @@ export const LessonDetailPage: React.FC = () => {
                   {lesson.nextLessonId && (
                     <Button
                       variant="contained"
+                      size={isMobile ? 'small' : 'medium'}
                       onClick={() => navigate(`/courses/${courseId}/lessons/${lesson.nextLessonId}`)}
                       sx={{ 
-                        px: 3,
+                        px: { xs: 2, sm: 3 },
                         py: 1,
                         borderRadius: 2,
                         fontWeight: 600,
@@ -1061,12 +1071,12 @@ export const LessonDetailPage: React.FC = () => {
             />
           </Box>
 
-          {/* Sidebar */}
+          {/* Sidebar - hidden on mobile since Drawer provides same navigation */}
           <Box sx={{ 
             flex: 1,
-            display: { xs: 'block', md: 'block' },
-            minWidth: { xs: '100%', md: 300, lg: 350 },
-            maxWidth: { xs: '100%', md: 400 }
+            display: { xs: 'none', lg: 'block' },
+            minWidth: { lg: 300, xl: 350 },
+            maxWidth: { lg: 400 }
           }}>
             {/* Video Transcript - Now handled within VideoContentItem */}
 

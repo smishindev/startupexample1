@@ -657,8 +657,8 @@ const SettingsPage: React.FC = () => {
                             ✅ Export Ready!
                           </Typography>
                           
-                          <Box sx={{ mt: 2, mb: 2 }}>
-                            <table style={{ width: '100%', fontSize: '14px' }}>
+                          <Box sx={{ mt: 2, mb: 2, overflowX: 'auto' }}>
+                            <table style={{ width: '100%', fontSize: '13px' }}>
                               <tbody>
                                 <tr>
                                   <td style={{ padding: '4px 0', color: muiTheme.palette.text.secondary }}>

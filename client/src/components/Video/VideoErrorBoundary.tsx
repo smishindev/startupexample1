@@ -67,7 +67,7 @@ export class VideoErrorBoundary extends Component<Props, State> {
             textAlign: 'center',
           }}
         >
-          <ErrorOutline sx={{ fontSize: 80, color: 'error.main', mb: 2 }} />
+          <ErrorOutline sx={{ fontSize: { xs: 56, sm: 80 }, color: 'error.main', mb: 2 }} />
           
           <Typography variant="h5" gutterBottom sx={{ fontWeight: 'bold' }}>
             Video Player Error

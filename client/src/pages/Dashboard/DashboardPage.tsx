@@ -185,7 +185,7 @@ export const DashboardPage: React.FC = () => {
 
         {/* Stats Overview — distinct gradient per card */}
         <Grid container spacing={3} sx={{ mb: 4 }}>
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid item xs={6} sm={6} md={3}>
             <StatCard
               title="Total Courses"
               value={stats.totalCourses}
@@ -194,7 +194,7 @@ export const DashboardPage: React.FC = () => {
               gradient={STAT_GRADIENTS.courses}
             />
           </Grid>
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid item xs={6} sm={6} md={3}>
             <StatCard
               title="Completed"
               value={stats.completedCourses}
@@ -203,7 +203,7 @@ export const DashboardPage: React.FC = () => {
               gradient={STAT_GRADIENTS.completed}
             />
           </Grid>
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid item xs={6} sm={6} md={3}>
             <StatCard
               title="Hours Learned"
               value={`${stats.hoursLearned}h`}
@@ -212,7 +212,7 @@ export const DashboardPage: React.FC = () => {
               gradient={STAT_GRADIENTS.hours}
             />
           </Grid>
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid item xs={6} sm={6} md={3}>
             <StatCard
               title="Current Streak"
               value={`${stats.currentStreak} days`}

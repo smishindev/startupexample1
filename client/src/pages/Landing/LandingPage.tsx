@@ -293,11 +293,11 @@ const LandingPage: React.FC = () => {
               ].map((stat, i) => (
                 <Grid item xs={6} md={3} key={i}>
                   <Stack direction="row" spacing={1.5} alignItems="center" justifyContent="center">
-                    <Avatar sx={{ bgcolor: alpha('#6366f1', 0.1), width: 48, height: 48 }}>
+                    <Avatar sx={{ bgcolor: alpha('#6366f1', 0.1), width: { xs: 36, sm: 48 }, height: { xs: 36, sm: 48 } }}>
                       {stat.icon}
                     </Avatar>
                     <Box>
-                      <Typography variant="h5" fontWeight="bold" color="text.primary">
+                      <Typography variant="h5" fontWeight="bold" color="text.primary" sx={{ fontSize: { xs: '1.1rem', sm: '1.5rem' } }}>
                         {stat.value.toLocaleString()}+
                       </Typography>
                       <Typography variant="body2" color="text.secondary">

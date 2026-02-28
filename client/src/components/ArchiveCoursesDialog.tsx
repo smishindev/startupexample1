@@ -18,6 +18,7 @@ import {
   Cancel as CancelIcon,
   Info as InfoIcon
 } from '@mui/icons-material';
+import { useTheme, useMediaQuery } from '@mui/material';
 
 interface ArchiveCoursesDialogProps {
   open: boolean;
@@ -34,13 +35,16 @@ const ArchiveCoursesDialog: React.FC<ArchiveCoursesDialogProps> = ({
   publishedCoursesCount,
   totalStudents
 }) => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
   const handleArchive = () => {
     // Just confirm the selection and close - actual archive happens during account deletion
     onArchiveComplete();
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth fullScreen={isMobile}>
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
         <ArchiveIcon color="info" />
         Archive All Published Courses

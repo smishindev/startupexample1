@@ -73,8 +73,8 @@ const AITutoringDemo: React.FC = () => {
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
       <Box sx={{ textAlign: 'center', mb: 6 }}>
-        <AIIcon sx={{ fontSize: 64, color: 'primary.main', mb: 2 }} />
-        <Typography variant="h3" component="h1" gutterBottom color="primary">
+        <AIIcon sx={{ fontSize: { xs: 48, sm: 64 }, color: 'primary.main', mb: 2 }} />
+        <Typography variant="h3" component="h1" gutterBottom color="primary" sx={{ fontSize: { xs: '1.75rem', sm: '3rem' } }}>
           AI Tutoring System
         </Typography>
         <Typography variant="h6" color="text.secondary" sx={{ mb: 3 }}>

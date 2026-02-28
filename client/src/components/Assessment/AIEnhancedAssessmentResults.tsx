@@ -241,17 +241,17 @@ export const AIEnhancedAssessmentResults: React.FC<AssessmentResultsProps> = ({
         <Box sx={{ textAlign: 'center', mb: 4 }}>
           <Box sx={{ mb: 2 }}>
             {results.passed ? (
-              <CheckIcon sx={{ fontSize: 80, color: 'success.main' }} />
+              <CheckIcon sx={{ fontSize: { xs: 56, sm: 80 }, color: 'success.main' }} />
             ) : (
-              <WarningIcon sx={{ fontSize: 80, color: 'warning.main' }} />
+              <WarningIcon sx={{ fontSize: { xs: 56, sm: 80 }, color: 'warning.main' }} />
             )}
           </Box>
           
-          <Typography variant="h3" gutterBottom sx={{ fontWeight: 'bold' }}>
+          <Typography variant="h3" gutterBottom sx={{ fontWeight: 'bold', fontSize: { xs: '1.75rem', sm: '3rem' } }}>
             {results.passed ? 'Assessment Passed!' : 'Keep Trying!'}
           </Typography>
           
-          <Typography variant="h4" sx={{ color: getScoreColor(results.score, assessment.passingScore), mb: 2 }}>
+          <Typography variant="h4" sx={{ color: getScoreColor(results.score, assessment.passingScore), mb: 2, fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
             {Math.round((results.score / results.maxScore) * 100)}%
           </Typography>
           
@@ -808,7 +808,7 @@ export const AIEnhancedAssessmentResults: React.FC<AssessmentResultsProps> = ({
               size="large"
               startIcon={<RetryIcon />}
               onClick={onRetake}
-              sx={{ minWidth: 150 }}
+              sx={{ minWidth: { xs: 120, sm: 150 } }}
             >
               {results.passed ? 'Retake' : 'Try Again'}
             </Button>
@@ -820,7 +820,7 @@ export const AIEnhancedAssessmentResults: React.FC<AssessmentResultsProps> = ({
             size="large"
             startIcon={<BackIcon />}
             onClick={onBackToCourse || (() => navigate(-1))}
-            sx={{ minWidth: 150 }}
+            sx={{ minWidth: { xs: 120, sm: 150 } }}
           >
             {results.passed ? 'Continue Learning' : 'Review Material'}
           </Button>

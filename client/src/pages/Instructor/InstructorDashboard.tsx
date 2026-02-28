@@ -241,7 +241,7 @@ export const InstructorDashboard: React.FC = () => {
         {statsLoading ? (
           <Skeleton variant="text" width={60} height={40} />
         ) : (
-          <Typography variant="h4" component="div" sx={{ mb: 0.5, color: color || 'text.primary' }}>
+          <Typography variant="h4" component="div" sx={{ mb: 0.5, color: color || 'text.primary', fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
             {value}
           </Typography>
         )}

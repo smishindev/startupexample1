@@ -129,13 +129,13 @@ const AssessmentAnalytics: React.FC<AssessmentAnalyticsProps> = ({ assessmentId 
   }
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box sx={{ p: { xs: 1.5, sm: 3 } }}>
       {/* Header */}
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" fontWeight="bold" gutterBottom>
+      <Box sx={{ mb: { xs: 2, sm: 4 } }}>
+        <Typography variant="h4" fontWeight="bold" gutterBottom sx={{ fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
           Assessment Analytics
         </Typography>
-        <Typography variant="h6" color="text.secondary">
+        <Typography variant="h6" color="text.secondary" sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>
           {assessment.title}
         </Typography>
       </Box>
@@ -147,14 +147,14 @@ const AssessmentAnalytics: React.FC<AssessmentAnalyticsProps> = ({ assessmentId 
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box>
-                  <Typography variant="h4" fontWeight="bold" color="primary">
+                  <Typography variant="h4" fontWeight="bold" color="primary" sx={{ fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
                     {analytics.totalSubmissions}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
                     Total Submissions
                   </Typography>
                 </Box>
-                <PeopleIcon sx={{ fontSize: 40, color: 'primary.main' }} />
+                <PeopleIcon sx={{ fontSize: { xs: 30, sm: 40 }, color: 'primary.main' }} />
               </Box>
             </CardContent>
           </Card>
@@ -165,14 +165,14 @@ const AssessmentAnalytics: React.FC<AssessmentAnalyticsProps> = ({ assessmentId 
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box>
-                  <Typography variant="h4" fontWeight="bold" color="success.main">
+                  <Typography variant="h4" fontWeight="bold" color="success.main" sx={{ fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
                     {analytics.passRate.toFixed(1)}%
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
                     Pass Rate
                   </Typography>
                 </Box>
-                <CheckCircleIcon sx={{ fontSize: 40, color: 'success.main' }} />
+                <CheckCircleIcon sx={{ fontSize: { xs: 30, sm: 40 }, color: 'success.main' }} />
               </Box>
             </CardContent>
           </Card>
@@ -183,14 +183,14 @@ const AssessmentAnalytics: React.FC<AssessmentAnalyticsProps> = ({ assessmentId 
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box>
-                  <Typography variant="h4" fontWeight="bold" color="info.main">
+                  <Typography variant="h4" fontWeight="bold" color="info.main" sx={{ fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
                     {analytics.averageScore.toFixed(1)}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
                     Average Score
                   </Typography>
                 </Box>
-                <TrendingUpIcon sx={{ fontSize: 40, color: 'info.main' }} />
+                <TrendingUpIcon sx={{ fontSize: { xs: 30, sm: 40 }, color: 'info.main' }} />
               </Box>
             </CardContent>
           </Card>
@@ -201,14 +201,14 @@ const AssessmentAnalytics: React.FC<AssessmentAnalyticsProps> = ({ assessmentId 
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box>
-                  <Typography variant="h4" fontWeight="bold" color="warning.main">
+                  <Typography variant="h4" fontWeight="bold" color="warning.main" sx={{ fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
                     {formatTime(analytics.averageTimeSpent)}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
                     Avg. Time Spent
                   </Typography>
                 </Box>
-                <TimerIcon sx={{ fontSize: 40, color: 'warning.main' }} />
+                <TimerIcon sx={{ fontSize: { xs: 30, sm: 40 }, color: 'warning.main' }} />
               </Box>
             </CardContent>
           </Card>
@@ -229,20 +229,20 @@ const AssessmentAnalytics: React.FC<AssessmentAnalyticsProps> = ({ assessmentId 
                     <TableRow>
                       <TableCell>Student</TableCell>
                       <TableCell align="center">Score</TableCell>
-                      <TableCell align="center">Time</TableCell>
+                      <TableCell align="center" sx={{ display: { xs: 'none', sm: 'table-cell' } }}>Time</TableCell>
                       <TableCell align="center">Status</TableCell>
-                      <TableCell align="center">Submitted</TableCell>
+                      <TableCell align="center" sx={{ display: { xs: 'none', md: 'table-cell' } }}>Submitted</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {analytics.recentSubmissions.map((submission) => (
                       <TableRow key={submission.id}>
                         <TableCell>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                            <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main' }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 2 } }}>
+                            <Avatar sx={{ width: { xs: 24, sm: 32 }, height: { xs: 24, sm: 32 }, bgcolor: 'primary.main', fontSize: { xs: '0.75rem', sm: '1rem' } }}>
                               {submission.studentName.split(' ').map((n: string) => n[0]).join('')}
                             </Avatar>
-                            {submission.studentName}
+                            <Typography variant="body2" noWrap sx={{ maxWidth: { xs: 100, sm: 'none' } }}>{submission.studentName}</Typography>
                           </Box>
                         </TableCell>
                         <TableCell align="center">
@@ -253,7 +253,7 @@ const AssessmentAnalytics: React.FC<AssessmentAnalyticsProps> = ({ assessmentId 
                             size="small"
                           />
                         </TableCell>
-                        <TableCell align="center">
+                        <TableCell align="center" sx={{ display: { xs: 'none', sm: 'table-cell' } }}>
                           {formatTime(submission.timeSpent)}
                         </TableCell>
                         <TableCell align="center">
@@ -263,7 +263,7 @@ const AssessmentAnalytics: React.FC<AssessmentAnalyticsProps> = ({ assessmentId 
                             <CancelIcon color="error" />
                           )}
                         </TableCell>
-                        <TableCell align="center">
+                        <TableCell align="center" sx={{ display: { xs: 'none', md: 'table-cell' } }}>
                           {new Date(submission.submittedAt).toLocaleDateString()}
                         </TableCell>
                       </TableRow>
@@ -322,7 +322,7 @@ const AssessmentAnalytics: React.FC<AssessmentAnalyticsProps> = ({ assessmentId 
         </Grid>
       </Grid>
 
-      <Grid container spacing={3}>
+      <Grid container spacing={3} sx={{ mt: 0 }}>
         {/* Performance Summary */}
         <Grid item xs={12} lg={8}>
           <Grid container spacing={2}>

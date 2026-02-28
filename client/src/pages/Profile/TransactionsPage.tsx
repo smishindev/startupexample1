@@ -25,6 +25,9 @@ import {
   DialogContent,
   DialogActions,
   TextField,
+  InputAdornment,
+  Tabs,
+  Tab,
   Divider,
   List,
   ListItem,
@@ -43,6 +46,8 @@ import DownloadIcon from '@mui/icons-material/Download';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CheckIcon from '@mui/icons-material/Check';
 import InfoIcon from '@mui/icons-material/Info';
+import SearchIcon from '@mui/icons-material/Search';
+import SearchOffIcon from '@mui/icons-material/SearchOff';
 import { getUserTransactions, requestRefund, downloadInvoice, testCompleteTransaction, type Transaction } from '../../services/paymentApi';
 import { format } from 'date-fns';
 import { HeaderV5 as HeaderV4 } from '../../components/Navigation/HeaderV5';
@@ -56,6 +61,9 @@ const TransactionsPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const rowsPerPage = 10;
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   const [refundDialog, setRefundDialog] = useState<{
     open: boolean;
     transaction: Transaction | null;
@@ -81,6 +89,15 @@ const TransactionsPage: React.FC = () => {
   useEffect(() => {
     loadTransactions();
   }, []);
+
+  // Debounce search input and reset page atomically
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   const handleRefundClick = (transaction: Transaction) => {
     setRefundDialog({ open: true, transaction });
@@ -219,11 +236,45 @@ const TransactionsPage: React.FC = () => {
     return null;
   };
 
-  const totalPages = Math.ceil(transactions.length / rowsPerPage);
-  const paginatedTransactions = transactions.slice(
+  // Filter transactions by status and search
+  const filteredTransactions = transactions.filter((t) => {
+    if (statusFilter !== 'all' && t.Status !== statusFilter) return false;
+    if (debouncedSearch) {
+      const search = debouncedSearch.toLowerCase();
+      return (
+        (t.CourseTitle || '').toLowerCase().includes(search) ||
+        (t.InvoiceNumber || '').toLowerCase().includes(search) ||
+        t.Amount.toFixed(2).includes(search) ||
+        t.Status.toLowerCase().includes(search) ||
+        format(new Date(t.CreatedAt), 'MMM dd, yyyy').toLowerCase().includes(search)
+      );
+    }
+    return true;
+  });
+
+  // Status counts for filter tabs
+  const statusCounts = {
+    all: transactions.length,
+    completed: transactions.filter(t => t.Status === 'completed').length,
+    pending: transactions.filter(t => t.Status === 'pending').length,
+    failed: transactions.filter(t => t.Status === 'failed').length,
+    refunded: transactions.filter(t => t.Status === 'refunded').length,
+  };
+
+  const totalPages = Math.ceil(filteredTransactions.length / rowsPerPage);
+  const paginatedTransactions = filteredTransactions.slice(
     (page - 1) * rowsPerPage,
     page * rowsPerPage
   );
+
+  const handleClearFilters = () => {
+    setSearchQuery('');
+    setDebouncedSearch('');
+    setStatusFilter('all');
+    setPage(1);
+  };
+
+  const hasActiveFilters = debouncedSearch !== '' || statusFilter !== 'all';
 
   const handlePageChange = (_event: React.ChangeEvent<unknown>, value: number) => {
     setPage(value);
@@ -263,6 +314,116 @@ const TransactionsPage: React.FC = () => {
           </Button>
         </Box>
 
+        {/* Status Filter Tabs */}
+        {transactions.length > 0 && (
+          <Paper sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
+            <Tabs
+              value={statusFilter}
+              onChange={(_e, val) => { setStatusFilter(val); setPage(1); }}
+              textColor="primary"
+              indicatorColor="primary"
+              variant={isMobile ? 'scrollable' : 'standard'}
+              scrollButtons="auto"
+              sx={{ minHeight: 36 }}
+              data-testid="transactions-status-tabs"
+            >
+              <Tab
+                label={
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    All
+                    <Chip label={statusCounts.all} size="small" sx={{ height: 20, fontSize: '0.7rem' }} />
+                  </Box>
+                }
+                value="all"
+                sx={{ minHeight: 36, py: 0 }}
+              />
+              <Tab
+                label={
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    Completed
+                    {statusCounts.completed > 0 && (
+                      <Chip label={statusCounts.completed} size="small" color="success" sx={{ height: 20, fontSize: '0.7rem' }} />
+                    )}
+                  </Box>
+                }
+                value="completed"
+                sx={{ minHeight: 36, py: 0 }}
+              />
+              <Tab
+                label={
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    Pending
+                    {statusCounts.pending > 0 && (
+                      <Chip label={statusCounts.pending} size="small" color="warning" sx={{ height: 20, fontSize: '0.7rem' }} />
+                    )}
+                  </Box>
+                }
+                value="pending"
+                sx={{ minHeight: 36, py: 0 }}
+              />
+              <Tab
+                label={
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    Failed
+                    {statusCounts.failed > 0 && (
+                      <Chip label={statusCounts.failed} size="small" color="error" sx={{ height: 20, fontSize: '0.7rem' }} />
+                    )}
+                  </Box>
+                }
+                value="failed"
+                sx={{ minHeight: 36, py: 0 }}
+              />
+              <Tab
+                label={
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    Refunded
+                    {statusCounts.refunded > 0 && (
+                      <Chip label={statusCounts.refunded} size="small" sx={{ height: 20, fontSize: '0.7rem' }} />
+                    )}
+                  </Box>
+                }
+                value="refunded"
+                sx={{ minHeight: 36, py: 0 }}
+              />
+            </Tabs>
+          </Paper>
+        )}
+
+        {/* Search Bar */}
+        {transactions.length > 0 && (
+          <TextField
+            fullWidth
+            placeholder="Search by course name, invoice number, amount..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            size={isMobile ? 'small' : 'medium'}
+            sx={{ mb: 2 }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon />
+                </InputAdornment>
+              ),
+            }}
+            data-testid="transactions-search-input"
+          />
+        )}
+
+        {/* Results count */}
+        {transactions.length > 0 && filteredTransactions.length > 0 && (
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2, flexWrap: 'wrap', gap: 1 }}>
+            <Typography variant="body2" color="text.secondary">
+              Showing {Math.min((page - 1) * rowsPerPage + 1, filteredTransactions.length)} - {Math.min(page * rowsPerPage, filteredTransactions.length)} of {filteredTransactions.length} transactions
+              {hasActiveFilters && ` (filtered from ${transactions.length} total)`}
+            </Typography>
+            {hasActiveFilters && (
+              <Button size="small" onClick={handleClearFilters} data-testid="transactions-clear-filters">
+                Clear Filters
+              </Button>
+            )}
+          </Box>
+        )}
+
       {error && (
         <Alert severity="error" sx={{ mb: 3 }}>
           {error}
@@ -280,6 +441,23 @@ const TransactionsPage: React.FC = () => {
           </Typography>
           <Button variant="contained" onClick={() => navigate('/courses')} data-testid="transactions-browse-courses-button">
             Browse Courses
+          </Button>
+        </Paper>
+      ) : filteredTransactions.length === 0 ? (
+        <Paper elevation={2} sx={{ p: { xs: 4, sm: 6 }, textAlign: 'center' }}>
+          <SearchOffIcon sx={{ fontSize: { xs: 48, sm: 64 }, color: 'text.secondary', mb: 2 }} />
+          <Typography variant="h6" gutterBottom>
+            No Matching Transactions
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+            {debouncedSearch && statusFilter !== 'all'
+              ? `No ${statusFilter} transactions matching "${debouncedSearch}"`
+              : debouncedSearch
+                ? `No transactions matching "${debouncedSearch}"`
+                : `No ${statusFilter} transactions found`}
+          </Typography>
+          <Button variant="outlined" onClick={handleClearFilters} data-testid="transactions-clear-filters-empty">
+            Clear Filters
           </Button>
         </Paper>
       ) : isMobile ? (

@@ -5,7 +5,7 @@ import { FileUpload } from '../Upload/FileUpload';
 export const ContentUploadDemo: React.FC = () => {
   return (
     <Box sx={{ p: 4 }}>
-      <Typography variant="h3" gutterBottom align="center">
+      <Typography variant="h3" gutterBottom align="center" sx={{ fontSize: { xs: '1.75rem', sm: '3rem' } }}>
         Content Upload System Demo
       </Typography>
       

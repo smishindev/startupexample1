@@ -171,7 +171,7 @@ export const AnalyticsHubPage: React.FC = () => {
                 {statsLoading ? (
                   <Skeleton variant="text" width={60} sx={{ mx: 'auto', bgcolor: 'rgba(255,255,255,0.3)' }} />
                 ) : (
-                  <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+                  <Typography variant="h4" sx={{ fontWeight: 'bold', fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
                     {stats?.totalCourses || 0}
                   </Typography>
                 )}
@@ -186,7 +186,7 @@ export const AnalyticsHubPage: React.FC = () => {
                 {statsLoading ? (
                   <Skeleton variant="text" width={60} sx={{ mx: 'auto', bgcolor: 'rgba(255,255,255,0.3)' }} />
                 ) : (
-                  <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+                  <Typography variant="h4" sx={{ fontWeight: 'bold', fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
                     {stats?.totalStudents || 0}
                   </Typography>
                 )}
@@ -201,7 +201,7 @@ export const AnalyticsHubPage: React.FC = () => {
                 {statsLoading ? (
                   <Skeleton variant="text" width={60} sx={{ mx: 'auto', bgcolor: 'rgba(255,255,255,0.3)' }} />
                 ) : (
-                  <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+                  <Typography variant="h4" sx={{ fontWeight: 'bold', fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
                     {stats?.avgRating?.toFixed(1) || '0.0'}
                   </Typography>
                 )}
@@ -216,7 +216,7 @@ export const AnalyticsHubPage: React.FC = () => {
                 {statsLoading ? (
                   <Skeleton variant="text" width={60} sx={{ mx: 'auto', bgcolor: 'rgba(255,255,255,0.3)' }} />
                 ) : (
-                  <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+                  <Typography variant="h4" sx={{ fontWeight: 'bold', fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
                     {stats?.completionRate || 0}%
                   </Typography>
                 )}
@@ -276,8 +276,8 @@ export const AnalyticsHubPage: React.FC = () => {
                     <Avatar 
                       sx={{ 
                         bgcolor: card.color, 
-                        width: 56, 
-                        height: 56, 
+                        width: { xs: 40, sm: 56 }, 
+                        height: { xs: 40, sm: 56 }, 
                         mr: 2,
                         boxShadow: `0 4px 12px ${card.color}40`
                       }}
@@ -290,7 +290,7 @@ export const AnalyticsHubPage: React.FC = () => {
                       </Typography>
                       {card.stats && (
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Typography variant="h4" sx={{ fontWeight: 'bold', color: card.color }}>
+                          <Typography variant="h4" sx={{ fontWeight: 'bold', color: card.color, fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
                             {card.stats.primary}
                           </Typography>
                           <Typography variant="caption" color="text.secondary">

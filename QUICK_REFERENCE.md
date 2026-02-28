@@ -1,6 +1,6 @@
 ﻿# 🚀 Quick Reference - Development Workflow
 
-**Last Updated**: February 24, 2026 - Mobile Optimization Phases 6–18 Complete — 129 Sub-Component Items Fixed 📱
+**Last Updated**: February 28, 2026 - Mobile Optimization Phase 19 Complete — Responsive Typography, Stat Cards & Icons 📱
 
 ---
 
@@ -80,6 +80,59 @@ const { isMobile, isTablet, isDesktop, isSmallMobile } = useResponsive();
 import { BOTTOM_NAV_HEIGHT, BOTTOM_NAV_PADDING, HEADER_HEIGHT_MOBILE } from '../../components/Responsive';
 // BOTTOM_NAV_HEIGHT = 64px ← use when positioning fixed elements above bottom nav
 // BOTTOM_NAV_PADDING = 10  ← MUI spacing units (= 80px) for pb on mobile
+```
+
+---
+
+## 📱 Responsive Stat Typography & Icons (Phase 19 — February 28, 2026)
+
+All `variant="h3"` / `variant="h4"` used as **stat/numeric display** must include responsive `fontSize`. Without it, MUI defaults (`3rem` / `2.125rem`) overflow 375px screens.
+
+### h3 Stat Number
+```tsx
+<Typography variant="h3" sx={{ fontWeight: 'bold', fontSize: { xs: '1.75rem', sm: '3rem' } }}>
+  {count}
+</Typography>
+```
+
+### h4 Stat Number
+```tsx
+<Typography variant="h4" sx={{ fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
+  {value}
+</Typography>
+```
+
+### Stat Card Grid — 2-per-row on mobile
+```tsx
+// 4-card layout: 2×2 on mobile, 4-in-a-row on desktop
+<Grid container spacing={3}>
+  <Grid item xs={6} sm={6} md={3}>   {/* NOT xs={12} */}
+    <StatCard ... />
+  </Grid>
+</Grid>
+```
+
+### Large Icon / Avatar Responsive Sizing
+```tsx
+// Icons with fontSize >= 48 — scale down on mobile
+<SchoolIcon sx={{ fontSize: { xs: 48, sm: 64 } }} />
+<ErrorOutline sx={{ fontSize: { xs: 56, sm: 80 } }} />
+
+// Avatars with explicit size >= 48
+<Avatar sx={{ width: { xs: 40, sm: 56 }, height: { xs: 40, sm: 56 } }} />
+```
+
+### Table Column Hiding (alternative to full Table→Card conversion)
+```tsx
+// Header cell
+<TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>Type</TableCell>
+// Body cell (same sx)
+<TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>{row.type}</TableCell>
+```
+
+### CourseSelector in Filter Bars
+```tsx
+<CourseSelector sx={{ minWidth: { xs: 0, sm: 250 }, width: { xs: '100%', sm: 'auto' } }} ... />
 ```
 
 ---

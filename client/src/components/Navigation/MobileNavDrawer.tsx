@@ -3,7 +3,7 @@
  * Full-screen navigation drawer for mobile devices
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Drawer,
   Box,
@@ -43,11 +43,54 @@ export const MobileNavDrawer: React.FC<MobileNavDrawerProps> = ({ open, onClose 
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuthStore();
+  const activeItemRef = useRef<HTMLDivElement | null>(null);
+  const shouldScrollRef = useRef(false);
+
+  // Find which group contains the currently active route
+  const findActiveGroupId = useCallback(() => {
+    const filtered = filterByRole(navGroups, user?.role);
+    for (const group of filtered) {
+      for (const item of group.items) {
+        if (location.pathname === item.path || location.pathname.startsWith(item.path + '/')) {
+          return group.id;
+        }
+      }
+    }
+    return null;
+  }, [location.pathname, user?.role]);
   
   // Track which groups are expanded
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
     learning: true, // Default expanded
   });
+
+  // When drawer opens, expand only default group + the active group, then flag for scroll
+  useEffect(() => {
+    if (open) {
+      const activeGroupId = findActiveGroupId();
+      const next: Record<string, boolean> = { learning: true };
+      if (activeGroupId) {
+        next[activeGroupId] = true;
+      }
+      setExpandedGroups(next);
+      shouldScrollRef.current = true;
+    } else {
+      shouldScrollRef.current = false;
+    }
+  }, [open, findActiveGroupId]);
+
+  // Scroll to active item only when drawer just opened (not on manual toggle)
+  useEffect(() => {
+    if (open && shouldScrollRef.current && activeItemRef.current) {
+      const timer = setTimeout(() => {
+        if (shouldScrollRef.current) {
+          activeItemRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          shouldScrollRef.current = false;
+        }
+      }, 350); // wait for Collapse animation
+      return () => clearTimeout(timer);
+    }
+  }, [open, expandedGroups]);
 
   // Toggle group expansion
   const toggleGroup = (groupId: string) => {
@@ -179,11 +222,12 @@ export const MobileNavDrawer: React.FC<MobileNavDrawerProps> = ({ open, onClose 
               </ListItemButton>
 
               {/* Group Items */}
-              <Collapse in={expandedGroups[group.id]} timeout="auto" unmountOnExit>
+              <Collapse in={expandedGroups[group.id]} timeout="auto">
                 <List component="div" disablePadding>
                   {group.items.map((item) => (
                     <ListItemButton
                       key={item.id}
+                      ref={isActive(item.path) ? activeItemRef : undefined}
                       onClick={() => handleNavigate(item.path)}
                       data-testid={`header-mobile-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
                       selected={isActive(item.path)}

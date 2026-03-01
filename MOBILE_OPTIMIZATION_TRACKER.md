@@ -2,7 +2,7 @@
 
 **Created**: February 19, 2026  
 **Last Updated**: March 1, 2026  
-**Status**: Phases 0–19 Complete + PageHeader UX Fix — 73/73 pages + 79+ component/theme fixes — ALL PHASES COMPLETE ✅  
+**Status**: Phases 0–19 Complete + PageHeader UX Fix + MobileNavDrawer Active-State Fix — 73/73 pages + 79+ component/theme fixes — ALL PHASES COMPLETE ✅  
 **Goal**: Make every page fully responsive and mobile-optimized across the Mishin Learn Platform
 
 ---
@@ -68,7 +68,7 @@ Every page must meet ALL of these criteria to be marked "complete":
 | 0.1 | **HeaderV5** (auth header) | `components/Navigation/HeaderV5.tsx` | Already has isMobile, MobileBottomNav, MobileNavDrawer, responsive sx. No changes needed | ✅ Done |
 | 0.2 | **PublicHeader** (guest header) | `components/Navigation/PublicHeader.tsx` | Already has isMobile, isSmall, mobile drawer, responsive toolbar. No changes needed | ✅ Done |
 | 0.3 | **MobileBottomNav** | `components/Navigation/MobileBottomNav.tsx` | Fully implemented: safe-area-inset-bottom, 64px height, badges. No changes needed | ✅ Done |
-| 0.4 | **MobileNavDrawer** | `components/Navigation/MobileNavDrawer.tsx` | Fixed: search route from `/search?q=` → `/courses?search=` (matching SearchAutocomplete) | ✅ Done |
+| 0.4 | **MobileNavDrawer** | `components/Navigation/MobileNavDrawer.tsx` | Fixed: search route from `/search?q=` → `/courses?search=` (matching SearchAutocomplete). **March 1, 2026**: Auto-expands active group on drawer open; scrolls active item into view (smooth, 350ms post-Collapse delay); state resets cleanly each open (no accumulation); scroll guarded by `shouldScrollRef` — only fires on open, not manual toggle; `unmountOnExit` removed so ref is available | ✅ Done |
 | 0.5 | **Layout.tsx** (sidebar shell) | `components/Layout/Layout.tsx` | Has isMobile + responsive drawer. Only used by PublicLayout. No changes needed | ✅ Done |
 | 0.6 | **PublicLayout.tsx** | `components/Layout/PublicLayout.tsx` | Minimal wrapper for guest routes. No changes needed | ✅ Done |
 | 0.7 | **PublicFooter** | `components/Layout/PublicFooter.tsx` | Already responsive — Grid xs/md, stacked on mobile. No changes needed | ✅ Done |

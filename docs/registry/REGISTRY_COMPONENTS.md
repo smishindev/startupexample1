@@ -401,13 +401,13 @@ function escapeRegex(str: string): string
 **Related Components**:
 - `MegaMenuDropdown.tsx` - Desktop dropdown menus with icons and descriptions
 - `MobileBottomNav.tsx` - Fixed bottom navigation for mobile (64px height)
-- `MobileNavDrawer.tsx` - Full-screen mobile navigation drawer
+- `MobileNavDrawer.tsx` - Full-screen mobile navigation drawer (auto-expands active group + scrolls to active item on drawer open)
 
 **Components Used**:
 - `SearchAutocomplete` - Live search dropdown (variant="header", desktop + mobile)
 - `MegaMenuDropdown` - Desktop dropdown menus
 - `MobileBottomNav` - Fixed bottom navigation for mobile
-- `MobileNavDrawer` - Full-screen mobile drawer
+- `MobileNavDrawer` - Full-screen mobile drawer (auto-expands active group + scrolls to active item on open)
 - `NotificationBell` - Notification bell with badge
 - `PresenceStatusSelector` - Online status selector (desktop only)
 

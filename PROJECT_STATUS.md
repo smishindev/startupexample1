@@ -1,6 +1,6 @@
 ﻿# Mishin Learn Platform - Project Status & Memory
 
-**Last Updated**: March 1, 2026 - StudentProgressDashboard comprehensive mobile/UX re-audit — stat cards 1/row mobile, Tabs fullWidth/scrollable pattern, a11y, responsive TabPanel, recommendation list, achievements, empty states; 1 file changed, 0 new TypeScript errors 📱  
+**Last Updated**: March 1, 2026 - MobileNavDrawer UX fix — drawer now auto-expands the accordion group containing the active page on open, scrolls the active item into view, resets cleanly (no group accumulation), scroll only triggers on drawer-open not manual toggle; 1 file changed, 0 TypeScript errors 📱  
 **Developer**: Sergey Mishin (s.mishin.dev@gmail.com)  
 **AI Assistant Context**: This file serves as project memory for continuity across chat sessions
 
@@ -27,12 +27,49 @@
 **Mobile Optimization Phase 3**: All 7 Collaboration & Social pages mobile-optimized; 5-round exhaustive audit; 8 bugs found and fixed; 44/73 pages done (60.3%), 0 TypeScript errors (February 23, 2026) 📱  
 **Content Item Custom Titles**: Instructors can rename auto-generated lesson content titles (Video #1, Text/Article #2, Quiz #3) via inline click-to-edit with pencil icon; custom titles stored in `ContentJson.data.title`; no DB/API changes needed (February 28, 2026) ✏️  
 **Mobile Optimization Phase 19**: Responsive Typography, Stat Cards, Icons & Final Sweep — 23 files fixed (responsive h3/h4 stat numbers, stat card `xs={6}` grids, table column hiding, large icon sizing, dialog fullScreen, CourseSelector minWidth, export table overflow); final 3-pass scan confirmed 0 remaining issues across all 8 pattern categories (February 28, 2026) 📱  
+**MobileNavDrawer Active-State UX Fix**: Drawer now auto-expands the accordion group containing the current page when reopened; active item scrolled into view after Collapse animation (350ms delay); accordion state resets cleanly on each open (only `learning` default + active group); scroll guarded by `shouldScrollRef` — fires only on drawer open, not on manual accordion toggle; removed unused `scrollContainerRef`; removed `unmountOnExit` from `Collapse` so ref is available for scroll; 0 TypeScript errors (March 1, 2026) 📱  
 **Auth Bug Fixes**: `logout()` clears state immediately; `type="button"` on nav-links inside forms; all 401 interceptors unified; stale-state guard in App.tsx (February 21, 2026) 🔐  
 **Theme Token System**: Centralised design tokens in `theme/index.ts` (colors, shadows, radii, extended palette). `tokens.ts` with 18 reusable `sx` fragments. 3-round exhaustive bug audit — all bugs fixed, 0 TypeScript errors (February 21, 2026) 🎨
 
 ---
 
-## ✏️ CONTENT ITEM CUSTOM TITLES (Latest — February 28, 2026)
+## 📱 MOBILENAVDRAWER ACTIVE-STATE UX FIX (Latest — March 1, 2026)
+
+**Activity**: Fixed the mobile navigation drawer so that reopening it always reflects the currently active page — the correct accordion group expands and the active nav item is scrolled into view. Also found and fixed 3 bugs introduced or pre-existing in the component.
+
+**Status**: **Complete** — 1 file changed, 0 TypeScript errors
+
+### **Behaviour Before Fix**
+- Drawer always opened with only the `learning` accordion expanded, regardless of the current page.
+- Navigating to Chat (`/chat`, group: Tools), then reopening the drawer would show Tools collapsed and the Chat item invisible.
+
+### **Behaviour After Fix**
+- On open: accordion state resets to `{ learning: true }` + the group containing the active route.
+- Active nav item scrolls into view smoothly after the Collapse animation (350ms delay).
+- Manual accordion toggles do NOT trigger the scroll (guarded by `shouldScrollRef` flag).
+
+### **Bugs Fixed**
+
+| Bug | Root Cause | Fix |
+|-----|-----------|-----|
+| Scroll fires on manual toggle | Scroll `useEffect` depended on `expandedGroups` state change | Added `shouldScrollRef` boolean — set `true` only on drawer open, cleared after first scroll fires |
+| Accordion groups accumulate | Previous code preserved all previously-expanded groups across opens | Reset to clean slate (`{ learning: true }` + active group only) on every open |
+| Unused `scrollContainerRef` | Dead `useRef` assigned to the scroll container Box but never read | Removed |
+
+### **Files Changed**
+
+| File | Change |
+|------|--------|
+| `client/src/components/Navigation/MobileNavDrawer.tsx` | Added `findActiveGroupId` callback; `useEffect` to expand active group on open; `shouldScrollRef` guard; `activeItemRef` on active `ListItemButton`; removed `unmountOnExit` from `Collapse`; removed unused `scrollContainerRef` |
+
+### **Key Design Decisions**
+- `unmountOnExit` removed from `<Collapse>` so that `activeItemRef` is available in the DOM when the scroll timer fires (previously the node was unmounted and scroll silently did nothing).
+- Scroll uses `scrollIntoView({ behavior: 'smooth', block: 'center' })` — places the selected item centered in the visible drawer area rather than snapping to edge.
+- `findActiveGroupId` is a `useCallback` memoized on `[location.pathname, user?.role]` so the open `useEffect` dependency array is stable.
+
+---
+
+## ✏️ CONTENT ITEM CUSTOM TITLES (February 28, 2026)
 
 **Activity**: Added inline title editing for lesson content items (Video, Text/Article, Quiz). Instructors can click the pencil icon next to any auto-generated title to rename it. Titles are stored in `ContentJson.data.title` (freeform JSON field, `NVARCHAR(MAX)`). No database migration, no API changes, and no backend changes were needed.
 

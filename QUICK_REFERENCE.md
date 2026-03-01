@@ -1,6 +1,6 @@
 ﻿# 🚀 Quick Reference - Development Workflow
 
-**Last Updated**: February 28, 2026 - Mobile Optimization Phase 19 Complete — Responsive Typography, Stat Cards & Icons 📱
+**Last Updated**: March 1, 2026 - MobileNavDrawer Active-State UX Fix — drawer auto-expands active group + scrolls to active item on reopen 📱
 
 ---
 

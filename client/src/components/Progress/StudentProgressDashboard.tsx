@@ -37,6 +37,7 @@ import {
 } from '@mui/icons-material';
 
 import { studentProgressApi, type StudentProgressAnalytics, type LearningRecommendation } from '../../services/studentProgressApi';
+import { useResponsive } from '../Responsive/useResponsive';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -54,9 +55,16 @@ function TabPanel(props: TabPanelProps) {
       aria-labelledby={`progress-tab-${index}`}
       {...other}
     >
-      {value === index && <Box sx={{ py: 3 }}>{children}</Box>}
+      {value === index && <Box sx={{ py: { xs: 2, md: 3 }, px: { xs: 1, sm: 2, md: 3 } }}>{children}</Box>}
     </div>
   );
+}
+
+function a11yProps(index: number) {
+  return {
+    id: `progress-tab-${index}`,
+    'aria-controls': `progress-tabpanel-${index}`,
+  };
 }
 
 export const StudentProgressDashboard: React.FC = () => {
@@ -65,6 +73,7 @@ export const StudentProgressDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [tabValue, setTabValue] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const { isMobile } = useResponsive();
 
   useEffect(() => {
     loadProgressData();
@@ -196,7 +205,7 @@ export const StudentProgressDashboard: React.FC = () => {
       {/* Overview Cards */}
       <Grid container spacing={{ xs: 2, md: 3 }} sx={{ mb: { xs: 2, md: 4 } }}>
         {/* Progress Overview */}
-        <Grid item xs={6} md={3}>
+        <Grid item xs={12} sm={6} md={3}>
           <Card>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
@@ -223,7 +232,7 @@ export const StudentProgressDashboard: React.FC = () => {
         </Grid>
 
         {/* Performance Insights */}
-        <Grid item xs={6} md={3}>
+        <Grid item xs={12} sm={6} md={3}>
           <Card>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
@@ -253,7 +262,7 @@ export const StudentProgressDashboard: React.FC = () => {
         </Grid>
 
         {/* Learning Velocity */}
-        <Grid item xs={6} md={3}>
+        <Grid item xs={12} sm={6} md={3}>
           <Card>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
@@ -280,7 +289,7 @@ export const StudentProgressDashboard: React.FC = () => {
         </Grid>
 
         {/* Risk Assessment */}
-        <Grid item xs={6} md={3}>
+        <Grid item xs={12} sm={6} md={3}>
           <Card>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
@@ -314,73 +323,75 @@ export const StudentProgressDashboard: React.FC = () => {
         <Alert 
           severity="warning" 
           sx={{ mb: 3 }}
-          action={
-            <Button color="inherit" size="small" onClick={() => setTabValue(1)} data-testid="student-progress-view-recommendations-button">
-              View Recommendations
-            </Button>
-          }
         >
           <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
             Attention Needed
           </Typography>
           Your learning progress indicates some challenges. Check out our personalized recommendations to get back on track.
+          <Box sx={{ mt: 1.5 }}>
+            <Button 
+              variant="contained" 
+              size="small" 
+              color="warning"
+              onClick={() => setTabValue(1)} 
+              data-testid="student-progress-view-recommendations-button"
+            >
+              View Recommendations
+            </Button>
+          </Box>
         </Alert>
       )}
 
       {/* Tabbed Content */}
-      <Paper sx={{ width: '100%' }}>
-        <Tabs
-          value={tabValue}
-          onChange={(_, newValue) => setTabValue(newValue)}
-          indicatorColor="primary"
-          textColor="primary"
-          variant="scrollable"
-          scrollButtons="auto"
-          data-testid="student-progress-tabs"
-        >
-          <Tab 
-            label={
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <TimelineIcon />
-                Progress Details
-              </Box>
-            }
-            data-testid="student-progress-tab-details"
-          />
-          <Tab 
-            label={
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+      <Paper sx={{ width: '100%', overflow: 'hidden' }}>
+        <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+          <Tabs
+            value={tabValue}
+            onChange={(_, newValue) => setTabValue(newValue)}
+            indicatorColor="primary"
+            textColor="primary"
+            variant={isMobile ? 'scrollable' : 'fullWidth'}
+            scrollButtons="auto"
+            data-testid="student-progress-tabs"
+          >
+            <Tab 
+              icon={<TimelineIcon />}
+              iconPosition="start"
+              label="Progress Details"
+              data-testid="student-progress-tab-details"
+              {...a11yProps(0)}
+            />
+            <Tab 
+              icon={
                 <Badge badgeContent={recommendations.length} color="error">
                   <RecommendationIcon />
                 </Badge>
-                Smart Recommendations
-              </Box>
-            }
-            data-testid="student-progress-tab-recommendations"
-          />
-          <Tab 
-            label={
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <SkillIcon />
-                Skills & Strengths
-              </Box>
-            }
-            data-testid="student-progress-tab-skills"
-          />
-          <Tab 
-            label={
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <AchievementIcon />
-                Achievements
-              </Box>
-            }
-            data-testid="student-progress-tab-achievements"
-          />
-        </Tabs>
+              }
+              iconPosition="start"
+              label="Recommendations"
+              data-testid="student-progress-tab-recommendations"
+              {...a11yProps(1)}
+            />
+            <Tab 
+              icon={<SkillIcon />}
+              iconPosition="start"
+              label="Skills"
+              data-testid="student-progress-tab-skills"
+              {...a11yProps(2)}
+            />
+            <Tab 
+              icon={<AchievementIcon />}
+              iconPosition="start"
+              label="Achievements"
+              data-testid="student-progress-tab-achievements"
+              {...a11yProps(3)}
+            />
+          </Tabs>
+        </Box>
 
         {/* Progress Details Tab */}
         <TabPanel value={tabValue} index={0}>
-          <Grid container spacing={3}>
+          <Grid container spacing={{ xs: 2, md: 3 }}>
             {/* Time Spent */}
             <Grid item xs={12} md={6}>
               <Card>
@@ -451,6 +462,13 @@ export const StudentProgressDashboard: React.FC = () => {
                       ))}
                     </Box>
                   )}
+
+                  {/* Empty state */}
+                  {performanceInsights.strengthAreas.length === 0 && performanceInsights.strugglingAreas.length === 0 && (
+                    <Typography variant="body2" color="text.secondary">
+                      Complete more assessments to reveal your strengths and focus areas.
+                    </Typography>
+                  )}
                 </CardContent>
               </Card>
             </Grid>
@@ -482,21 +500,23 @@ export const StudentProgressDashboard: React.FC = () => {
                       borderRadius: 1,
                       mb: 1,
                       border: 1,
-                      borderColor: 'divider'
+                      borderColor: 'divider',
+                      flexWrap: { xs: 'wrap', sm: 'nowrap' },
+                      alignItems: { xs: 'flex-start', sm: 'center' }
                     }}
                   >
-                    <ListItemIcon>
+                    <ListItemIcon sx={{ minWidth: { xs: 40, sm: 56 } }}>
                       <Avatar sx={{ 
                         bgcolor: getPriorityColor(recommendation.priority) + '.main',
-                        width: 40,
-                        height: 40 
+                        width: { xs: 32, sm: 40 },
+                        height: { xs: 32, sm: 40 }
                       }}>
-                        <RecommendationIcon />
+                        <RecommendationIcon sx={{ fontSize: { xs: 18, sm: 24 } }} />
                       </Avatar>
                     </ListItemIcon>
-                    <Box sx={{ flexGrow: 1, mr: { xs: 0, sm: 2 }, minWidth: 0 }}>
+                    <Box sx={{ flexGrow: 1, mr: { xs: 0, sm: 2 }, minWidth: 0, width: { xs: 'calc(100% - 48px)', sm: 'auto' } }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1, flexWrap: 'wrap' }}>
-                        <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 'bold', fontSize: { xs: '0.9rem', sm: '1rem' } }}>
                           {recommendation.title}
                         </Typography>
                         <Chip 
@@ -510,26 +530,28 @@ export const StudentProgressDashboard: React.FC = () => {
                           variant="outlined"
                         />
                       </Box>
-                      <Typography variant="body2" sx={{ mb: 1 }}>
+                      <Typography variant="body2" sx={{ mb: 1, wordBreak: 'break-word' }}>
                         {recommendation.description}
                       </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        💡 {recommendation.reason}
-                      </Typography>
-                      {recommendation.estimatedTime && (
-                        <Typography variant="caption" color="text.secondary" sx={{ ml: 2 }}>
-                          ⏱️ ~{recommendation.estimatedTime} minutes
+                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                        <Typography variant="caption" color="text.secondary">
+                          💡 {recommendation.reason}
                         </Typography>
-                      )}
+                        {recommendation.estimatedTime && (
+                          <Typography variant="caption" color="text.secondary" sx={{ ml: { xs: 0, sm: 2 } }}>
+                            ⏱️ ~{recommendation.estimatedTime} minutes
+                          </Typography>
+                        )}
+                      </Box>
                     </Box>
-                    <Box>
+                    <Box sx={{ width: { xs: '100%', sm: 'auto' }, mt: { xs: 1, sm: 0 }, pl: { xs: 0, sm: 0 } }}>
                       <Button
                         variant="contained"
                         size="small"
                         startIcon={<PlayArrowIcon />}
                         onClick={() => handleCompleteRecommendation(recommendation.id)}
                         data-testid={`student-progress-recommendation-${recommendation.id}-button`}
-                        sx={{ mb: 1 }}
+                        sx={{ width: { xs: '100%', sm: 'auto' } }}
                       >
                         {recommendation.actionText}
                       </Button>
@@ -558,44 +580,44 @@ export const StudentProgressDashboard: React.FC = () => {
 
         {/* Achievements Tab */}
         <TabPanel value={tabValue} index={3}>
-          <Grid container spacing={3}>
-            <Grid item xs={12} md={4}>
+          <Grid container spacing={{ xs: 1.5, sm: 3 }}>
+            <Grid item xs={4} md={4}>
               <Card>
-                <CardContent sx={{ textAlign: 'center' }}>
-                  <AchievementIcon sx={{ fontSize: { xs: 36, sm: 48 }, color: 'success.main', mb: 2 }} />
-                  <Typography variant="h3" sx={{ fontWeight: 'bold', color: 'success.main', fontSize: { xs: '1.75rem', sm: '3rem' } }}>
+                <CardContent sx={{ textAlign: 'center', px: { xs: 1, sm: 3 }, py: { xs: 2, sm: 3 } }}>
+                  <AchievementIcon sx={{ fontSize: { xs: 28, sm: 48 }, color: 'success.main', mb: 1 }} />
+                  <Typography variant="h3" sx={{ fontWeight: 'bold', color: 'success.main', fontSize: { xs: '1.5rem', sm: '3rem' } }}>
                     {achievementMilestones.completed}
                   </Typography>
-                  <Typography variant="body1">
-                    Courses Completed
+                  <Typography variant="body1" sx={{ fontSize: { xs: '0.75rem', sm: '1rem' } }}>
+                    Completed
                   </Typography>
                 </CardContent>
               </Card>
             </Grid>
             
-            <Grid item xs={12} md={4}>
+            <Grid item xs={4} md={4}>
               <Card>
-                <CardContent sx={{ textAlign: 'center' }}>
-                  <StarIcon sx={{ fontSize: { xs: 36, sm: 48 }, color: 'primary.main', mb: 2 }} />
-                  <Typography variant="h3" sx={{ fontWeight: 'bold', color: 'primary.main', fontSize: { xs: '1.75rem', sm: '3rem' } }}>
+                <CardContent sx={{ textAlign: 'center', px: { xs: 1, sm: 3 }, py: { xs: 2, sm: 3 } }}>
+                  <StarIcon sx={{ fontSize: { xs: 28, sm: 48 }, color: 'primary.main', mb: 1 }} />
+                  <Typography variant="h3" sx={{ fontWeight: 'bold', color: 'primary.main', fontSize: { xs: '1.5rem', sm: '3rem' } }}>
                     {achievementMilestones.inProgress}
                   </Typography>
-                  <Typography variant="body1">
+                  <Typography variant="body1" sx={{ fontSize: { xs: '0.75rem', sm: '1rem' } }}>
                     In Progress
                   </Typography>
                 </CardContent>
               </Card>
             </Grid>
             
-            <Grid item xs={12} md={4}>
+            <Grid item xs={4} md={4}>
               <Card>
-                <CardContent sx={{ textAlign: 'center' }}>
-                  <TimelineIcon sx={{ fontSize: { xs: 36, sm: 48 }, color: 'info.main', mb: 2 }} />
-                  <Typography variant="h3" sx={{ fontWeight: 'bold', color: 'info.main', fontSize: { xs: '1.75rem', sm: '3rem' } }}>
+                <CardContent sx={{ textAlign: 'center', px: { xs: 1, sm: 3 }, py: { xs: 2, sm: 3 } }}>
+                  <TimelineIcon sx={{ fontSize: { xs: 28, sm: 48 }, color: 'info.main', mb: 1 }} />
+                  <Typography variant="h3" sx={{ fontWeight: 'bold', color: 'info.main', fontSize: { xs: '1.5rem', sm: '3rem' } }}>
                     {achievementMilestones.upcoming}
                   </Typography>
-                  <Typography variant="body1">
-                    Upcoming Goals
+                  <Typography variant="body1" sx={{ fontSize: { xs: '0.75rem', sm: '1rem' } }}>
+                    Upcoming
                   </Typography>
                 </CardContent>
               </Card>

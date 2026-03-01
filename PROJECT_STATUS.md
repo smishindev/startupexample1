@@ -1,6 +1,6 @@
 ﻿# Mishin Learn Platform - Project Status & Memory
 
-**Last Updated**: February 28, 2026 - Content Item Custom Titles — Inline rename for Video/Text/Quiz lesson content; 5 files changed, 0 new TypeScript errors ✏️  
+**Last Updated**: March 1, 2026 - StudentProgressDashboard comprehensive mobile/UX re-audit — stat cards 1/row mobile, Tabs fullWidth/scrollable pattern, a11y, responsive TabPanel, recommendation list, achievements, empty states; 1 file changed, 0 new TypeScript errors 📱  
 **Developer**: Sergey Mishin (s.mishin.dev@gmail.com)  
 **AI Assistant Context**: This file serves as project memory for continuity across chat sessions
 
@@ -269,7 +269,7 @@ No database migration needed because `ContentJson` is a freeform `NVARCHAR(MAX)`
 | 2.5 | `SettingsPage.tsx` | PageContainer, PageTitle, `useTheme` as `muiTheme` (avoids `theme` state collision), td hex → palette tokens |
 | 2.6 | `NotificationSettingsPage.tsx` | PageContainer, PageTitle, subcategory `flexWrap`, `pt` (not `py`) |
 | 2.7 | `StudentProgressPage.tsx` | Added `PageContainer maxWidth="xl"` wrapper |
-| 2.7b | `StudentProgressDashboard.tsx` | Tabs `scrollable`, removed internal padding (was doubling with PageContainer) |
+| 2.7b | `StudentProgressDashboard.tsx` | Tabs `scrollable`, removed internal padding (was doubling with PageContainer). **March 1, 2026 re-audit**: stat cards `xs={6}→xs={12} sm={6} md={3}` (1/row mobile), Tabs redesigned (`fullWidth` desktop/`scrollable` mobile, native `icon`+`iconPosition`, `borderBottom` divider, `a11yProps`), responsive TabPanel padding, recommendation list fully responsive, achievements `xs={4}` 3-col, empty state for Performance Insights card, alert button moved inline as contained button |
 | 2.8 | `StudentAssessmentDashboard.tsx` | PageContainer ×3, PageTitle, responsive grid/list, `pt` on all 3 return paths |
 | 2.9 | `AssessmentTakingPage.tsx` | PageContainer ×2, alert `flexWrap`, `pt` on all return paths |
 | 2.10 | `MyCertificatesPage.tsx` | PageContainer, PageTitle, gradient token `(t:any)→`, CardActions `flexWrap`, Header in loading state |

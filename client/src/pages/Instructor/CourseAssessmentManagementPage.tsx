@@ -10,7 +10,6 @@ import {
   List,
   ListItem,
   ListItemText,
-  ListItemSecondaryAction,
   Chip,
   Alert,
   Divider,
@@ -233,15 +232,15 @@ export const CourseAssessmentManagementPage: React.FC = () => {
         </Box>
 
         {/* Summary Cards */}
-        <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid container spacing={{ xs: 1.5, sm: 3 }} sx={{ mb: 4 }}>
           <Grid item xs={12} sm={4}>
             <Card>
-              <CardContent sx={{ textAlign: 'center' }}>
-                <AssignmentIcon color="primary" sx={{ fontSize: { xs: 32, sm: 40 }, mb: 1 }} />
-                <Typography variant="h4" component="div" sx={{ fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
+              <CardContent sx={{ textAlign: 'center', px: { xs: 1, sm: 2 }, py: { xs: 1.5, sm: 2 } }}>
+                <AssignmentIcon color="primary" sx={{ fontSize: { xs: 28, sm: 40 }, mb: 1 }} />
+                <Typography variant="h4" component="div" sx={{ fontSize: { xs: '1.25rem', sm: '2.125rem' } }}>
                   {getTotalAssessments()}
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
+                <Typography variant="caption" color="text.secondary">
                   Total Assessments
                 </Typography>
               </CardContent>
@@ -249,26 +248,26 @@ export const CourseAssessmentManagementPage: React.FC = () => {
           </Grid>
           <Grid item xs={12} sm={4}>
             <Card>
-              <CardContent sx={{ textAlign: 'center' }}>
-                <SchoolIcon color="primary" sx={{ fontSize: { xs: 32, sm: 40 }, mb: 1 }} />
-                <Typography variant="h4" component="div" sx={{ fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
+              <CardContent sx={{ textAlign: 'center', px: { xs: 1, sm: 2 }, py: { xs: 1.5, sm: 2 } }}>
+                <SchoolIcon color="primary" sx={{ fontSize: { xs: 28, sm: 40 }, mb: 1 }} />
+                <Typography variant="h4" component="div" sx={{ fontSize: { xs: '1.25rem', sm: '2.125rem' } }}>
                   {lessons.length}
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Lessons with Assessments Available
+                <Typography variant="caption" color="text.secondary">
+                  Total Lessons
                 </Typography>
               </CardContent>
             </Card>
           </Grid>
           <Grid item xs={12} sm={4}>
             <Card>
-              <CardContent sx={{ textAlign: 'center' }}>
-                <QuizIcon color="primary" sx={{ fontSize: { xs: 32, sm: 40 }, mb: 1 }} />
-                <Typography variant="h4" component="div" sx={{ fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
+              <CardContent sx={{ textAlign: 'center', px: { xs: 1, sm: 2 }, py: { xs: 1.5, sm: 2 } }}>
+                <QuizIcon color="primary" sx={{ fontSize: { xs: 28, sm: 40 }, mb: 1 }} />
+                <Typography variant="h4" component="div" sx={{ fontSize: { xs: '1.25rem', sm: '2.125rem' } }}>
                   {lessons.filter(l => l.assessments.length > 0).length}
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Lessons with Assessments
+                <Typography variant="caption" color="text.secondary">
+                  With Assessments
                 </Typography>
               </CardContent>
             </Card>
@@ -323,7 +322,7 @@ export const CourseAssessmentManagementPage: React.FC = () => {
                     <Typography variant="body1" color="text.secondary" gutterBottom>
                       No assessments created for this lesson yet
                     </Typography>
-                    <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', mt: 2 }}>
+                    <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', mt: 2, flexWrap: 'wrap' }}>
                       <Button
                         variant="contained"
                         startIcon={<AddIcon />}
@@ -347,7 +346,14 @@ export const CourseAssessmentManagementPage: React.FC = () => {
                     <List>
                       {lesson.assessments.map((assessment, index) => (
                         <React.Fragment key={assessment.id}>
-                          <ListItem sx={{ pr: { xs: 17, sm: 6 } }}>
+                          <ListItem
+                            sx={{
+                              flexWrap: { xs: 'wrap', sm: 'nowrap' },
+                              gap: { xs: 1, sm: 0 },
+                              pr: { xs: 2, sm: 6 },
+                              alignItems: 'flex-start',
+                            }}
+                          >
                             <ListItemText
                               primary={
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
@@ -367,56 +373,62 @@ export const CourseAssessmentManagementPage: React.FC = () => {
                                 </Box>
                               }
                               secondary={
-                                <>
-                                  Assessment for lesson: {lesson.title}
-                                  <br />
-                                  {assessment.questions?.length || 0} questions • 
-                                  {assessment.timeLimit ? ` ${assessment.timeLimit} minutes` : ' No time limit'} • 
-                                  Max attempts: {assessment.maxAttempts || 'Unlimited'}
-                                </>
+                                <Box component="span" sx={{ display: 'block', mt: 0.5 }}>
+                                  <Typography component="span" variant="caption" color="text.secondary">
+                                    {assessment.questions?.length || 0} questions
+                                    {' • '}
+                                    {assessment.timeLimit ? `${assessment.timeLimit} min` : 'No time limit'}
+                                    {' • '}
+                                    Max attempts: {assessment.maxAttempts || 'Unlimited'}
+                                  </Typography>
+                                </Box>
                               }
                               secondaryTypographyProps={{
                                 component: 'div'
                               }}
                             />
-                            <ListItemSecondaryAction>
-                              <Box sx={{ display: 'flex', gap: 1 }}>
-                                <Tooltip title="Edit Assessment">
-                                  <IconButton
-                                    size="small"
-                                    onClick={() => handleEditAssessment(assessment.id)}
-                                    data-testid={`course-assessment-edit-${assessment.id}`}
-                                  >
-                                    <EditIcon />
-                                  </IconButton>
-                                </Tooltip>
-                                <Tooltip title="View Analytics">
-                                  <IconButton
-                                    size="small"
-                                    onClick={() => handleViewAssessment(assessment.id)}
-                                    data-testid={`course-assessment-analytics-${assessment.id}`}
-                                  >
-                                    <AnalyticsIcon />
-                                  </IconButton>
-                                </Tooltip>
-                                <Tooltip title="Preview Assessment">
-                                  <IconButton
-                                    size="small"
-                                    onClick={() => navigate(`/assessments/${assessment.id}?preview=true`)}
-                                    data-testid={`course-assessment-preview-${assessment.id}`}
-                                  >
-                                    <ViewIcon />
-                                  </IconButton>
-                                </Tooltip>
-                              </Box>
-                            </ListItemSecondaryAction>
+                            <Box sx={{
+                              display: 'flex',
+                              gap: 0.5,
+                              flexShrink: 0,
+                              ml: { xs: 0, sm: 'auto' },
+                              alignSelf: { xs: 'flex-end', sm: 'center' },
+                            }}>
+                              <Tooltip title="Edit Assessment">
+                                <IconButton
+                                  size="small"
+                                  onClick={() => handleEditAssessment(assessment.id)}
+                                  data-testid={`course-assessment-edit-${assessment.id}`}
+                                >
+                                  <EditIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                              <Tooltip title="View Analytics">
+                                <IconButton
+                                  size="small"
+                                  onClick={() => handleViewAssessment(assessment.id)}
+                                  data-testid={`course-assessment-analytics-${assessment.id}`}
+                                >
+                                  <AnalyticsIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                              <Tooltip title="Preview Assessment">
+                                <IconButton
+                                  size="small"
+                                  onClick={() => navigate(`/assessments/${assessment.id}?preview=true`)}
+                                  data-testid={`course-assessment-preview-${assessment.id}`}
+                                >
+                                  <ViewIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                            </Box>
                           </ListItem>
                           {index < lesson.assessments.length - 1 && <Divider />}
                         </React.Fragment>
                       ))}
                     </List>
                     <Divider sx={{ my: 2 }} />
-                    <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
+                    <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap' }}>
                       <Button
                         variant="contained"
                         startIcon={<AddIcon />}

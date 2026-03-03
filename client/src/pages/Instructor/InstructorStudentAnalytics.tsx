@@ -226,16 +226,16 @@ export const InstructorStudentAnalytics: React.FC = () => {
         ) : (
         <>
         {/* Risk Summary Cards */}
-        <Grid container spacing={3} sx={{ mb: 4 }}>
-          <Grid item xs={6} md={3}>
+        <Grid container spacing={{ xs: 1.5, sm: 3 }} sx={{ mb: 4 }}>
+          <Grid item xs={12} sm={6} md={3}>
             <Card>
               <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                  <Avatar sx={{ bgcolor: 'error.main', mr: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                  <Avatar sx={{ bgcolor: 'error.main', mr: 1.5 }}>
                     <RiskIcon />
                   </Avatar>
-                  <Box>
-                    <Typography variant="h6">High Risk</Typography>
+                  <Box sx={{ minWidth: 0, flex: 1 }}>
+                    <Typography variant="h6" sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>High Risk</Typography>
                     <Typography variant="body2" color="text.secondary">
                       Needs immediate attention
                     </Typography>
@@ -248,15 +248,15 @@ export const InstructorStudentAnalytics: React.FC = () => {
             </Card>
           </Grid>
 
-          <Grid item xs={6} md={3}>
+          <Grid item xs={12} sm={6} md={3}>
             <Card>
               <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                  <Avatar sx={{ bgcolor: 'warning.main', mr: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                  <Avatar sx={{ bgcolor: 'warning.main', mr: 1.5 }}>
                     <DecliningIcon />
                   </Avatar>
-                  <Box>
-                    <Typography variant="h6">Medium Risk</Typography>
+                  <Box sx={{ minWidth: 0, flex: 1 }}>
+                    <Typography variant="h6" sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>Medium Risk</Typography>
                     <Typography variant="body2" color="text.secondary">
                       Monitor closely
                     </Typography>
@@ -269,15 +269,15 @@ export const InstructorStudentAnalytics: React.FC = () => {
             </Card>
           </Grid>
 
-          <Grid item xs={6} md={3}>
+          <Grid item xs={12} sm={6} md={3}>
             <Card>
               <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                  <Avatar sx={{ bgcolor: 'success.main', mr: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                  <Avatar sx={{ bgcolor: 'success.main', mr: 1.5 }}>
                     <SafeIcon />
                   </Avatar>
-                  <Box>
-                    <Typography variant="h6">Low Risk</Typography>
+                  <Box sx={{ minWidth: 0, flex: 1 }}>
+                    <Typography variant="h6" sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>Low Risk</Typography>
                     <Typography variant="body2" color="text.secondary">
                       Performing well
                     </Typography>
@@ -290,15 +290,15 @@ export const InstructorStudentAnalytics: React.FC = () => {
             </Card>
           </Grid>
 
-          <Grid item xs={6} md={3}>
+          <Grid item xs={12} sm={6} md={3}>
             <Card>
               <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                  <Avatar sx={{ bgcolor: 'primary.main', mr: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                  <Avatar sx={{ bgcolor: 'primary.main', mr: 1.5 }}>
                     <AIIcon />
                   </Avatar>
-                  <Box>
-                    <Typography variant="h6">AI Insights</Typography>
+                  <Box sx={{ minWidth: 0, flex: 1 }}>
+                    <Typography variant="h6" sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>AI Insights</Typography>
                     <Typography variant="body2" color="text.secondary">
                       Active recommendations
                     </Typography>
@@ -321,7 +321,7 @@ export const InstructorStudentAnalytics: React.FC = () => {
         {/* Filters */}
         <Paper sx={{ p: 2, mb: 3 }}>
           <Grid container spacing={2} alignItems="center">
-            <Grid item xs={12} md={4}>
+            <Grid item xs={12} sm={6} md={4}>
               <TextField
                 fullWidth
                 label="Search students or courses"
@@ -331,7 +331,7 @@ export const InstructorStudentAnalytics: React.FC = () => {
                 size="small"
               />
             </Grid>
-            <Grid item xs={12} md={3}>
+            <Grid item xs={12} sm={6} md={3}>
               <FormControl fullWidth size="small">
                 <InputLabel>Risk Level</InputLabel>
                 <Select
@@ -368,11 +368,11 @@ export const InstructorStudentAnalytics: React.FC = () => {
                 filteredStudents.map((student) => (
                   <TableRow key={`${student.studentId}-${student.courseId}`}>
                     <TableCell>
-                      <Box>
-                        <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
+                      <Box sx={{ minWidth: 0, maxWidth: { xs: 100, sm: 'none' } }}>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }} noWrap>
                           {student.studentName}
                         </Typography>
-                        <Typography variant="caption" color="text.secondary">
+                        <Typography variant="caption" color="text.secondary" noWrap sx={{ display: 'block' }}>
                           {student.email || 'Email hidden'}
                         </Typography>
                       </Box>
@@ -470,9 +470,11 @@ export const InstructorStudentAnalytics: React.FC = () => {
           fullScreen={isMobile}
         >
           <DialogTitle>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <InterventionIcon />
-              Intervention Recommendations - {selectedStudent?.studentName}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
+              <InterventionIcon sx={{ flexShrink: 0 }} />
+              <Typography variant="h6" noWrap sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>
+                {isMobile ? 'Interventions' : 'Intervention Recommendations'} - {selectedStudent?.studentName}
+              </Typography>
             </Box>
           </DialogTitle>
           <DialogContent>
@@ -548,7 +550,7 @@ export const InstructorStudentAnalytics: React.FC = () => {
                 }
               }}
             >
-              {selectedStudent?.email ? 'Send Message to Student' : 'Email Unavailable'}
+              {selectedStudent?.email ? (isMobile ? 'Send Message' : 'Send Message to Student') : 'Email Unavailable'}
             </Button>
           </DialogActions>
         </Dialog>

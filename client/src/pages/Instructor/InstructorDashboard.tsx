@@ -278,7 +278,7 @@ export const InstructorDashboard: React.FC = () => {
 
       {/* Stats Overview - 4 primary cards */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={6} sm={6} md={3}>
           <StatCard
             icon={<SchoolIcon color="primary" sx={{ fontSize: 40 }} />}
             value={stats.totalCourses}
@@ -286,7 +286,7 @@ export const InstructorDashboard: React.FC = () => {
             testId="instructor-total-courses-card"
           />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={6} sm={6} md={3}>
           <StatCard
             icon={<PeopleIcon color="primary" sx={{ fontSize: 40 }} />}
             value={stats.totalStudents.toLocaleString()}
@@ -294,7 +294,7 @@ export const InstructorDashboard: React.FC = () => {
             testId="instructor-total-students-card"
           />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={6} sm={6} md={3}>
           <StatCard
             icon={<MoneyIcon color="primary" sx={{ fontSize: 40 }} />}
             value={`$${stats.totalRevenue.toLocaleString()}`}
@@ -302,7 +302,7 @@ export const InstructorDashboard: React.FC = () => {
             testId="instructor-total-revenue-card"
           />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={6} sm={6} md={3}>
           <StatCard
             icon={<PendingIcon sx={{ fontSize: 40, color: stats.pendingEnrollments > 0 ? 'warning.main' : 'text.disabled' }} />}
             value={stats.pendingEnrollments}

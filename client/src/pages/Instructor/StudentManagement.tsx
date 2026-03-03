@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   Box,
@@ -32,7 +32,9 @@ import {
   Alert,
   Tabs,
   Tab,
-  Badge
+  Badge,
+  Autocomplete,
+  InputAdornment
 } from '@mui/material';
 import {
   Search as SearchIcon,
@@ -157,13 +159,40 @@ const StudentManagement: React.FC = () => {
     setPage(0); // Reset to first page when filtering
   };
 
-  const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const value = event.target.value;
-    // Debounce search
-    setTimeout(() => {
-      handleFilterChange('search', value || undefined);
-    }, 500);
-  };
+  // Proper debounced search with cleanup
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [searchInput, setSearchInput] = useState('');
+
+  const handleSearchChange = useCallback((newValue: string) => {
+    setSearchInput(newValue);
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    searchDebounceRef.current = setTimeout(() => {
+      setFilters(prev => ({ ...prev, search: newValue || undefined }));
+      setPage(0);
+    }, 350);
+  }, []);
+
+  // Cleanup debounce on unmount
+  useEffect(() => {
+    return () => { if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current); };
+  }, []);
+
+  // Build autocomplete options from loaded students
+  const studentSearchOptions = useMemo(() => {
+    const seen = new Set<string>();
+    return students
+      .filter(s => {
+        const key = `${s.firstName} ${s.lastName}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      })
+      .map(s => ({
+        label: `${s.firstName} ${s.lastName}`,
+        email: s.email || '',
+        id: s.id
+      }));
+  }, [students]);
 
   const handleStatusUpdate = async (student: Student, newStatus: string) => {
     try {
@@ -324,7 +353,7 @@ const StudentManagement: React.FC = () => {
       {/* Analytics Cards */}
       {analytics && (
         <Grid container spacing={3} sx={{ mb: 3 }}>
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid item xs={6} sm={6} md={3}>
             <Card>
               <CardContent>
                 <Box display="flex" alignItems="center">
@@ -340,7 +369,7 @@ const StudentManagement: React.FC = () => {
             </Card>
           </Grid>
           
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid item xs={6} sm={6} md={3}>
             <Card>
               <CardContent>
                 <Box display="flex" alignItems="center">
@@ -356,7 +385,7 @@ const StudentManagement: React.FC = () => {
             </Card>
           </Grid>
           
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid item xs={6} sm={6} md={3}>
             <Card>
               <CardContent>
                 <Box display="flex" alignItems="center">
@@ -372,7 +401,7 @@ const StudentManagement: React.FC = () => {
             </Card>
           </Grid>
           
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid item xs={6} sm={6} md={3}>
             <Card>
               <CardContent>
                 <Box display="flex" alignItems="center">
@@ -423,14 +452,65 @@ const StudentManagement: React.FC = () => {
         <Paper sx={{ p: 2, mb: 3 }}>
         <Grid container spacing={2} alignItems="center">
           <Grid item xs={12} sm={6} md={3}>
-            <TextField
-              fullWidth
-              placeholder="Search students..."
-              InputProps={{
-                startAdornment: <SearchIcon sx={{ mr: 1, color: 'text.secondary' }} />
+            <Autocomplete
+              freeSolo
+              options={studentSearchOptions}
+              getOptionLabel={(option) =>
+                typeof option === 'string' ? option : option.label
+              }
+              inputValue={searchInput}
+              onInputChange={(_e, newValue, reason) => {
+                if (reason === 'reset' && !newValue) return;
+                handleSearchChange(newValue);
               }}
-              onChange={handleSearch}
-              data-testid="student-management-search-input"
+              onChange={(_e, newValue) => {
+                if (newValue && typeof newValue !== 'string') {
+                  setSearchInput(newValue.label);
+                  handleFilterChange('search', newValue.label);
+                } else if (typeof newValue === 'string') {
+                  handleSearchChange(newValue);
+                } else {
+                  handleSearchChange('');
+                }
+              }}
+              renderOption={(props, option) => (
+                <li {...props} key={option.id}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, width: '100%' }}>
+                    <Avatar sx={{ width: 28, height: 28, fontSize: '0.75rem' }}>
+                      {option.label.split(' ').map(n => n[0]).join('').toUpperCase()}
+                    </Avatar>
+                    <Box sx={{ minWidth: 0 }}>
+                      <Typography variant="body2" noWrap>{option.label}</Typography>
+                      {option.email && (
+                        <Typography variant="caption" color="text.secondary" noWrap sx={{ display: 'block' }}>
+                          {option.email}
+                        </Typography>
+                      )}
+                    </Box>
+                  </Box>
+                </li>
+              )}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  placeholder="Search students..."
+                  InputProps={{
+                    ...params.InputProps,
+                    startAdornment: (
+                      <>
+                        <InputAdornment position="start">
+                          <SearchIcon sx={{ color: 'text.secondary' }} />
+                        </InputAdornment>
+                        {params.InputProps.startAdornment}
+                      </>
+                    )
+                  }}
+                  data-testid="student-management-search-input"
+                />
+              )}
+              size="small"
+              fullWidth
+              data-testid="student-management-search-autocomplete"
             />
           </Grid>
           
@@ -650,8 +730,8 @@ const StudentManagement: React.FC = () => {
                 <TableHead>
                   <TableRow>
                     <TableCell>Student</TableCell>
-                    <TableCell>Course</TableCell>
-                    <TableCell>Requested</TableCell>
+                    <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>Course</TableCell>
+                    <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>Requested</TableCell>
                     <TableCell>Actions</TableCell>
                   </TableRow>
                 </TableHead>
@@ -692,13 +772,13 @@ const StudentManagement: React.FC = () => {
                           </Box>
                         </TableCell>
                         
-                        <TableCell>
+                        <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>
                           <Typography variant="body2">
                             {enrollment.CourseTitle}
                           </Typography>
                         </TableCell>
                         
-                        <TableCell>
+                        <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>
                           <Typography variant="body2">
                             {formatDate(enrollment.EnrolledAt)}
                           </Typography>
@@ -708,7 +788,7 @@ const StudentManagement: React.FC = () => {
                         </TableCell>
                         
                         <TableCell>
-                          <Box display="flex" gap={1}>
+                          <Box display="flex" gap={1} flexWrap="wrap">
                             <Button
                               variant="contained"
                               color="success"

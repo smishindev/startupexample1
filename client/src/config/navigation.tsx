@@ -255,13 +255,6 @@ export const mobileNavItems: MobileNavItem[] = [
     icon: <MenuIcon />,
     testId: 'mobile-nav-menu',
   },
-  {
-    id: 'profile',
-    label: 'Profile',
-    path: '/profile',
-    icon: <ProfileIcon />,
-    testId: 'mobile-nav-profile',
-  },
 ];
 
 /**

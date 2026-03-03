@@ -26,7 +26,7 @@ import { toast } from 'sonner';
 import { usePresence } from '../../hooks/usePresence';
 
 const PresenceStatusSelector: React.FC = () => {
-  const { currentStatus, updateStatus } = usePresence();
+  const { currentStatus, updateStatus } = usePresence({ autoHeartbeat: false });
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [updating, setUpdating] = useState(false);
 

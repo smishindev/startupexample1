@@ -28,13 +28,6 @@ export const AssessmentEditPage: React.FC = () => {
     <Box>
       <Header />
       <PageContainer>
-        <Typography variant="h3" gutterBottom sx={{ fontSize: { xs: '1.5rem', sm: '2rem', md: '3rem' } }}>
-          Edit Assessment
-        </Typography>
-        <Typography variant="subtitle1" color="text.secondary" gutterBottom sx={{ mb: 4 }}>
-          Modify your quiz, test, or assignment
-        </Typography>
-        
         <QuizCreator assessmentId={assessmentId} />
       </PageContainer>
     </Box>

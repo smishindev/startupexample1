@@ -26,7 +26,9 @@ import {
   TablePagination,
   TableSortLabel,
   TextField,
-  InputAdornment
+  InputAdornment,
+  useMediaQuery,
+  useTheme
 } from '@mui/material';
 import {
   TrendingUp as TrendingUpIcon,
@@ -169,7 +171,7 @@ export const CourseAnalyticsDashboard: React.FC = () => {
         >
           Analytics Hub
         </PageTitle>
-        <Box display="flex" alignItems="center" gap={1}>
+        <Box display="flex" alignItems="center" gap={1} sx={{ width: { xs: '100%', sm: 'auto' } }}>
           <IconButton onClick={handleRefresh} color="primary" size="small" disabled={loading} data-testid="course-analytics-refresh-button">
             <RefreshIcon />
           </IconButton>
@@ -180,7 +182,7 @@ export const CourseAnalyticsDashboard: React.FC = () => {
             allOption={{ value: 'dashboard', label: 'All Courses Overview' }}
             disabled={loading}
             size="small"
-            sx={{ minWidth: 200 }}
+            sx={{ minWidth: { xs: 0, sm: 200 }, flex: { xs: 1, sm: 'none' } }}
             testId="course-analytics-course-select"
           />
         </Box>
@@ -227,14 +229,14 @@ const DashboardView: React.FC<{ data: DashboardAnalytics }> = ({ data }) => {
       {/* Overview Stats */}
       <Grid item xs={12}>
         <Grid container spacing={2}>
-          <Grid item xs={12} sm={6} md={2.4}>
+          <Grid item xs={6} sm={4} md>
             <Card>
-              <CardContent>
+              <CardContent sx={{ p: { xs: 1.5, sm: 2 }, '&:last-child': { pb: { xs: 1.5, sm: 2 } } }}>
                 <Box display="flex" alignItems="center">
-                  <SchoolIcon color="primary" sx={{ mr: 1 }} />
-                  <Box>
-                    <Typography variant="h4">{overview.totalCourses || 0}</Typography>
-                    <Typography variant="body2" color="textSecondary">
+                  <SchoolIcon color="primary" sx={{ mr: 1, fontSize: { xs: 20, sm: 24 } }} />
+                  <Box sx={{ minWidth: 0 }}>
+                    <Typography variant="h5" noWrap>{overview.totalCourses || 0}</Typography>
+                    <Typography variant="caption" color="textSecondary" noWrap>
                       Total Courses
                     </Typography>
                   </Box>
@@ -242,14 +244,14 @@ const DashboardView: React.FC<{ data: DashboardAnalytics }> = ({ data }) => {
               </CardContent>
             </Card>
           </Grid>
-          <Grid item xs={12} sm={6} md={2.4}>
+          <Grid item xs={6} sm={4} md>
             <Card>
-              <CardContent>
+              <CardContent sx={{ p: { xs: 1.5, sm: 2 }, '&:last-child': { pb: { xs: 1.5, sm: 2 } } }}>
                 <Box display="flex" alignItems="center">
-                  <PeopleIcon color="primary" sx={{ mr: 1 }} />
-                  <Box>
-                    <Typography variant="h4">{overview.totalStudents || 0}</Typography>
-                    <Typography variant="body2" color="textSecondary">
+                  <PeopleIcon color="primary" sx={{ mr: 1, fontSize: { xs: 20, sm: 24 } }} />
+                  <Box sx={{ minWidth: 0 }}>
+                    <Typography variant="h5" noWrap>{overview.totalStudents || 0}</Typography>
+                    <Typography variant="caption" color="textSecondary" noWrap>
                       Total Students
                     </Typography>
                   </Box>
@@ -257,29 +259,29 @@ const DashboardView: React.FC<{ data: DashboardAnalytics }> = ({ data }) => {
               </CardContent>
             </Card>
           </Grid>
-          <Grid item xs={12} sm={6} md={2.4}>
+          <Grid item xs={6} sm={4} md>
             <Card>
-              <CardContent>
+              <CardContent sx={{ p: { xs: 1.5, sm: 2 }, '&:last-child': { pb: { xs: 1.5, sm: 2 } } }}>
                 <Box display="flex" alignItems="center">
-                  <TrendingUpIcon color="primary" sx={{ mr: 1 }} />
-                  <Box>
-                    <Typography variant="h4">{overview.totalEnrollments || 0}</Typography>
-                    <Typography variant="body2" color="textSecondary">
-                      Total Enrollments
+                  <TrendingUpIcon color="primary" sx={{ mr: 1, fontSize: { xs: 20, sm: 24 } }} />
+                  <Box sx={{ minWidth: 0 }}>
+                    <Typography variant="h5" noWrap>{overview.totalEnrollments || 0}</Typography>
+                    <Typography variant="caption" color="textSecondary" noWrap>
+                      Enrollments
                     </Typography>
                   </Box>
                 </Box>
               </CardContent>
             </Card>
           </Grid>
-          <Grid item xs={12} sm={6} md={2.4}>
+          <Grid item xs={6} sm={6} md>
             <Card>
-              <CardContent>
+              <CardContent sx={{ p: { xs: 1.5, sm: 2 }, '&:last-child': { pb: { xs: 1.5, sm: 2 } } }}>
                 <Box display="flex" alignItems="center">
-                  <CheckCircleIcon color="primary" sx={{ mr: 1 }} />
-                  <Box>
-                    <Typography variant="h4">{Math.round(overview.avgProgress || 0)}%</Typography>
-                    <Typography variant="body2" color="textSecondary">
+                  <CheckCircleIcon color="primary" sx={{ mr: 1, fontSize: { xs: 20, sm: 24 } }} />
+                  <Box sx={{ minWidth: 0 }}>
+                    <Typography variant="h5" noWrap>{Math.round(overview.avgProgress || 0)}%</Typography>
+                    <Typography variant="caption" color="textSecondary" noWrap>
                       Avg Progress
                     </Typography>
                   </Box>
@@ -287,16 +289,16 @@ const DashboardView: React.FC<{ data: DashboardAnalytics }> = ({ data }) => {
               </CardContent>
             </Card>
           </Grid>
-          <Grid item xs={12} sm={6} md={2.4}>
+          <Grid item xs={12} sm={6} md>
             <Card>
-              <CardContent>
+              <CardContent sx={{ p: { xs: 1.5, sm: 2 }, '&:last-child': { pb: { xs: 1.5, sm: 2 } } }}>
                 <Box display="flex" alignItems="center">
-                  <TimeIcon color="primary" sx={{ mr: 1 }} />
-                  <Box>
-                    <Typography variant="h4">
+                  <TimeIcon color="primary" sx={{ mr: 1, fontSize: { xs: 20, sm: 24 } }} />
+                  <Box sx={{ minWidth: 0 }}>
+                    <Typography variant="h5" noWrap>
                       {Math.round((overview.totalTimeSpent || 0) / 60)}h
                     </Typography>
-                    <Typography variant="body2" color="textSecondary">
+                    <Typography variant="caption" color="textSecondary" noWrap>
                       Total Time
                     </Typography>
                   </Box>
@@ -470,7 +472,7 @@ const CoursePerformanceTable: React.FC<{
           placeholder="Search courses..."
           value={search}
           onChange={(e) => { setSearch(e.target.value); setPage(0); }}
-          sx={{ minWidth: 250 }}
+          sx={{ minWidth: { xs: 0, sm: 250 }, width: { xs: '100%', sm: 'auto' } }}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
@@ -599,6 +601,12 @@ const CoursePerformanceTable: React.FC<{
         rowsPerPageOptions={[10, 25, 50, 100]}
         showFirstButton
         showLastButton
+        sx={{
+          '.MuiTablePagination-toolbar': { flexWrap: 'wrap', justifyContent: 'center' },
+          '.MuiTablePagination-selectLabel, .MuiTablePagination-displayedRows': {
+            fontSize: { xs: '0.75rem', sm: '0.875rem' },
+          },
+        }}
       />
     </Box>
   );
@@ -610,6 +618,8 @@ const CourseView: React.FC<{
   courseTitle: string;
 }> = ({ data, distribution, courseTitle }) => {
   const { enrollment, progress, engagement, recentActivity } = data;
+  const theme = useTheme();
+  const isMobileView = useMediaQuery(theme.breakpoints.down('sm'));
 
   const formatDate = (dateString: string): string => {
     return new Date(dateString).toLocaleDateString();
@@ -619,7 +629,7 @@ const CourseView: React.FC<{
     <Grid container spacing={3}>
       {/* Course Header */}
       <Grid item xs={12}>
-        <Typography variant="h5" gutterBottom>
+        <Typography variant="h5" gutterBottom noWrap sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' } }}>
           {courseTitle} Analytics
         </Typography>
       </Grid>
@@ -627,29 +637,29 @@ const CourseView: React.FC<{
       {/* Key Metrics */}
       <Grid item xs={12}>
         <Grid container spacing={2}>
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid item xs={6} sm={6} md={3}>
             <Card>
-              <CardContent>
+              <CardContent sx={{ p: { xs: 1.5, sm: 2 }, '&:last-child': { pb: { xs: 1.5, sm: 2 } } }}>
                 <Box display="flex" alignItems="center">
-                  <PeopleIcon color="primary" sx={{ mr: 1 }} />
-                  <Box>
-                    <Typography variant="h4">{enrollment.totalEnrollments || 0}</Typography>
-                    <Typography variant="body2" color="textSecondary">
-                      Total Enrollments
+                  <PeopleIcon color="primary" sx={{ mr: 1, fontSize: { xs: 20, sm: 24 } }} />
+                  <Box sx={{ minWidth: 0 }}>
+                    <Typography variant="h5" noWrap>{enrollment.totalEnrollments || 0}</Typography>
+                    <Typography variant="caption" color="textSecondary" noWrap>
+                      Enrollments
                     </Typography>
                   </Box>
                 </Box>
               </CardContent>
             </Card>
           </Grid>
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid item xs={6} sm={6} md={3}>
             <Card>
-              <CardContent>
+              <CardContent sx={{ p: { xs: 1.5, sm: 2 }, '&:last-child': { pb: { xs: 1.5, sm: 2 } } }}>
                 <Box display="flex" alignItems="center">
-                  <CheckCircleIcon color="success" sx={{ mr: 1 }} />
-                  <Box>
-                    <Typography variant="h4">{progress.completedStudents || 0}</Typography>
-                    <Typography variant="body2" color="textSecondary">
+                  <CheckCircleIcon color="success" sx={{ mr: 1, fontSize: { xs: 20, sm: 24 } }} />
+                  <Box sx={{ minWidth: 0 }}>
+                    <Typography variant="h5" noWrap>{progress.completedStudents || 0}</Typography>
+                    <Typography variant="caption" color="textSecondary" noWrap>
                       Completed
                     </Typography>
                   </Box>
@@ -657,14 +667,14 @@ const CourseView: React.FC<{
               </CardContent>
             </Card>
           </Grid>
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid item xs={6} sm={6} md={3}>
             <Card>
-              <CardContent>
+              <CardContent sx={{ p: { xs: 1.5, sm: 2 }, '&:last-child': { pb: { xs: 1.5, sm: 2 } } }}>
                 <Box display="flex" alignItems="center">
-                  <PlayCircleIcon color="primary" sx={{ mr: 1 }} />
-                  <Box>
-                    <Typography variant="h4">{progress.inProgressStudents || 0}</Typography>
-                    <Typography variant="body2" color="textSecondary">
+                  <PlayCircleIcon color="primary" sx={{ mr: 1, fontSize: { xs: 20, sm: 24 } }} />
+                  <Box sx={{ minWidth: 0 }}>
+                    <Typography variant="h5" noWrap>{progress.inProgressStudents || 0}</Typography>
+                    <Typography variant="caption" color="textSecondary" noWrap>
                       In Progress
                     </Typography>
                   </Box>
@@ -672,14 +682,14 @@ const CourseView: React.FC<{
               </CardContent>
             </Card>
           </Grid>
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid item xs={6} sm={6} md={3}>
             <Card>
-              <CardContent>
+              <CardContent sx={{ p: { xs: 1.5, sm: 2 }, '&:last-child': { pb: { xs: 1.5, sm: 2 } } }}>
                 <Box display="flex" alignItems="center">
-                  <TrendingUpIcon color="primary" sx={{ mr: 1 }} />
-                  <Box>
-                    <Typography variant="h4">{Math.round(progress.avgProgress || 0)}%</Typography>
-                    <Typography variant="body2" color="textSecondary">
+                  <TrendingUpIcon color="primary" sx={{ mr: 1, fontSize: { xs: 20, sm: 24 } }} />
+                  <Box sx={{ minWidth: 0 }}>
+                    <Typography variant="h5" noWrap>{Math.round(progress.avgProgress || 0)}%</Typography>
+                    <Typography variant="caption" color="textSecondary" noWrap>
                       Avg Progress
                     </Typography>
                   </Box>
@@ -706,7 +716,13 @@ const CourseView: React.FC<{
                       cx="50%"
                       cy="50%"
                       labelLine={false}
-                      label={({ progressRange, studentCount }) => `${progressRange}: ${studentCount}`}
+                      label={({ progressRange, studentCount, cx: pieCx, x }) => {
+                        if (isMobileView) return null;
+                        // Shorten label when it's on the inner side
+                        const isLeft = x < pieCx;
+                        const short = progressRange?.replace('-', '–');
+                        return isLeft ? `${studentCount}` : `${short}: ${studentCount}`;
+                      }}
                       outerRadius={80}
                       fill="#8884d8"
                       dataKey="studentCount"
@@ -794,39 +810,49 @@ const CourseView: React.FC<{
             ) : (
             <List>
               {recentActivity.map((activity, index) => (
-                <ListItem key={index} divider={index < recentActivity.length - 1}>
-                  <ListItemAvatar>
+                <ListItem
+                  key={index}
+                  divider={index < recentActivity.length - 1}
+                  sx={{
+                    flexWrap: { xs: 'wrap', sm: 'nowrap' },
+                    gap: { xs: 1, sm: 0 },
+                    alignItems: 'flex-start',
+                  }}
+                >
+                  <ListItemAvatar sx={{ display: { xs: 'none', sm: 'block' } }}>
                     <Avatar>
                       {activity.FirstName?.[0]?.toUpperCase() || ''}{activity.LastName?.[0]?.toUpperCase() || ''}
                     </Avatar>
                   </ListItemAvatar>
                   <ListItemText
                     primary={`${activity.FirstName} ${activity.LastName}`}
+                    primaryTypographyProps={{ noWrap: true }}
                     secondary={
                       <React.Fragment>
-                        <span style={{ display: 'block', color: 'rgba(0, 0, 0, 0.6)' }}>
+                        <Typography component="span" variant="caption" color="text.secondary" display="block" noWrap>
                           {activity.Email || 'Email hidden'}
-                        </span>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
+                        </Typography>
+                        <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
                           <LinearProgress
                             variant="determinate"
                             value={activity.OverallProgress}
                             sx={{ flexGrow: 1, height: 4 }}
                           />
-                          <span style={{ fontSize: '0.75rem' }}>
+                          <Typography component="span" variant="caption">
                             {activity.OverallProgress}%
-                          </span>
-                        </span>
+                          </Typography>
+                        </Box>
                       </React.Fragment>
                     }
+                    sx={{ minWidth: 0 }}
                   />
-                  <Box textAlign="right">
+                  <Box sx={{ textAlign: 'right', flexShrink: 0, ml: { xs: 0, sm: 2 }, width: { xs: '100%', sm: 'auto' }, display: 'flex', flexDirection: { xs: 'row', sm: 'column' }, alignItems: { xs: 'center', sm: 'flex-end' }, gap: 0.5 }}>
                     <Chip
                       label={activity.EnrollmentStatus}
                       color={activity.EnrollmentStatus === 'active' ? 'success' : 'default'}
                       size="small"
                     />
-                    <Typography variant="caption" display="block" mt={0.5}>
+                    <Typography variant="caption" color="text.secondary">
                       {activity.LastAccessedAt ? formatDate(activity.LastAccessedAt) : 'Never'}
                     </Typography>
                   </Box>

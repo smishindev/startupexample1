@@ -561,9 +561,9 @@ const QuizCreator: React.FC<QuizCreatorProps> = ({
                               <Grid item xs={12}>
                                 <Typography variant="subtitle2" gutterBottom>Options</Typography>
                                 {(question.options || []).map((option, optionIndex) => (
-                                  <Box key={optionIndex} sx={{ display: 'flex', gap: 1, mb: 1 }}>
+                                  <Box key={optionIndex} sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1 }}>
                                     <TextField
-                                      fullWidth
+                                      sx={{ flex: '1 1 auto', minWidth: 0 }}
                                       label={`Option ${optionIndex + 1}`}
                                       value={option}
                                       onChange={(e) => {
@@ -572,22 +572,28 @@ const QuizCreator: React.FC<QuizCreatorProps> = ({
                                         updateQuestion(index, { options: newOptions });
                                       }}
                                     />
-                                    <Button
-                                      variant={question.correctAnswer === option ? 'contained' : 'outlined'}
-                                      color="success"
-                                      onClick={() => updateQuestion(index, { correctAnswer: option })}
-                                    >
-                                      ✓
-                                    </Button>
-                                    <Button
-                                      color="error"
-                                      onClick={() => {
-                                        const newOptions = question.options?.filter((_, i) => i !== optionIndex) || [];
-                                        updateQuestion(index, { options: newOptions });
-                                      }}
-                                    >
-                                      ✗
-                                    </Button>
+                                    <Box sx={{ display: 'flex', gap: 1, flexShrink: 0 }}>
+                                      <Button
+                                        variant={question.correctAnswer === option ? 'contained' : 'outlined'}
+                                        color="success"
+                                        size={isMobile ? 'small' : 'medium'}
+                                        sx={{ minWidth: { xs: 36, sm: 64 } }}
+                                        onClick={() => updateQuestion(index, { correctAnswer: option })}
+                                      >
+                                        ✓
+                                      </Button>
+                                      <Button
+                                        color="error"
+                                        size={isMobile ? 'small' : 'medium'}
+                                        sx={{ minWidth: { xs: 36, sm: 64 } }}
+                                        onClick={() => {
+                                          const newOptions = question.options?.filter((_, i) => i !== optionIndex) || [];
+                                          updateQuestion(index, { options: newOptions });
+                                        }}
+                                      >
+                                        ✗
+                                      </Button>
+                                    </Box>
                                   </Box>
                                 ))}
                                 <Button
@@ -654,15 +660,15 @@ const QuizCreator: React.FC<QuizCreatorProps> = ({
                             </Grid>
 
                             <Grid item xs={12}>
-                              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <Box sx={{ display: 'flex', gap: 1 }}>
+                              <Box sx={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 1 }}>
+                                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                                   {index > 0 && (
                                     <Button 
                                       data-testid={`quiz-creator-question-move-up-${index}`}
                                       size="small" 
                                       onClick={() => moveQuestion(index, 'up')}
                                     >
-                                      Move Up
+                                      {isMobile ? '↑ Up' : 'Move Up'}
                                     </Button>
                                   )}
                                   {index < questions.length - 1 && (
@@ -671,7 +677,7 @@ const QuizCreator: React.FC<QuizCreatorProps> = ({
                                       size="small" 
                                       onClick={() => moveQuestion(index, 'down')}
                                     >
-                                      Move Down
+                                      {isMobile ? '↓ Down' : 'Move Down'}
                                     </Button>
                                   )}
                                 </Box>
@@ -681,7 +687,7 @@ const QuizCreator: React.FC<QuizCreatorProps> = ({
                                   size="small"
                                   onClick={() => deleteQuestion(index)}
                                 >
-                                  Delete Question
+                                  {isMobile ? 'Delete' : 'Delete Question'}
                                 </Button>
                               </Box>
                             </Grid>
@@ -698,7 +704,7 @@ const QuizCreator: React.FC<QuizCreatorProps> = ({
 
         {/* Sidebar */}
         <Grid item xs={12} md={4}>
-          <Card sx={{ mb: 2, position: 'sticky', top: 20 }}>
+          <Card sx={{ mb: 2, position: { xs: 'static', md: 'sticky' }, top: { md: 20 } }}>
             <CardContent>
               <Typography variant="h6" gutterBottom>
                 Quick Actions
@@ -816,6 +822,7 @@ const QuizCreator: React.FC<QuizCreatorProps> = ({
         onClose={() => setPreviewOpen(false)}
         maxWidth="md"
         fullWidth
+        fullScreen={isMobile}
       >
         <DialogTitle>Assessment Preview</DialogTitle>
         <DialogContent>

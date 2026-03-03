@@ -1,6 +1,6 @@
 ﻿# 🚀 Quick Reference - Development Workflow
 
-**Last Updated**: March 3, 2026 - Office Hours Bug Fixes — `schedule-changed` socket event + `office-hours-lobby` room; `socketService.onConnect()` reconnect-safe room join pattern; `joinLobby`/`joinInstructorRoom` socket ownership model; Chat deep-link via navigation state; `StudentQueueStatus` 3-state `AvailableNowPanel`; `CourseSelector` in ScheduleManagement 🏢
+**Last Updated**: March 5, 2026 - Mobile Post-Audit Fixes — `useMediaQuery`+`useTheme` pattern vs deprecated `window.matchMedia`; `onKeyDown` vs deprecated `onKeyPress`; `xs={12} sm={4}` for 3-card summary rows on mobile 🔍
 
 ---
 
@@ -226,6 +226,32 @@ sx={{ paddingTop: { xs: '75%', sm: '56.25%' } }}
   '& .MuiBreadcrumbs-li': { whiteSpace: 'nowrap' },
 }}>
 ```
+
+### `useMediaQuery` not `window.matchMedia` — always reactive (March 5, 2026)
+```tsx
+// ❌ WRONG — evaluated ONCE at render, never updates when viewport changes
+const isMobile = window.matchMedia('(max-width: 600px)').matches;
+
+// ✅ CORRECT — reactive hook, re-renders component on breakpoint change
+import { useTheme, useMediaQuery } from '@mui/material';
+const theme = useTheme();
+const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+// Also fine (same result using platform hook):
+const { isMobile } = useResponsive();
+```
+> `window.matchMedia` is only appropriate for **non-React contexts** (e.g., chart library callbacks outside component render).  
+> Hooks must be called at the **top level** of a `React.FC` — not inside an inline arrow function or render helper.
+
+### `onKeyDown` not `onKeyPress` — deprecated DOM event (March 5, 2026)
+```tsx
+// ❌ WRONG — onKeyPress is deprecated; may not fire for non-printable keys
+<TextField onKeyPress={(e) => { if (e.key === 'Enter') handleAdd(); }} />
+
+// ✅ CORRECT — onKeyDown fires reliably for all keys
+<TextField onKeyDown={(e) => { if (e.key === 'Enter') handleAdd(); }} />
+```
+> All keyboard-event handlers in the platform **must use `onKeyDown`**.  
+> Applies to tags, requirements, learning-points, and any "add on Enter" text-field pattern.
 
 ---
 

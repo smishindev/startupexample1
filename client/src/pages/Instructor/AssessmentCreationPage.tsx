@@ -28,13 +28,6 @@ export const AssessmentCreationPage: React.FC = () => {
     <Box>
       <Header />
       <PageContainer>
-        <Typography variant="h3" gutterBottom sx={{ fontSize: { xs: '1.5rem', sm: '2rem', md: '3rem' } }}>
-          Create New Assessment
-        </Typography>
-        <Typography variant="subtitle1" color="text.secondary" gutterBottom sx={{ mb: 4 }}>
-          Design a quiz, test, or assignment for your lesson
-        </Typography>
-        
         <QuizCreator lessonId={lessonId} />
       </PageContainer>
     </Box>

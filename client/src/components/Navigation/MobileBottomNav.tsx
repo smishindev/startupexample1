@@ -8,13 +8,11 @@ import {
   Paper,
   BottomNavigation,
   BottomNavigationAction,
-  Badge,
   useTheme,
   alpha,
 } from '@mui/material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { mobileNavItems } from '../../config/navigation';
-import { useNotificationStore } from '../../stores/notificationStore';
 
 interface MobileBottomNavProps {
   /** Callback when menu button is pressed */
@@ -25,7 +23,6 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ onMenuClick })
   const theme = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
-  const { unreadCount } = useNotificationStore();
 
   // Determine active tab based on current path
   const getActiveValue = (): string => {
@@ -110,27 +107,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ onMenuClick })
             value={item.id}
             label={item.label}
             data-testid={item.testId}
-            icon={
-              item.id === 'profile' && unreadCount > 0 ? (
-                <Badge
-                  badgeContent={unreadCount > 99 ? '99+' : unreadCount}
-                  color="error"
-                  max={99}
-                  sx={{
-                    '& .MuiBadge-badge': {
-                      fontSize: '0.6rem',
-                      minWidth: 16,
-                      height: 16,
-                      padding: '0 4px',
-                    },
-                  }}
-                >
-                  {item.icon}
-                </Badge>
-              ) : (
-                item.icon
-              )
-            }
+            icon={item.icon}
             sx={{
               '& .MuiSvgIcon-root': {
                 fontSize: '1.5rem',

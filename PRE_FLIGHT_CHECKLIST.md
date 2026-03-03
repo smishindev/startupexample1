@@ -2,7 +2,7 @@
 
 **Purpose**: Systematic checklist to follow before implementing changes  
 **Goal**: Reduce errors, missing considerations, and broken functionality  
-**Last Updated**: February 26, 2026 - Sticky PageHeader UX Fix — InstructorDashboard + CourseAnalyticsDashboard Refactored 🎨
+**Last Updated**: March 5, 2026 - Mobile Post-Audit Bug Fixes — `window.matchMedia` replaced with reactive `useMediaQuery`; `onKeyPress` → `onKeyDown`; `xs={4}` → `xs={12} sm={4}` for 3-card summary grids 🔍
 
 ---
 
@@ -101,6 +101,12 @@
   - **Button `minWidth` must be responsive**: `minWidth: 150` on action buttons forces 150px minimum on 375px screens — use `minWidth: { xs: 120, sm: 150 }` or remove minWidth when buttons have `fullWidth` fallback.
   - **CourseSelector `minWidth: 250` in filter bars**: in filter/toolbar rows, give CourseSelector full width on mobile: `sx={{ minWidth: { xs: 0, sm: 250 }, width: { xs: '100%', sm: 'auto' } }}`.
   - Files: `StatCard.tsx`, `AchievementBadge.tsx`, `InstructorDashboard.tsx`, `InterventionDashboard.tsx`, `AnalyticsHubPage.tsx`, `CourseAssessmentManagementPage.tsx`, `CourseDetailPage.tsx`, `MyCertificatesPage.tsx`, `AIEnhancedAssessmentResults.tsx`, `StudentManagement.tsx`, `InstructorStudentAnalytics.tsx`, `StudentProgressDashboard.tsx`, `AssessmentManager.tsx`, `SettingsPage.tsx`, `StudentSessionsList.tsx`, `InstructorSessionsList.tsx`, `DashboardPage.tsx`, `MyLearningPage.tsx`, `ArchiveCoursesDialog.tsx`, `AITutoringDemo.tsx`, `ContentUploadDemo.tsx`, `Tutoring.tsx`, `VideoErrorBoundary.tsx`, `CourseCreationForm.tsx`
+- [x] **Mobile Post-Audit Bug Fixes** - PRODUCTION READY (March 5, 2026) 🔍
+  - 3-round exhaustive audit of 20 session-modified files; 3 bugs found and fixed in Rounds 1–2; Round 3 confirmed all clean. 0 TypeScript errors.
+  - **3-card summary rows need `xs={12} sm={4}` not `xs={4}`**: `xs={4}` means one-third width at ALL screen sizes including 375px (each card ≈ 117px). Use `xs={12} sm={4}` to stack vertically on mobile and go 3-per-row at sm (640px). Also use responsive Grid spacing: `spacing={{ xs: 1.5, sm: 3 }}`.
+  - **`window.matchMedia` in React is NOT reactive**: `window.matchMedia('...').matches` evaluates once at render and ignores subsequent viewport changes. Always use `useMediaQuery(theme.breakpoints.down('X'))` from MUI (`useTheme` + `useMediaQuery`) or the platform `useResponsive()` hook. Both are reactive and re-render on breakpoint change.
+  - **`onKeyPress` is deprecated — always use `onKeyDown`**: `onKeyPress` was removed from the DOM spec and does not fire for non-printable keys in modern browsers. Replace all `onKeyPress` with `onKeyDown` across all text-field handlers. Target: Enter-to-add patterns in forms (tags, requirements, learning-points).
+  - Files: `CourseAssessmentManagementPage.tsx` (xs={4}→xs={12} sm={4}), `CourseAnalyticsDashboard.tsx` (window.matchMedia→useMediaQuery in CourseView), `CourseCreationForm.tsx` (3× onKeyPress→onKeyDown)
 - [x] **Mobile Optimization Phase 4** - PRODUCTION READY (Feb 23, 2026) 📱
   - 19 Instructor pages fully mobile-optimized (Phase 4.1–4.19). 63/73 pages done (86.3%). 3-round audit — 0 errors found. 0 TypeScript errors.
   - **FAB above bottom nav**: Floating Action Buttons must use `bottom: { xs: 88, md: 24 }` — `xs:24` places FAB behind MobileBottomNav (64px bar) on mobile.

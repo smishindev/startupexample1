@@ -200,14 +200,14 @@ export const EnhancedAssessmentAnalyticsDashboard: React.FC = () => {
           {/* Overview Dashboard */}
           <Grid container spacing={3}>
             {/* Key Metrics Cards */}
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid item xs={6} sm={6} md={3}>
               <Card>
-                <CardContent sx={{ textAlign: 'center' }}>
-                  <AssessmentIcon sx={{ fontSize: 40, color: 'primary.main', mb: 1 }} />
-                  <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+                <CardContent sx={{ textAlign: 'center', px: { xs: 1.5, sm: 2 } }}>
+                  <AssessmentIcon sx={{ fontSize: { xs: 28, sm: 40 }, color: 'primary.main', mb: 1 }} />
+                  <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'primary.main', fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
                     {crossAnalytics.overview.totalAssessments}
                   </Typography>
-                  <Typography color="text.secondary">Total Assessments</Typography>
+                  <Typography color="text.secondary" variant="body2">Total Assessments</Typography>
                   <Chip 
                     label={`+${crossAnalytics.overview.assessmentsThisMonth} this month`} 
                     size="small" 
@@ -219,14 +219,14 @@ export const EnhancedAssessmentAnalyticsDashboard: React.FC = () => {
               </Card>
             </Grid>
 
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid item xs={6} sm={6} md={3}>
               <Card>
-                <CardContent sx={{ textAlign: 'center' }}>
-                  <PeopleIcon sx={{ fontSize: 40, color: 'info.main', mb: 1 }} />
-                  <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'info.main' }}>
+                <CardContent sx={{ textAlign: 'center', px: { xs: 1.5, sm: 2 } }}>
+                  <PeopleIcon sx={{ fontSize: { xs: 28, sm: 40 }, color: 'info.main', mb: 1 }} />
+                  <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'info.main', fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
                     {crossAnalytics.overview.totalActiveStudents}
                   </Typography>
-                  <Typography color="text.secondary">Active Students</Typography>
+                  <Typography color="text.secondary" variant="body2">Active Students</Typography>
                   <Typography variant="caption" color="text.secondary">
                     {crossAnalytics.overview.totalSubmissions} submissions
                   </Typography>
@@ -234,14 +234,14 @@ export const EnhancedAssessmentAnalyticsDashboard: React.FC = () => {
               </Card>
             </Grid>
 
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid item xs={6} sm={6} md={3}>
               <Card>
-                <CardContent sx={{ textAlign: 'center' }}>
-                  <CheckCircleIcon sx={{ fontSize: 40, color: 'success.main', mb: 1 }} />
-                  <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'success.main' }}>
+                <CardContent sx={{ textAlign: 'center', px: { xs: 1.5, sm: 2 } }}>
+                  <CheckCircleIcon sx={{ fontSize: { xs: 28, sm: 40 }, color: 'success.main', mb: 1 }} />
+                  <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'success.main', fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
                     {crossAnalytics.overview.overallPassRate}%
                   </Typography>
-                  <Typography color="text.secondary">Overall Pass Rate</Typography>
+                  <Typography color="text.secondary" variant="body2">Overall Pass Rate</Typography>
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mt: 1 }}>
                     {crossAnalytics.overview.overallPassRate >= 75 ? (
                       <TrendingUpIcon sx={{ fontSize: 16, color: 'success.main' }} />
@@ -253,14 +253,14 @@ export const EnhancedAssessmentAnalyticsDashboard: React.FC = () => {
               </Card>
             </Grid>
 
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid item xs={6} sm={6} md={3}>
               <Card>
-                <CardContent sx={{ textAlign: 'center' }}>
-                  <TrendingUpIcon sx={{ fontSize: 40, color: 'warning.main', mb: 1 }} />
-                  <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'warning.main' }}>
+                <CardContent sx={{ textAlign: 'center', px: { xs: 1.5, sm: 2 } }}>
+                  <TrendingUpIcon sx={{ fontSize: { xs: 28, sm: 40 }, color: 'warning.main', mb: 1 }} />
+                  <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'warning.main', fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
                     {crossAnalytics.overview.averageScore}%
                   </Typography>
-                  <Typography color="text.secondary">Average Score</Typography>
+                  <Typography color="text.secondary" variant="body2">Average Score</Typography>
                   <Chip 
                     label={assessmentAnalyticsApi.getPerformanceLevel(crossAnalytics.overview.averageScore).label}
                     size="small"
@@ -330,8 +330,8 @@ export const EnhancedAssessmentAnalyticsDashboard: React.FC = () => {
                             cx="50%"
                             cy="50%"
                             labelLine={false}
-                            label={({ displayType, count }) => `${displayType}: ${count}`}
-                            outerRadius={80}
+                            label={isMobile ? false : ({ displayType, count }: any) => `${displayType}: ${count}`}
+                            outerRadius={isMobile ? 60 : 80}
                             fill="#8884d8"
                             dataKey="count"
                           >
@@ -372,14 +372,15 @@ export const EnhancedAssessmentAnalyticsDashboard: React.FC = () => {
                           <ListItem sx={{ px: 0 }}>
                             <ListItemText
                               primary={
-                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                  <Typography variant="subtitle1" sx={{ fontWeight: 'medium' }}>
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1 }}>
+                                  <Typography variant="subtitle1" noWrap sx={{ fontWeight: 'medium', minWidth: 0 }}>
                                     {assessment.Title}
                                   </Typography>
                                   <Chip 
                                     label={`${assessment.passRate}%`}
                                     color="success"
                                     size="small"
+                                    sx={{ flexShrink: 0 }}
                                   />
                                 </Box>
                               }
@@ -433,14 +434,15 @@ export const EnhancedAssessmentAnalyticsDashboard: React.FC = () => {
                           <ListItem sx={{ px: 0 }}>
                             <ListItemText
                               primary={
-                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                  <Typography variant="subtitle1" sx={{ fontWeight: 'medium' }}>
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1 }}>
+                                  <Typography variant="subtitle1" noWrap sx={{ fontWeight: 'medium', minWidth: 0 }}>
                                     {area.Title}
                                   </Typography>
                                   <Chip 
                                     label={`${area.passRate}%`}
                                     color="error"
                                     size="small"
+                                    sx={{ flexShrink: 0 }}
                                   />
                                 </Box>
                               }
@@ -497,7 +499,7 @@ export const EnhancedAssessmentAnalyticsDashboard: React.FC = () => {
                 <CardContent>
                   <Typography variant="h6" gutterBottom>Assessment Type Performance</Typography>
                   {crossAnalytics.assessmentTypes && crossAnalytics.assessmentTypes.length > 0 ? (
-                    <ResponsiveContainer width="100%" height={400}>
+                    <ResponsiveContainer width="100%" height={isMobile ? 280 : 400}>
                       <BarChart data={formatTypeData()}>
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis dataKey="displayType" />
@@ -579,11 +581,11 @@ export const EnhancedAssessmentAnalyticsDashboard: React.FC = () => {
                           <ListItem key={student.userId}>
                             <ListItemText
                               primary={
-                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                  <Typography>{student.studentName}</Typography>
-                                  <Box sx={{ display: 'flex', gap: 1 }}>
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 0.5 }}>
+                                  <Typography noWrap sx={{ minWidth: 0, flex: '1 1 auto' }}>{student.studentName}</Typography>
+                                  <Box sx={{ display: 'flex', gap: 0.5, flexShrink: 0, flexWrap: 'wrap' }}>
                                     <Chip 
-                                      label={`${student.progressPercentage}% Complete`}
+                                      label={isMobile ? `${student.progressPercentage}%` : `${student.progressPercentage}% Complete`}
                                       size="small"
                                       color={student.progressPercentage >= 80 ? 'success' : student.progressPercentage >= 60 ? 'warning' : 'error'}
                                     />

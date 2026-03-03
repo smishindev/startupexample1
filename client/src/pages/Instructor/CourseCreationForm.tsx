@@ -984,7 +984,7 @@ export const CourseCreationForm: React.FC = () => {
                     label="Add tag"
                     value={newTag}
                     onChange={(e) => setNewTag(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && addTag()}
+                    onKeyDown={(e) => e.key === 'Enter' && addTag()}
                   />
                   <Button onClick={addTag} disabled={!newTag.trim()} data-testid="course-creation-add-tag-button">
                     Add
@@ -1084,7 +1084,7 @@ export const CourseCreationForm: React.FC = () => {
                     label="Add requirement"
                     value={newRequirement}
                     onChange={(e) => setNewRequirement(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && addRequirement()}
+                    onKeyDown={(e) => e.key === 'Enter' && addRequirement()}
                     fullWidth
                   />
                   <Button onClick={addRequirement} disabled={!newRequirement.trim()} data-testid="course-creation-add-requirement-button">
@@ -1113,7 +1113,7 @@ export const CourseCreationForm: React.FC = () => {
                     label="Add learning point"
                     value={newLearningPoint}
                     onChange={(e) => setNewLearningPoint(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && addLearningPoint()}
+                    onKeyDown={(e) => e.key === 'Enter' && addLearningPoint()}
                     fullWidth
                   />
                   <Button onClick={addLearningPoint} disabled={!newLearningPoint.trim()} data-testid="course-creation-add-learning-point-button">
@@ -1367,11 +1367,11 @@ export const CourseCreationForm: React.FC = () => {
             {/* Content Items Section */}
             <Grid item xs={12}>
               <Divider sx={{ my: 2 }} />
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1 }}>
                 <Typography variant="h6">
                   Lesson Content ({currentLesson.contentItems?.length || 0} items)
                 </Typography>
-                <Box sx={{ display: 'flex', gap: 1 }}>
+                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                   <Button
                     size="small"
                     startIcon={<VideoIcon />}

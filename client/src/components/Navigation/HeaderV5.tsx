@@ -11,6 +11,7 @@ import {
   IconButton,
   Button,
   Avatar,
+  Badge,
   Menu,
   MenuItem,
   useTheme,
@@ -21,6 +22,7 @@ import {
   Divider,
   alpha,
   Tooltip,
+  styled,
 } from '@mui/material';
 import {
   Search as SearchIcon,
@@ -33,11 +35,62 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore';
 import { NotificationBell } from '../Notifications/NotificationBell';
 import PresenceStatusSelector from '../Presence/PresenceStatusSelector';
+import OnlineIndicator from '../Presence/OnlineIndicator';
+import { usePresence } from '../../hooks/usePresence';
 import { MegaMenuDropdown } from './MegaMenuDropdown';
 import { MobileBottomNav } from './MobileBottomNav';
 import { MobileNavDrawer } from './MobileNavDrawer';
 import { navGroups, profileMenuItems, filterByRole } from '../../config/navigation';
 import { SearchAutocomplete } from '../Search/SearchAutocomplete';
+
+const PresenceBadge = styled(Badge)(() => ({
+  '& .MuiBadge-badge': {
+    backgroundColor: 'transparent',
+    border: 'none',
+    padding: 0,
+    minWidth: 'auto',
+    height: 'auto',
+    bottom: 2,
+    right: 2,
+  },
+}));
+
+/**
+ * Avatar with presence status dot — only mounts when user is authenticated
+ * so that usePresence does not fire API calls for anonymous visitors.
+ */
+const PresenceAvatar: React.FC<{
+  user: { avatar?: string | null; firstName?: string };
+  size: { xs: number; sm: number };
+}> = ({ user, size }) => {
+  const { currentStatus } = usePresence();
+
+  return (
+    <PresenceBadge
+      overlap="circular"
+      anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      badgeContent={
+        <OnlineIndicator
+          status={currentStatus}
+          size="small"
+          showTooltip={false}
+        />
+      }
+    >
+      <Avatar
+        src={user.avatar || undefined}
+        alt={user.firstName}
+        sx={{
+          width: size,
+          height: size,
+          border: '2px solid rgba(255, 255, 255, 0.3)',
+        }}
+      >
+        {user.firstName?.charAt(0) || <AccountCircle />}
+      </Avatar>
+    </PresenceBadge>
+  );
+};
 
 export const HeaderV5: React.FC = () => {
   const theme = useTheme();
@@ -276,17 +329,22 @@ export const HeaderV5: React.FC = () => {
                   },
                 }}
               >
-                <Avatar
-                  src={user?.avatar || undefined}
-                  alt={user?.firstName}
-                  sx={{
-                    width: { xs: 32, sm: 36 },
-                    height: { xs: 32, sm: 36 },
-                    border: '2px solid rgba(255, 255, 255, 0.3)',
-                  }}
-                >
-                  {user?.firstName?.charAt(0) || <AccountCircle />}
-                </Avatar>
+                {user ? (
+                  <PresenceAvatar
+                    user={user}
+                    size={{ xs: 32, sm: 36 }}
+                  />
+                ) : (
+                  <Avatar
+                    sx={{
+                      width: { xs: 32, sm: 36 },
+                      height: { xs: 32, sm: 36 },
+                      border: '2px solid rgba(255, 255, 255, 0.3)',
+                    }}
+                  >
+                    <AccountCircle />
+                  </Avatar>
+                )}
               </IconButton>
             </Tooltip>
           </Box>

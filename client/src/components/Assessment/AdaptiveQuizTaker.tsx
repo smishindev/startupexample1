@@ -617,7 +617,7 @@ const AdaptiveQuizTaker: React.FC<AdaptiveQuizTakerProps> = ({ assessmentId: pro
           </Grid>
           {timeRemaining !== null && (
             <Grid item xs={12} sm={6}>
-              <Box display="flex" alignItems="center" justifyContent="flex-end">
+              <Box display="flex" alignItems="center" justifyContent={{ xs: 'flex-start', sm: 'flex-end' }}>
                 <TimerIcon sx={{ mr: 1 }} />
                 <Typography variant="h6" color={timeRemaining < 300 ? 'error' : 'inherit'}>
                   {formatTime(timeRemaining)}

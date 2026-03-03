@@ -29,6 +29,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { assessmentApi, Assessment, AssessmentSubmission } from '../../services/assessmentApi';
 import AdaptiveQuizTaker from './AdaptiveQuizTaker';
 import { AIEnhancedAssessmentResults } from './AIEnhancedAssessmentResults';
+import { useResponsive } from '../Responsive/useResponsive';
 
 interface QuizTakerProps {
   assessmentId?: string;
@@ -109,6 +110,7 @@ const TraditionalQuizTaker: React.FC<TraditionalQuizTakerProps> = ({ assessmentI
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const isPreviewMode = searchParams.get('preview') === 'true';
+  const { isMobile } = useResponsive();
 
   // State management
   const [assessment, setAssessment] = useState<Assessment & { canTakeAssessment?: boolean; attemptsLeft?: number } | null>(null);
@@ -398,7 +400,7 @@ const TraditionalQuizTaker: React.FC<TraditionalQuizTakerProps> = ({ assessmentI
   // Assessment not started yet
   if (!assessmentStarted) {
     return (
-      <Box sx={{ p: { xs: 1.5, sm: 3 }, maxWidth: 800, mx: 'auto' }}>
+      <Box sx={{ p: { xs: 0, sm: 3 }, maxWidth: 800, mx: 'auto' }}>
         <Paper sx={{ p: { xs: 2, sm: 4 } }}>
           <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
             <QuizIcon sx={{ fontSize: { xs: 30, sm: 40 }, color: 'primary.main', mr: { xs: 1, sm: 2 } }} />
@@ -577,7 +579,7 @@ const TraditionalQuizTaker: React.FC<TraditionalQuizTakerProps> = ({ assessmentI
 
   // Assessment in progress
   return (
-    <Box sx={{ p: { xs: 1, sm: 3 }, maxWidth: 900, mx: 'auto' }}>
+    <Box sx={{ p: { xs: 0, sm: 3 }, maxWidth: 900, mx: 'auto' }}>
       {/* Header with timer and progress */}
       <Paper sx={{ p: { xs: 1.5, sm: 2 }, mb: { xs: 2, sm: 3 }, position: 'sticky', top: 0, zIndex: 1 }}>
         <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', alignItems: { xs: 'stretch', sm: 'center' }, gap: 1 }}>
@@ -603,8 +605,9 @@ const TraditionalQuizTaker: React.FC<TraditionalQuizTakerProps> = ({ assessmentI
               onClick={handleSubmit}
               disabled={submitting}
               data-testid="assessment-submit-button"
+              size={isMobile ? 'small' : 'medium'}
             >
-              {submitting ? 'Submitting...' : 'Submit Assessment'}
+              {submitting ? 'Submitting...' : isMobile ? 'Submit' : 'Submit Assessment'}
             </Button>
           </Box>
         </Box>

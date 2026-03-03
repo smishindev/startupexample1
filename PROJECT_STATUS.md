@@ -1,6 +1,6 @@
 ﻿# Mishin Learn Platform - Project Status & Memory
 
-**Last Updated**: March 3, 2026 - Office Hours Bug Fixes (6 issues) — ScheduleManagement course dropdown replaced with CourseSelector; `office-hours-lobby` socket room + `schedule-changed` event for real-time schedule refresh; `socketService.onConnect()` reconnect safety; `joinLobby`/`joinInstructorRoom` flags prevent double-join/leave conflicts; Chat deep-link passes `roomId` via navigation state + `Chat.tsx` auto-selects room; `StudentQueueStatus` SQL correlated subquery + 3-state `AvailableNowPanel` (null/waiting/admitted); 0 TypeScript errors throughout 🏢  
+**Last Updated**: March 5, 2026 - Mobile Optimization Post-Audit Bug Fixes — 3 bugs found &amp; fixed across 20-file audit: `CourseAssessmentManagementPage` summary cards `xs={4}`→`xs={12} sm={4}`; `CourseAnalyticsDashboard` `CourseView` static `window.matchMedia` → reactive `useMediaQuery`; `CourseCreationForm` 3× deprecated `onKeyPress` → `onKeyDown`; Round 3 confirmed all 20 files clean; 0 TypeScript errors throughout 🔍  
 **Developer**: Sergey Mishin (s.mishin.dev@gmail.com)  
 **AI Assistant Context**: This file serves as project memory for continuity across chat sessions
 
@@ -28,12 +28,43 @@
 **Content Item Custom Titles**: Instructors can rename auto-generated lesson content titles (Video #1, Text/Article #2, Quiz #3) via inline click-to-edit with pencil icon; custom titles stored in `ContentJson.data.title`; no DB/API changes needed (February 28, 2026) ✏️  
 **Mobile Optimization Phase 19**: Responsive Typography, Stat Cards, Icons & Final Sweep — 23 files fixed (responsive h3/h4 stat numbers, stat card `xs={6}` grids, table column hiding, large icon sizing, dialog fullScreen, CourseSelector minWidth, export table overflow); final 3-pass scan confirmed 0 remaining issues across all 8 pattern categories (February 28, 2026) 📱  
 **MobileNavDrawer Active-State UX Fix**: Drawer now auto-expands the accordion group containing the current page when reopened; active item scrolled into view after Collapse animation (350ms delay); accordion state resets cleanly on each open (only `learning` default + active group); scroll guarded by `shouldScrollRef` — fires only on drawer open, not on manual accordion toggle; removed unused `scrollContainerRef`; removed `unmountOnExit` from `Collapse` so ref is available for scroll; 0 TypeScript errors (March 1, 2026) 📱  
+**Mobile Post-Audit Bug Fixes**: 3-round exhaustive audit of 20 session-modified files — 3 bugs found &amp; fixed: `CourseAssessmentManagementPage` summary cards `xs={4}`→`xs={12} sm={4}`, `CourseAnalyticsDashboard` `CourseView` static `window.matchMedia` → reactive `useMediaQuery`+`useTheme`, `CourseCreationForm` 3× deprecated `onKeyPress` → `onKeyDown`; Round 3 confirmed all 20 files clean (March 5, 2026) 🔍  
 **Auth Bug Fixes**: `logout()` clears state immediately; `type="button"` on nav-links inside forms; all 401 interceptors unified; stale-state guard in App.tsx (February 21, 2026) 🔐  
 **Theme Token System**: Centralised design tokens in `theme/index.ts` (colors, shadows, radii, extended palette). `tokens.ts` with 18 reusable `sx` fragments. 3-round exhaustive bug audit — all bugs fixed, 0 TypeScript errors (February 21, 2026) 🎨
 
 ---
 
-## 🏢 OFFICE HOURS BUG FIXES (Latest — March 3, 2026)
+## 🔍 MOBILE POST-AUDIT BUG FIXES (Latest — March 5, 2026)
+
+**Activity**: Exhaustive 3-round line-by-line audit of all 20 session-modified files. Rounds 1–2 found and fixed 3 bugs. Round 3 confirmed all files clean.
+
+**Status**: **Complete** — 3 files changed, 0 TypeScript errors throughout
+
+### **Bugs Found & Fixed**
+
+| # | Bug | Root Cause | Fix |
+|---|-----|-----------|-----|
+| 1 | `CourseAssessmentManagementPage` summary cards always 3-per-row on mobile | Cards used `xs={4}` — on a 375px screen each card was only ~117px wide | Changed to `xs={12} sm={4}` (stack vertically on mobile) + responsive Grid `spacing={{ xs: 1.5, sm: 3 }}` |
+| 2 | `CourseAnalyticsDashboard` `CourseView` mobile detection never updated on resize | `window.matchMedia('(max-width: 600px)').matches` evaluated once at component render, not reactive | Added `useTheme()`+`useMediaQuery(theme.breakpoints.down('sm'))` hooks to `CourseView` React.FC; added both to MUI import |
+| 3 | `CourseCreationForm` keyboard handlers used deprecated DOM event | 3× `onKeyPress` prop (tags/requirements/learning-points inputs) — deprecated in DOM spec, unreliable on non-printable keys in modern browsers | Replaced all 3 with `onKeyDown` at lines 987, 1087, 1116 |
+
+### **Files Changed**
+
+| File | Change |
+|------|--------|
+| `client/src/pages/Instructor/CourseAssessmentManagementPage.tsx` | Summary cards `xs={4}` → `xs={12} sm={4}`; Grid `spacing={3}` → `spacing={{ xs: 1.5, sm: 3 }}` |
+| `client/src/pages/Instructor/CourseAnalyticsDashboard.tsx` | `useTheme`+`useMediaQuery` added to MUI imports; `CourseView` React.FC gains `const theme = useTheme(); const isMobileView = useMediaQuery(theme.breakpoints.down('sm'));` replacing static `window.matchMedia` |
+| `client/src/pages/Instructor/CourseCreationForm.tsx` | 3× `onKeyPress` → `onKeyDown` (tags, requirements, learning-points text-field keyboard handlers) |
+
+### **Key Lessons**
+
+- **Never use `window.matchMedia(...)` directly in render**: it evaluates once and ignores subsequent viewport changes. Always use `useMediaQuery(theme.breakpoints.down('X'))` inside a React component or `useResponsive()`.
+- **`onKeyPress` is deprecated**: use `onKeyDown` for all keyboard event handlers in React. `onKeyPress` does not fire for non-printable keys in many browsers and has been removed from the DOM spec.
+- **xs={4} = always 3-per-row**: `xs` breakpoint is 0px — `xs={4}` makes cards 4/12 = one-third wide at ALL screen sizes including 375px. Use `xs={12}` to stack + `sm={4}` to go 3-per-row at the sm breakpoint (640px on this project).
+
+---
+
+## 🏢 OFFICE HOURS BUG FIXES (March 3, 2026)
 
 **Activity**: Six bugs discovered through live testing of the Office Hours feature were found and fixed across multiple rounds of investigation.
 

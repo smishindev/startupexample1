@@ -106,7 +106,7 @@ function TabPanel(props: TabPanelProps) {
       {...other}
     >
       {value === index && (
-        <Box sx={{ p: 3 }}>
+        <Box sx={{ p: { xs: 1.5, sm: 3 } }}>
           {children}
         </Box>
       )}
@@ -235,7 +235,7 @@ export const AIEnhancedAssessmentResults: React.FC<AssessmentResultsProps> = ({
   };
 
   return (
-    <Box sx={{ p: { xs: 2, sm: 3 }, maxWidth: 1200, mx: 'auto' }}>
+    <Box sx={{ p: { xs: 0.5, sm: 3 }, maxWidth: 1200, mx: 'auto' }}>
       {/* Main Results Card */}
       <Paper sx={{ p: { xs: 2, sm: 3, md: 4 }, mb: 3 }}>
         <Box sx={{ textAlign: 'center', mb: 4 }}>
@@ -758,9 +758,9 @@ export const AIEnhancedAssessmentResults: React.FC<AssessmentResultsProps> = ({
         {userProgress && (
           <TabPanel value={tabValue} index={results.submissionId ? 2 : 1}>
             <Grid container spacing={2}>
-              <Grid item xs={12} md={4}>
+              <Grid item xs={4} md={4}>
                 <Box sx={{ textAlign: 'center' }}>
-                  <Typography variant="h5" sx={{ color: 'primary.main' }}>
+                  <Typography variant="h5" sx={{ color: 'primary.main', fontSize: { xs: '1.25rem', sm: '1.5rem' } }}>
                     {userProgress.bestScore}%
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
@@ -769,20 +769,21 @@ export const AIEnhancedAssessmentResults: React.FC<AssessmentResultsProps> = ({
                 </Box>
               </Grid>
               
-              <Grid item xs={12} md={4}>
+              <Grid item xs={4} md={4}>
                 <Box sx={{ textAlign: 'center' }}>
-                  <Typography variant="h5" sx={{ color: 'info.main' }}>
+                  <Typography variant="h5" sx={{ color: 'info.main', fontSize: { xs: '1.25rem', sm: '1.5rem' } }}>
                     {userProgress.attemptsLeft}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant="caption" color="text.secondary">
                     Attempts Left
                   </Typography>
                 </Box>
               </Grid>
               
-              <Grid item xs={12} md={4}>
+              <Grid item xs={4} md={4}>
                 <Box sx={{ textAlign: 'center' }}>
                   <Typography variant="h5" sx={{ 
+                    fontSize: { xs: '1.25rem', sm: '1.5rem' },
                     color: Math.round((results.score / results.maxScore) * 100) > userProgress.bestScore ? 'success.main' : 'text.secondary' 
                   }}>
                     {Math.round((results.score / results.maxScore) * 100) > userProgress.bestScore ? '+' : ''}
@@ -799,8 +800,8 @@ export const AIEnhancedAssessmentResults: React.FC<AssessmentResultsProps> = ({
       </Paper>
 
       {/* Action Buttons */}
-      <Paper sx={{ p: 3 }}>
-        <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap' }}>
+      <Paper sx={{ p: { xs: 2, sm: 3 } }}>
+        <Box sx={{ display: 'flex', gap: { xs: 1, sm: 2 }, justifyContent: 'center', flexWrap: 'wrap' }}>
           {userProgress?.canRetake && onRetake && (
             <Button
               data-testid="assessment-results-retake-button"
@@ -820,9 +821,12 @@ export const AIEnhancedAssessmentResults: React.FC<AssessmentResultsProps> = ({
             size="large"
             startIcon={<BackIcon />}
             onClick={onBackToCourse || (() => navigate(-1))}
-            sx={{ minWidth: { xs: 120, sm: 150 } }}
+            sx={{ minWidth: { xs: 100, sm: 150 } }}
           >
-            {results.passed ? 'Continue Learning' : 'Review Material'}
+            {isMobile
+              ? (results.passed ? 'Continue' : 'Review')
+              : (results.passed ? 'Continue Learning' : 'Review Material')
+            }
           </Button>
         </Box>
 

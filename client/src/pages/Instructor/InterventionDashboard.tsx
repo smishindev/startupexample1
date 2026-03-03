@@ -22,8 +22,7 @@ import {
   List,
   ListItem,
   ListItemAvatar,
-  ListItemText,
-  ListItemSecondaryAction
+  ListItemText
 } from '@mui/material';
 import {
   Warning as WarningIcon,
@@ -181,15 +180,15 @@ export const InterventionDashboard: React.FC = () => {
       ) : (
       <>
       {/* Summary Cards */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={6} md={4}>
+      <Grid container spacing={{ xs: 1.5, sm: 3 }} sx={{ mb: 4 }}>
+        <Grid item xs={12} sm={4}>
           <Card sx={{ bgcolor: '#fff3e0', border: '2px solid #ff9800' }}>
-            <CardContent>
-              <Stack direction="row" spacing={2} alignItems="center">
+            <CardContent sx={{ py: { xs: 1.5, sm: 2 }, px: { xs: 2, sm: 3 } }}>
+              <Stack direction="row" spacing={{ xs: 1.5, sm: 2 }} alignItems="center">
                 <Avatar sx={{ bgcolor: '#ff9800', width: { xs: 40, sm: 56 }, height: { xs: 40, sm: 56 } }}>
-                  <WarningIcon fontSize="large" />
+                  <WarningIcon fontSize={isMobile ? 'medium' : 'large'} />
                 </Avatar>
-                <Box>
+                <Box sx={{ minWidth: 0, flex: 1 }}>
                   <Typography variant="h3" sx={{ fontWeight: 'bold', fontSize: { xs: '1.75rem', sm: '3rem' } }}>
                     {atRiskStudents.length}
                   </Typography>
@@ -202,14 +201,14 @@ export const InterventionDashboard: React.FC = () => {
           </Card>
         </Grid>
 
-        <Grid item xs={6} md={4}>
+        <Grid item xs={12} sm={4}>
           <Card sx={{ bgcolor: '#e3f2fd', border: '2px solid #2196f3' }}>
-            <CardContent>
-              <Stack direction="row" spacing={2} alignItems="center">
+            <CardContent sx={{ py: { xs: 1.5, sm: 2 }, px: { xs: 2, sm: 3 } }}>
+              <Stack direction="row" spacing={{ xs: 1.5, sm: 2 }} alignItems="center">
                 <Avatar sx={{ bgcolor: '#2196f3', width: { xs: 40, sm: 56 }, height: { xs: 40, sm: 56 } }}>
-                  <TrendingDownIcon fontSize="large" />
+                  <TrendingDownIcon fontSize={isMobile ? 'medium' : 'large'} />
                 </Avatar>
-                <Box>
+                <Box sx={{ minWidth: 0, flex: 1 }}>
                   <Typography variant="h3" sx={{ fontWeight: 'bold', fontSize: { xs: '1.75rem', sm: '3rem' } }}>
                     {lowProgressStudents.length}
                   </Typography>
@@ -222,14 +221,14 @@ export const InterventionDashboard: React.FC = () => {
           </Card>
         </Grid>
 
-        <Grid item xs={12} md={4}>
+        <Grid item xs={12} sm={4}>
           <Card sx={{ bgcolor: '#f3e5f5', border: '2px solid #9c27b0' }}>
-            <CardContent>
-              <Stack direction="row" spacing={2} alignItems="center">
+            <CardContent sx={{ py: { xs: 1.5, sm: 2 }, px: { xs: 2, sm: 3 } }}>
+              <Stack direction="row" spacing={{ xs: 1.5, sm: 2 }} alignItems="center">
                 <Avatar sx={{ bgcolor: '#9c27b0', width: { xs: 40, sm: 56 }, height: { xs: 40, sm: 56 } }}>
-                  <AssignmentIcon fontSize="large" />
+                  <AssignmentIcon fontSize={isMobile ? 'medium' : 'large'} />
                 </Avatar>
-                <Box>
+                <Box sx={{ minWidth: 0, flex: 1 }}>
                   <Typography variant="h3" sx={{ fontWeight: 'bold', fontSize: { xs: '1.75rem', sm: '3rem' } }}>
                     {pendingAssessments.length}
                   </Typography>
@@ -257,7 +256,7 @@ export const InterventionDashboard: React.FC = () => {
           <Tab
             label={
               <Badge badgeContent={atRiskStudents.length} color="error">
-                <Box sx={{ px: 2 }}>At-Risk Students</Box>
+                <Box sx={{ px: { xs: 0.5, sm: 2 } }}>At-Risk Students</Box>
               </Badge>
             }
             data-testid="intervention-dashboard-tab-at-risk"
@@ -265,7 +264,7 @@ export const InterventionDashboard: React.FC = () => {
           <Tab
             label={
               <Badge badgeContent={lowProgressStudents.length} color="info">
-                <Box sx={{ px: 2 }}>Low Progress</Box>
+                <Box sx={{ px: { xs: 0.5, sm: 2 } }}>Low Progress</Box>
               </Badge>
             }
             data-testid="intervention-dashboard-tab-low-progress"
@@ -273,7 +272,7 @@ export const InterventionDashboard: React.FC = () => {
           <Tab
             label={
               <Badge badgeContent={pendingAssessments.length} color="warning">
-                <Box sx={{ px: 2 }}>Pending Assessments</Box>
+                <Box sx={{ px: { xs: 0.5, sm: 2 } }}>Pending Assessments</Box>
               </Badge>
             }
             data-testid="intervention-dashboard-tab-pending"
@@ -289,9 +288,9 @@ export const InterventionDashboard: React.FC = () => {
               Great news! No students are currently at risk. Keep up the good work! 🎉
             </Alert>
           ) : (
-            <Grid container spacing={3}>
+            <Grid container spacing={{ xs: 2, sm: 3 }}>
               {atRiskStudents.map((student) => (
-                <Grid item xs={12} md={6} lg={4} key={`${student.UserId}-${student.CourseId}`}>
+                <Grid item xs={12} sm={6} lg={4} key={`${student.UserId}-${student.CourseId}`}>
                   <Card sx={{ height: '100%', position: 'relative' }}>
                     <Chip
                       label={student.RiskLevel.toUpperCase()}
@@ -300,15 +299,15 @@ export const InterventionDashboard: React.FC = () => {
                       sx={{ position: 'absolute', top: 16, right: 16 }}
                     />
                     <CardContent>
-                      <Stack direction="row" spacing={2} sx={{ mb: 2 }}>
-                        <Avatar sx={{ bgcolor: 'primary.main' }}>
+                      <Stack direction="row" spacing={1.5} sx={{ mb: 2, pr: 8 }}>
+                        <Avatar sx={{ bgcolor: 'primary.main', flexShrink: 0 }}>
                           {student.FirstName?.[0]?.toUpperCase() || ''}{student.LastName?.[0]?.toUpperCase() || ''}
                         </Avatar>
-                        <Box>
-                          <Typography variant="h6">
+                        <Box sx={{ minWidth: 0 }}>
+                          <Typography variant="h6" noWrap sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>
                             {student.FirstName} {student.LastName}
                           </Typography>
-                          <Typography variant="caption" color="text.secondary">
+                          <Typography variant="caption" color="text.secondary" noWrap sx={{ display: 'block' }}>
                             {student.Email || 'Email hidden'}
                           </Typography>
                         </Box>
@@ -398,7 +397,7 @@ export const InterventionDashboard: React.FC = () => {
                 {lowProgressStudents.map((student, index) => (
                   <React.Fragment key={`${student.UserId}-${student.CourseId}`}>
                     {index > 0 && <Divider />}
-                    <ListItem sx={{ pr: { xs: 15, sm: 6 } }}>
+                    <ListItem>
                       <ListItemAvatar>
                         <Avatar sx={{ bgcolor: 'warning.main' }}>
                           {student.FirstName?.[0]?.toUpperCase() || ''}{student.LastName?.[0]?.toUpperCase() || ''}
@@ -434,31 +433,29 @@ export const InterventionDashboard: React.FC = () => {
                         }
                         secondaryTypographyProps={{ component: 'div' }}
                       />
-                      <ListItemSecondaryAction>
-                        <Stack direction="row" spacing={1}>
-                          <Tooltip title="View Analytics">
+                      <Stack direction="row" spacing={1} sx={{ flexShrink: 0, ml: 1 }}>
+                        <Tooltip title="View Analytics">
+                          <IconButton
+                            size="small"
+                            onClick={() => handleViewStudent(student.UserId, student.CourseId)}
+                            data-testid={`intervention-dashboard-view-student-${student.UserId}-button`}
+                          >
+                            <ViewIcon />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title={student.Email ? "Send Message" : "Email hidden"}>
+                          <span>
                             <IconButton
-                              edge="end"
-                              onClick={() => handleViewStudent(student.UserId, student.CourseId)}
-                              data-testid={`intervention-dashboard-view-student-${student.UserId}-button`}
+                              size="small"
+                              onClick={() => student.Email && handleSendMessage(student.Email)}
+                              disabled={!student.Email}
+                              data-testid={`intervention-dashboard-send-message-${student.UserId}-button`}
                             >
-                              <ViewIcon />
+                              <MessageIcon />
                             </IconButton>
-                          </Tooltip>
-                          <Tooltip title={student.Email ? "Send Message" : "Email hidden"}>
-                            <span>
-                              <IconButton
-                                edge="end"
-                                onClick={() => student.Email && handleSendMessage(student.Email)}
-                                disabled={!student.Email}
-                                data-testid={`intervention-dashboard-send-message-${student.UserId}-button`}
-                              >
-                                <MessageIcon />
-                              </IconButton>
-                            </span>
-                          </Tooltip>
-                        </Stack>
-                      </ListItemSecondaryAction>
+                          </span>
+                        </Tooltip>
+                      </Stack>
                     </ListItem>
                   </React.Fragment>
                 ))}
@@ -519,11 +516,11 @@ export const InterventionDashboard: React.FC = () => {
                         }
                         secondaryTypographyProps={{ component: 'div' }}
                       />
-                      <ListItemSecondaryAction>
+                      <Box sx={{ flexShrink: 0, ml: 1 }}>
                         <Tooltip title={assessment.Email ? "Send Reminder" : "Email hidden"}>
                           <span>
                             <IconButton
-                              edge="end"
+                              size="small"
                               onClick={() => assessment.Email && handleSendMessage(assessment.Email)}
                               disabled={!assessment.Email}
                               data-testid={`intervention-dashboard-send-reminder-${assessment.UserId}-button`}
@@ -532,7 +529,7 @@ export const InterventionDashboard: React.FC = () => {
                             </IconButton>
                           </span>
                         </Tooltip>
-                      </ListItemSecondaryAction>
+                      </Box>
                     </ListItem>
                   </React.Fragment>
                 ))}

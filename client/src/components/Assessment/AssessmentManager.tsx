@@ -39,6 +39,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { assessmentApi, Assessment } from '../../services/assessmentApi';
+import { useResponsive } from '../../components/Responsive';
 
 interface AssessmentManagerProps {
   lessonId: string;
@@ -47,6 +48,7 @@ interface AssessmentManagerProps {
 
 const AssessmentManager: React.FC<AssessmentManagerProps> = ({ lessonId }) => {
   const navigate = useNavigate();
+  const { isMobile } = useResponsive();
   
   // State
   const [assessments, setAssessments] = useState<Assessment[]>([]);
@@ -183,17 +185,18 @@ const AssessmentManager: React.FC<AssessmentManagerProps> = ({ lessonId }) => {
       )}
 
       {/* Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h5" fontWeight="bold">
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 1, mb: 3 }}>
+        <Typography variant="h5" fontWeight="bold" sx={{ fontSize: { xs: '1.15rem', sm: '1.5rem' } }}>
           Assessments ({assessments.length})
         </Typography>
         <Button
           variant="contained"
           startIcon={<AddIcon />}
           onClick={handleCreateAssessment}
+          size={isMobile ? 'small' : 'medium'}
           data-testid="assessment-manager-create-button"
         >
-          Create Assessment
+          {isMobile ? 'Create' : 'Create Assessment'}
         </Button>
       </Box>
 
@@ -293,7 +296,7 @@ const AssessmentManager: React.FC<AssessmentManagerProps> = ({ lessonId }) => {
                     </CardContent>
 
                     <Box sx={{ p: 2, pt: 0 }}>
-                      <Box sx={{ display: 'flex', gap: 1 }}>
+                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                         <Button
                           size="small"
                           startIcon={<ViewIcon />}
@@ -319,13 +322,13 @@ const AssessmentManager: React.FC<AssessmentManagerProps> = ({ lessonId }) => {
           ) : (
             // Table view for larger number of assessments
             <TableContainer component={Paper} sx={{ overflowX: 'auto' }}>
-              <Table>
+              <Table sx={{ minWidth: { xs: 360, sm: 600 } }}>
                 <TableHead>
                   <TableRow>
                     <TableCell>Assessment</TableCell>
                     <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>Type</TableCell>
                     <TableCell align="center" sx={{ display: { xs: 'none', sm: 'table-cell' } }}>Questions</TableCell>
-                    <TableCell align="center">Passing Score</TableCell>
+                    <TableCell align="center" sx={{ display: { xs: 'none', sm: 'table-cell' } }}>Passing Score</TableCell>
                     <TableCell align="center" sx={{ display: { xs: 'none', sm: 'table-cell' } }}>Time Limit</TableCell>
                     <TableCell align="center">Actions</TableCell>
                   </TableRow>
@@ -360,7 +363,7 @@ const AssessmentManager: React.FC<AssessmentManagerProps> = ({ lessonId }) => {
                       <TableCell align="center" sx={{ display: { xs: 'none', sm: 'table-cell' } }}>
                         {assessment.questionCount || 0}
                       </TableCell>
-                      <TableCell align="center">
+                      <TableCell align="center" sx={{ display: { xs: 'none', sm: 'table-cell' } }}>
                         {assessment.passingScore}%
                       </TableCell>
                       <TableCell align="center" sx={{ display: { xs: 'none', sm: 'table-cell' } }}>

@@ -65,6 +65,7 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = ({ instructorId, o
   });
   const [submitting, setSubmitting] = useState(false);
   const [courses, setCourses] = useState<{ Id: string; Title: string }[]>([]);
+  const [coursesLoading, setCoursesLoading] = useState(true);
 
   useEffect(() => {
     loadSchedules();
@@ -77,6 +78,8 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = ({ instructorId, o
       setCourses(data.map((c: any) => ({ Id: c.id || c.Id, Title: c.title || c.Title })));
     } catch {
       // Non-critical — course dropdown just won't populate
+    } finally {
+      setCoursesLoading(false);
     }
   };
 
@@ -289,7 +292,7 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = ({ instructorId, o
                     />
                   </Box>
 
-                  <Box display="flex" gap={1} mt={2}>
+                  <Box display="flex" gap={1} mt={2} flexWrap="wrap">
                     <Button
                       size="small"
                       startIcon={<EditIcon />}
@@ -371,7 +374,7 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = ({ instructorId, o
             />
 
             {/* Course Selection — Autocomplete with lazy loading */}
-            {courses.length > 0 ? (
+            {coursesLoading ? null : courses.length > 0 ? (
               <Box sx={{ mt: 2, mb: 1 }}>
                 <CourseSelector
                   courses={courses}

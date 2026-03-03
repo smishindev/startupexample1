@@ -39,12 +39,15 @@ const OfficeHoursPage: React.FC = () => {
 
   const isInstructor = user?.role === 'instructor';
 
-  // Connect to Socket.IO for real-time updates
+  // Connect to Socket.IO for real-time updates.
+  // onQueueUpdated is intentionally NOT here — QueueDisplay and StudentQueueJoin
+  // each manage their own socket-driven refreshes. Putting it here too causes
+  // a double-refresh (both the child hook and this hook receive the same event
+  // because both register socket.on('queue-updated', ...) while the socket is
+  // in the instructor room). Only schedule-changed needs the page-level trigger
+  // (to remount AvailableNowPanel, which has no socket hook of its own).
   useOfficeHoursSocket({
     instructorId: isInstructor ? user?.id : null,
-    onQueueUpdated: () => {
-      setRefreshKey(prev => prev + 1);
-    },
     onScheduleChanged: () => {
       setRefreshKey(prev => prev + 1);
     }
@@ -110,7 +113,6 @@ const OfficeHoursPage: React.FC = () => {
             )}
             {tabValue === 1 && (
               <QueueDisplay
-                key={refreshKey}
                 instructorId={user.id}
                 isInstructor={true}
                 onQueueUpdate={handleDataUpdate}
@@ -149,8 +151,8 @@ const OfficeHoursPage: React.FC = () => {
             )}
             {tabValue === 1 && (
               <StudentQueueJoin
-                key={refreshKey}
                 selectedInstructor={selectedInstructorId}
+                onInstructorChange={setSelectedInstructorId}
                 onQueueJoined={handleDataUpdate}
               />
             )}

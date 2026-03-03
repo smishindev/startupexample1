@@ -180,7 +180,7 @@ const AvailableNowPanel: React.FC<AvailableNowPanelProps> = ({ onJoinQueue }) =>
                     color="warning"
                     size={isMobile ? 'small' : 'medium'}
                     onClick={() => onJoinQueue?.(inst.InstructorId)}
-                    sx={{ cursor: 'pointer', fontWeight: 'bold' }}
+                    sx={{ cursor: 'pointer', fontWeight: 'bold', ...(isMobile && { width: '100%' }) }}
                   />
                 ) : (
                   <Button

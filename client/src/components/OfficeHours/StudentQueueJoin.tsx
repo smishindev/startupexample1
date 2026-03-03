@@ -112,13 +112,6 @@ const StudentQueueJoin: React.FC<StudentQueueJoinProps> = ({
   useEffect(() => {
     if (selectedInstructor) {
       loadSchedulesAndStatus();
-      
-      // Poll for schedule updates every 10 seconds when an instructor is selected
-      const interval = setInterval(() => {
-        loadSchedulesAndStatus();
-      }, 10000);
-      
-      return () => clearInterval(interval);
     }
   }, [selectedInstructor]);
 
@@ -240,13 +233,27 @@ const StudentQueueJoin: React.FC<StudentQueueJoinProps> = ({
               onChange={(e) => handleInstructorChange(e.target.value)}
               label="Select Instructor"
               data-testid="queue-instructor-select"
+              MenuProps={{
+                PaperProps: {
+                  sx: { maxWidth: '100vw' },
+                },
+              }}
             >
               <MenuItem value="">
                 <em>Choose an instructor</em>
               </MenuItem>
               {instructors.map((instructor) => (
-                <MenuItem key={instructor.Id} value={instructor.Id}>
-                  {instructor.FirstName} {instructor.LastName} ({instructor.Email || 'Email hidden'})
+                <MenuItem key={instructor.Id} value={instructor.Id} sx={{ whiteSpace: 'normal' }}>
+                  <Box>
+                    <Typography variant="body2" fontWeight="medium">
+                      {instructor.FirstName} {instructor.LastName}
+                    </Typography>
+                    {instructor.Email && instructor.Email !== 'Email hidden' && (
+                      <Typography variant="caption" color="text.secondary" display="block">
+                        {instructor.Email}
+                      </Typography>
+                    )}
+                  </Box>
                 </MenuItem>
               ))}
             </Select>
@@ -407,11 +414,24 @@ const StudentQueueJoin: React.FC<StudentQueueJoinProps> = ({
                 onChange={(e) => setSelectedSchedule(e.target.value)}
                 label="Select Time Slot"
                 data-testid="queue-timeslot-select"
+                MenuProps={{
+                  PaperProps: {
+                    sx: { maxWidth: '100vw' },
+                  },
+                }}
               >
                 {schedules.map((schedule) => (
-                  <MenuItem key={schedule.Id} value={schedule.Id}>
-                    {getDayName(schedule.DayOfWeek)}: {formatTime(schedule.StartTime)} - {formatTime(schedule.EndTime)}
-                    {schedule.CourseName ? ` (${schedule.CourseName})` : ''}
+                  <MenuItem key={schedule.Id} value={schedule.Id} sx={{ whiteSpace: 'normal' }}>
+                    <Box>
+                      <Typography variant="body2" fontWeight="medium">
+                        {getDayName(schedule.DayOfWeek)}: {formatTime(schedule.StartTime)} – {formatTime(schedule.EndTime)}
+                      </Typography>
+                      {schedule.CourseName && (
+                        <Typography variant="caption" color="text.secondary" display="block">
+                          {schedule.CourseName}
+                        </Typography>
+                      )}
+                    </Box>
                   </MenuItem>
                 ))}
               </Select>

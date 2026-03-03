@@ -3,7 +3,7 @@
  * Shows current queue for instructors with admin actions
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Box,
   Card,
@@ -68,6 +68,9 @@ const QueueDisplay: React.FC<QueueDisplayProps> = ({ instructorId, isInstructor,
   const [completeDialogOpen, setCompleteDialogOpen] = useState(false);
   const [completingEntryId, setCompletingEntryId] = useState<string | null>(null);
   const [instructorNotes, setInstructorNotes] = useState('');
+  // Track whether the very first load has completed — subsequent socket-driven
+  // refreshes should be silent (no spinner) to avoid hiding the queue list.
+  const isInitialLoadRef = useRef(true);
 
   // Listen for real-time queue updates
   useOfficeHoursSocket({
@@ -134,7 +137,9 @@ const QueueDisplay: React.FC<QueueDisplayProps> = ({ instructorId, isInstructor,
 
   const loadQueue = async () => {
     try {
-      setLoading(true);
+      // Only show the full-page spinner on the very first load.
+      // Socket-driven re-fetches are silent so the queue list stays visible.
+      if (isInitialLoadRef.current) setLoading(true);
       setError(null);
       const data = await officeHoursApi.getQueue(instructorId);
       setQueue(data.queue);
@@ -144,6 +149,7 @@ const QueueDisplay: React.FC<QueueDisplayProps> = ({ instructorId, isInstructor,
       toast.error('Failed to load queue');
     } finally {
       setLoading(false);
+      isInitialLoadRef.current = false;
     }
   };
 
@@ -278,7 +284,7 @@ const QueueDisplay: React.FC<QueueDisplayProps> = ({ instructorId, isInstructor,
               }}
             >
               <CardContent sx={{ px: { xs: 1.5, sm: 2 } }}>
-                <Box display="flex" flexDirection={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', sm: 'flex-start' }} gap={{ xs: 1.5, sm: 0 }}>
+                <Box display="flex" flexDirection={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', sm: 'flex-start' }} gap={{ xs: 2, sm: 3 }}>
                   {/* Student Info */}
                   <Box display="flex" gap={{ xs: 1.5, sm: 2 }} flex={1} minWidth={0}>
                     <Badge
@@ -297,11 +303,11 @@ const QueueDisplay: React.FC<QueueDisplayProps> = ({ instructorId, isInstructor,
                         size={40}
                       />
                     </Badge>
-                    <Box flex={1}>
-                      <Typography variant="h6" fontWeight="bold">
+                    <Box flex={1} minWidth={0}>
+                      <Typography variant="subtitle1" fontWeight="bold" sx={{ wordBreak: 'break-word' }}>
                         {entry.StudentName || 'Student'}
                       </Typography>
-                      <Typography variant="body2" color="text.secondary" gutterBottom>
+                      <Typography variant="body2" color="text.secondary" gutterBottom sx={{ wordBreak: 'break-all' }}>
                         {entry.StudentEmail}
                       </Typography>
 
@@ -353,17 +359,22 @@ const QueueDisplay: React.FC<QueueDisplayProps> = ({ instructorId, isInstructor,
                     </Box>
                   </Box>
 
-                  {/* Status and Actions */}
-                  <Box textAlign={{ xs: 'left', sm: 'right' }} display="flex" flexDirection={{ xs: 'row', sm: 'column' }} alignItems={{ xs: 'center', sm: 'flex-end' }} gap={1} flexWrap="wrap">
+                  {/* Status and Actions — always column; left-aligned on mobile, right-aligned on desktop */}
+                  <Box
+                    display="flex"
+                    flexDirection="column"
+                    alignItems={{ xs: 'flex-start', sm: 'flex-end' }}
+                    gap={1}
+                    sx={{ flexShrink: 0 }}
+                  >
                     <Chip
                       label={getQueueStatusLabel(entry.Status as QueueStatus)}
                       color={getQueueStatusColor(entry.Status as QueueStatus)}
                       size="small"
-                      sx={{ mb: { xs: 0, sm: 2 } }}
                     />
 
                     {isInstructor && (
-                      <Stack direction={{ xs: 'row', sm: 'column' }} spacing={1}>
+                      <Stack direction="column" spacing={1} sx={{ width: { xs: '100%', sm: 'auto' } }}>
                         {entry.Status === QueueStatus.Waiting && (
                           <Button
                             size="small"

@@ -1,6 +1,6 @@
 ﻿# Mishin Learn Platform - Project Status & Memory
 
-**Last Updated**: March 1, 2026 - MobileNavDrawer UX fix — drawer now auto-expands the accordion group containing the active page on open, scrolls the active item into view, resets cleanly (no group accumulation), scroll only triggers on drawer-open not manual toggle; 1 file changed, 0 TypeScript errors 📱  
+**Last Updated**: March 3, 2026 - Office Hours Bug Fixes (6 issues) — ScheduleManagement course dropdown replaced with CourseSelector; `office-hours-lobby` socket room + `schedule-changed` event for real-time schedule refresh; `socketService.onConnect()` reconnect safety; `joinLobby`/`joinInstructorRoom` flags prevent double-join/leave conflicts; Chat deep-link passes `roomId` via navigation state + `Chat.tsx` auto-selects room; `StudentQueueStatus` SQL correlated subquery + 3-state `AvailableNowPanel` (null/waiting/admitted); 0 TypeScript errors throughout 🏢  
 **Developer**: Sergey Mishin (s.mishin.dev@gmail.com)  
 **AI Assistant Context**: This file serves as project memory for continuity across chat sessions
 
@@ -33,7 +33,108 @@
 
 ---
 
-## 📱 MOBILENAVDRAWER ACTIVE-STATE UX FIX (Latest — March 1, 2026)
+## 🏢 OFFICE HOURS BUG FIXES (Latest — March 3, 2026)
+
+**Activity**: Six bugs discovered through live testing of the Office Hours feature were found and fixed across multiple rounds of investigation.
+
+**Status**: **Complete** — 11 files changed, 0 TypeScript errors
+
+### **Issues Fixed**
+
+| # | Bug | Root Cause | Files Changed |
+|---|-----|-----------|---------------|
+| 1 | Course dropdown on `/office-hours` was a basic `<Select>` (no search, no lazy-load) | `ScheduleManagement.tsx` used inline `<Select>` instead of the platform `CourseSelector` | `ScheduleManagement.tsx` |
+| 2 | Student "Available Now" panel didn't update when instructor created/deleted a schedule | No `schedule-changed` socket event emitted; hook had no listener; no lobby room | `OfficeHoursService.ts`, `sockets.ts`, `useOfficeHoursSocket.ts`, `OfficeHoursPage.tsx` |
+| 3 | If socket wasn't ready at mount, the lobby room join was permanently missed (race condition) | Used `if (socketService.isConnected())` one-shot guard instead of reconnect-safe callback | `useOfficeHoursSocket.ts` |
+| 4 | Tab-switching caused `StudentQueueJoin`/`QueueDisplay` unmount to emit `leave-office-hours-lobby`, removing student from the lobby room | These child components each called `useOfficeHoursSocket` independently with default `joinLobby: true` | `useOfficeHoursSocket.ts`, `StudentQueueJoin.tsx`, `QueueDisplay.tsx` |
+| 5 | "Open Chat" / "View Chat" buttons navigated to `/chat` with no room selected | All three `navigate('/chat')` calls had no state payload | `QueueDisplay.tsx`, `StudentQueueJoin.tsx`, `SessionHistoryPanel.tsx`, `Chat.tsx` |
+| 6 | "Available Now" still showed "Join Queue" when student was already admitted/waiting | `getAvailableNow` SQL had no per-student queue status subquery | `OfficeHoursService.ts`, `database.ts`, `officeHours.ts`, `AvailableNowPanel.tsx` |
+
+### **Key Technical Changes**
+
+**Socket Architecture — `office-hours-lobby` Room**
+```typescript
+// server/src/sockets.ts — new handlers
+socket.on('join-office-hours-lobby', () => { socket.join('office-hours-lobby'); });
+socket.on('leave-office-hours-lobby', () => { socket.leave('office-hours-lobby'); });
+
+// server/src/services/OfficeHoursService.ts — emitted after createSchedule/updateSchedule/deleteSchedule
+this.io.to('office-hours-lobby').emit('schedule-changed', {
+  action: 'created' | 'updated' | 'deleted',
+  instructorId, scheduleId, timestamp: new Date()
+});
+```
+
+**Reconnect-Safe Lobby Join (`onConnect` pattern)**
+```typescript
+// useOfficeHoursSocket.ts — fires immediately if connected AND on reconnect
+socketService.onConnect(joinRooms);
+return () => { socketService.offConnect(joinRooms); leaveRooms(); };
+// OLD (broken): if (socketService.isConnected()) { joinRooms(); } // one-shot, missed if socket slow
+```
+
+**Socket Ownership Model — Prevent Double-Join**
+```typescript
+// Hook interface options (default true for both)
+interface UseOfficeHoursSocketOptions {
+  joinLobby?: boolean;          // false on StudentQueueJoin, QueueDisplay
+  joinInstructorRoom?: boolean; // false on QueueDisplay (page-level hook owns it)
+}
+// OfficeHoursPage.tsx owns BOTH rooms; child components pass { joinLobby: false }
+```
+
+**Chat Deep-Link**
+```typescript
+// All three "Open Chat" / "View Chat" locations now:
+navigate('/chat', { state: { roomId: entry.ChatRoomId } });
+
+// Chat.tsx auto-selects:
+const location = useLocation();
+const hasAutoSelectedRef = useRef(false);
+useEffect(() => {
+  if (!hasAutoSelectedRef.current && rooms.length > 0 && location.state?.roomId) {
+    const target = rooms.find(r => r.id === location.state.roomId);
+    if (target) { setSelectedRoom(target); hasAutoSelectedRef.current = true; }
+  }
+}, [rooms, location.state]);
+```
+
+**`StudentQueueStatus` SQL Correlated Subquery**
+```sql
+-- Added to getAvailableNow query when studentId provided:
+(SELECT TOP 1 q.Status FROM dbo.OfficeHoursQueue q
+ WHERE q.InstructorId = oh.InstructorId AND q.StudentId = @studentId
+ AND q.Status IN ('waiting', 'admitted')) as StudentQueueStatus
+```
+
+**3-State `AvailableNowPanel` Action Button**
+```typescript
+// inst.StudentQueueStatus values:
+// null     → "Join Queue" button (blue, contained)
+// 'waiting' → "In Queue" Chip (orange/warning, WaitingIcon, clickable)
+// 'admitted' → "You're Admitted!" button (green/success, AdmittedIcon)
+```
+
+### **Files Changed (11 total)**
+
+| File | Change |
+|------|--------|
+| `server/src/sockets.ts` | Added `join-office-hours-lobby` / `leave-office-hours-lobby` handlers |
+| `server/src/services/OfficeHoursService.ts` | Emits `schedule-changed` after CRUD; `StudentQueueStatus` correlated subquery in `getAvailableNow` |
+| `server/src/types/database.ts` | Added `StudentQueueStatus: string \| null` to `AvailableInstructorResult` |
+| `client/src/types/officeHours.ts` | Added `StudentQueueStatus?: string \| null` to `AvailableInstructor` |
+| `client/src/hooks/useOfficeHoursSocket.ts` | Added `onScheduleChanged`, `joinLobby`, `joinInstructorRoom` options; `socketService.onConnect()` pattern |
+| `client/src/pages/OfficeHours/OfficeHoursPage.tsx` | Wires `onScheduleChanged` to `setRefreshKey` |
+| `client/src/components/OfficeHours/AvailableNowPanel.tsx` | 3-state action area based on `StudentQueueStatus` |
+| `client/src/components/OfficeHours/ScheduleManagement.tsx` | Replaced basic `<Select>` with `CourseSelector` |
+| `client/src/components/OfficeHours/StudentQueueJoin.tsx` | `joinLobby: false`; Chat navigate with `roomId` |
+| `client/src/components/OfficeHours/QueueDisplay.tsx` | `joinLobby: false, joinInstructorRoom: false`; Chat navigate with `roomId` |
+| `client/src/components/OfficeHours/SessionHistoryPanel.tsx` | "View Chat" navigate with `roomId` |
+| `client/src/pages/Chat/Chat.tsx` | `useLocation`, `hasAutoSelectedRef`, auto-select room from `location.state.roomId` |
+
+---
+
+## 📱 MOBILENAVDRAWER ACTIVE-STATE UX FIX (March 1, 2026)
 
 **Activity**: Fixed the mobile navigation drawer so that reopening it always reflects the currently active page — the correct accordion group expands and the active nav item is scrolled into view. Also found and fixed 3 bugs introduced or pre-existing in the component.
 

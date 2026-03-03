@@ -281,20 +281,86 @@ export interface Transaction {
 // Office Hours Types
 // ===================================
 
+export interface OfficeHoursScheduleRecord {
+  Id: string;
+  InstructorId: string;
+  CourseId: string | null;
+  DayOfWeek: number; // 0 = Sunday, 6 = Saturday
+  StartTime: string; // HH:mm:ss
+  EndTime: string;
+  MeetingUrl: string | null;
+  Description: string | null;
+  IsActive: boolean;
+  IsDeleted: boolean;
+  CreatedAt: Date;
+  // Joined data
+  CourseName?: string;
+  InstructorName?: string;
+  InstructorAvatar?: string;
+}
+
 export interface OfficeHoursQueueEntry {
   Id: string;
   InstructorId: string;
   StudentId: string;
+  ScheduleId: string | null;
+  CourseId: string | null;
+  LessonId: string | null;
+  ChatRoomId: string | null;
   StudentName: string;
   StudentEmail: string;
   Position: number;
   Question: string | null;
-  Status: 'waiting' | 'in_progress' | 'completed' | 'cancelled';
-  JoinedAt: Date;
-  StartedAt: Date | null;
-  CompletedAt: Date | null;
-  WaitTime: number | null;
-  Duration: number | null;
+  InstructorNotes: string | null;
+  Status: 'waiting' | 'admitted' | 'completed' | 'cancelled';
+  JoinedQueueAt: string;
+  AdmittedAt: string | null;
+  CompletedAt: string | null;
+  // Joined data
+  CourseName?: string;
+  LessonTitle?: string;
+  DayOfWeek?: number;
+  StartTime?: string;
+  EndTime?: string;
+  MeetingUrl?: string;
+}
+
+export interface AvailableInstructorResult {
+  InstructorId: string;
+  InstructorName: string;
+  InstructorAvatar: string | null;
+  ScheduleId: string;
+  CourseId: string | null;
+  CourseName: string | null;
+  DayOfWeek: number;
+  StartTime: string;
+  EndTime: string;
+  MeetingUrl: string | null;
+  Description: string | null;
+  PresenceStatus: string;
+  StudentQueueStatus: string | null;
+  WaitingCount: number;
+  AdmittedCount: number;
+  AvgWaitTime: number | null;
+}
+
+export interface SessionHistoryRecord {
+  Id: string;
+  InstructorId: string;
+  InstructorName: string;
+  StudentId: string;
+  StudentName: string;
+  CourseId: string | null;
+  CourseName: string | null;
+  LessonId: string | null;
+  LessonTitle: string | null;
+  Question: string | null;
+  InstructorNotes: string | null;
+  ChatRoomId: string | null;
+  JoinedQueueAt: string;
+  AdmittedAt: string | null;
+  CompletedAt: string | null;
+  DurationMinutes: number | null;
 }
 
 // ===================================

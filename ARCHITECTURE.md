@@ -1820,7 +1820,8 @@ Student receives completion notification (real-time)
 
 **Socket.IO Rooms**:
 - `user-${userId}` - Individual user notifications
-- `office-hours-${instructorId}` - Instructor's queue updates
+- `office-hours-lobby` - All `/office-hours` page visitors (auto-join on mount); receives `schedule-changed` broadcasts when instructor creates/updates/deletes a schedule — triggers Available Now panel refresh (Added March 3, 2026)
+- `office-hours-${instructorId}` - Instructor + waiting students (queue events: `queue-updated`, `office-hours-admitted`, `office-hours-completed`, `office-hours-cancelled`)
 
 **Notification Strategy**:
 - User actions (join queue) → Toast + Bell notification

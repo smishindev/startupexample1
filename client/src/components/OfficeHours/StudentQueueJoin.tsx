@@ -23,13 +23,17 @@ import {
 import {
   PersonAdd as JoinIcon,
   Cancel as LeaveIcon,
-  AccessTime as ClockIcon
+  AccessTime as ClockIcon,
+  Chat as ChatIcon,
+  OpenInNew as LinkIcon
 } from '@mui/icons-material';
 import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
 import { officeHoursApi } from '../../services/officeHoursApi';
 import {
   OfficeHoursSchedule,
   MyQueueStatus,
+  QueueStatus,
   getDayName,
   formatTime,
   getQueueStatusLabel,
@@ -48,6 +52,7 @@ const StudentQueueJoin: React.FC<StudentQueueJoinProps> = ({
   onInstructorChange,
   onQueueJoined 
 }) => {
+  const navigate = useNavigate();
   const [instructors, setInstructors] = useState<any[]>([]);
   const [selectedInstructor, setSelectedInstructor] = useState<string>(externalSelectedInstructor || '');
   const [schedules, setSchedules] = useState<OfficeHoursSchedule[]>([]);
@@ -74,6 +79,10 @@ const StudentQueueJoin: React.FC<StudentQueueJoinProps> = ({
   // Listen for real-time queue updates
   useOfficeHoursSocket({
     instructorId: selectedInstructor || null,
+    joinLobby: false, // OfficeHoursPage's hook owns the lobby — don't double-join/leave
+    // joinInstructorRoom stays true (default): students need to be in office-hours-{id}
+    // to receive real-time queue-updated events. Page-level hook for students never
+    // joins this room (instructorId=null), so StudentQueueJoin owns it safely.
     onQueueUpdated: () => {
       if (selectedInstructor) {
         loadSchedulesAndStatus();
@@ -116,11 +125,17 @@ const StudentQueueJoin: React.FC<StudentQueueJoinProps> = ({
   const loadInstructors = async () => {
     try {
       setLoading(true);
-      const data = await officeHoursApi.getInstructors();
+      const data = await officeHoursApi.getEnrolledInstructors();
       setInstructors(data);
     } catch (err: any) {
-      setError(err.message);
-      toast.error('Failed to load instructors');
+      // Fallback to legacy endpoint
+      try {
+        const data = await officeHoursApi.getInstructors();
+        setInstructors(data);
+      } catch (err2: any) {
+        setError(err2.message);
+        toast.error('Failed to load instructors');
+      }
     } finally {
       setLoading(false);
     }
@@ -153,10 +168,13 @@ const StudentQueueJoin: React.FC<StudentQueueJoinProps> = ({
 
     try {
       setSubmitting(true);
+      // Auto-derive courseId from the selected schedule
+      const selectedScheduleObj = schedules.find(s => s.Id === selectedSchedule);
       const result = await officeHoursApi.joinQueue({
         instructorId: selectedInstructor,
         scheduleId: selectedSchedule,
-        question: question.trim() || undefined
+        question: question.trim() || undefined,
+        courseId: selectedScheduleObj?.CourseId || undefined
       });
       
       toast.success(`Joined queue at position ${result.position}`);
@@ -252,10 +270,22 @@ const StudentQueueJoin: React.FC<StudentQueueJoinProps> = ({
                     borderRadius={1}
                   >
                     <ClockIcon fontSize="small" color="action" />
-                    <Typography variant="body2">
-                      <strong>{getDayName(schedule.DayOfWeek)}:</strong>{' '}
-                      {formatTime(schedule.StartTime)} - {formatTime(schedule.EndTime)}
-                    </Typography>
+                    <Box>
+                      <Typography variant="body2">
+                        <strong>{getDayName(schedule.DayOfWeek)}:</strong>{' '}
+                        {formatTime(schedule.StartTime)} - {formatTime(schedule.EndTime)}
+                      </Typography>
+                      {schedule.CourseName && (
+                        <Typography variant="caption" color="primary">
+                          {schedule.CourseName}
+                        </Typography>
+                      )}
+                      {schedule.Description && (
+                        <Typography variant="caption" color="text.secondary" display="block">
+                          {schedule.Description}
+                        </Typography>
+                      )}
+                    </Box>
                   </Box>
                 ))}
               </Stack>
@@ -291,7 +321,7 @@ const StudentQueueJoin: React.FC<StudentQueueJoinProps> = ({
             )}
 
             <Stack direction="row" mb={2} sx={{ flexWrap: 'wrap', gap: 1 }}>
-              {myQueueStatus.queueEntry.Status === 'waiting' && (
+              {myQueueStatus.queueEntry.Status === QueueStatus.Waiting && (
                 <Chip
                   label={`Position: ${myQueueStatus.position}`}
                   color="warning"
@@ -315,10 +345,36 @@ const StudentQueueJoin: React.FC<StudentQueueJoinProps> = ({
               </Box>
             )}
 
-            {myQueueStatus.queueEntry.Status === 'admitted' && (
+            {myQueueStatus.queueEntry.Status === QueueStatus.Admitted && (
               <Alert severity="success" sx={{ mb: 2 }}>
                 You have been admitted! The instructor is ready to help you.
               </Alert>
+            )}
+
+            {myQueueStatus.queueEntry.Status === QueueStatus.Admitted && (
+              <Stack direction="row" spacing={1} sx={{ mb: 2, flexWrap: 'wrap' }} useFlexGap>
+                {myQueueStatus.queueEntry.ChatRoomId && (
+                  <Button
+                    variant="contained"
+                    startIcon={<ChatIcon />}
+                    onClick={() => navigate('/chat', { state: { roomId: myQueueStatus.queueEntry!.ChatRoomId } })}
+                    data-testid="queue-open-chat-button"
+                  >
+                    Open Chat with Instructor
+                  </Button>
+                )}
+                {myQueueStatus.queueEntry.MeetingUrl && (
+                  <Button
+                    variant="outlined"
+                    startIcon={<LinkIcon />}
+                    href={myQueueStatus.queueEntry.MeetingUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Join Meeting
+                  </Button>
+                )}
+              </Stack>
             )}
 
             <Button
@@ -355,6 +411,7 @@ const StudentQueueJoin: React.FC<StudentQueueJoinProps> = ({
                 {schedules.map((schedule) => (
                   <MenuItem key={schedule.Id} value={schedule.Id}>
                     {getDayName(schedule.DayOfWeek)}: {formatTime(schedule.StartTime)} - {formatTime(schedule.EndTime)}
+                    {schedule.CourseName ? ` (${schedule.CourseName})` : ''}
                   </MenuItem>
                 ))}
               </Select>
@@ -367,7 +424,7 @@ const StudentQueueJoin: React.FC<StudentQueueJoinProps> = ({
               label="Question or Topic (Optional)"
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
-              placeholder="What do you need help with?"
+              placeholder="What do you need help with? Include the lesson or topic for faster help."
               helperText="Let the instructor know what you'd like to discuss"
               sx={{ mb: 2 }}
               data-testid="queue-question-input"

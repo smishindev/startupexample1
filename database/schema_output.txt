@@ -1,5 +1,11 @@
 ℹ️ Database [startUp1] already exists
 Changed database context to 'startUp1'.
+
+(1 rows affected)
+
+(1 rows affected)
+
+(1 rows affected)
 ✅ Mishin Learn Database Schema created successfully!
 📊 Core Tables: Users, Courses, Lessons, Enrollments, UserProgress, Resources, Assessments, Questions, AssessmentSubmissions
 📊 Communication: LiveSessions, LiveSessionAttendees, ChatRooms, ChatMessages, TutoringSessions, TutoringMessages
@@ -11,5 +17,6 @@ Changed database context to 'startUp1'.
 ⚙️ User Settings: UserSettings (Privacy, Appearance)
 💳 Payment System: Transactions, Invoices, Stripe Integration
 🎓 Certificates: Track course completion certificates with verification
-� Data Export: DataExportRequests (GDPR-compliant user data export)
-�🚀 Database is ready for Mishin Learn Platform!
+📦 Data Export: DataExportRequests (GDPR-compliant user data export)
+📜 Terms & Privacy: TermsVersions, UserTermsAcceptance (legal compliance)
+🚀 Database is ready for Mishin Learn Platform!

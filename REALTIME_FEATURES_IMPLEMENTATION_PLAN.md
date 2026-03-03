@@ -63,7 +63,7 @@
 - ✅ Database: StudyGroups, StudyGroupMembers tables
 - **Status**: Production-ready with full member management
 
-**Virtual Office Hours** ✅ **COMPLETED** - December 2, 2025
+**Virtual Office Hours** ✅ **COMPLETED & HARDENED** - December 2, 2025 (Updated March 3, 2026)
 - ✅ Instructor sets availability schedule
 - ✅ Students join queue with real-time position updates
 - ✅ Instructor admits students from queue
@@ -72,6 +72,12 @@
 - ✅ Persistent notifications in bell icon
 - ✅ Presence badges in queue (Dec 6)
 - ✅ Database: OfficeHours, OfficeHoursQueue tables
+- ✅ [March 3] `office-hours-lobby` room — all `/office-hours` visitors join on mount; scoped to page, not child components
+- ✅ [March 3] `schedule-changed` event — emitted after every schedule CRUD; Available Now panel auto-refreshes without page reload
+- ✅ [March 3] `socketService.onConnect()` reconnect-safe room join (replaces one-shot `isConnected()` guard)
+- ✅ [March 3] `joinLobby` / `joinInstructorRoom` hook options prevent double-join/leave conflicts in child components
+- ✅ [March 3] Chat deep-link: all "Open Chat" / "View Chat" buttons pass `roomId` via navigation state; `Chat.tsx` auto-selects room
+- ✅ [March 3] `StudentQueueStatus` correlated SQL subquery in `getAvailableNow`; `AvailableNowPanel` shows 3 states (null/waiting/admitted)
 
 **3. Real-time Notifications** ✅ **COMPLETED** - January 17, 2026
 - ✅ Email notification system (Phases 1-3)
@@ -314,13 +320,15 @@ socketService.onNotification((notification) => {
 - Screen sharing (instructor)
 - Attendance tracking
 
-**Use Case 2: Virtual Office Hours** ✅ **COMPLETED** - December 2, 2025
+**Use Case 2: Virtual Office Hours** ✅ **COMPLETED & HARDENED** - December 2, 2025 (Updated March 3, 2026)
 - ✅ Instructor sets availability schedule
 - ✅ Students join queue with real-time position updates
 - ✅ Instructor admits students from queue
 - ✅ Session completion tracking
 - ✅ Real-time Socket.IO notifications
 - ✅ Persistent notifications in bell icon
+- ✅ [March 3] `office-hours-lobby` room + `schedule-changed` event for real-time Available Now refresh
+- ✅ [March 3] Reconnect-safe room joins via `socketService.onConnect()`; double-join prevention via `joinLobby`/`joinInstructorRoom` options
 
 **See**: `OFFICE_HOURS_README.md` for complete documentation
 

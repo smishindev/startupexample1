@@ -2120,7 +2120,10 @@ onMemberRemoved: (data) => {
 **Purpose**: Manages office hours schedules, queue, and session lifecycle with real-time notifications
 
 **Key Methods**:
-- `createSchedule()` - Create office hours schedule for instructor
+- `createSchedule()` - Create office hours schedule; emits `schedule-changed` to `office-hours-lobby` (March 3, 2026)
+- `updateSchedule()` - Update schedule; emits `schedule-changed` to `office-hours-lobby` (March 3, 2026)
+- `deleteSchedule()` - Delete schedule; emits `schedule-changed` to `office-hours-lobby` (March 3, 2026)
+- `getAvailableNow(studentId?)` - Returns instructors with active schedules; includes `StudentQueueStatus` correlated subquery (`'waiting'`/`'admitted'`/`null`) when `studentId` provided (March 3, 2026)
 - `joinQueue()` - Student joins office hours queue
 - `admitStudent()` - Instructor admits student from queue
 - `completeSession()` - Complete session with duration tracking and notification
@@ -2136,9 +2139,14 @@ onMemberRemoved: (data) => {
 - **Student Admitted**: Notifies student when admitted to session
 
 **Socket.IO Events**:
+- `schedule-changed` - Emitted to `office-hours-lobby` room after every schedule CRUD; payload: `{ action, instructorId, scheduleId, timestamp }` (March 3, 2026)
 - `office-hours-completed` - Emitted to student when session ends
 - `queue-updated` - Emitted to instructor when queue changes
 - `office-hours-admitted` - Emitted to student when admitted
+
+**Socket.IO Rooms**:
+- `office-hours-lobby` — All `/office-hours` page visitors (join/leave managed by `useOfficeHoursSocket` in `OfficeHoursPage.tsx`); receives `schedule-changed` broadcasts (March 3, 2026)
+- `office-hours-${instructorId}` — Instructor + waiting students; receives queue events
 
 **Dependencies**:
 - `DatabaseService` - SQL queries for schedules and queue
@@ -2150,7 +2158,7 @@ onMemberRemoved: (data) => {
 - Comprehensive logging for debugging
 - Graceful degradation (missing timestamps handled safely)
 
-**Status**: ✅ Production-ready with enhanced session completion notification
+**Status**: ✅ Production-ready with enhanced session completion notification and schedule-changed real-time events (March 3, 2026)
 
 ---
 

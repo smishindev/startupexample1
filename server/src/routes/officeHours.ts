@@ -14,7 +14,7 @@ const settingsService = new SettingsService();
  */
 router.post('/schedule', authenticateToken, checkRole(['instructor']), async (req: AuthRequest, res) => {
   try {
-    const { dayOfWeek, startTime, endTime } = req.body;
+    const { dayOfWeek, startTime, endTime, courseId, meetingUrl, description } = req.body;
 
     if (dayOfWeek === undefined || !startTime || !endTime) {
       return res.status(400).json({ 
@@ -26,7 +26,10 @@ router.post('/schedule', authenticateToken, checkRole(['instructor']), async (re
       instructorId: req.user!.userId,
       dayOfWeek,
       startTime,
-      endTime
+      endTime,
+      courseId,
+      meetingUrl,
+      description
     });
 
     res.status(201).json({ 
@@ -71,13 +74,16 @@ router.get('/schedule/:instructorId', authenticateToken, async (req: AuthRequest
 router.put('/schedule/:scheduleId', authenticateToken, checkRole(['instructor']), async (req: AuthRequest, res) => {
   try {
     const { scheduleId } = req.params;
-    const { dayOfWeek, startTime, endTime, isActive } = req.body;
+    const { dayOfWeek, startTime, endTime, isActive, courseId, meetingUrl, description } = req.body;
 
     const schedule = await OfficeHoursService.updateSchedule(scheduleId, {
       DayOfWeek: dayOfWeek,
       StartTime: startTime,
       EndTime: endTime,
-      IsActive: isActive
+      IsActive: isActive,
+      CourseId: courseId,
+      MeetingUrl: meetingUrl,
+      Description: description
     });
 
     res.json({ 
@@ -121,7 +127,7 @@ router.delete('/schedule/:scheduleId', authenticateToken, checkRole(['instructor
  */
 router.post('/queue/join', authenticateToken, async (req: AuthRequest, res) => {
   try {
-    const { instructorId, scheduleId, question } = req.body;
+    const { instructorId, scheduleId, question, courseId, lessonId } = req.body;
 
     if (!instructorId) {
       return res.status(400).json({ message: 'Instructor ID is required' });
@@ -135,7 +141,9 @@ router.post('/queue/join', authenticateToken, async (req: AuthRequest, res) => {
       instructorId,
       studentId: req.user!.userId,
       scheduleId,
-      question
+      question,
+      courseId,
+      lessonId
     });
 
     const position = await OfficeHoursService.getQueuePosition(queueEntry.Id);
@@ -232,8 +240,9 @@ router.post('/queue/:queueId/admit', authenticateToken, checkRole(['instructor']
 router.post('/queue/:queueId/complete', authenticateToken, checkRole(['instructor']), async (req: AuthRequest, res) => {
   try {
     const { queueId } = req.params;
+    const { instructorNotes } = req.body;
 
-    const queueEntry = await OfficeHoursService.completeSession(req.user!.userId, queueId);
+    const queueEntry = await OfficeHoursService.completeSession(req.user!.userId, queueId, instructorNotes);
 
     res.json({ 
       message: 'Office hours session completed', 
@@ -257,7 +266,7 @@ router.post('/queue/:queueId/cancel', authenticateToken, async (req: AuthRequest
   try {
     const { queueId } = req.params;
 
-    const queueEntry = await OfficeHoursService.cancelQueueEntry(queueId);
+    const queueEntry = await OfficeHoursService.cancelQueueEntry(queueId, req.user!.userId);
 
     res.json({ 
       message: 'Queue entry cancelled', 
@@ -302,6 +311,133 @@ router.get('/my-queue/:instructorId', authenticateToken, async (req: AuthRequest
     res.status(500).json({ 
       message: 'Failed to fetch queue entry', 
       error: error instanceof Error ? error.message : 'Unknown error' 
+    });
+  }
+});
+
+/**
+ * @route   GET /api/office-hours/my-session
+ * @desc    Get student's active session for ANY instructor
+ * @access  Private
+ */
+router.get('/my-session', authenticateToken, async (req: AuthRequest, res) => {
+  try {
+    const queueEntry = await OfficeHoursService.getStudentActiveSession(req.user!.userId);
+
+    if (!queueEntry) {
+      return res.json({ queueEntry: null, inQueue: false });
+    }
+
+    const position = queueEntry.Status === 'waiting'
+      ? await OfficeHoursService.getQueuePosition(queueEntry.Id)
+      : 0;
+
+    res.json({ queueEntry, position, inQueue: true });
+  } catch (error) {
+    console.error('Error fetching active session:', error);
+    res.status(500).json({
+      message: 'Failed to fetch active session',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+/**
+ * @route   GET /api/office-hours/available-now
+ * @desc    Get instructors with office hours right now
+ * @access  Private
+ */
+router.get('/available-now', authenticateToken, async (req: AuthRequest, res) => {
+  try {
+    const instructors = await OfficeHoursService.getAvailableNow(req.user!.userId);
+    res.json({ instructors, count: instructors.length });
+  } catch (error) {
+    console.error('Error fetching available instructors:', error);
+    res.status(500).json({
+      message: 'Failed to fetch available instructors',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+/**
+ * @route   GET /api/office-hours/course/:courseId
+ * @desc    Get office hours for a specific course's instructor
+ * @access  Private
+ */
+router.get('/course/:courseId', authenticateToken, async (req: AuthRequest, res) => {
+  try {
+    const { courseId } = req.params;
+    const schedules = await OfficeHoursService.getCourseOfficeHours(courseId);
+    res.json({ schedules, count: schedules.length });
+  } catch (error) {
+    console.error('Error fetching course office hours:', error);
+    res.status(500).json({
+      message: 'Failed to fetch course office hours',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+/**
+ * @route   GET /api/office-hours/history
+ * @desc    Get session history for the authenticated user
+ * @access  Private
+ */
+router.get('/history', authenticateToken, async (req: AuthRequest, res) => {
+  try {
+    const role = (req.user!.role === 'instructor') ? 'instructor' : 'student';
+    const limit = parseInt(req.query.limit as string) || 20;
+    const sessions = await OfficeHoursService.getSessionHistory(req.user!.userId, role, limit);
+    res.json({ sessions, count: sessions.length });
+  } catch (error) {
+    console.error('Error fetching session history:', error);
+    res.status(500).json({
+      message: 'Failed to fetch session history',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+/**
+ * @route   POST /api/office-hours/session/:queueId/notes
+ * @desc    Add instructor notes to a completed session
+ * @access  Private (instructor)
+ */
+router.post('/session/:queueId/notes', authenticateToken, checkRole(['instructor']), async (req: AuthRequest, res) => {
+  try {
+    const { queueId } = req.params;
+    const { notes } = req.body;
+
+    if (!notes) {
+      return res.status(400).json({ message: 'Notes content is required' });
+    }
+
+    await OfficeHoursService.addSessionNotes(queueId, req.user!.userId, notes);
+    res.json({ message: 'Session notes saved' });
+  } catch (error) {
+    console.error('Error saving session notes:', error);
+    res.status(500).json({
+      message: 'Failed to save session notes',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+/**
+ * @route   GET /api/office-hours/instructors
+ * @desc    Get enrolled instructors for the authenticated student
+ * @access  Private
+ */
+router.get('/instructors', authenticateToken, async (req: AuthRequest, res) => {
+  try {
+    const instructors = await OfficeHoursService.getEnrolledInstructors(req.user!.userId);
+    res.json({ instructors, count: instructors.length });
+  } catch (error) {
+    console.error('Error fetching enrolled instructors:', error);
+    res.status(500).json({
+      message: 'Failed to fetch instructors',
+      error: error instanceof Error ? error.message : 'Unknown error'
     });
   }
 });

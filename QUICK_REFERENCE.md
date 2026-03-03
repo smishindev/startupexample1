@@ -1,6 +1,6 @@
 ﻿# 🚀 Quick Reference - Development Workflow
 
-**Last Updated**: March 1, 2026 - MobileNavDrawer Active-State UX Fix — drawer auto-expands active group + scrolls to active item on reopen 📱
+**Last Updated**: March 3, 2026 - Office Hours Bug Fixes — `schedule-changed` socket event + `office-hours-lobby` room; `socketService.onConnect()` reconnect-safe room join pattern; `joinLobby`/`joinInstructorRoom` socket ownership model; Chat deep-link via navigation state; `StudentQueueStatus` 3-state `AvailableNowPanel`; `CourseSelector` in ScheduleManagement 🏢
 
 ---
 
@@ -819,6 +819,107 @@ try { // Isolated try-catch (won't crash route or trigger Stripe retry)
 - **New**: CourseEventService.ts, useCourseRealtimeUpdates.ts, useCatalogRealtimeUpdates.ts
 - **Backend**: sockets.ts, index.ts, instructor.ts, lessons.ts, enrollment.ts, students.ts, payments.ts, StripeService.ts, CourseManagementService.ts
 - **Frontend**: socketService.ts, CourseDetailPage.tsx, CoursesPage.tsx
+
+---
+
+## Office Hours Real-time Patterns (Added March 3, 2026)
+
+### `socketService.onConnect()` — Reconnect-Safe Room Join
+
+**Problem**: Using `if (socketService.isConnected()) { joinRooms(); }` is a one-shot guard — if the socket is slow to connect on page mount (race condition) or disconnects/reconnects, rooms are never joined.
+
+**Solution**: Use `socketService.onConnect(callback)` which fires immediately if already connected **and** re-fires on every future reconnect.
+
+```typescript
+// ✅ Correct — reconnect-safe
+useEffect(() => {
+  const joinRooms = () => {
+    socketService.emit('join-office-hours-lobby');
+    socketService.emit('join-office-hours-room', instructorId);
+  };
+  socketService.onConnect(joinRooms);
+  return () => {
+    socketService.offConnect(joinRooms);
+    socketService.emit('leave-office-hours-lobby');
+    socketService.emit('leave-office-hours-room', instructorId);
+  };
+}, [instructorId]);
+
+// ❌ Broken — misses join if socket not ready at mount or after reconnect
+useEffect(() => {
+  if (socketService.isConnected()) {
+    socketService.emit('join-office-hours-lobby');
+  }
+}, []);
+```
+
+### Socket Room Ownership Model
+
+**Problem**: Multiple hook instances (`OfficeHoursPage`, `StudentQueueJoin`, `QueueDisplay`) each calling `useOfficeHoursSocket` causes race conditions — a child component unmounting on tab-switch emits `leave-office-hours-lobby`, removing the page from the lobby.
+
+**Pattern**: One "owner" joins/leaves each room. Child components set ownership flags to `false`.
+
+```typescript
+// OfficeHoursPage.tsx — PAGE owns both rooms
+useOfficeHoursSocket({
+  onScheduleChanged: () => setRefreshKey(k => k + 1),
+  // joinLobby: true (default) — page owns lobby
+  // joinInstructorRoom: true (default) — page owns instructor room
+});
+
+// StudentQueueJoin.tsx — receives events, does NOT own lobby
+useOfficeHoursSocket({
+  onAdmitted: () => refreshStatus(),
+  joinLobby: false,           // page owns lobby; set false to prevent double-join/leave
+});
+
+// QueueDisplay.tsx — receives events, does NOT own either room
+useOfficeHoursSocket({
+  onQueueUpdated: () => refreshQueue(),
+  joinLobby: false,           // page owns lobby
+  joinInstructorRoom: false,  // page owns instructor room
+});
+```
+
+**Rule of thumb**: Only the top-level page/container component should own socket rooms. Tabs and child components should subscribe to events only.
+
+### `office-hours-lobby` Room
+
+All authenticated users on the `/office-hours` page are auto-joined to `office-hours-lobby` via `useOfficeHoursSocket` (in `OfficeHoursPage`). The server emits `schedule-changed` to this room after every schedule CRUD operation, triggering an Available Now panel refresh without page reload.
+
+```typescript
+// sockets.ts handlers
+socket.on('join-office-hours-lobby', () => socket.join('office-hours-lobby'));
+socket.on('leave-office-hours-lobby', () => socket.leave('office-hours-lobby'));
+
+// OfficeHoursService.ts — after createSchedule / updateSchedule / deleteSchedule
+this.io.to('office-hours-lobby').emit('schedule-changed', {
+  action: 'created' | 'updated' | 'deleted',
+  instructorId, scheduleId, timestamp: new Date()
+});
+```
+
+### Chat Deep-Link Pattern
+
+To navigate to `/chat` and auto-select a specific room, pass `roomId` via navigation state:
+
+```typescript
+// Any page that wants to deep-link to a chat room
+navigate('/chat', { state: { roomId: '...' } });
+
+// Chat.tsx receives it:
+const location = useLocation();
+const hasAutoSelectedRef = useRef(false);
+useEffect(() => {
+  if (!hasAutoSelectedRef.current && rooms.length > 0 && location.state?.roomId) {
+    const target = rooms.find(r => r.id === location.state.roomId);
+    if (target) {
+      setSelectedRoom(target);
+      hasAutoSelectedRef.current = true; // prevents re-selection on room list refresh
+    }
+  }
+}, [rooms, location.state]);
+```
 
 ---
 

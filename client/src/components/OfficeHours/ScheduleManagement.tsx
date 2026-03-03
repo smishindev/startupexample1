@@ -33,13 +33,15 @@ import {
 } from '@mui/icons-material';
 import { toast } from 'sonner';
 import { officeHoursApi } from '../../services/officeHoursApi';
+import { instructorApi } from '../../services/instructorApi';
 import {
   OfficeHoursSchedule,
   CreateScheduleData,
   getDayName,
   formatTime
 } from '../../types/officeHours';
-import { useResponsive } from '../Responsive/useResponsive';
+import { useResponsive } from '../Responsive';
+import { CourseSelector } from '../Common/CourseSelector';
 
 interface ScheduleManagementProps {
   instructorId: string;
@@ -56,13 +58,27 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = ({ instructorId, o
   const [formData, setFormData] = useState<CreateScheduleData>({
     dayOfWeek: 1, // Monday
     startTime: '14:00',
-    endTime: '16:00'
+    endTime: '16:00',
+    courseId: '',
+    meetingUrl: '',
+    description: ''
   });
   const [submitting, setSubmitting] = useState(false);
+  const [courses, setCourses] = useState<{ Id: string; Title: string }[]>([]);
 
   useEffect(() => {
     loadSchedules();
+    loadCourses();
   }, [instructorId]);
+
+  const loadCourses = async () => {
+    try {
+      const data = await instructorApi.getCoursesForDropdown();
+      setCourses(data.map((c: any) => ({ Id: c.id || c.Id, Title: c.title || c.Title })));
+    } catch {
+      // Non-critical — course dropdown just won't populate
+    }
+  };
 
   const loadSchedules = async () => {
     try {
@@ -85,14 +101,20 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = ({ instructorId, o
       setFormData({
         dayOfWeek: schedule.DayOfWeek,
         startTime: schedule.StartTime.substring(0, 5), // HH:mm
-        endTime: schedule.EndTime.substring(0, 5) // HH:mm
+        endTime: schedule.EndTime.substring(0, 5), // HH:mm
+        courseId: schedule.CourseId || '',
+        meetingUrl: schedule.MeetingUrl || '',
+        description: schedule.Description || ''
       });
     } else {
       setEditingSchedule(null);
       setFormData({
         dayOfWeek: 1,
         startTime: '14:00',
-        endTime: '16:00'
+        endTime: '16:00',
+        courseId: '',
+        meetingUrl: '',
+        description: ''
       });
     }
     setDialogOpen(true);
@@ -104,7 +126,10 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = ({ instructorId, o
     setFormData({
       dayOfWeek: 1,
       startTime: '14:00',
-      endTime: '16:00'
+      endTime: '16:00',
+      courseId: '',
+      meetingUrl: '',
+      description: ''
     });
   };
 
@@ -119,19 +144,27 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = ({ instructorId, o
       setSubmitting(true);
 
       // Add seconds for API format (HH:mm:ss)
-      const dataWithSeconds = {
-        dayOfWeek: formData.dayOfWeek,
-        startTime: `${formData.startTime}:00`,
-        endTime: `${formData.endTime}:00`
-      };
-
       if (editingSchedule) {
-        // Update existing schedule
-        await officeHoursApi.updateSchedule(editingSchedule.Id, dataWithSeconds);
+        // Update — send null to clear optional fields
+        await officeHoursApi.updateSchedule(editingSchedule.Id, {
+          dayOfWeek: formData.dayOfWeek,
+          startTime: `${formData.startTime}:00`,
+          endTime: `${formData.endTime}:00`,
+          courseId: formData.courseId || null,
+          meetingUrl: formData.meetingUrl || null,
+          description: formData.description || null
+        });
         toast.success('Schedule updated successfully');
       } else {
-        // Create new schedule
-        await officeHoursApi.createSchedule(dataWithSeconds);
+        // Create — omit empty optional fields
+        await officeHoursApi.createSchedule({
+          dayOfWeek: formData.dayOfWeek,
+          startTime: `${formData.startTime}:00`,
+          endTime: `${formData.endTime}:00`,
+          courseId: formData.courseId || undefined,
+          meetingUrl: formData.meetingUrl || undefined,
+          description: formData.description || undefined
+        });
         toast.success('Schedule created successfully');
       }
 
@@ -233,6 +266,21 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = ({ instructorId, o
                           {formatTime(schedule.StartTime)} - {formatTime(schedule.EndTime)}
                         </Typography>
                       </Stack>
+                      {schedule.CourseName && (
+                        <Typography variant="body2" color="primary" sx={{ mt: 0.5 }}>
+                          {schedule.CourseName}
+                        </Typography>
+                      )}
+                      {schedule.Description && (
+                        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                          {schedule.Description}
+                        </Typography>
+                      )}
+                      {schedule.MeetingUrl && (
+                        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                          Meeting link set
+                        </Typography>
+                      )}
                     </Box>
                     <Chip
                       label={schedule.IsActive ? 'Active' : 'Inactive'}
@@ -320,6 +368,48 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = ({ instructorId, o
               onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
               InputLabelProps={{ shrink: true }}
               data-testid="schedule-end-time-input"
+            />
+
+            {/* Course Selection — Autocomplete with lazy loading */}
+            {courses.length > 0 ? (
+              <Box sx={{ mt: 2, mb: 1 }}>
+                <CourseSelector
+                  courses={courses}
+                  value={formData.courseId || ''}
+                  onChange={(id: string) => setFormData({ ...formData, courseId: id })}
+                  allOption={{ value: '', label: 'General — All students' }}
+                  label="Course (Optional)"
+                  placeholder="Search courses..."
+                  testId="schedule-course-select"
+                  inputTestId="schedule-course-autocomplete-input"
+                />
+              </Box>
+            ) : (
+              <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
+                No courses available. Schedule will be open to all students.
+              </Typography>
+            )}
+
+            <TextField
+              fullWidth
+              margin="normal"
+              label="Meeting URL (Optional)"
+              placeholder="https://zoom.us/j/... or Google Meet link"
+              value={formData.meetingUrl || ''}
+              onChange={(e) => setFormData({ ...formData, meetingUrl: e.target.value })}
+              data-testid="schedule-meeting-url-input"
+            />
+
+            <TextField
+              fullWidth
+              margin="normal"
+              label="Description (Optional)"
+              placeholder="Topics covered, what students should prepare, etc."
+              value={formData.description || ''}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              multiline
+              rows={2}
+              data-testid="schedule-description-input"
             />
 
             <Alert severity="info" sx={{ mt: 2 }}>

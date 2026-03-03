@@ -1,10 +1,11 @@
 /**
  * Office Hours Page
- * Main page for office hours scheduling and queue management
- * Role-based view: Instructors manage schedules, Students join queue
+ * Smart, course-aware office hours with chat integration
+ * Student: Available Now → Join Queue → History
+ * Instructor: Schedule Management → Queue Dashboard → History
  */
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -15,7 +16,9 @@ import {
 import {
   Schedule as ScheduleIcon,
   Queue as QueueIcon,
-  Person as StudentIcon
+  History as HistoryIcon,
+  Wifi as LiveIcon,
+  AccessTime as ClockIcon
 } from '@mui/icons-material';
 import { useAuthStore } from '../../stores/authStore';
 import { HeaderV5 as Header } from '../../components/Navigation/HeaderV5';
@@ -23,6 +26,8 @@ import { PageContainer, PageTitle, useResponsive } from '../../components/Respon
 import ScheduleManagement from '../../components/OfficeHours/ScheduleManagement';
 import QueueDisplay from '../../components/OfficeHours/QueueDisplay';
 import StudentQueueJoin from '../../components/OfficeHours/StudentQueueJoin';
+import AvailableNowPanel from '../../components/OfficeHours/AvailableNowPanel';
+import SessionHistoryPanel from '../../components/OfficeHours/SessionHistoryPanel';
 import { useOfficeHoursSocket } from '../../hooks/useOfficeHoursSocket.js';
 
 const OfficeHoursPage: React.FC = () => {
@@ -30,7 +35,7 @@ const OfficeHoursPage: React.FC = () => {
   const { isMobile } = useResponsive();
   const [tabValue, setTabValue] = useState(0);
   const [refreshKey, setRefreshKey] = useState(0);
-  const [selectedInstructor, setSelectedInstructor] = useState<string>('');
+  const [selectedInstructorId, setSelectedInstructorId] = useState<string | undefined>();
 
   const isInstructor = user?.role === 'instructor';
 
@@ -39,6 +44,9 @@ const OfficeHoursPage: React.FC = () => {
     instructorId: isInstructor ? user?.id : null,
     onQueueUpdated: () => {
       setRefreshKey(prev => prev + 1);
+    },
+    onScheduleChanged: () => {
+      setRefreshKey(prev => prev + 1);
     }
   });
 
@@ -46,9 +54,9 @@ const OfficeHoursPage: React.FC = () => {
     setTabValue(newValue);
   };
 
-  const handleDataUpdate = () => {
+  const handleDataUpdate = useCallback(() => {
     setRefreshKey(prev => prev + 1);
-  };
+  }, []);
 
   if (!user) {
     return (
@@ -69,13 +77,13 @@ const OfficeHoursPage: React.FC = () => {
       <PageContainer maxWidth="lg">
         {/* Page Header */}
         <Box mb={{ xs: 2, sm: 4 }}>
-          <PageTitle>
+          <PageTitle icon={<ClockIcon />}>
             Office Hours
           </PageTitle>
           <Typography variant="body1" color="text.secondary">
             {isInstructor
-              ? 'Manage your office hours schedule and help students in your queue'
-              : 'Join office hours queue to get help from instructors'}
+              ? 'Manage your office hours schedule and help students'
+              : 'Get live help from your instructors'}
           </Typography>
         </Box>
 
@@ -87,21 +95,19 @@ const OfficeHoursPage: React.FC = () => {
               onChange={handleTabChange}
               variant={isMobile ? 'scrollable' : 'fullWidth'}
               scrollButtons="auto"
-              sx={{ mb: 3 }}
+              sx={{ mb: 3, borderBottom: 1, borderColor: 'divider' }}
             >
               <Tab icon={<ScheduleIcon />} label="My Schedule" iconPosition="start" data-testid="office-hours-schedule-tab" />
               <Tab icon={<QueueIcon />} label="Current Queue" iconPosition="start" data-testid="office-hours-queue-tab" />
+              <Tab icon={<HistoryIcon />} label="History" iconPosition="start" data-testid="office-hours-history-tab" />
             </Tabs>
 
-            {/* Schedule Management Tab */}
             {tabValue === 0 && (
               <ScheduleManagement
                 instructorId={user.id}
                 onScheduleUpdate={handleDataUpdate}
               />
             )}
-
-            {/* Queue Display Tab */}
             {tabValue === 1 && (
               <QueueDisplay
                 key={refreshKey}
@@ -109,6 +115,9 @@ const OfficeHoursPage: React.FC = () => {
                 isInstructor={true}
                 onQueueUpdate={handleDataUpdate}
               />
+            )}
+            {tabValue === 2 && (
+              <SessionHistoryPanel key={refreshKey} />
             )}
           </>
         )}
@@ -121,38 +130,32 @@ const OfficeHoursPage: React.FC = () => {
               onChange={handleTabChange}
               variant={isMobile ? 'scrollable' : 'fullWidth'}
               scrollButtons="auto"
-              sx={{ mb: 3 }}
+              sx={{ mb: 3, borderBottom: 1, borderColor: 'divider' }}
             >
-              <Tab icon={<StudentIcon />} label="Join Queue" iconPosition="start" data-testid="office-hours-join-tab" />
-              <Tab icon={<QueueIcon />} label="View Queues" iconPosition="start" data-testid="office-hours-view-queues-tab" />
+              <Tab icon={<LiveIcon />} label="Available Now" iconPosition="start" data-testid="office-hours-available-tab" />
+              <Tab icon={<QueueIcon />} label="Join Queue" iconPosition="start" data-testid="office-hours-join-tab" />
+              <Tab icon={<HistoryIcon />} label="History" iconPosition="start" data-testid="office-hours-history-tab" />
             </Tabs>
 
-            {/* Join Queue Tab */}
             {tabValue === 0 && (
+              <AvailableNowPanel
+                key={refreshKey}
+                onJoinQueue={(instructorId) => {
+                  setSelectedInstructorId(instructorId);
+                  setTabValue(1);
+                  handleDataUpdate();
+                }}
+              />
+            )}
+            {tabValue === 1 && (
               <StudentQueueJoin
-                key={selectedInstructor} // Preserve state when switching tabs
-                selectedInstructor={selectedInstructor}
-                onInstructorChange={setSelectedInstructor}
+                key={refreshKey}
+                selectedInstructor={selectedInstructorId}
                 onQueueJoined={handleDataUpdate}
               />
             )}
-
-            {/* View All Queues Tab (for transparency) */}
-            {tabValue === 1 && (
-              <>
-                {selectedInstructor ? (
-                  <QueueDisplay
-                    key={`${refreshKey}-${selectedInstructor}`}
-                    instructorId={selectedInstructor}
-                    isInstructor={false}
-                    onQueueUpdate={handleDataUpdate}
-                  />
-                ) : (
-                  <Alert severity="info" sx={{ mb: 3 }}>
-                    Select an instructor from the "Join Queue" tab to see their current queue status.
-                  </Alert>
-                )}
-              </>
+            {tabValue === 2 && (
+              <SessionHistoryPanel key={refreshKey} />
             )}
           </>
         )}

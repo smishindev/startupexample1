@@ -11,7 +11,10 @@ import {
   CreateScheduleData,
   UpdateScheduleData,
   JoinQueueData,
-  MyQueueStatus
+  MyQueueStatus,
+  AvailableInstructor,
+  SessionHistory,
+  EnrolledInstructor
 } from '../types/officeHours';
 
 const API_URL = 'http://localhost:3001/api/office-hours';
@@ -136,9 +139,9 @@ export const officeHoursApi = {
   /**
    * 8. Complete office hours session (instructor only)
    */
-  async completeSession(queueId: string): Promise<QueueEntry> {
+  async completeSession(queueId: string, instructorNotes?: string): Promise<QueueEntry> {
     try {
-      const response = await apiClient.post(`/queue/${queueId}/complete`);
+      const response = await apiClient.post(`/queue/${queueId}/complete`, { instructorNotes });
       return response.data.queueEntry || response.data;
     } catch (error: any) {
       throw new Error(error.response?.data?.message || 'Failed to complete session');
@@ -183,6 +186,78 @@ export const officeHoursApi = {
       return response.data || [];
     } catch (error: any) {
       throw new Error(error.response?.data?.message || 'Failed to fetch instructors');
+    }
+  },
+
+  /**
+   * 12. Get my active session (for any instructor)
+   */
+  async getMyActiveSession(): Promise<MyQueueStatus> {
+    try {
+      const response = await apiClient.get('/my-session');
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Failed to fetch active session');
+    }
+  },
+
+  /**
+   * 13. Get instructors available right now
+   */
+  async getAvailableNow(): Promise<AvailableInstructor[]> {
+    try {
+      const response = await apiClient.get('/available-now');
+      return response.data.instructors || [];
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Failed to fetch available instructors');
+    }
+  },
+
+  /**
+   * 14. Get office hours for a specific course
+   */
+  async getCourseOfficeHours(courseId: string): Promise<OfficeHoursSchedule[]> {
+    try {
+      const response = await apiClient.get(`/course/${courseId}`);
+      return response.data.schedules || [];
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Failed to fetch course office hours');
+    }
+  },
+
+  /**
+   * 15. Get session history
+   */
+  async getSessionHistory(limit?: number): Promise<SessionHistory[]> {
+    try {
+      const params = limit ? `?limit=${limit}` : '';
+      const response = await apiClient.get(`/history${params}`);
+      return response.data.sessions || [];
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Failed to fetch session history');
+    }
+  },
+
+  /**
+   * 16. Add instructor notes to a completed session
+   */
+  async addSessionNotes(queueId: string, notes: string): Promise<void> {
+    try {
+      await apiClient.post(`/session/${queueId}/notes`, { notes });
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Failed to save session notes');
+    }
+  },
+
+  /**
+   * 17. Get enrolled instructors for student
+   */
+  async getEnrolledInstructors(): Promise<EnrolledInstructor[]> {
+    try {
+      const response = await apiClient.get('/instructors');
+      return response.data.instructors || [];
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Failed to fetch enrolled instructors');
     }
   }
 };

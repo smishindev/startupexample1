@@ -386,6 +386,17 @@ export const setupSocketHandlers = (io: Server) => {
     // Phase 2: Office Hours Events
     // ========================================
 
+    // Anyone on /office-hours joins the lobby for schedule-change broadcasts
+    socket.on('join-office-hours-lobby', () => {
+      socket.join('office-hours-lobby');
+      logger.info(`User ${socket.userId} joined office-hours-lobby`);
+    });
+
+    socket.on('leave-office-hours-lobby', () => {
+      socket.leave('office-hours-lobby');
+      logger.info(`User ${socket.userId} left office-hours-lobby`);
+    });
+
     // Instructor joins office hours room (to receive queue updates)
     socket.on('join-office-hours', (data: OfficeHoursData) => {
       socket.join(`office-hours-${data.instructorId}`);

@@ -44,8 +44,16 @@ export interface OfficeHoursSchedule {
   StartTime: string; // HH:mm:ss format
   EndTime: string;   // HH:mm:ss format
   IsActive: boolean;
+  IsDeleted?: boolean;
   CreatedAt: string;
-  InstructorName?: string; // Enriched field
+  // New fields
+  CourseId?: string | null;
+  MeetingUrl?: string | null;
+  Description?: string | null;
+  // Enriched fields (from JOINs)
+  CourseName?: string | null;
+  InstructorName?: string | null;
+  InstructorAvatar?: string | null;
 }
 
 /**
@@ -64,6 +72,14 @@ export interface QueueEntry {
   Position?: number; // Position in queue (enriched)
   StudentName?: string; // Enriched field
   StudentEmail?: string; // Enriched field
+  // New course-context fields
+  CourseId?: string | null;
+  LessonId?: string | null;
+  ChatRoomId?: string | null;
+  InstructorNotes?: string | null;
+  CourseName?: string | null;
+  LessonTitle?: string | null;
+  MeetingUrl?: string | null;
   // Schedule details (enriched from JOIN)
   DayOfWeek?: number;
   StartTime?: string;
@@ -76,8 +92,8 @@ export interface QueueEntry {
 export interface QueueStats {
   waiting: number;
   admitted: number;
-  completed?: number;
-  averageWaitTime?: number; // in minutes
+  completedToday?: number;
+  averageWaitTime?: number | null; // in minutes
 }
 
 /**
@@ -87,6 +103,9 @@ export interface CreateScheduleData {
   dayOfWeek: number;
   startTime: string; // HH:mm format
   endTime: string;   // HH:mm format
+  courseId?: string;
+  meetingUrl?: string;
+  description?: string;
 }
 
 /**
@@ -97,6 +116,9 @@ export interface UpdateScheduleData {
   startTime?: string;
   endTime?: string;
   isActive?: boolean;
+  courseId?: string | null;
+  meetingUrl?: string | null;
+  description?: string | null;
 }
 
 /**
@@ -106,6 +128,8 @@ export interface JoinQueueData {
   instructorId: string;
   scheduleId: string;
   question?: string;
+  courseId?: string;
+  lessonId?: string;
 }
 
 /**
@@ -115,6 +139,63 @@ export interface MyQueueStatus {
   queueEntry: QueueEntry | null;
   position: number;
   inQueue: boolean;
+}
+
+/**
+ * Instructor available right now (from getAvailableNow endpoint)
+ */
+export interface AvailableInstructor {
+  InstructorId: string;
+  InstructorName: string;
+  InstructorAvatar?: string;
+  ScheduleId: string;
+  CourseId?: string | null;
+  CourseName?: string | null;
+  DayOfWeek: number;
+  StartTime: string;
+  EndTime: string;
+  MeetingUrl?: string | null;
+  Description?: string | null;
+  PresenceStatus: string;
+  StudentQueueStatus?: string | null;
+  WaitingCount: number;
+  AdmittedCount: number;
+  AvgWaitTime?: number | null;
+}
+
+/**
+ * Session history record
+ */
+export interface SessionHistory {
+  Id: string;
+  InstructorId: string;
+  InstructorName: string;
+  StudentId: string;
+  StudentName: string;
+  CourseId?: string | null;
+  CourseName?: string | null;
+  LessonId?: string | null;
+  LessonTitle?: string | null;
+  Question?: string;
+  InstructorNotes?: string | null;
+  ChatRoomId?: string | null;
+  JoinedQueueAt: string;
+  AdmittedAt?: string;
+  CompletedAt?: string;
+  DurationMinutes?: number | null;
+}
+
+/**
+ * Enrolled instructor (for student view)
+ */
+export interface EnrolledInstructor {
+  Id: string;
+  FirstName: string;
+  LastName: string;
+  Email: string;
+  Avatar?: string | null;
+  PresenceStatus: string;
+  ScheduleCount: number;
 }
 
 /**

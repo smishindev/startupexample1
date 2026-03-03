@@ -376,9 +376,12 @@ CREATE TABLE dbo.StudyGroupMembers (
 CREATE TABLE dbo.OfficeHours (
     Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
     InstructorId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id) ON DELETE CASCADE,
+    CourseId UNIQUEIDENTIFIER NULL FOREIGN KEY REFERENCES dbo.Courses(Id) ON DELETE SET NULL, -- NULL = global (all courses), set = course-specific office hours
     DayOfWeek INT NOT NULL CHECK (DayOfWeek BETWEEN 0 AND 6), -- 0 = Sunday, 6 = Saturday
     StartTime TIME NOT NULL,
     EndTime TIME NOT NULL,
+    MeetingUrl NVARCHAR(500) NULL, -- Optional external meeting link (Zoom/Google Meet/Teams)
+    Description NVARCHAR(500) NULL, -- Slot description ("React Q&A", "Project review")
     IsActive BIT NOT NULL DEFAULT 1,
     IsDeleted BIT NOT NULL DEFAULT 0,
     CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE()
@@ -390,8 +393,12 @@ CREATE TABLE dbo.OfficeHoursQueue (
     InstructorId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id) ON DELETE NO ACTION,
     StudentId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id) ON DELETE NO ACTION,
     ScheduleId UNIQUEIDENTIFIER NULL FOREIGN KEY REFERENCES dbo.OfficeHours(Id) ON DELETE SET NULL,
+    CourseId UNIQUEIDENTIFIER NULL FOREIGN KEY REFERENCES dbo.Courses(Id) ON DELETE SET NULL, -- Which course the student needs help with
+    LessonId UNIQUEIDENTIFIER NULL FOREIGN KEY REFERENCES dbo.Lessons(Id) ON DELETE NO ACTION, -- NO ACTION to avoid multiple cascade paths (Courses→Lessons→here)
+    ChatRoomId UNIQUEIDENTIFIER NULL FOREIGN KEY REFERENCES dbo.ChatRooms(Id) ON DELETE NO ACTION, -- NO ACTION to avoid multiple cascade paths
     Status NVARCHAR(20) NOT NULL DEFAULT 'waiting' CHECK (Status IN ('waiting', 'admitted', 'completed', 'cancelled')),
     Question NVARCHAR(500) NULL,
+    InstructorNotes NVARCHAR(1000) NULL, -- Instructor follow-up notes after session
     JoinedQueueAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
     AdmittedAt DATETIME2 NULL,
     CompletedAt DATETIME2 NULL

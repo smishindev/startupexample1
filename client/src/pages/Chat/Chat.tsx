@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import {
   Box,
   Paper,
@@ -89,6 +90,8 @@ const Chat: React.FC = () => {
   
   const { user } = useAuthStore();
   const { isMobile } = useResponsive();
+  const location = useLocation();
+  const hasAutoSelectedRef = useRef(false);
 
   // Auto-update timestamps
   useEffect(() => {
@@ -267,6 +270,17 @@ const Chat: React.FC = () => {
   useEffect(() => {
     loadRooms();
   }, []);
+
+  // Auto-select a room when navigated here with location state (e.g. from Office Hours)
+  useEffect(() => {
+    const targetRoomId = (location.state as any)?.roomId;
+    if (!targetRoomId || rooms.length === 0 || hasAutoSelectedRef.current) return;
+    const target = rooms.find(r => r.Id === targetRoomId);
+    if (target) {
+      hasAutoSelectedRef.current = true;
+      setSelectedRoom(target);
+    }
+  }, [rooms, location.state]);
 
   // Listen for conversation restoration events (when someone messages after both deleted)
   useEffect(() => {

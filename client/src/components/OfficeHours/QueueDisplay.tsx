@@ -14,13 +14,20 @@ import {
   CircularProgress,
   Chip,
   Stack,
-  Badge
+  Badge,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField
 } from '@mui/material';
 import {
   Person as PersonIcon,
   CheckCircle as CheckIcon,
   Cancel as CancelIcon,
-  AccessTime as ClockIcon
+  AccessTime as ClockIcon,
+  Chat as ChatIcon,
+  School as SchoolIcon
 } from '@mui/icons-material';
 import { toast } from 'sonner';
 import { officeHoursApi } from '../../services/officeHoursApi';
@@ -34,6 +41,7 @@ import {
   formatTime
 } from '../../types/officeHours';
 import { formatDistanceToNow } from 'date-fns';
+import { useNavigate } from 'react-router-dom';
 import { useOfficeHoursSocket } from '../../hooks/useOfficeHoursSocket.js';
 import UserPresenceBadge from '../Presence/UserPresenceBadge';
 import { presenceApi } from '../../services/presenceApi';
@@ -49,17 +57,23 @@ interface QueueDisplayProps {
 
 const QueueDisplay: React.FC<QueueDisplayProps> = ({ instructorId, isInstructor, onQueueUpdate }) => {
   const { isMobile } = useResponsive();
+  const navigate = useNavigate();
   const [queue, setQueue] = useState<QueueEntry[]>([]);
   const [stats, setStats] = useState<QueueStats>({ waiting: 0, admitted: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actioningId, setActioningId] = useState<string | null>(null);
   const [presenceMap, setPresenceMap] = useState<Record<string, PresenceStatus>>({});
-  const [, setCurrentTime] = useState(Date.now()); // Force re-render for relative time updates
+  const [, setCurrentTime] = useState(Date.now());
+  const [completeDialogOpen, setCompleteDialogOpen] = useState(false);
+  const [completingEntryId, setCompletingEntryId] = useState<string | null>(null);
+  const [instructorNotes, setInstructorNotes] = useState('');
 
   // Listen for real-time queue updates
   useOfficeHoursSocket({
     instructorId: isInstructor ? instructorId : null,
+    joinLobby: false,          // OfficeHoursPage's hook owns the lobby
+    joinInstructorRoom: false, // OfficeHoursPage's hook already joined this room
     onQueueUpdated: () => {
       loadQueue();
     },
@@ -150,8 +164,11 @@ const QueueDisplay: React.FC<QueueDisplayProps> = ({ instructorId, isInstructor,
   const handleCompleteSession = async (queueId: string) => {
     try {
       setActioningId(queueId);
-      await officeHoursApi.completeSession(queueId);
+      await officeHoursApi.completeSession(queueId, instructorNotes || undefined);
       toast.success('Session completed successfully');
+      setCompleteDialogOpen(false);
+      setCompletingEntryId(null);
+      setInstructorNotes('');
       loadQueue();
       onQueueUpdate?.();
     } catch (err: any) {
@@ -159,6 +176,12 @@ const QueueDisplay: React.FC<QueueDisplayProps> = ({ instructorId, isInstructor,
     } finally {
       setActioningId(null);
     }
+  };
+
+  const openCompleteDialog = (queueId: string) => {
+    setCompletingEntryId(queueId);
+    setInstructorNotes('');
+    setCompleteDialogOpen(true);
   };
 
   const handleCancelEntry = async (queueId: string) => {
@@ -213,6 +236,13 @@ const QueueDisplay: React.FC<QueueDisplayProps> = ({ instructorId, isInstructor,
             color="primary"
             icon={<PersonIcon />}
           />
+          {(stats.completedToday ?? 0) > 0 && (
+            <Chip
+              label={`${stats.completedToday} Completed Today`}
+              color="success"
+              icon={<CheckIcon />}
+            />
+          )}
           {stats.averageWaitTime ? (
             <Chip
               label={`Avg Wait: ${Math.round(stats.averageWaitTime)}min`}
@@ -284,6 +314,23 @@ const QueueDisplay: React.FC<QueueDisplayProps> = ({ instructorId, isInstructor,
                           </Typography>
                         </Box>
                       )}
+
+                      {/* Course & Lesson context */}
+                      {(entry.CourseName || entry.LessonTitle) && (
+                        <Stack direction="row" spacing={1} mt={1} alignItems="center" flexWrap="wrap" useFlexGap>
+                          <SchoolIcon fontSize="small" color="primary" />
+                          {entry.CourseName && (
+                            <Typography variant="body2" color="primary" fontWeight="medium">
+                              {entry.CourseName}
+                            </Typography>
+                          )}
+                          {entry.LessonTitle && (
+                            <Typography variant="body2" color="text.secondary">
+                              — {entry.LessonTitle}
+                            </Typography>
+                          )}
+                        </Stack>
+                      )}
                       
                       {entry.Question && (
                         <Box mt={1} p={1} bgcolor="grey.100" borderRadius={1}>
@@ -330,17 +377,41 @@ const QueueDisplay: React.FC<QueueDisplayProps> = ({ instructorId, isInstructor,
                           </Button>
                         )}
                         {entry.Status === QueueStatus.Admitted && (
-                          <Button
-                            size="small"
-                            variant="contained"
-                            color="success"
-                            startIcon={<CheckIcon />}
-                            onClick={() => handleCompleteSession(entry.Id)}
-                            disabled={actioningId === entry.Id}
-                            data-testid="queue-complete-button"
-                          >
-                            Complete
-                          </Button>
+                          <>
+                            {entry.ChatRoomId && (
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                startIcon={<ChatIcon />}
+                                onClick={() => navigate('/chat', { state: { roomId: entry.ChatRoomId } })}
+                                data-testid="queue-open-chat-button"
+                              >
+                                Open Chat
+                              </Button>
+                            )}
+                            {entry.MeetingUrl && (
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                href={entry.MeetingUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                Join Meeting
+                              </Button>
+                            )}
+                            <Button
+                              size="small"
+                              variant="contained"
+                              color="success"
+                              startIcon={<CheckIcon />}
+                              onClick={() => openCompleteDialog(entry.Id)}
+                              disabled={actioningId === entry.Id}
+                              data-testid="queue-complete-button"
+                            >
+                              Complete
+                            </Button>
+                          </>
                         )}
                         <Button
                           size="small"
@@ -361,6 +432,43 @@ const QueueDisplay: React.FC<QueueDisplayProps> = ({ instructorId, isInstructor,
           ))}
         </Stack>
       )}
+
+      {/* Complete Session Dialog with Notes */}
+      <Dialog
+        open={completeDialogOpen}
+        onClose={() => setCompleteDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+        fullScreen={isMobile}
+      >
+        <DialogTitle>Complete Session</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Add optional notes about this session for your records.
+          </Typography>
+          <TextField
+            fullWidth
+            multiline
+            rows={3}
+            label="Session Notes (Optional)"
+            placeholder="Topics discussed, follow-up items, student progress..."
+            value={instructorNotes}
+            onChange={(e) => setInstructorNotes(e.target.value)}
+            data-testid="complete-session-notes"
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setCompleteDialogOpen(false)}>Cancel</Button>
+          <Button
+            variant="contained"
+            color="success"
+            onClick={() => completingEntryId && handleCompleteSession(completingEntryId)}
+            disabled={actioningId !== null}
+          >
+            {actioningId ? <CircularProgress size={24} /> : 'Complete Session'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

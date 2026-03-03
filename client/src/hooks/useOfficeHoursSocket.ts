@@ -12,6 +12,13 @@ interface OfficeHoursSocketProps {
   onAdmitted?: (data: any) => void;
   onCompleted?: (data: any) => void;
   onCancelled?: (data: any) => void;
+  onScheduleChanged?: (data: any) => void;
+  /** Join the office-hours-lobby broadcast room. Default: true.
+   *  Set false for nested hook instances where the page-level hook already owns the lobby. */
+  joinLobby?: boolean;
+  /** Join the instructor-specific office-hours-{id} room. Default: true.
+   *  Set false for nested hook instances where the page-level hook already owns this room. */
+  joinInstructorRoom?: boolean;
 }
 
 /**
@@ -23,13 +30,17 @@ export const useOfficeHoursSocket = ({
   onQueueUpdated,
   onAdmitted,
   onCompleted,
-  onCancelled
+  onCancelled,
+  onScheduleChanged,
+  joinLobby = true,
+  joinInstructorRoom = true
 }: OfficeHoursSocketProps) => {
   // Use refs for stable callbacks
   const onQueueUpdatedRef = useRef(onQueueUpdated);
   const onAdmittedRef = useRef(onAdmitted);
   const onCompletedRef = useRef(onCompleted);
   const onCancelledRef = useRef(onCancelled);
+  const onScheduleChangedRef = useRef(onScheduleChanged);
 
   // Update refs when callbacks change
   useEffect(() => {
@@ -37,16 +48,27 @@ export const useOfficeHoursSocket = ({
     onAdmittedRef.current = onAdmitted;
     onCompletedRef.current = onCompleted;
     onCancelledRef.current = onCancelled;
-  }, [onQueueUpdated, onAdmitted, onCompleted, onCancelled]);
+    onScheduleChangedRef.current = onScheduleChanged;
+  }, [onQueueUpdated, onAdmitted, onCompleted, onCancelled, onScheduleChanged]);
 
   useEffect(() => {
     const socket = socketService.getSocket();
     if (!socket) return;
 
-    // Join instructor's office hours room
-    if (instructorId && socketService.isConnected()) {
-      socket.emit('join-office-hours', { instructorId });
-    }
+    // joinRooms is called immediately if already connected,
+    // and again on any future reconnect (socketService.onConnect semantics).
+    const joinRooms = () => {
+      const s = socketService.getSocket();
+      if (!s) return;
+      if (joinLobby) {
+        s.emit('join-office-hours-lobby');
+      }
+      if (joinInstructorRoom && instructorId) {
+        s.emit('join-office-hours', { instructorId });
+      }
+    };
+
+    socketService.onConnect(joinRooms);
 
     /**
      * Handle queue updated event (someone joined/left queue)
@@ -72,6 +94,8 @@ export const useOfficeHoursSocket = ({
       queueId: string;
       instructorId: string;
       admittedAt: string;
+      chatRoomId?: string;
+      meetingUrl?: string;
     }) => {
       console.log('Office Hours: Student admitted', data);
       
@@ -109,22 +133,42 @@ export const useOfficeHoursSocket = ({
       onQueueUpdatedRef.current?.(data);
     };
 
+    /**
+     * Handle schedule changed event (create/update/delete)
+     */
+    const handleScheduleChanged = (data: {
+      action: 'created' | 'updated' | 'deleted';
+      instructorId: string;
+      scheduleId: string;
+      timestamp: string;
+    }) => {
+      console.log('Office Hours: Schedule changed', data);
+      onScheduleChangedRef.current?.(data);
+    };
+
     // Register event listeners
     socket.on('queue-updated', handleQueueUpdated);
     socket.on('office-hours-admitted', handleAdmitted);
     socket.on('office-hours-completed', handleCompleted);
     socket.on('office-hours-cancelled', handleCancelled);
+    socket.on('schedule-changed', handleScheduleChanged);
 
     // Cleanup on unmount
     return () => {
-      if (instructorId) {
+      socketService.offConnect(joinRooms);
+
+      if (joinLobby) {
+        socket.emit('leave-office-hours-lobby');
+      }
+      if (joinInstructorRoom && instructorId) {
         socket.emit('leave-office-hours', { instructorId });
       }
-      
+
       socket.off('queue-updated', handleQueueUpdated);
       socket.off('office-hours-admitted', handleAdmitted);
       socket.off('office-hours-completed', handleCompleted);
       socket.off('office-hours-cancelled', handleCancelled);
+      socket.off('schedule-changed', handleScheduleChanged);
     };
   }, [instructorId]);
 };

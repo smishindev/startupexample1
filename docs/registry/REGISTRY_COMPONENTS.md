@@ -561,28 +561,57 @@ const handleJoin = async (scheduleId: string) => {
 - `session-completed` - Session completed (student receives notification)
 - `queue-cancelled` - Entry cancelled (student receives notification)
 - `position-updated` - Queue position changed
+- `schedule-changed` - Schedule created/updated/deleted (March 3, 2026); triggers `onScheduleChanged` callback
+
+**Options** (March 3, 2026):
+- `joinLobby?: boolean` (default `true`) — Whether this hook instance joins/leaves `office-hours-lobby`. Set `false` on child components (`StudentQueueJoin`, `QueueDisplay`) to prevent double-join/leave conflicts; `OfficeHoursPage` owns the lobby.
+- `joinInstructorRoom?: boolean` (default `true`) — Whether this hook instance joins the `office-hours-${instructorId}` room. Set `false` on `QueueDisplay` (page-level hook owns it).
+
+**Room Join Pattern** (March 3, 2026):
+- Uses `socketService.onConnect(joinRooms)` — fires immediately if connected **and** on reconnect (replaces the old one-shot `isConnected()` guard)
+- Cleanup: `socketService.offConnect(joinRooms)` + `leaveRooms()`
 
 **Usage**:
 ```typescript
+// OfficeHoursPage.tsx — owns both rooms
 const { connected } = useOfficeHoursSocket({
   onQueueUpdated: () => refreshQueue(),
+  onScheduleChanged: () => setRefreshKey(k => k + 1),  // NEW
   onAdmitted: () => refreshStatus(),
   onCompleted: () => refreshStatus(),
   onCancelled: () => refreshStatus(),
+  // joinLobby: true (default)
+  // joinInstructorRoom: true (default)
+});
+
+// StudentQueueJoin.tsx — does NOT own lobby
+useOfficeHoursSocket({
+  onAdmitted: () => refreshStatus(),
+  joinLobby: false,          // page owns lobby
+});
+
+// QueueDisplay.tsx — does NOT own either room
+useOfficeHoursSocket({
+  onQueueUpdated: () => refreshQueue(),
+  joinLobby: false,          // page owns lobby
+  joinInstructorRoom: false, // page owns instructor room
 });
 ```
 
 **Key Features**:
 - Automatic Socket.IO connection via socketService
+- Reconnect-safe room joins via `socketService.onConnect()`
+- Socket ownership model prevents double-join/leave conflicts in multi-hook scenarios
 - No duplicate toast notifications (bell handles notifications)
 - Cleanup on unmount
 
 **Common Issues**:
 - **Duplicate toasts**: Ensure only ONE instance per page
-- **Events not firing**: Check Socket.IO connection status
+- **Events not firing**: Check Socket.IO connection status; ensure `joinLobby`/`joinInstructorRoom` ownership is correct
 - **Memory leaks**: Verify cleanup in useEffect return
+- **Room leaves on tab switch**: Use `joinLobby: false` / `joinInstructorRoom: false` on child components
 
-**Last Modified**: Dec 2, 2025 - Removed duplicate toasts, production ready
+**Last Modified**: March 3, 2026 — Added `onScheduleChanged`, `joinLobby`, `joinInstructorRoom` options; `socketService.onConnect()` reconnect-safe pattern
 
 ---
 

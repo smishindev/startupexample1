@@ -1,6 +1,6 @@
 ﻿# 🚀 Quick Reference - Development Workflow
 
-**Last Updated**: March 5, 2026 - Admin Dashboard complete (5 phases, 22 backend routes, 5 admin pages, seed users, `[rowCount]` SQL reserved-word fix); Instructor Publish button added; 3 admin page responsive fixes 🏢
+**Last Updated**: March 5, 2026 - Instructor Revenue Dashboard complete (4 backend routes, `InstructorRevenueService.ts`, `InstructorRevenueDashboard.tsx` ~1000 lines, stat cards 1/row mobile); Admin Dashboard complete (5 phases, 22 backend routes, 5 admin pages, seed users, `[rowCount]` SQL reserved-word fix); Instructor Publish button added; 3 admin page responsive fixes 💰🏢
 
 ---
 
@@ -2449,6 +2449,81 @@ Admin tables use progressive column hiding:
 -- Instructor: s.mishin.dev+ins1@gmail.com / password: ins1 (Role = 'instructor')
 -- Student: s.mishin.dev+student1@gmail.com / password: student1 (Role = 'student')
 -- All: EmailVerified = 1, IsActive = 1, inserted only IF NOT EXISTS
+```
+
+---
+
+## 💰 Instructor Revenue Dashboard (March 5, 2026)
+
+### Access
+- **Route**: `/instructor/revenue` — `<ProtectedRoute requireRole="instructor">`
+- **Nav**: Instructor navigation group (Revenue item, AttachMoney icon)
+
+### Backend Endpoints (`server/src/routes/instructorRevenue.ts`)
+**Auth**: `authenticateToken, authorize(['instructor', 'admin'])` on all routes  
+**Service**: `server/src/services/InstructorRevenueService.ts` (~280 lines)
+
+> ⚠️ **Mount order**: `/api/instructor/revenue` MUST be mounted BEFORE `/api/instructor` in `server/src/index.ts` — the more-specific path must come first, otherwise Express’s prefix matching swallows the deeper route.
+
+```
+GET /api/instructor/revenue/metrics       → totalRevenue, monthlyRevenue, avgOrderValue, refundTotal, refundCount, totalTransactions
+GET /api/instructor/revenue/monthly       → 12-month array { month, revenue, count }
+GET /api/instructor/revenue/courses       → per-course { courseId, title, revenue, transactionCount, refundCount }
+GET /api/instructor/revenue/transactions  → paginated { transactions[], total, page, limit }
+                                            Filters: search, status, courseId, sortBy, sortOrder
+```
+
+### SQL Patterns Used
+```sql
+-- Monthly revenue: CTE Months ensures all 12 months appear even with gaps
+WITH Months AS (
+  SELECT DATEADD(month, -n, GETUTCDATE()) AS MonthStart FROM ...
+)
+SELECT m.Month, ISNULL(SUM(t.Amount), 0)
+FROM Months m
+LEFT JOIN (
+  SELECT ... FROM Transactions t
+  INNER JOIN Courses c ON t.CourseId = c.Id
+  WHERE c.InstructorId = @instructorId AND t.Status = 'completed'
+  -- !→ pre-filter in subquery, NOT outer WHERE, to preserve 0-revenue months
+) sub ON ...
+```
+
+### Frontend Service (`client/src/services/instructorRevenueApi.ts`)
+Same pattern as `analyticsApi.ts` — env-aware URL, auth interceptor, 401 interceptor.
+```typescript
+// Interfaces exported:
+// InstructorRevenueMetrics, InstructorMonthlyRevenue, InstructorCourseRevenue,
+// InstructorTransaction, InstructorTransactionFilters, PaginatedInstructorTransactions
+
+// Methods:
+instructorRevenueApi.getMetrics()
+instructorRevenueApi.getMonthlyRevenue()
+instructorRevenueApi.getCourseRevenue()
+instructorRevenueApi.getTransactions(filters?: InstructorTransactionFilters)
+
+// Numeric param guard — use != null, not truthy check:
+// if (filters?.page != null) params.append('page', ...)
+// Reason: if (filters?.page) is falsy for page=0 and evaluates 1 differently
+```
+
+### InstructorRevenueDashboard.tsx Key Patterns
+```tsx
+// Stat cards: 1-per-row mobile, 2-per-row sm, 4-per-row lg+
+<Grid item xs={12} sm={6} lg={3}>
+
+// Course Performance section: client-side search + pagination
+const filteredCourseRevenue = useMemo(() =>
+  courseRevenue.filter(c => c.title.toLowerCase().includes(courseSearch.toLowerCase())),
+  [courseRevenue, courseSearch]
+);
+const courseTotalPages = Math.ceil(filteredCourseRevenue.length / courseLimit); // courseLimit=10
+const paginatedCourseRevenue = filteredCourseRevenue.slice(
+  (coursePage - 1) * courseLimit,
+  coursePage * courseLimit
+);
+// Reset page on search change:
+const handleCourseSearch = (v: string) => { setCourseSearch(v); setCoursePage(1); };
 ```
 
 ---

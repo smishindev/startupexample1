@@ -4,7 +4,7 @@
 
 An innovative EdTech startup providing personalized learning experiences through AI tutoring, adaptive content delivery, and comprehensive progress analytics.
 
-**Last Major Update**: March 5, 2026 - Admin Dashboard 5 phases complete — `AdminService.ts` (1650+ lines), 5 admin pages, full audit, responsive fixes, seed users 🏢  
+**Last Major Update**: March 5, 2026 - Instructor Revenue Dashboard complete — `InstructorRevenueService.ts`, 4 backend routes, `InstructorRevenueDashboard.tsx` (~1000 lines), stat cards 1/row mobile, course search+pagination, transaction table filters 💰  
 **Code Quality**: Grade A (95/100) - 85% type safety, 70% logging coverage, 0 TypeScript errors
 
 ## 🚀 Features
@@ -27,6 +27,15 @@ An innovative EdTech startup providing personalized learning experiences through
   - **Bug Fixes**: Regex global flag drift, DOM prop warnings, modulo-by-zero crashes, stale debounce cleanup
 - **Sticky PageHeader UX Fix** — Removed sticky `PageHeader` component from InstructorDashboard and CourseAnalyticsDashboard; both now use inline `PageTitle` (non-sticky, scrolls with content — consistent with all 71 other pages); reclaims ~100px of fixed mobile screen space; `PageHeader.tsx` deleted (February 26, 2026) 🎨
 - **Content Item Custom Titles** — Instructors can rename auto-generated lesson content titles (Video #1, Text/Article #2, Quiz #3) via inline pencil-icon click-to-edit in LessonEditor and optional title field in CourseCreationForm; stored in `ContentJson.data.title`; student views display custom title with graceful fallback; no DB migration needed (February 28, 2026) ✏️
+- **Instructor Revenue Dashboard** — Full instructor earnings page at `/instructor/revenue` (March 5, 2026) 💰
+  - **Stat Cards** (4): Total Earnings, This Month, Avg Transaction, Total Sales — 1-per-row on mobile
+  - **Monthly Revenue Chart**: 12-month bar chart (Recharts), SQL CTE ensures all months appear even with no revenue
+  - **Course Revenue Pie**: Top 10 courses by revenue (Recharts PieChart)
+  - **Course Performance Table**: Client-side search + 10/page pagination; empty state; count in header
+  - **Transactions Table**: Search + Status filter + Course filter + Sort (date/amount/status/student/course) + direction toggle; mobile card list ↔ desktop table; detail dialog
+  - **Backend**: `server/src/services/InstructorRevenueService.ts` (~280 lines), 4 routes in `server/src/routes/instructorRevenue.ts`
+  - **Frontend**: `client/src/services/instructorRevenueApi.ts` + `client/src/pages/Instructor/InstructorRevenueDashboard.tsx`
+  - **Auth**: `authenticateToken, authorize(['instructor', 'admin'])` on all 4 endpoints
 - **Admin Dashboard (5 Phases)** — Full platform governance for admins (March 5, 2026) 🏢
   - **Phase 1 — Dashboard Overview**: 4 stat cards (users, courses, enrollments, revenue), 30-day user/enrollment growth chart, recent activity feed, monthly revenue summary
   - **Phase 2 — User Management**: Paginated user list with search/role/status filters; change role (student ↔ instructor ↔ admin); activate/deactivate; trigger password reset; full user detail dialog (stats, courses, transactions)

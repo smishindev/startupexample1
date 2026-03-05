@@ -1,6 +1,6 @@
 # Mishin Learn Platform - System Architecture
 
-**Last Updated**: March 5, 2026 - Admin Dashboard 5 phases complete — 22 admin routes, `AdminService.ts` (1650+ lines), 5 admin pages, seed users in schema.sql 🏢  
+**Last Updated**: March 5, 2026 - Instructor Revenue Dashboard complete — `InstructorRevenueService.ts`, 4 routes at `/api/instructor/revenue`, `instructorRevenueApi.ts`, `InstructorRevenueDashboard.tsx` (~1000 lines); Admin Dashboard 5 phases complete — 22 admin routes, `AdminService.ts` (1650+ lines), 5 admin pages, seed users in schema.sql 💰🏢  
 **Purpose**: Understanding system components, data flows, and dependencies
 
 ---
@@ -99,6 +99,37 @@ POST /api/admin/promote-to-instructor    → Promote user to instructor
 ```
 
 **Critical SQL note**: `rowCount` is a reserved keyword in SQL Server. Use `[rowCount]` with brackets when aliasing.
+
+### Instructor Revenue Dashboard (Added March 5, 2026)
+
+**Route file**: `server/src/routes/instructorRevenue.ts`  
+**Service**: `server/src/services/InstructorRevenueService.ts` (~280 lines)  
+**Auth**: All routes require `authenticateToken, authorize(['instructor', 'admin'])`  
+**Frontend service**: `client/src/services/instructorRevenueApi.ts`  
+**Frontend page**: `client/src/pages/Instructor/InstructorRevenueDashboard.tsx` (~1000 lines)
+
+```
+GET /api/instructor/revenue/metrics       → totalRevenue, monthlyRevenue, avgOrderValue, refundTotal, refundCount, totalTransactions
+GET /api/instructor/revenue/monthly       → 12-month bar-chart data
+                                            CTE Months 0–11 + pre-filter subquery
+                                            WHERE c.InstructorId = @id AND t.Status = 'completed'
+GET /api/instructor/revenue/courses       → Per-course revenue, enrollment count, refund count
+                                            Grouped by CourseId, WHERE c.Status != 'deleted'
+GET /api/instructor/revenue/transactions  → Paginated transactions (page, limit, search, status, courseId, sortBy, sortOrder)
+                                            Whitelist sort map, separate COUNT request
+```
+
+**Mount order critical**: `/api/instructor/revenue` mounted **before** `/api/instructor` in `server/src/index.ts` (more-specific first — avoids prefix swallowing).
+
+**Instructor Revenue Dashboard** (`/instructor/revenue`):
+```
+client/src/pages/Instructor/InstructorRevenueDashboard.tsx
+  │  Stat cards (4): xs={12} sm={6} lg={3} — 1-per-row mobile
+  │  Monthly Revenue: Recharts BarChart, 12 months
+  │  Course Revenue: Recharts PieChart, top 10 courses
+  │  Course Performance table: search + 10/page pagination
+  └  Transactions table: search, status, course, sort, 20/page; mobile card ↔ desktop table
+```
 
 ### Analytics Hub (Audited & Hardened Feb 18, 2026)
 

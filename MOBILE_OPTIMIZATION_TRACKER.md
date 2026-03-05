@@ -2,7 +2,7 @@
 
 **Created**: February 19, 2026  
 **Last Updated**: March 5, 2026  
-**Status**: Phases 0–19 Complete + PageHeader UX Fix + MobileNavDrawer Active-State Fix + Post-Audit Bug Fixes + Admin Dashboard Pages — 78/78 pages (73 original + 5 admin) + 79+ component/theme fixes — ALL PHASES COMPLETE ✅  
+**Status**: Phases 0–19 Complete + PageHeader UX Fix + MobileNavDrawer Active-State Fix + Post-Audit Bug Fixes + Admin Dashboard Pages + Instructor Revenue Dashboard — 79/79 pages (73 original + 5 admin + 1 instructor revenue) + 79+ component/theme fixes — ALL PHASES COMPLETE ✅  
 **Goal**: Make every page fully responsive and mobile-optimized across the Mishin Learn Platform
 
 ---
@@ -583,3 +583,4 @@ All 4 legacy pages confirmed dead (0 imports in App.tsx) and **permanently delet
 *This document is the single source of truth for mobile optimization progress. Update after each session.*
 
 | 30 | Mar 5, 2026 | **Admin Dashboard — 5 pages responsive**: All 5 new admin pages built with responsive design. Three required post-build responsive fixes: (1) `AdminDashboard.tsx` stat cards `md={3}` → `md={6} lg={3}` (2-per-row on tablet, 4 on desktop) + bottom row cards same fix. (2) `AdminCourseManagement.tsx` table columns progressively hidden: Instructor+Level at `lg`, Category+Updated at `xl`; also fixed `<Chip>` inside `<DialogContentText>` (`<div>` inside `<p>` DOM nesting) → changed to `<Typography component="div">`. (3) `AdminRevenueDashboard.tsx` stat cards same `md={6} lg={3}` fix; table columns: Transaction ID+User hidden at `lg`, Payment at `xl`. Admin pages: `AdminDashboard`, `AdminUserManagement`, `AdminCourseManagement`, `AdminRevenueDashboard`, `AdminReportsPage`. 0 TypeScript errors. | 5 pages (Admin Phase), cumulative 78/78 |
+| 31 | Mar 5, 2026 | **Instructor Revenue Dashboard — built responsive from the start**: `InstructorRevenueDashboard.tsx` (~1000 lines) built with full mobile optimization. Key patterns: (1) Stat cards `xs={12} sm={6} lg={3}` — 1-per-row on mobile (375px), 2×2 on sm/md, 4-in-a-row on lg+. (2) Transaction table uses mobile card list / desktop `<Table>` pattern with `isMobile` toggle (same pattern as TransactionsPage). (3) `Student` column hidden `display:{xs:'none',lg:'table-cell'}`; `Payment` column hidden at `xl`. (4) Course Performance section: search TextField (full-width mobile / 240px desktop) + 10/page `<Pagination size={isMobile?'small':'medium'} siblingCount={isMobile?0:1}>`. (5) Detail dialog `fullScreen={isMobile}`. (6) All currency numbers use responsive `fontSize:{xs:'1.5rem',sm:'2.125rem'}` on h4 stat cards. 0 TypeScript errors. | 1 page, cumulative 79/79 |

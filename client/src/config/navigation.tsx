@@ -16,6 +16,7 @@ import {
   Chat as ChatIcon,
   People as PeopleIcon,
   Analytics as AnalyticsIcon,
+  AttachMoney as MoneyIcon,
   AccountCircle as ProfileIcon,
   EmojiEvents as CertificatesIcon,
   Receipt as TransactionsIcon,
@@ -158,6 +159,14 @@ export const navGroups: NavGroup[] = [
         icon: <SchoolIcon />,
         description: 'Manage your courses',
         testId: 'header-nav-instructor-dashboard',
+      },
+      {
+        id: 'instructor-revenue',
+        label: 'Revenue',
+        path: '/instructor/revenue',
+        icon: <MoneyIcon />,
+        description: 'Earnings & transactions',
+        testId: 'header-nav-instructor-revenue',
       },
       {
         id: 'analytics-hub',

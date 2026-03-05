@@ -1,6 +1,6 @@
 ﻿# Mishin Learn Platform - Project Status & Memory
 
-**Last Updated**: March 5, 2026 - Admin Dashboard 5 phases complete — `AdminService.ts` (1650+ lines), 5 admin pages (Dashboard / User Mgmt / Course Mgmt / Revenue / Reports), full 3-round audit (0 issues), 3 responsive fixes, seed users in schema.sql, `rowCount` SQL reserved-word bug fixed, instructor Publish button added to `CourseEditPage` 🏢  
+**Last Updated**: March 5, 2026 - Instructor Revenue Dashboard complete — `InstructorRevenueService.ts`, 4 backend routes, `instructorRevenueApi.ts`, `InstructorRevenueDashboard.tsx` (~1000 lines); stat cards 1-per-row on mobile; Course Performance search + 10/page pagination 💰  
 **Developer**: Sergey Mishin (s.mishin.dev@gmail.com)  
 **AI Assistant Context**: This file serves as project memory for continuity across chat sessions
 
@@ -29,6 +29,7 @@
 **Mobile Optimization Phase 19**: Responsive Typography, Stat Cards, Icons & Final Sweep — 23 files fixed (responsive h3/h4 stat numbers, stat card `xs={6}` grids, table column hiding, large icon sizing, dialog fullScreen, CourseSelector minWidth, export table overflow); final 3-pass scan confirmed 0 remaining issues across all 8 pattern categories (February 28, 2026) 📱  
 **MobileNavDrawer Active-State UX Fix**: Drawer now auto-expands the accordion group containing the current page when reopened; active item scrolled into view after Collapse animation (350ms delay); accordion state resets cleanly on each open (only `learning` default + active group); scroll guarded by `shouldScrollRef` — fires only on drawer open, not on manual accordion toggle; removed unused `scrollContainerRef`; removed `unmountOnExit` from `Collapse` so ref is available for scroll; 0 TypeScript errors (March 1, 2026) 📱  
 **Mobile Post-Audit Bug Fixes**: 3-round exhaustive audit of 20 session-modified files — 3 bugs found &amp; fixed: `CourseAssessmentManagementPage` summary cards `xs={4}`→`xs={12} sm={4}`, `CourseAnalyticsDashboard` `CourseView` static `window.matchMedia` → reactive `useMediaQuery`+`useTheme`, `CourseCreationForm` 3× deprecated `onKeyPress` → `onKeyDown`; Round 3 confirmed all 20 files clean (March 5, 2026) 🔍  
+**Instructor Revenue Dashboard**: Full instructor-scoped earnings view — `InstructorRevenueService.ts`, 4 GET routes at `/api/instructor/revenue`, `instructorRevenueApi.ts` client, `InstructorRevenueDashboard.tsx` (~1000 lines); stat cards, monthly bar chart, course pie chart, course performance table (search + 10/page pagination), paginated transaction table (search/status/course/sort filters), detail dialog; stat cards `xs={12} sm={6} lg={3}` (1-per-row mobile); SQL CTE fix for monthly revenue; route mount order fixed in `server/src/index.ts` (March 5, 2026) 💰  
 **Admin Dashboard (5 Phases)**: Full platform governance — `AdminService.ts` (1650+ lines), 5 admin pages (Dashboard, User Management, Course Management, Revenue, Reports), full cross-phase audit (3 rounds, 0 issues), 3 responsive fixes, seed users added to `schema.sql`, system health SQL reserved-word fix (`rowCount` → `[rowCount]`), instructor Publish button added to `CourseEditPage.tsx` (March 5, 2026) 🏢  
 **Auth Bug Fixes**: `logout()` clears state immediately; `type="button"` on nav-links inside forms; all 401 interceptors unified; stale-state guard in App.tsx (February 21, 2026) 🔐  
 **Theme Token System**: Centralised design tokens in `theme/index.ts` (colors, shadows, radii, extended palette). `tokens.ts` with 18 reusable `sx` fragments. 3-round exhaustive bug audit — all bugs fixed, 0 TypeScript errors (February 21, 2026) 🎨
@@ -116,7 +117,64 @@ Added to `client/src/pages/Instructor/CourseEditPage.tsx`:
 
 ---
 
-## 🔍 MOBILE POST-AUDIT BUG FIXES (March 5, 2026)
+## � INSTRUCTOR REVENUE DASHBOARD (March 5, 2026)
+
+**Activity**: Implemented the full Instructor Revenue Dashboard — item #2 from `MISSING_FEATURES_ANALYSIS.md`. Instructors now have a dedicated earnings page at `/instructor/revenue` with charts, course-level metrics, and a filterable transaction table.
+
+**Status**: **Complete** — 5 new files, 2 modified files, 0 TypeScript errors
+
+### New Files
+
+| File | Purpose |
+|------|----------|
+| `server/src/services/InstructorRevenueService.ts` (~280 lines) | Instructor-scoped SQL revenue queries (metrics, monthly, courses, transactions) |
+| `server/src/routes/instructorRevenue.ts` | 4 GET endpoints mounted at `/api/instructor/revenue` |
+| `client/src/services/instructorRevenueApi.ts` | Frontend API client — axios + auth + 401 interceptors, TypeScript interfaces |
+| `client/src/pages/Instructor/InstructorRevenueDashboard.tsx` (~1000 lines) | Full instructor revenue page |
+
+### Modified Files
+
+| File | Change |
+|------|--------|
+| `server/src/index.ts` | Mounted `/api/instructor/revenue` **before** `/api/instructor` (more-specific route first) |
+| `client/src/App.tsx` | Added `/instructor/revenue` route with `ProtectedRoute requireRole="instructor"` |
+| `client/src/config/navigation.tsx` | Added `instructor-revenue` nav item (Revenue, AttachMoney icon) to instructor group |
+
+### Backend Route Endpoints (`/api/instructor/revenue`)
+
+```
+GET /metrics      → totalRevenue, monthlyRevenue, avgOrderValue, refundTotal, refundCount, totalTransactions
+GET /monthly      → 12 months bar chart data (CTE Months + subquery pre-filter)
+GET /courses      → per-course revenue, enrollment count, refund count
+GET /transactions → paginated (page, limit, search, status, courseId, sortBy, sortOrder)
+```
+
+**Auth**: All 4 routes require `authenticateToken, authorize(['instructor', 'admin'])`
+
+### Frontend Page Features
+
+- **Stat Cards** (4): Total Earnings, This Month, Avg Transaction, Total Sales — `xs={12} sm={6} lg={3}` (1-per-row mobile)
+- **Monthly Revenue Chart**: Bar chart (Recharts) — last 12 months
+- **Course Revenue Pie**: Top 10 courses by revenue
+- **Course Performance Table**: Search field + 10/page pagination + empty state
+- **Transaction Table**: Search + Status filter + Course filter + Sort (date/amount/status/student/course) + direction toggle + 20/page pagination
+- **Mobile Pattern**: Card list (tappable) vs desktop Table; `Student` column hidden `<lg`, `Payment` hidden `<xl`
+- **Detail Dialog**: `fullScreen={isMobile}`, transaction detail view
+
+### Bugs Fixed During Review
+
+| Bug | Root Cause | Fix |
+|-----|-----------|-----|
+| Monthly revenue dropped months | Broken LEFT JOIN could eliminate months with no instructor transactions | Replaced with CTE Months + pre-filter subquery `WHERE c.InstructorId = @id AND t.Status = 'completed'` |
+| Route prefix conflict | `/api/instructor` mounted before `/api/instructor/revenue` — prefix swallowed more-specific path | Swapped mount order in `server/src/index.ts` |
+| Dead IS NULL on NOT NULL column | `c.Status IS NULL OR c.Status != 'deleted'` — IS NULL check on a NOT NULL column | Removed dead `c.Status IS NULL OR` branch |
+| Numeric param falsy check | `if (filters?.page)` evaluates `0` and `1` both as falsy at different points | Changed to `if (filters?.page != null)` |
+| Missing sort options | Front-end dropdown listed Student/Course sort options not mapped in backend | Added `student` and `course` to backend whitelist sort map |
+| Course filter not in summary | Active course name missing from results summary text | Added course name to summary stats string |
+
+---
+
+## �🔍 MOBILE POST-AUDIT BUG FIXES (March 5, 2026)
 
 **Activity**: Exhaustive 3-round line-by-line audit of all 20 session-modified files. Rounds 1–2 found and fixed 3 bugs. Round 3 confirmed all files clean.
 

@@ -46,6 +46,7 @@ import { AnalyticsHubPage } from './pages/Instructor/AnalyticsHubPage';
 import { VideoAnalyticsPage } from './pages/Instructor/VideoAnalyticsPage';
 import { InterventionDashboard } from './pages/Instructor/InterventionDashboard';
 import { InstructorStudentAnalytics } from './pages/Instructor/InstructorStudentAnalytics';
+import { InstructorRevenueDashboard } from './pages/Instructor/InstructorRevenueDashboard';
 import LandingPage from './pages/Landing/LandingPage';
 import MyLearningPage from './pages/Learning/MyLearningPage';
 import NotificationsPage from './pages/Notifications/NotificationsPage';
@@ -502,6 +503,15 @@ function App() {
           element={
             <ProtectedRoute requireRole="instructor">
               <InstructorDashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/instructor/revenue"
+          element={
+            <ProtectedRoute requireRole="instructor">
+              <InstructorRevenueDashboard />
             </ProtectedRoute>
           }
         />

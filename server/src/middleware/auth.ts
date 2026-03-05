@@ -253,7 +253,8 @@ export const authorize = (roles: string[]) => {
       return;
     }
 
-    if (!roles.includes(req.user.role)) {
+    // Admin role is a super-user — allowed through all role checks
+    if (!roles.includes(req.user.role) && req.user.role !== 'admin') {
       res.status(403).json({
         success: false,
         error: {

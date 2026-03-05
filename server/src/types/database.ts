@@ -390,3 +390,296 @@ export interface InterventionCheckDetails {
   assessmentDeadlines: number;
   achievements: number;
 }
+
+// ===================================
+// Admin Dashboard
+// ===================================
+
+export interface PlatformStats {
+  totalUsers: number;
+  totalInstructors: number;
+  totalStudents: number;
+  totalCourses: number;
+  publishedCourses: number;
+  draftCourses: number;
+  totalEnrollments: number;
+  activeEnrollments: number;
+  completedEnrollments: number;
+  totalRevenue: number;
+  totalRefunds: number;
+}
+
+export interface GrowthDataPoint {
+  date: string;
+  newUsers: number;
+  newEnrollments: number;
+}
+
+export interface RevenueMetrics {
+  totalRevenue: number;
+  monthlyRevenue: number;
+  averageOrderValue: number;
+  refundTotal: number;
+  refundCount: number;
+}
+
+export interface MonthlyRevenuePoint {
+  month: string;
+  revenue: number;
+  count: number;
+}
+
+export interface RecentActivityItem {
+  id: string;
+  type: 'signup' | 'enrollment' | 'payment' | 'course_published' | 'refund';
+  description: string;
+  userName: string;
+  timestamp: string;
+  metadata: string | null;
+}
+
+export interface TopCourse {
+  courseId: string;
+  title: string;
+  instructorName: string;
+  enrollmentCount: number;
+  revenue: number;
+}
+
+// ===================================
+// Admin User Management (Phase 2)
+// ===================================
+
+export interface AdminUser {
+  id: string;
+  email: string;
+  username: string;
+  firstName: string;
+  lastName: string;
+  avatar: string | null;
+  role: string;
+  isActive: boolean;
+  emailVerified: boolean;
+  createdAt: string;
+  lastLoginAt: string | null;
+  enrollmentCount: number;
+  totalSpent: number;
+}
+
+export interface AdminUserDetail extends Omit<AdminUser, 'enrollmentCount' | 'totalSpent'> {
+  stats: {
+    enrollmentCount: number;
+    completedCourses: number;
+    totalSpent: number;
+    totalRefunds: number;
+    coursesCreated: number;
+  };
+  enrollments: Array<{
+    courseId: string;
+    courseTitle: string;
+    enrolledAt: string;
+    status: string;
+  }>;
+  recentTransactions: Array<{
+    id: string;
+    courseTitle: string;
+    amount: number;
+    status: string;
+    createdAt: string;
+  }>;
+}
+
+export interface PaginatedUsers {
+  users: AdminUser[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+  };
+}
+
+// ===================================
+// Admin Course Management (Phase 3)
+// ===================================
+
+export interface AdminCourse {
+  id: string;
+  title: string;
+  thumbnail: string | null;
+  instructorId: string | null;
+  instructorName: string;
+  category: string;
+  level: string;
+  price: number;
+  rating: number;
+  ratingCount: number;
+  enrollmentCount: number;
+  lessonCount: number;
+  status: string;
+  visibility: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdminCourseDetail extends Omit<AdminCourse, 'lessonCount'> {
+  description: string;
+  instructorEmail: string;
+  duration: number;
+  stats: {
+    lessonCount: number;
+    activeStudents: number;
+    completedStudents: number;
+    totalRevenue: number;
+    avgRating: number;
+  };
+  lessons: Array<{
+    id: string;
+    title: string;
+    orderIndex: number;
+    duration: number;
+  }>;
+  recentEnrollments: Array<{
+    userId: string;
+    userName: string;
+    enrolledAt: string;
+    status: string;
+  }>;
+}
+
+export interface PaginatedCourses {
+  courses: AdminCourse[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+  };
+}
+
+// Admin Revenue & Transactions (Phase 4)
+// ========================================
+
+export interface AdminTransaction {
+  id: string;
+  userId: string;
+  userName: string;
+  userEmail: string;
+  courseId: string;
+  courseTitle: string;
+  amount: number;
+  currency: string;
+  status: string;
+  paymentMethod: string;
+  paymentMethodLast4: string | null;
+  paymentMethodBrand: string | null;
+  refundAmount: number | null;
+  createdAt: string;
+  completedAt: string | null;
+  refundedAt: string | null;
+}
+
+export interface AdminTransactionDetail extends AdminTransaction {
+  courseCategory: string;
+  instructorName: string;
+  stripePaymentIntentId: string | null;
+  stripeChargeId: string | null;
+  refundReason: string | null;
+  updatedAt: string;
+  invoice: {
+    id: string;
+    invoiceNumber: string;
+    amount: number;
+    taxAmount: number;
+    totalAmount: number;
+  } | null;
+}
+
+export interface PaginatedTransactions {
+  transactions: AdminTransaction[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+  };
+}
+
+export interface RevenueBreakdown {
+  byCategory: Array<{ category: string; revenue: number; count: number }>;
+  topInstructors: Array<{ instructorId: string; instructorName: string; revenue: number; transactionCount: number }>;
+  refundSummary: { totalRefunds: number; refundCount: number; avgRefund: number };
+  dailyRevenue: Array<{ date: string; revenue: number; count: number }>;
+}
+
+// Admin Reports & System Health (Phase 5)
+// ========================================
+
+export interface SystemHealth {
+  database: { status: string; timestamp: string };
+  tables: Array<{ name: string; rowCount: number }>;
+  recentActivity: {
+    lastSignup: string | null;
+    lastEnrollment: string | null;
+    lastTransaction: string | null;
+    lastLogin: string | null;
+  };
+  userSummary: {
+    totalActive: number;
+    totalInactive: number;
+    loggedInToday: number;
+    loggedInThisWeek: number;
+  };
+}
+
+export interface AuditLogEntry {
+  id: string;
+  type: 'account_deletion' | 'course_ownership';
+  description: string;
+  details: string;
+  timestamp: string;
+}
+
+export interface PaginatedAuditLog {
+  entries: AuditLogEntry[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+  };
+}
+
+export interface PopularCourse {
+  id: string;
+  title: string;
+  category: string;
+  instructorName: string;
+  status: string;
+  enrollmentCount: number;
+  rating: number;
+  ratingCount: number;
+  revenue: number;
+  createdAt: string;
+}
+
+export interface InstructorLeaderboardEntry {
+  id: string;
+  name: string;
+  email: string;
+  totalCourses: number;
+  publishedCourses: number;
+  totalStudents: number;
+  totalRevenue: number;
+  avgRating: number;
+  totalRatings: number;
+  joinedAt: string;
+}

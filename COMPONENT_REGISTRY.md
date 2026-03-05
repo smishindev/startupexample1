@@ -1,6 +1,6 @@
 ﻿# Mishin Learn Platform - Component Registry
 
-**Last Updated**: February 28, 2026 - Reorganized into split files for manageability
+**Last Updated**: March 5, 2026 - Admin Dashboard 5 phases added (5 admin pages + adminApi.ts + AdminService.ts)
 **Purpose**: Quick reference for all major components, their dependencies, and relationships
 
 ---
@@ -53,6 +53,7 @@ Route-level page components:
   - CourseDetailPage, CoursesPage
   - LessonDetailPage + Lesson Content Item Renderers (Feb 28, 2026)
   - InstructorDashboard, CourseAnalyticsDashboard, CoursePerformanceTable
+  - **Admin Pages** (March 5, 2026): AdminDashboard, AdminUserManagement + AdminUserDetailDialog, AdminCourseManagement + AdminCourseDetailDialog, AdminRevenueDashboard, AdminReportsPage — all in `client/src/pages/Admin/`
 
 ### [REGISTRY_COMPONENTS.md](docs/registry/REGISTRY_COMPONENTS.md) (~1,850 lines)
 Shared components, services, hooks, and utilities:

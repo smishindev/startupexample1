@@ -752,6 +752,7 @@ get_errors(filePaths=["path/to/modified/file.tsx"])
 1. Check `database/schema.sql` for column names
 2. Grep for all queries using that table
 3. Verify column names are PascalCase
+4. **Avoid SQL Server reserved keywords as aliases** — e.g. `rowCount`, `value`, `key`, `type` must be wrapped in brackets: `AS [rowCount]`. Unbracketed reserved words cause `"Incorrect syntax near the keyword"` 500 errors.
 
 ### Before Reporting "Done":
 1. Run `get_errors()` - should return 0 errors

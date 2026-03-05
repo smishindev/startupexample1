@@ -72,6 +72,13 @@ import { StudentProgressPage } from './pages/Progress/StudentProgressPage';
 import Chat from './pages/Chat/Chat';
 import Tutoring from './pages/Tutoring/Tutoring';
 
+// Admin Pages
+import { AdminDashboard } from './pages/Admin/AdminDashboard';
+import { AdminUserManagement } from './pages/Admin/AdminUserManagement';
+import { AdminCourseManagement } from './pages/Admin/AdminCourseManagement';
+import { AdminRevenueDashboard } from './pages/Admin/AdminRevenueDashboard';
+import { AdminReportsPage } from './pages/Admin/AdminReportsPage';
+
 // Demo Components
 import { ContentUploadDemo } from './components/Demo/ContentUploadDemo';
 
@@ -631,6 +638,49 @@ function App() {
           element={
             <ProtectedRoute requireRole="instructor">
               <InstructorStudentAnalytics />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Admin Routes */}
+        <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
+        <Route
+          path="/admin/dashboard"
+          element={
+            <ProtectedRoute requireRole="admin">
+              <AdminDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/users"
+          element={
+            <ProtectedRoute requireRole="admin">
+              <AdminUserManagement />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/courses"
+          element={
+            <ProtectedRoute requireRole="admin">
+              <AdminCourseManagement />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/revenue"
+          element={
+            <ProtectedRoute requireRole="admin">
+              <AdminRevenueDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/reports"
+          element={
+            <ProtectedRoute requireRole="admin">
+              <AdminReportsPage />
             </ProtectedRoute>
           }
         />

@@ -1533,6 +1533,89 @@ VALUES (
 );
 
 -- ========================================
+-- Seed default Admin user (if not exists)
+-- ========================================
+IF NOT EXISTS (SELECT 1 FROM dbo.Users WHERE Email = 's.mishin.dev+admin@gmail.com')
+BEGIN
+    INSERT INTO dbo.Users (
+        Id, Email, Username, FirstName, LastName, PasswordHash,
+        Role, IsActive, EmailVerified, CreatedAt, UpdatedAt
+    )
+    VALUES (
+        'CD0A8D25-A3CF-41D1-B31F-161E3B5E5D4B',
+        's.mishin.dev+admin@gmail.com',
+        'admin',
+        'admin',
+        'admin',
+        '$2a$12$1ahcU9KoLCOeCctB2fEBPetZfl5AQM1E8x6UikdMVU7TT00iHS8iy',
+        'admin',
+        1,
+        1,
+        GETUTCDATE(),
+        GETUTCDATE()
+    );
+    PRINT '👤 Default admin user created (s.mishin.dev+admin@gmail.com)';
+END
+ELSE
+BEGIN
+    PRINT '👤 Default admin user already exists — skipped.';
+END
+
+-- Seed default Instructor user (if not exists)
+IF NOT EXISTS (SELECT 1 FROM dbo.Users WHERE Email = 's.mishin.dev+ins1@gmail.com')
+BEGIN
+    INSERT INTO dbo.Users (
+        Id, Email, Username, FirstName, LastName, PasswordHash,
+        Role, IsActive, EmailVerified, CreatedAt, UpdatedAt
+    )
+    VALUES (
+        '017BA5F9-7F7B-4D98-A64B-726B85F5F591',
+        's.mishin.dev+ins1@gmail.com',
+        'ins1',
+        'ins1',
+        'ins1',
+        '$2a$12$C.MkNRK5hFnYMYFH1ZiS7.jxHXb2FxUVTqwn76gr8DZlyz4l9Wmui',
+        'instructor',
+        1,
+        1,
+        GETUTCDATE(),
+        GETUTCDATE()
+    );
+    PRINT '👤 Default instructor user created (s.mishin.dev+ins1@gmail.com)';
+END
+ELSE
+BEGIN
+    PRINT '👤 Default instructor user already exists — skipped.';
+END
+
+-- Seed default Student user (if not exists)
+IF NOT EXISTS (SELECT 1 FROM dbo.Users WHERE Email = 's.mishin.dev+student1@gmail.com')
+BEGIN
+    INSERT INTO dbo.Users (
+        Id, Email, Username, FirstName, LastName, PasswordHash,
+        Role, IsActive, EmailVerified, CreatedAt, UpdatedAt
+    )
+    VALUES (
+        '97869D2E-2EBF-44B0-9A61-990A4AC30E9A',
+        's.mishin.dev+student1@gmail.com',
+        'student1',
+        'student1',
+        'student1',
+        '$2a$12$Ld4Y9bHF6OYxahjhTkJLTOc44/.pwk0EpZdpY19pYogpdYosGTEei',
+        'student',
+        1,
+        1,
+        GETUTCDATE(),
+        GETUTCDATE()
+    );
+    PRINT '👤 Default student user created (s.mishin.dev+student1@gmail.com)';
+END
+ELSE
+BEGIN
+    PRINT '👤 Default student user already exists — skipped.';
+END
+
+-- ========================================
 -- ========================================
 -- SCHEMA CREATION COMPLETE
 -- ========================================

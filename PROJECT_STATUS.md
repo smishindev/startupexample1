@@ -1,6 +1,6 @@
 ﻿# Mishin Learn Platform - Project Status & Memory
 
-**Last Updated**: March 5, 2026 - Mobile Optimization Post-Audit Bug Fixes — 3 bugs found &amp; fixed across 20-file audit: `CourseAssessmentManagementPage` summary cards `xs={4}`→`xs={12} sm={4}`; `CourseAnalyticsDashboard` `CourseView` static `window.matchMedia` → reactive `useMediaQuery`; `CourseCreationForm` 3× deprecated `onKeyPress` → `onKeyDown`; Round 3 confirmed all 20 files clean; 0 TypeScript errors throughout 🔍  
+**Last Updated**: March 5, 2026 - Admin Dashboard 5 phases complete — `AdminService.ts` (1650+ lines), 5 admin pages (Dashboard / User Mgmt / Course Mgmt / Revenue / Reports), full 3-round audit (0 issues), 3 responsive fixes, seed users in schema.sql, `rowCount` SQL reserved-word bug fixed, instructor Publish button added to `CourseEditPage` 🏢  
 **Developer**: Sergey Mishin (s.mishin.dev@gmail.com)  
 **AI Assistant Context**: This file serves as project memory for continuity across chat sessions
 
@@ -29,12 +29,94 @@
 **Mobile Optimization Phase 19**: Responsive Typography, Stat Cards, Icons & Final Sweep — 23 files fixed (responsive h3/h4 stat numbers, stat card `xs={6}` grids, table column hiding, large icon sizing, dialog fullScreen, CourseSelector minWidth, export table overflow); final 3-pass scan confirmed 0 remaining issues across all 8 pattern categories (February 28, 2026) 📱  
 **MobileNavDrawer Active-State UX Fix**: Drawer now auto-expands the accordion group containing the current page when reopened; active item scrolled into view after Collapse animation (350ms delay); accordion state resets cleanly on each open (only `learning` default + active group); scroll guarded by `shouldScrollRef` — fires only on drawer open, not on manual accordion toggle; removed unused `scrollContainerRef`; removed `unmountOnExit` from `Collapse` so ref is available for scroll; 0 TypeScript errors (March 1, 2026) 📱  
 **Mobile Post-Audit Bug Fixes**: 3-round exhaustive audit of 20 session-modified files — 3 bugs found &amp; fixed: `CourseAssessmentManagementPage` summary cards `xs={4}`→`xs={12} sm={4}`, `CourseAnalyticsDashboard` `CourseView` static `window.matchMedia` → reactive `useMediaQuery`+`useTheme`, `CourseCreationForm` 3× deprecated `onKeyPress` → `onKeyDown`; Round 3 confirmed all 20 files clean (March 5, 2026) 🔍  
+**Admin Dashboard (5 Phases)**: Full platform governance — `AdminService.ts` (1650+ lines), 5 admin pages (Dashboard, User Management, Course Management, Revenue, Reports), full cross-phase audit (3 rounds, 0 issues), 3 responsive fixes, seed users added to `schema.sql`, system health SQL reserved-word fix (`rowCount` → `[rowCount]`), instructor Publish button added to `CourseEditPage.tsx` (March 5, 2026) 🏢  
 **Auth Bug Fixes**: `logout()` clears state immediately; `type="button"` on nav-links inside forms; all 401 interceptors unified; stale-state guard in App.tsx (February 21, 2026) 🔐  
 **Theme Token System**: Centralised design tokens in `theme/index.ts` (colors, shadows, radii, extended palette). `tokens.ts` with 18 reusable `sx` fragments. 3-round exhaustive bug audit — all bugs fixed, 0 TypeScript errors (February 21, 2026) 🎨
 
 ---
 
-## 🔍 MOBILE POST-AUDIT BUG FIXES (Latest — March 5, 2026)
+## 🏢 ADMIN DASHBOARD — ALL 5 PHASES COMPLETE (Latest — March 5, 2026)
+
+**Activity**: Designed and implemented a full 5-phase Admin Dashboard for platform governance. All phases implemented, audited (3 rounds each), and fully operational.
+
+**Status**: **Complete** — 12 new files, 8 modified files, 3 responsive fixes, seed users added to schema, system health bug fixed. 0 TypeScript errors.
+
+### New Files
+
+| File | Purpose |
+|------|---------|
+| `server/src/services/AdminService.ts` (~1650 lines) | Platform analytics, user/course/revenue management, system health, audit log |
+| `client/src/services/adminApi.ts` | Frontend admin API client (auth interceptors, all endpoints) |
+| `client/src/pages/Admin/AdminDashboard.tsx` | Phase 1: Stat cards, 30-day growth chart, recent activity, revenue summary |
+| `client/src/pages/Admin/AdminUserManagement.tsx` | Phase 2: User list — search/filter, role change, activate/deactivate, password reset |
+| `client/src/pages/Admin/AdminUserDetailDialog.tsx` | Phase 2: User detail — stats, courses, transactions, admin actions |
+| `client/src/pages/Admin/AdminCourseManagement.tsx` | Phase 3: Course list — status change, reassign instructor, delete |
+| `client/src/pages/Admin/AdminCourseDetailDialog.tsx` | Phase 3: Course detail — full stats, lessons, ratings |
+| `client/src/pages/Admin/AdminRevenueDashboard.tsx` | Phase 4: Revenue stat cards, monthly bar chart, category pie chart, transactions + refund |
+| `client/src/pages/Admin/AdminReportsPage.tsx` | Phase 5: Reports tabs — Popular Courses, Top Instructors, Audit Log, System Health |
+
+### Backend Routes (`/api/admin/*`, all `authenticateToken + authorize(['admin'])`)
+
+```
+GET  /api/admin/stats                     → Platform-wide stats
+GET  /api/admin/growth                    → 30-day user + enrollment trend
+GET  /api/admin/revenue                   → Monthly revenue metrics
+GET  /api/admin/recent-activity           → Last 20 platform events
+GET  /api/admin/users                     → Paginated user list
+GET  /api/admin/users/:id                 → User detail + stats
+PATCH /api/admin/users/:id/role           → Change role
+PATCH /api/admin/users/:id/status         → Activate / deactivate
+POST /api/admin/users/:id/reset-password  → Trigger password reset
+GET  /api/admin/courses                   → Paginated course list
+GET  /api/admin/courses/:id               → Course detail + stats
+PATCH /api/admin/courses/:id/status       → Change course status
+PATCH /api/admin/courses/:id/reassign     → Reassign instructor
+DELETE /api/admin/courses/:id             → Delete course
+GET  /api/admin/transactions              → Paginated transactions
+GET  /api/admin/transactions/:id          → Transaction detail
+GET  /api/admin/revenue/breakdown         → Monthly/category/instructor revenue
+POST /api/admin/transactions/:id/refund   → Process Stripe refund
+GET  /api/admin/system/health             → DB health, table counts, user summary
+GET  /api/admin/audit-log                 → Paginated audit log
+GET  /api/admin/reports/popular-courses   → Top courses by enrollment/rating/revenue
+GET  /api/admin/reports/top-instructors   → Top instructors leaderboard
+POST /api/admin/promote-to-instructor     → Promote user (secured)
+```
+
+### Bugs Fixed in This Session
+
+| Bug | Root Cause | Fix |
+|-----|-----------|-----|
+| `GET /api/admin/system/health` 500 error | `COUNT(*) AS rowCount` — `rowCount` is a reserved keyword in SQL Server | `COUNT(*) AS [rowCount]` (brackets escape reserved word) |
+| AdminDashboard stat cards cramped on tablet | `md={3}` forces 4-per-row at all sizes ≥ md | Changed to `md={6} lg={3}` (2-per-row tablet, 4-per-row desktop) |
+| AdminRevenueDashboard same issue | Same `md={3}` pattern | Same `md={6} lg={3}` fix |
+| AdminCourseManagement table overflow on tablet | No column hiding | Instructor/Level hidden at `md`, Category/Updated at `xl` |
+| AdminRevenueDashboard table overflow | No column hiding | Transaction ID/User hidden at `lg`, Payment at `xl` |
+| DOM nesting warning in AdminCourseManagement | `<Chip>` (renders `<div>`) inside `<DialogContentText>` (renders `<p>`) | Changed `<DialogContentText>` → `<Typography component="div">` |
+
+### Seed Users Added to `database/schema.sql`
+
+Three default users added with `IF NOT EXISTS` guards (safe to run on existing DB):
+
+| Role | Email | Password |
+|------|-------|----------|
+| Admin | s.mishin.dev+admin@gmail.com | `admin` |
+| Instructor | s.mishin.dev+ins1@gmail.com | `ins1` |
+| Student | s.mishin.dev+student1@gmail.com | `student1` |
+
+All created with `EmailVerified = 1`, `IsActive = 1`.
+
+### Instructor Publish Button
+
+Added to `client/src/pages/Instructor/CourseEditPage.tsx`:
+- Green **"Publish Course"** button visible when course status ≠ `'published'`
+- Status `Chip` showing current status (draft / published / archived)
+- `handlePublish()` calls `instructorApi.publishCourse(courseId)`, reloads course on success
+- `publishing` loading state prevents double-click
+
+---
+
+## 🔍 MOBILE POST-AUDIT BUG FIXES (March 5, 2026)
 
 **Activity**: Exhaustive 3-round line-by-line audit of all 20 session-modified files. Rounds 1–2 found and fixed 3 bugs. Round 3 confirmed all files clean.
 

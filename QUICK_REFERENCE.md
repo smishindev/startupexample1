@@ -1,6 +1,6 @@
 ﻿# 🚀 Quick Reference - Development Workflow
 
-**Last Updated**: March 5, 2026 - Mobile Post-Audit Fixes — `useMediaQuery`+`useTheme` pattern vs deprecated `window.matchMedia`; `onKeyDown` vs deprecated `onKeyPress`; `xs={12} sm={4}` for 3-card summary rows on mobile 🔍
+**Last Updated**: March 5, 2026 - Admin Dashboard complete (5 phases, 22 backend routes, 5 admin pages, seed users, `[rowCount]` SQL reserved-word fix); Instructor Publish button added; 3 admin page responsive fixes 🏢
 
 ---
 
@@ -2365,6 +2365,90 @@ PROJECT ROOT
 │  └─ package.json
 └─ database/
    └─ schema.sql                ← Database schema (source of truth)
+```
+
+---
+
+## 🏢 Admin Dashboard — API & Page Reference (March 5, 2026)
+
+### Access Control
+- All admin backend routes: `authenticateToken, authorize(['admin'])` middleware
+- All admin frontend routes: `<ProtectedRoute requireRole="admin">` wrapper
+- Admin also sees all instructor navigation (role allows both groups)
+- Navigation group: `roles: ['admin']` in `config/navigation.tsx`
+
+### Admin API Service (`client/src/services/adminApi.ts`)
+Same pattern as `analyticsApi.ts` — env-aware URL, auth interceptor, 401 interceptor.
+
+### Backend Routes (`server/src/routes/admin.ts` → `AdminService.ts`)
+```
+GET  /api/admin/stats                    → totalUsers, totalInstructors, publishedCourses, revenue, activeToday
+GET  /api/admin/growth                   → 30-day daily { date, users, enrollments } array
+GET  /api/admin/revenue                  → totalRevenue, monthlyRevenue, avgTransaction, refundRate
+GET  /api/admin/recent-activity          → last 20 events (signup/enrollment/payment/course_published/refund)
+GET  /api/admin/users                    → paginated (page, limit, search, role, status, sortBy)
+GET  /api/admin/users/:id                → user detail + stats (courses, enrollments, transactions)
+PATCH /api/admin/users/:id/role          → { role: 'student' | 'instructor' | 'admin' }
+PATCH /api/admin/users/:id/status        → { isActive: boolean }
+POST /api/admin/users/:id/reset-password → sends reset email
+GET  /api/admin/courses                  → paginated (page, limit, search, status, instructorId)
+GET  /api/admin/courses/:id              → course detail + stats + lessons + ratings
+PATCH /api/admin/courses/:id/status      → { status: 'draft' | 'published' | 'archived' | 'deleted' }
+PATCH /api/admin/courses/:id/reassign    → { newInstructorId } — inserts CourseOwnershipHistory row
+DELETE /api/admin/courses/:id            → hard delete with cascade
+GET  /api/admin/transactions             → paginated (page, limit, userId, courseId, status, dateFrom, dateTo)
+GET  /api/admin/transactions/:id         → full transaction detail
+GET  /api/admin/revenue/breakdown        → { monthly[], byCategory[], byInstructor[] }
+POST /api/admin/transactions/:id/refund  → { reason } — Stripe refund + DB update
+GET  /api/admin/system/health            → DB status, table [rowCount]s, recentActivity, userSummary
+GET  /api/admin/audit-log                → paginated AccountDeletionLog + CourseOwnershipHistory
+GET  /api/admin/reports/popular-courses  → top courses by enrollment / rating / revenue
+GET  /api/admin/reports/top-instructors  → top instructors leaderboard
+POST /api/admin/promote-to-instructor    → { userId } (secured)
+```
+
+### ⚠️ SQL Reserved Keyword: `rowCount`
+`rowCount` is reserved in SQL Server. Always escape with brackets:
+```sql
+-- ❌ WRONG — causes "Incorrect syntax near the keyword 'rowCount'" error
+SELECT COUNT(*) AS rowCount FROM dbo.Users
+
+-- ✅ CORRECT
+SELECT COUNT(*) AS [rowCount] FROM dbo.Users
+```
+
+### Admin Page Routes
+```
+/admin/dashboard  → AdminDashboard.tsx
+/admin/users      → AdminUserManagement.tsx
+/admin/courses    → AdminCourseManagement.tsx
+/admin/revenue    → AdminRevenueDashboard.tsx
+/admin/reports    → AdminReportsPage.tsx
+```
+
+### Responsive Fix Pattern Applied to Admin Pages
+Admin stat cards use `md={6} lg={3}` (not `md={3}`):
+```tsx
+// ✅ CORRECT — 2-per-row on tablet (md), 4-per-row on desktop (lg)
+<Grid item xs={6} md={6} lg={3}>
+
+// ❌ WRONG — 4-per-row at md=768px, too cramped on tablets
+<Grid item xs={6} md={3}>
+```
+
+Admin tables use progressive column hiding:
+```tsx
+// Hide less-important columns progressively
+<TableCell sx={{ display: { xs: 'none', lg: 'table-cell' } }}>Instructor</TableCell>
+<TableCell sx={{ display: { xs: 'none', xl: 'table-cell' } }}>Category</TableCell>
+```
+
+### Seed Users (added to `database/schema.sql`)
+```sql
+-- Admin: s.mishin.dev+admin@gmail.com / password: admin   (Role = 'admin')
+-- Instructor: s.mishin.dev+ins1@gmail.com / password: ins1 (Role = 'instructor')
+-- Student: s.mishin.dev+student1@gmail.com / password: student1 (Role = 'student')
+-- All: EmailVerified = 1, IsActive = 1, inserted only IF NOT EXISTS
 ```
 
 ---

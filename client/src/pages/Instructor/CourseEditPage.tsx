@@ -10,14 +10,16 @@ import {
   Alert,
   CircularProgress,
   Breadcrumbs,
-  Link
+  Link,
+  Chip,
 } from '@mui/material';
 import {
   ArrowBack as ArrowBackIcon,
   Info as InfoIcon,
   PlaylistAdd as PlaylistAddIcon,
   Assignment as AssignmentIcon,
-  Settings as SettingsIcon
+  Settings as SettingsIcon,
+  Publish as PublishIcon,
 } from '@mui/icons-material';
 import { instructorApi, InstructorCourse } from '../../services/instructorApi';
 import { CurriculumBuilder } from './CurriculumBuilder';
@@ -25,6 +27,7 @@ import { CourseDetailsEditor } from './CourseDetailsEditor';
 import { CourseSettingsEditor } from '../../components/Instructor/CourseSettingsEditor';
 import { HeaderV5 as Header } from '../../components/Navigation/HeaderV5';
 import { PageContainer, useResponsive } from '../../components/Responsive';
+import { toast } from 'sonner';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -56,6 +59,7 @@ export const CourseEditPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lessonCount, setLessonCount] = useState(0);
+  const [publishing, setPublishing] = useState(false);
 
   useEffect(() => {
     if (courseId) {
@@ -126,6 +130,21 @@ export const CourseEditPage: React.FC = () => {
     navigate('/instructor');
   };
 
+  const handlePublish = async () => {
+    if (!courseId || !course) return;
+    try {
+      setPublishing(true);
+      const result = await instructorApi.publishCourse(courseId);
+      toast.success(result.message || 'Course published successfully!');
+      // Reload course to get updated status
+      await loadCourse();
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Failed to publish course');
+    } finally {
+      setPublishing(false);
+    }
+  };
+
   const handleCourseUpdate = (updatedCourse: InstructorCourse) => {
     setCourse(updatedCourse);
   };
@@ -187,20 +206,36 @@ export const CourseEditPage: React.FC = () => {
               <Typography variant="body2" color="text.secondary">
                 {lessonCount} lesson{lessonCount !== 1 ? 's' : ''}
               </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Status: {course.status}
-              </Typography>
+              <Chip
+                label={course.status}
+                size="small"
+                color={course.status === 'published' ? 'success' : course.status === 'draft' ? 'warning' : 'default'}
+              />
             </Box>
           </Box>
           
-          <Button
-            variant="outlined"
-            startIcon={<ArrowBackIcon />}
-            onClick={handleBackToDashboard}
-            data-testid="course-edit-back-button"
-          >
-            Back to Dashboard
-          </Button>
+          <Box sx={{ display: 'flex', gap: 1, flexShrink: 0, flexDirection: { xs: 'column', sm: 'row' } }}>
+            {course.status !== 'published' && (
+              <Button
+                variant="contained"
+                color="success"
+                startIcon={publishing ? <CircularProgress size={18} color="inherit" /> : <PublishIcon />}
+                onClick={handlePublish}
+                disabled={publishing}
+                data-testid="course-edit-publish-button"
+              >
+                {publishing ? 'Publishing…' : 'Publish Course'}
+              </Button>
+            )}
+            <Button
+              variant="outlined"
+              startIcon={<ArrowBackIcon />}
+              onClick={handleBackToDashboard}
+              data-testid="course-edit-back-button"
+            >
+              Back
+            </Button>
+          </Box>
         </Box>
       </Box>
 

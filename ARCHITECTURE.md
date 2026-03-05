@@ -1,6 +1,6 @@
 # Mishin Learn Platform - System Architecture
 
-**Last Updated**: February 24, 2026 - Mobile Optimization Phases 6–18 Complete — 129 Sub-Component Items Fixed 📱  
+**Last Updated**: March 5, 2026 - Admin Dashboard 5 phases complete — 22 admin routes, `AdminService.ts` (1650+ lines), 5 admin pages, seed users in schema.sql 🏢  
 **Purpose**: Understanding system components, data flows, and dependencies
 
 ---
@@ -55,6 +55,50 @@ Instructor Status Change Flow:
 ---
 
 ## 🔌 API ENDPOINTS
+
+### Admin Dashboard (Added March 5, 2026)
+
+**Route file**: `server/src/routes/admin.ts`  
+**Service**: `server/src/services/AdminService.ts` (~1650 lines)  
+**Auth**: All routes require `authenticateToken, authorize(['admin'])`  
+**Frontend service**: `client/src/services/adminApi.ts`
+
+```
+GET  /api/admin/stats                    → Platform stats (users, courses, enrollments, revenue, activeToday)
+GET  /api/admin/growth                   → 30-day daily { date, users, enrollments }
+GET  /api/admin/revenue                  → totalRevenue, monthlyRevenue, avgTransaction, refundRate
+GET  /api/admin/recent-activity          → Last 20 platform events
+GET  /api/admin/users                    → Paginated user list (search, role, status, sortBy)
+GET  /api/admin/users/:id                → User detail + stats
+PATCH /api/admin/users/:id/role          → Change role
+PATCH /api/admin/users/:id/status        → Activate / deactivate
+POST /api/admin/users/:id/reset-password → Trigger password reset email
+GET  /api/admin/courses                  → Paginated course list
+GET  /api/admin/courses/:id              → Course detail + stats
+PATCH /api/admin/courses/:id/status      → Change status
+PATCH /api/admin/courses/:id/reassign    → Reassign instructor (logs CourseOwnershipHistory)
+DELETE /api/admin/courses/:id            → Hard delete
+GET  /api/admin/transactions             → Paginated transaction list
+GET  /api/admin/transactions/:id         → Transaction detail
+GET  /api/admin/revenue/breakdown        → Monthly + by-category + by-instructor revenue
+POST /api/admin/transactions/:id/refund  → Stripe refund + DB update
+GET  /api/admin/system/health            → DB connection + table [rowCount]s + user summary
+GET  /api/admin/audit-log                → Paginated AccountDeletionLog + CourseOwnershipHistory
+GET  /api/admin/reports/popular-courses  → Top courses by enrollment/rating/revenue
+GET  /api/admin/reports/top-instructors  → Top instructors leaderboard
+POST /api/admin/promote-to-instructor    → Promote user to instructor
+```
+
+**Admin Pages** (`client/src/pages/Admin/`):
+```
+/admin/dashboard  → AdminDashboard.tsx       (stat cards, growth chart, activity feed)
+/admin/users      → AdminUserManagement.tsx  (user list, role/status change, detail dialog)
+/admin/courses    → AdminCourseManagement.tsx (moderation, reassign, delete, detail dialog)
+/admin/revenue    → AdminRevenueDashboard.tsx (bar+pie charts, transactions, refunds)
+/admin/reports    → AdminReportsPage.tsx     (tabs: Popular, Instructors, Audit, Health)
+```
+
+**Critical SQL note**: `rowCount` is a reserved keyword in SQL Server. Use `[rowCount]` with brackets when aliasing.
 
 ### Analytics Hub (Audited & Hardened Feb 18, 2026)
 

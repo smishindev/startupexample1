@@ -4,7 +4,7 @@
 
 An innovative EdTech startup providing personalized learning experiences through AI tutoring, adaptive content delivery, and comprehensive progress analytics.
 
-**Last Major Update**: February 28, 2026 - Content Item Custom Titles — Inline rename for Video/Text/Quiz lesson content items; no DB/API changes needed ✏️  
+**Last Major Update**: March 5, 2026 - Admin Dashboard 5 phases complete — `AdminService.ts` (1650+ lines), 5 admin pages, full audit, responsive fixes, seed users 🏢  
 **Code Quality**: Grade A (95/100) - 85% type safety, 70% logging coverage, 0 TypeScript errors
 
 ## 🚀 Features
@@ -27,6 +27,16 @@ An innovative EdTech startup providing personalized learning experiences through
   - **Bug Fixes**: Regex global flag drift, DOM prop warnings, modulo-by-zero crashes, stale debounce cleanup
 - **Sticky PageHeader UX Fix** — Removed sticky `PageHeader` component from InstructorDashboard and CourseAnalyticsDashboard; both now use inline `PageTitle` (non-sticky, scrolls with content — consistent with all 71 other pages); reclaims ~100px of fixed mobile screen space; `PageHeader.tsx` deleted (February 26, 2026) 🎨
 - **Content Item Custom Titles** — Instructors can rename auto-generated lesson content titles (Video #1, Text/Article #2, Quiz #3) via inline pencil-icon click-to-edit in LessonEditor and optional title field in CourseCreationForm; stored in `ContentJson.data.title`; student views display custom title with graceful fallback; no DB migration needed (February 28, 2026) ✏️
+- **Admin Dashboard (5 Phases)** — Full platform governance for admins (March 5, 2026) 🏢
+  - **Phase 1 — Dashboard Overview**: 4 stat cards (users, courses, enrollments, revenue), 30-day user/enrollment growth chart, recent activity feed, monthly revenue summary
+  - **Phase 2 — User Management**: Paginated user list with search/role/status filters; change role (student ↔ instructor ↔ admin); activate/deactivate; trigger password reset; full user detail dialog (stats, courses, transactions)
+  - **Phase 3 — Course Management**: Course moderation — change status, reassign instructor (logged to `CourseOwnershipHistory`), delete courses; full course detail dialog
+  - **Phase 4 — Revenue & Transactions**: Monthly revenue bar chart, by-category pie chart, all transactions table with filters, admin-initiated Stripe refunds
+  - **Phase 5 — Reports**: Popular Courses, Top Instructors leaderboard, Audit Log (AccountDeletionLog + CourseOwnershipHistory), System Health (DB stats + table row counts)
+  - **Backend**: `server/src/services/AdminService.ts` (~1650 lines), 22 authenticated routes in `server/src/routes/admin.ts`
+  - **Frontend**: `client/src/services/adminApi.ts` + 5 admin pages in `client/src/pages/Admin/`
+  - **Access**: SQL `UPDATE dbo.Users SET Role = 'admin' WHERE Email = '...'` or use seed users
+  - **Seed Users**: admin / instructor / student default accounts added to `database/schema.sql` with `IF NOT EXISTS` guards
 - **Mobile Optimization Phases 6–18** - Exhaustive sub-component audit; **129 total items fixed** across 13 passes (February 24, 2026) 📱
   - **Phase 6–11**: Dialogs `fullScreen={isMobile}` (18 dialogs across 12 sub-components), TableContainer `overflowX:auto` (7 tables), FAB/Snackbar bottom offset for MobileBottomNav (`bottom:{xs:88,md:24}`), chip/tag rows `flexWrap+gap`, iOS Safari zoom prevention (MuiInputBase `fontSize:1rem` in theme)
   - **Phase 12–14**: Chip rows 2nd pass, Snackbar bottom offset + CSS `transition:all` scoped to visual-only properties, ListItemSecondaryAction button overlap (responsive `pr` on ListItem)

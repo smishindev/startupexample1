@@ -1,6 +1,6 @@
 ﻿# 🚀 Quick Reference - Development Workflow
 
-**Last Updated**: March 5, 2026 - Instructor Revenue Dashboard complete (4 backend routes, `InstructorRevenueService.ts`, `InstructorRevenueDashboard.tsx` ~1000 lines, stat cards 1/row mobile); Admin Dashboard complete (5 phases, 22 backend routes, 5 admin pages, seed users, `[rowCount]` SQL reserved-word fix); Instructor Publish button added; 3 admin page responsive fixes 💰🏢
+**Last Updated**: March 6, 2026 - Coupon/Discount Code System complete (6 backend routes, `CouponService.ts` 385 lines, `CouponManagementPage.tsx` 833 lines, `CourseCheckoutPage.tsx` refactored); Instructor Revenue Dashboard + Admin Dashboard 5 phases complete; 9 coupon bugs fixed across 3 audits 🎟️💰🏢
 
 ---
 
@@ -2524,6 +2524,108 @@ const paginatedCourseRevenue = filteredCourseRevenue.slice(
 );
 // Reset page on search change:
 const handleCourseSearch = (v: string) => { setCourseSearch(v); setCoursePage(1); };
+```
+
+---
+
+## 🎟️ COUPON SYSTEM PATTERNS (Added March 6, 2026)
+
+### Search Debounce — Project Standard (400ms)
+
+All searchable management pages use 400ms debounce with a separate `debouncedSearch` state (matches `InstructorRevenueDashboard`, `StudyGroupsPage`, `TransactionsPage`, `CouponManagementPage`):
+
+```tsx
+const [search, setSearch] = useState('');
+const [debouncedSearch, setDebouncedSearch] = useState('');
+
+useEffect(() => {
+  const t = setTimeout(() => {
+    setDebouncedSearch(search);
+    setPage(0); // reset pagination on search change
+  }, 400);
+  return () => clearTimeout(t);
+}, [search]);
+
+useEffect(() => {
+  fetchData();
+}, [debouncedSearch, page]); // depends on debouncedSearch, NOT raw search
+```
+
+### Date Input Pre-Fill — Timezone-Safe Pattern
+
+**Always use `.substring(0, 10)`** when pre-populating a `type="date"` input from an ISO timestamp. Never use `format(new Date(isoString), 'yyyy-MM-dd')` — that converts UTC → local time, shifting dates ±1 day in non-UTC environments.
+
+```tsx
+// ✅ CORRECT — direct string extraction, no timezone conversion:
+defaultValue={editing.ExpiresAt?.substring(0, 10)}
+
+// ❌ WRONG — converts UTC to local before formatting, off by ±1 day:
+defaultValue={format(new Date(editing.ExpiresAt), 'yyyy-MM-dd')}
+```
+
+### Mobile Manage Pages — Both Branches Need Pagination
+
+When using `isMobile ? <card list> : <Table>` pattern, **both branches must include `TablePagination`**. Wrapping the mobile stack in a `Box` keeps pagination visible:
+
+```tsx
+{isMobile ? (
+  <Box> {/* Box wrapper needed so TablePagination renders below cards */}
+    <Stack spacing={2}>
+      {rows.map(row => <Card key={row.Id}>...</Card>)}
+    </Stack>
+    <TablePagination
+      component="div"
+      count={total}
+      page={page}
+      rowsPerPage={limit}
+      onPageChange={(_, p) => setPage(p)}
+      rowsPerPageOptions={[10, 25, 50]}
+      onRowsPerPageChange={e => { setLimit(+e.target.value); setPage(0); }}
+    />
+  </Box>
+) : (
+  <Paper>
+    <TableContainer><Table>...</Table></TableContainer>
+    <TablePagination ... />
+  </Paper>
+)}
+```
+
+### SQL Server FK Cascade Cycle — `ON DELETE NO ACTION`
+
+SQL Server raises **error 1785** when multiple cascade paths exist from a common ancestor table to the same target table. Use `ON DELETE NO ACTION` for the secondary path:
+
+```sql
+-- Scenario: Courses → Coupons (CASCADE) → CouponUsage
+--           Courses → Transactions (CASCADE) → CouponUsage  ← second path = ERROR 1785
+
+-- Fix: secondary FK uses NO ACTION:
+CONSTRAINT FK_CouponUsage_Transaction FOREIGN KEY (TransactionId)
+  REFERENCES Transactions(TransactionId) ON DELETE NO ACTION
+-- Application handles orphan cleanup when needed.
+```
+
+### SQL Search Guard — Empty Search Produces `%%` (length 2)
+
+When building a `WHERE ... LIKE @search` SQL pattern with `'%' + @term + '%'`, an empty `@term` produces `%%` which has **length 2**, not 0 or 1. Use `<= 2` to short-circuit:
+
+```sql
+AND (LEN(@search) <= 2 OR UPPER(c.Code) LIKE @search)
+-- NOT <= 1 — that never fires because '%'+'%' = '%%' = length 2
+```
+
+### Coupon Checkout — Server-Side Price Enforcement
+
+The payment backend re-validates coupon discount and checks client-sent amount matches server calculation (within $0.02 tolerance) to prevent client-side price tampering:
+
+```typescript
+// payments.ts — create-payment-intent:
+const validation = await couponService.validateCoupon(couponCode, courseId, userId);
+const serverAmount = Math.round((course.Price - validation.discountAmount) * 100);
+if (Math.abs(clientAmount - serverAmount) > 2) {
+  return res.status(400).json({ error: 'Price mismatch — please refresh and retry' });
+}
+// PI metadata carries couponId/discountAmount for webhook usage recording
 ```
 
 ---

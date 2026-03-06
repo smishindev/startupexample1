@@ -1,6 +1,6 @@
 ﻿# Mishin Learn Platform - Project Status & Memory
 
-**Last Updated**: March 5, 2026 - Instructor Revenue Dashboard complete — `InstructorRevenueService.ts`, 4 backend routes, `instructorRevenueApi.ts`, `InstructorRevenueDashboard.tsx` (~1000 lines); stat cards 1-per-row on mobile; Course Performance search + 10/page pagination 💰  
+**Last Updated**: March 6, 2026 - Coupon/Discount Code System complete — `CouponService.ts` (385 lines), 6 backend routes, `couponApi.ts`, `CouponManagementPage.tsx` (833 lines), `CourseCheckoutPage.tsx` refactored (2-step + coupon UI); 9 bugs fixed across 3 audit rounds; DB schema applied (FK cascade fix) 🎟️  
 **Developer**: Sergey Mishin (s.mishin.dev@gmail.com)  
 **AI Assistant Context**: This file serves as project memory for continuity across chat sessions
 
@@ -30,13 +30,104 @@
 **MobileNavDrawer Active-State UX Fix**: Drawer now auto-expands the accordion group containing the current page when reopened; active item scrolled into view after Collapse animation (350ms delay); accordion state resets cleanly on each open (only `learning` default + active group); scroll guarded by `shouldScrollRef` — fires only on drawer open, not on manual accordion toggle; removed unused `scrollContainerRef`; removed `unmountOnExit` from `Collapse` so ref is available for scroll; 0 TypeScript errors (March 1, 2026) 📱  
 **Mobile Post-Audit Bug Fixes**: 3-round exhaustive audit of 20 session-modified files — 3 bugs found &amp; fixed: `CourseAssessmentManagementPage` summary cards `xs={4}`→`xs={12} sm={4}`, `CourseAnalyticsDashboard` `CourseView` static `window.matchMedia` → reactive `useMediaQuery`+`useTheme`, `CourseCreationForm` 3× deprecated `onKeyPress` → `onKeyDown`; Round 3 confirmed all 20 files clean (March 5, 2026) 🔍  
 **Instructor Revenue Dashboard**: Full instructor-scoped earnings view — `InstructorRevenueService.ts`, 4 GET routes at `/api/instructor/revenue`, `instructorRevenueApi.ts` client, `InstructorRevenueDashboard.tsx` (~1000 lines); stat cards, monthly bar chart, course pie chart, course performance table (search + 10/page pagination), paginated transaction table (search/status/course/sort filters), detail dialog; stat cards `xs={12} sm={6} lg={3}` (1-per-row mobile); SQL CTE fix for monthly revenue; route mount order fixed in `server/src/index.ts` (March 5, 2026) 💰  
+**Coupon/Discount Code System**: Full instructor coupon management + student checkout coupon support — `CouponService.ts` (385 lines), 6 backend routes, `couponApi.ts`, `CouponManagementPage.tsx` (833 lines), `CourseCheckoutPage.tsx` refactored (2-step + coupon UI); 9 bugs fixed across 3 audit rounds; DB schema applied with FK cascade fix (`TransactionId ON DELETE NO ACTION`) (March 6, 2026) 🎟️  
 **Admin Dashboard (5 Phases)**: Full platform governance — `AdminService.ts` (1650+ lines), 5 admin pages (Dashboard, User Management, Course Management, Revenue, Reports), full cross-phase audit (3 rounds, 0 issues), 3 responsive fixes, seed users added to `schema.sql`, system health SQL reserved-word fix (`rowCount` → `[rowCount]`), instructor Publish button added to `CourseEditPage.tsx` (March 5, 2026) 🏢  
 **Auth Bug Fixes**: `logout()` clears state immediately; `type="button"` on nav-links inside forms; all 401 interceptors unified; stale-state guard in App.tsx (February 21, 2026) 🔐  
 **Theme Token System**: Centralised design tokens in `theme/index.ts` (colors, shadows, radii, extended palette). `tokens.ts` with 18 reusable `sx` fragments. 3-round exhaustive bug audit — all bugs fixed, 0 TypeScript errors (February 21, 2026) 🎨
 
 ---
 
-## 🏢 ADMIN DASHBOARD — ALL 5 PHASES COMPLETE (Latest — March 5, 2026)
+## �️ COUPON / DISCOUNT CODE SYSTEM — COMPLETE (Latest — March 6, 2026)
+
+**Activity**: Implemented the full Coupon/Discount Code System — item #3 from `MISSING_FEATURES_ANALYSIS.md`. Instructors can create, manage, and track coupon codes. Students can apply discount codes at checkout for reduced course prices. 9 bugs found and fixed across 3 consecutive audit rounds.
+
+**Status**: **Complete** — 4 new files, 5 modified files, DB schema updated, 0 TypeScript errors
+
+### New Files
+
+| File | Purpose |
+|------|---------|
+| `server/src/services/CouponService.ts` (385 lines) | Coupon validation, CRUD, usage recording — 7-check validateCoupon, atomic recordUsage |
+| `server/src/routes/coupons.ts` (~165 lines) | 6 REST endpoints mounted at `/api/coupons` |
+| `client/src/services/couponApi.ts` (208 lines) | Frontend coupon API client — ES imports, auth interceptor, 401 auto-logout |
+| `client/src/pages/Instructor/CouponManagementPage.tsx` (833 lines) | Full instructor coupon CRUD page — stat cards, table, search, mobile card list + pagination, edit dialog |
+
+### Modified Files
+
+| File | Change |
+|------|--------|
+| `database/schema.sql` | Added `Coupons` + `CouponUsage` tables; `TransactionId FK ON DELETE NO ACTION` (avoids cascade cycle) |
+| `server/src/routes/payments.ts` | Coupon validation in PI creation; `couponService.recordUsage()` in webhook handler |
+| `server/src/index.ts` | Mounted `/api/coupons` route |
+| `client/src/services/paymentApi.ts` | Added 4th `couponCode?: string` param to `createPaymentIntent()` |
+| `client/src/pages/Payment/CourseCheckoutPage.tsx` | Full 2-step refactor (`review` → `payment`); coupon UI; lazy PI creation; coupon preserved on back navigation |
+| `client/src/App.tsx` | `/instructor/coupons` route with `ProtectedRoute requireRole="instructor"` |
+| `client/src/config/navigation.tsx` | `LocalOfferIcon` + Coupons nav item in instructor group |
+
+### Backend Route Endpoints (`/api/coupons`)
+
+```
+POST /api/coupons/validate     → Validate coupon at checkout (authenticateToken only)
+GET  /api/coupons/instructor   → Paginated instructor coupon list (search, active, page, limit)
+GET  /api/coupons/:id          → Coupon detail + recent 10 usage rows
+POST /api/coupons/             → Create coupon (instructor/admin)
+PUT  /api/coupons/:id          → Update coupon (instructor/admin)
+DELETE /api/coupons/:id        → Soft deactivate (instructor/admin)
+```
+
+**Auth**: `POST /validate` = `authenticateToken` (any enrolled user); all other routes = `authenticateToken + authorize(['instructor', 'admin'])`
+
+### Coupon Data Model
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `Code` | NVARCHAR(50) | Unique, uppercase, regex `^[A-Z0-9_-]{3,50}$` |
+| `DiscountType` | NVARCHAR(20) | `'percentage'` or `'fixed'` |
+| `DiscountValue` | DECIMAL(10,2) | % (0–100) or fixed USD amount |
+| `MinPurchaseAmount` | DECIMAL(10,2) | Minimum course price for coupon to apply |
+| `MaxUses` | INT | NULL = unlimited |
+| `UsedCount` | INT | Incremented atomically on recordUsage |
+| `ExpiresAt` | DATETIME | NULL = no expiry |
+| `IsActive` | BIT | Soft-delete flag |
+| `CourseId` | INT FK | NULL = applies to all instructor courses |
+| `InstructorId` | INT FK | Owner scope — validated on checkout |
+
+### CouponUsage Table (FK Fix)
+
+```sql
+-- CORRECT: ON DELETE NO ACTION avoids SQL Server error 1785 (multiple cascade paths)
+-- Cascade chain: Courses → Coupons → CouponUsage (CASCADE)
+--                Courses → Transactions → CouponUsage ← (NO ACTION, not SET NULL)
+CONSTRAINT FK_CouponUsage_Transaction FOREIGN KEY (TransactionId)
+  REFERENCES Transactions(TransactionId) ON DELETE NO ACTION
+```
+
+### Bugs Fixed Across 3 Audit Rounds
+
+| # | Bug | Root Cause | Fix | Round |
+|---|-----|-----------|-----|-------|
+| 1 | `couponApi.ts` used `require()` inside interceptor | CJS syntax in ESM module context | Top-level ES `import { useAuthStore }` | 1 |
+| 2 | "Continue to Payment" button stuck disabled on PI failure | `onContinue` not typed as `Promise<void>`; catch block didn't reset `continuing` | `onContinue: () => Promise<void>`; `handleContinue` async with `catch { setContinuing(false) }` | 1 |
+| 3 | Toggle/deactivate errors silently swallowed | Missing `setError()` in catch blocks | Both `handleToggleActive` + `handleDeactivate` now call `setError(err.message)` | 1 |
+| 4 | SQL search optimization never fired | `LEN(@search) <= 1` — empty search produces `%%` (length 2) | Changed to `LEN(@search) <= 2` | 2 |
+| 5 | Every keystroke fired API call | No debounce on search input | 400ms `setTimeout` + separate `debouncedSearch` state (matches project standard) | 2 |
+| 6 | Coupon lost on "Back to review" | `handleBackToReview` reset `activeCoupon` to null | Removed reset; added `initialCoupon` prop to `ReviewStep` so coupon re-populates on re-mount | 2 |
+| 7 | Early-return guard silently dropped PI errors | Single guard combined missing course + debounce ref — ReviewStep's catch never fired | Split: `!courseId || !course` throws; `creatingPIRef.current` stays silent (button already disabled) | 2 |
+| 8 | Mobile view had no pagination | `TablePagination` only inside desktop table branch | Wrapped mobile card stack in `Box` + added `TablePagination` below it | 3 |
+| 9 | Edit form date shifted ±1 day in non-UTC timezones | `format(new Date(isoString), 'yyyy-MM-dd')` converts UTC → local | `isoString.substring(0, 10)` — direct string extraction, no timezone shift | 3 |
+
+### Database Schema Fix (Error 1785 — Cascade Cycle)
+
+SQL Server forbids multiple cascade paths to the same table from a common ancestor. The chain:
+```
+Courses → Coupons (ON DELETE CASCADE) → CouponUsage
+Courses → Transactions (ON DELETE CASCADE) → CouponUsage  ← second path
+```
+Both paths reached `CouponUsage` from `Courses`. The fix: `TransactionId FK ON DELETE NO ACTION` (application handles orphan cleanup when needed). `drop_all_tables.sql` run first, then `schema.sql` applied successfully (fresh `startUp1` DB).
+
+---
+
+## 🏢 ADMIN DASHBOARD — ALL 5 PHASES COMPLETE (March 5, 2026)
 
 **Activity**: Designed and implemented a full 5-phase Admin Dashboard for platform governance. All phases implemented, audited (3 rounds each), and fully operational.
 

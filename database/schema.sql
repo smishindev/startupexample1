@@ -53,6 +53,9 @@ IF OBJECT_ID('dbo.CommentLikes', 'U') IS NOT NULL DROP TABLE dbo.CommentLikes;
 IF OBJECT_ID('dbo.Comments', 'U') IS NOT NULL DROP TABLE dbo.Comments;
 -- Certificate Tables
 IF OBJECT_ID('dbo.Certificates', 'U') IS NOT NULL DROP TABLE dbo.Certificates;
+-- Coupon System Tables (drop before Transactions due to FK)
+IF OBJECT_ID('dbo.CouponUsage', 'U') IS NOT NULL DROP TABLE dbo.CouponUsage;
+IF OBJECT_ID('dbo.Coupons', 'U') IS NOT NULL DROP TABLE dbo.Coupons;
 -- Payment System Tables
 IF OBJECT_ID('dbo.Invoices', 'U') IS NOT NULL DROP TABLE dbo.Invoices;
 IF OBJECT_ID('dbo.Transactions', 'U') IS NOT NULL DROP TABLE dbo.Transactions;
@@ -1083,6 +1086,49 @@ CREATE NONCLUSTERED INDEX IX_Invoices_TransactionId ON dbo.Invoices(TransactionI
 CREATE NONCLUSTERED INDEX IX_Invoices_InvoiceNumber ON dbo.Invoices(InvoiceNumber);
 CREATE NONCLUSTERED INDEX IX_Invoices_CreatedAt ON dbo.Invoices(CreatedAt DESC);
 CREATE NONCLUSTERED INDEX IX_Users_StripeCustomerId ON dbo.Users(StripeCustomerId);
+
+-- ========================================
+-- COUPON SYSTEM TABLES
+-- ========================================
+
+-- Coupons Table — instructor-created discount codes
+CREATE TABLE dbo.Coupons (
+    Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    Code NVARCHAR(50) NOT NULL,                             -- e.g. SUMMER20, FLAT10
+    InstructorId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id) ON DELETE CASCADE,
+    CourseId UNIQUEIDENTIFIER NULL FOREIGN KEY REFERENCES dbo.Courses(Id) ON DELETE SET NULL, -- NULL = applies to all instructor courses
+    DiscountType NVARCHAR(20) NOT NULL CHECK (DiscountType IN ('percentage', 'fixed')),
+    DiscountValue DECIMAL(10,2) NOT NULL CHECK (DiscountValue > 0),  -- % or $ amount
+    MaxUses INT NULL,                                       -- NULL = unlimited
+    UsedCount INT NOT NULL DEFAULT 0,                       -- denormalized counter
+    MinimumPrice DECIMAL(10,2) NOT NULL DEFAULT 0.00,       -- minimum course price required
+    ExpiresAt DATETIME2 NULL,                               -- NULL = never expires
+    IsActive BIT NOT NULL DEFAULT 1,
+    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    UpdatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    UNIQUE(InstructorId, Code)                              -- code unique per instructor
+);
+
+-- CouponUsage Table — tracks each time a coupon is redeemed
+CREATE TABLE dbo.CouponUsage (
+    Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    CouponId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Coupons(Id) ON DELETE CASCADE,
+    UserId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Users(Id) ON DELETE NO ACTION,
+    CourseId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.Courses(Id) ON DELETE NO ACTION,
+    TransactionId UNIQUEIDENTIFIER NULL FOREIGN KEY REFERENCES dbo.Transactions(Id) ON DELETE NO ACTION,
+    DiscountAmount DECIMAL(10,2) NOT NULL,   -- actual $ saved
+    OriginalAmount DECIMAL(10,2) NOT NULL,   -- course price before discount
+    FinalAmount DECIMAL(10,2) NOT NULL,      -- amount actually charged
+    UsedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    UNIQUE(CouponId, UserId, CourseId)       -- one coupon per user per course
+);
+
+CREATE NONCLUSTERED INDEX IX_Coupons_InstructorId ON dbo.Coupons(InstructorId);
+CREATE NONCLUSTERED INDEX IX_Coupons_CourseId ON dbo.Coupons(CourseId);
+CREATE NONCLUSTERED INDEX IX_Coupons_IsActive ON dbo.Coupons(IsActive);
+CREATE NONCLUSTERED INDEX IX_CouponUsage_CouponId ON dbo.CouponUsage(CouponId);
+CREATE NONCLUSTERED INDEX IX_CouponUsage_UserId ON dbo.CouponUsage(UserId);
+CREATE NONCLUSTERED INDEX IX_CouponUsage_TransactionId ON dbo.CouponUsage(TransactionId);
 
 -- ========================================
 -- CERTIFICATES TABLE - Course Completion

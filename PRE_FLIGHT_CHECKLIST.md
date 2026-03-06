@@ -2,7 +2,7 @@
 
 **Purpose**: Systematic checklist to follow before implementing changes  
 **Goal**: Reduce errors, missing considerations, and broken functionality  
-**Last Updated**: March 5, 2026 - Mobile Post-Audit Bug Fixes — `window.matchMedia` replaced with reactive `useMediaQuery`; `onKeyPress` → `onKeyDown`; `xs={4}` → `xs={12} sm={4}` for 3-card summary grids 🔍
+**Last Updated**: March 6, 2026 - Coupon/Discount Code System complete — `CouponService.ts`, 6 routes, `couponApi.ts`, `CouponManagementPage.tsx`, `CourseCheckoutPage.tsx` refactored; 9 bugs fixed across 3 audit rounds; DB FK cascade fix; search debounce + `.substring(0,10)` date + mobile pagination patterns added 🎟️
 
 ---
 
@@ -101,6 +101,18 @@
   - **Button `minWidth` must be responsive**: `minWidth: 150` on action buttons forces 150px minimum on 375px screens — use `minWidth: { xs: 120, sm: 150 }` or remove minWidth when buttons have `fullWidth` fallback.
   - **CourseSelector `minWidth: 250` in filter bars**: in filter/toolbar rows, give CourseSelector full width on mobile: `sx={{ minWidth: { xs: 0, sm: 250 }, width: { xs: '100%', sm: 'auto' } }}`.
   - Files: `StatCard.tsx`, `AchievementBadge.tsx`, `InstructorDashboard.tsx`, `InterventionDashboard.tsx`, `AnalyticsHubPage.tsx`, `CourseAssessmentManagementPage.tsx`, `CourseDetailPage.tsx`, `MyCertificatesPage.tsx`, `AIEnhancedAssessmentResults.tsx`, `StudentManagement.tsx`, `InstructorStudentAnalytics.tsx`, `StudentProgressDashboard.tsx`, `AssessmentManager.tsx`, `SettingsPage.tsx`, `StudentSessionsList.tsx`, `InstructorSessionsList.tsx`, `DashboardPage.tsx`, `MyLearningPage.tsx`, `ArchiveCoursesDialog.tsx`, `AITutoringDemo.tsx`, `ContentUploadDemo.tsx`, `Tutoring.tsx`, `VideoErrorBoundary.tsx`, `CourseCreationForm.tsx`
+- [x] **Coupon / Discount Code System** - PRODUCTION READY (March 6, 2026) 🎟️
+  - Full coupon CRUD for instructors + checkout discount support for students. 9 bugs fixed across 3 audit rounds (including 1 DB schema FK cascade fix). 0 TypeScript errors.
+  - **ES import `useAuthStore` — not `require()`**: API services using `useAuthStore` must use `import { useAuthStore } from '../store/authStore'` at the top level. Never use `require()` inside interceptors (CJS syntax breaks in ESM modules).
+  - **`onContinue` must be typed as `() => Promise<void>`**: if a step's "continue" handler is async (PI creation), the calling component must await it and have a `catch { setLoading(false) }` so buttons re-enable on API failure.
+  - **Search debounce — 400ms project standard**: use separate `debouncedSearch` state + `setTimeout(400ms)` effect. Depends: `fetchData` depends on `debouncedSearch` not raw `search`. Page resets inside the debounce effect, not outside it.
+  - **Date input pre-fill — always `.substring(0, 10)`**: `format(new Date(isoString), 'yyyy-MM-dd')` converts UTC → local time, shifting dates ±1 day in non-UTC environments. Use `isoString.substring(0, 10)` directly.
+  - **Mobile manage pages — both branches need `TablePagination`**: when using `isMobile ? cardList : Table` pattern, wrap the mobile `Stack` in a `Box` so `TablePagination` renders below the cards. Desktop `Paper` also has its own `TablePagination`.
+  - **SQL search guard `LEN <= 2` not `<= 1`**: empty search input produces `'%' + '' + '%'` = `'%%'` which has length 2. `LEN(@search) <= 1` never fires. Use `<= 2`.
+  - **SQL FK cascade cycles → `ON DELETE NO ACTION`**: SQL Server error 1785 fires when two cascade paths from the same ancestor reach the same target table. Fix the secondary path with `ON DELETE NO ACTION`.
+  - **Coupon amount validate on server**: always re-validate coupon discount server-side and compare to client-sent amount (±$0.02 tolerance). Reject mismatches to prevent client-side price tampering.
+  - Files (new): `server/src/services/CouponService.ts`, `server/src/routes/coupons.ts`, `client/src/services/couponApi.ts`, `client/src/pages/Instructor/CouponManagementPage.tsx`
+  - Files (modified): `database/schema.sql`, `server/src/routes/payments.ts`, `server/src/index.ts`, `client/src/services/paymentApi.ts`, `client/src/pages/Payment/CourseCheckoutPage.tsx`, `client/src/App.tsx`, `client/src/config/navigation.tsx`
 - [x] **Mobile Post-Audit Bug Fixes** - PRODUCTION READY (March 5, 2026) 🔍
   - 3-round exhaustive audit of 20 session-modified files; 3 bugs found and fixed in Rounds 1–2; Round 3 confirmed all clean. 0 TypeScript errors.
   - **3-card summary rows need `xs={12} sm={4}` not `xs={4}`**: `xs={4}` means one-third width at ALL screen sizes including 375px (each card ≈ 117px). Use `xs={12} sm={4}` to stack vertically on mobile and go 3-per-row at sm (640px). Also use responsive Grid spacing: `spacing={{ xs: 1.5, sm: 3 }}`.

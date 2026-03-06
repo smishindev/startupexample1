@@ -1,6 +1,6 @@
 # Mishin Learn Platform - System Architecture
 
-**Last Updated**: March 5, 2026 - Instructor Revenue Dashboard complete — `InstructorRevenueService.ts`, 4 routes at `/api/instructor/revenue`, `instructorRevenueApi.ts`, `InstructorRevenueDashboard.tsx` (~1000 lines); Admin Dashboard 5 phases complete — 22 admin routes, `AdminService.ts` (1650+ lines), 5 admin pages, seed users in schema.sql 💰🏢  
+**Last Updated**: March 6, 2026 - Coupon/Discount Code System complete — `CouponService.ts` (385 lines), 6 routes at `/api/coupons`, `couponApi.ts`, `CouponManagementPage.tsx` (833 lines), `CourseCheckoutPage.tsx` refactored (2-step + coupon UI); DB schema updated (FK cascade fix); Instructor Revenue Dashboard + Admin Dashboard 5 phases also complete 💰🏢🎟️  
 **Purpose**: Understanding system components, data flows, and dependencies
 
 ---
@@ -117,6 +117,57 @@ GET /api/instructor/revenue/courses       → Per-course revenue, enrollment cou
                                             Grouped by CourseId, WHERE c.Status != 'deleted'
 GET /api/instructor/revenue/transactions  → Paginated transactions (page, limit, search, status, courseId, sortBy, sortOrder)
                                             Whitelist sort map, separate COUNT request
+```
+
+### Coupon / Discount Code System (Added March 6, 2026)
+
+**Route file**: `server/src/routes/coupons.ts`  
+**Service**: `server/src/services/CouponService.ts` (385 lines)  
+**Auth**: `POST /validate` = `authenticateToken` (any user); all other routes = `authenticateToken + authorize(['instructor', 'admin'])`  
+**Frontend service**: `client/src/services/couponApi.ts` (208 lines)  
+**Frontend page**: `client/src/pages/Instructor/CouponManagementPage.tsx` (833 lines) at `/instructor/coupons`
+
+```
+POST /api/coupons/validate     → Validate coupon at checkout (returns discountAmount, finalPrice)
+GET  /api/coupons/instructor   → Paginated instructor coupon list (page, limit, search, active)
+GET  /api/coupons/:id          → Coupon detail + recent 10 usage rows
+POST /api/coupons/             → Create coupon (Code regex: ^[A-Z0-9_-]{3,50}$)
+PUT  /api/coupons/:id          → Update coupon (ownership-checked)
+DELETE /api/coupons/:id        → Soft deactivate (sets IsActive = 0)
+```
+
+**`validateCoupon` checks (in order)**:
+1. Coupon exists and `IsActive = 1`
+2. Not expired (`ExpiresAt IS NULL OR ExpiresAt > GETUTCDATE()`)
+3. Uses not exceeded (`MaxUses IS NULL OR UsedCount < MaxUses`)
+4. Course price ≥ `MinPurchaseAmount`
+5. User hasn't already used this coupon (per-user uniqueness via `CouponUsage`)
+6. Coupon belongs to instructor who owns the course (scope via JOIN)
+
+**`recordUsage`** (called from `payment_intent.succeeded` webhook):
+- Atomic `INSERT CouponUsage` + `UPDATE Coupons SET UsedCount += 1` in same transaction
+- Non-blocking (fire-and-forget from webhook handler)
+
+**PI creation flow** (`payments.ts`):
+- Destructures `couponCode` from body
+- Calls `couponService.validateCoupon()` → returns `discountAmount`
+- Server-enforced amount check: `|clientAmount - serverAmount| <= 0.02` (prevents client-side tampering)
+- PI `metadata`: `couponId`, `couponCode`, `discountAmount`, `originalAmount`
+
+**SQL pattern — search guard**:
+```sql
+AND (LEN(@search) <= 2 OR UPPER(c.Code) LIKE @search)
+-- <= 2 (not <= 1) because empty search produces '%' + '%' = '%%' which has length 2
+```
+
+**DB schema — cascade cycle fix**:
+```sql
+-- Two paths from Courses to CouponUsage would trigger SQL Server error 1785:
+-- Courses → Coupons (CASCADE) → CouponUsage
+-- Courses → Transactions (CASCADE) → CouponUsage ← SECOND PATH
+-- Solution: secondary path uses NO ACTION
+CONSTRAINT FK_CouponUsage_Transaction FOREIGN KEY (TransactionId)
+  REFERENCES Transactions(TransactionId) ON DELETE NO ACTION
 ```
 
 **Mount order critical**: `/api/instructor/revenue` mounted **before** `/api/instructor` in `server/src/index.ts` (more-specific first — avoids prefix swallowing).

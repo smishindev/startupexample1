@@ -17,6 +17,7 @@ import {
   People as PeopleIcon,
   Analytics as AnalyticsIcon,
   AttachMoney as MoneyIcon,
+  LocalOffer as LocalOfferIcon,
   AccountCircle as ProfileIcon,
   EmojiEvents as CertificatesIcon,
   Receipt as TransactionsIcon,
@@ -167,6 +168,14 @@ export const navGroups: NavGroup[] = [
         icon: <MoneyIcon />,
         description: 'Earnings & transactions',
         testId: 'header-nav-instructor-revenue',
+      },
+      {
+        id: 'instructor-coupons',
+        label: 'Coupons',
+        path: '/instructor/coupons',
+        icon: <LocalOfferIcon />,
+        description: 'Manage discount codes',
+        testId: 'header-nav-instructor-coupons',
       },
       {
         id: 'analytics-hub',

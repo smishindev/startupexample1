@@ -5,7 +5,10 @@ import EmailService from '../services/EmailService';
 import { AuthRequest, authenticateToken } from '../middleware/auth';
 import InvoicePdfService from '../services/InvoicePdfService';
 import { CourseEventService } from '../services/CourseEventService';
+import { CouponService } from '../services/CouponService';
 import path from 'path';
+
+const couponService = new CouponService();
 
 const router = express.Router();
 const stripeService = StripeService.getInstance();
@@ -28,13 +31,14 @@ router.post('/create-payment-intent', authenticateToken, async (req: Request, re
       return res.status(401).json({ success: false, message: 'User not authenticated' });
     }
 
-    const { courseId, amount, currency = 'usd' } = req.body;
+    const { courseId, amount, currency = 'usd', couponCode } = req.body;
 
     console.log(`[${requestId}] Payment intent request:`, {
       userId,
       courseId,
       amount,
       currency,
+      couponCode: couponCode || null,
     });
 
     if (!courseId || !amount) {
@@ -55,17 +59,45 @@ router.post('/create-payment-intent', authenticateToken, async (req: Request, re
 
     const course = courses[0];
 
-    // Verify amount matches course price
-    if (Math.abs(amount - course.Price) > 0.01) {
-      console.error(`[${requestId}] Price mismatch:`, {
-        requested: amount,
-        actual: course.Price,
-        difference: Math.abs(amount - course.Price),
-      });
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Amount does not match course price' 
-      });
+    // Validate amount — allow discounted price when coupon applied
+    let finalAmount = amount as number;
+    let couponMeta: Record<string, string> = {};
+
+    if (couponCode) {
+      // Coupon path: validate coupon and compute discounted price
+      try {
+        const couponResult = await couponService.validateCoupon(
+          couponCode, courseId, userId, course.Price
+        );
+        finalAmount = couponResult.finalAmount;
+        couponMeta = {
+          couponId: couponResult.couponId,
+          couponCode: couponResult.code,
+          discountAmount: couponResult.discountAmount.toString(),
+          originalAmount: course.Price.toString(),
+        };
+        // Verify the client-supplied amount matches our server-calculated final amount
+        if (Math.abs(finalAmount - amount) > 0.02) {
+          console.error(`[${requestId}] Coupon amount mismatch:`, { clientAmount: amount, serverFinalAmount: finalAmount });
+          return res.status(400).json({ success: false, message: 'Amount does not match the discounted price. Please re-apply the coupon.' });
+        }
+        console.log(`[${requestId}] Coupon applied:`, { couponCode, discount: couponResult.discountAmount, finalAmount });
+      } catch (couponError: any) {
+        return res.status(couponError.statusCode || 400).json({ success: false, message: couponError.message });
+      }
+    } else {
+      // No coupon: amount must match course price exactly
+      if (Math.abs(amount - course.Price) > 0.01) {
+        console.error(`[${requestId}] Price mismatch:`, {
+          requested: amount,
+          actual: course.Price,
+          difference: Math.abs(amount - course.Price),
+        });
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Amount does not match course price' 
+        });
+      }
     }
 
     // Check if already enrolled (active/completed blocks checkout; approved allows it)
@@ -159,14 +191,15 @@ router.post('/create-payment-intent', authenticateToken, async (req: Request, re
       });
     }
 
-    // Create payment intent
+    // Create payment intent (use finalAmount so Stripe charges the discounted price)
     const { clientSecret, paymentIntent } = await stripeService.createPaymentIntent({
       userId,
       courseId,
-      amount,
+      amount: finalAmount,
       currency,
       metadata: {
         courseTitle: course.Title,
+        ...couponMeta,
       },
     });
 
@@ -293,8 +326,36 @@ async function handlePaymentIntentSucceeded(paymentIntent: any): Promise<void> {
   try {
     await stripeService.handlePaymentSuccess(paymentIntent);
     
+    // Record coupon usage if a coupon was applied (non-blocking)
+    const { userId, courseId, couponId, discountAmount, originalAmount } = paymentIntent.metadata;
+    if (couponId && userId && courseId) {
+      try {
+        // Find the transaction that was just created
+        const txRows = await db.query<{ Id: string }>(
+          `SELECT TOP 1 Id FROM dbo.Transactions WHERE StripePaymentIntentId = @piId ORDER BY CreatedAt DESC`,
+          { piId: paymentIntent.id }
+        );
+        const transactionId = txRows.length ? txRows[0].Id : null;
+        const original = parseFloat(originalAmount || '0');
+        const discount = parseFloat(discountAmount || '0');
+        const final = Math.max(0, original - discount);
+        await couponService.recordUsage({
+          couponId,
+          userId,
+          courseId,
+          transactionId,
+          discountAmount: discount,
+          originalAmount: original,
+          finalAmount: final,
+        });
+        console.log(`✅ Coupon usage recorded: couponId=${couponId}, userId=${userId}, discount=$${discount}`);
+      } catch (couponErr) {
+        // Non-critical — log but don't fail the webhook
+        console.error('⚠️ Failed to record coupon usage:', couponErr);
+      }
+    }
+
     // Send purchase confirmation email (non-blocking)
-    const { userId, courseId } = paymentIntent.metadata;
     if (userId && courseId) {
       sendPurchaseConfirmationEmail(userId, courseId, paymentIntent).catch(emailError => {
         console.error('⚠️ Failed to send purchase confirmation email:', emailError);

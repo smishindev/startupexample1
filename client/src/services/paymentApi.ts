@@ -86,16 +86,18 @@ export interface RefundResponse {
 
 /**
  * Create a payment intent for course purchase
+ * Pass couponCode if a validated coupon has been applied (amount must equal the discounted price)
  */
 export const createPaymentIntent = async (
   courseId: string,
   amount: number,
-  currency: string = 'usd'
+  currency: string = 'usd',
+  couponCode?: string
 ): Promise<PaymentIntent> => {
   try {
     const response = await paymentAxios.post<{ success: boolean; data: PaymentIntent }>(
       '/api/payments/create-payment-intent',
-      { courseId, amount, currency }
+      { courseId, amount, currency, couponCode: couponCode || undefined }
     );
 
     if (!response.data.success) {

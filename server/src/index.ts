@@ -49,6 +49,7 @@ import emailRoutes from './routes/email';
 import { termsRoutes } from './routes/terms';
 import { createCommentsRouter } from './routes/comments';
 import ratingsRoutes from './routes/ratings';
+import couponRoutes from './routes/coupons';
 const studentProgressRoutes = require('./routes/student-progress');
 import { DatabaseService } from './services/DatabaseService';
 import { setupSocketHandlers } from './sockets';
@@ -241,6 +242,7 @@ app.use('/api/settings', settingsRoutes);
 app.use('/api/email', emailRoutes);
 app.use('/api/terms', termsRoutes);
 app.use('/api/ratings', ratingsRoutes);
+app.use('/api/coupons', couponRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {

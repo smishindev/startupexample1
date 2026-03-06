@@ -4,7 +4,7 @@
 
 An innovative EdTech startup providing personalized learning experiences through AI tutoring, adaptive content delivery, and comprehensive progress analytics.
 
-**Last Major Update**: March 5, 2026 - Instructor Revenue Dashboard complete — `InstructorRevenueService.ts`, 4 backend routes, `InstructorRevenueDashboard.tsx` (~1000 lines), stat cards 1/row mobile, course search+pagination, transaction table filters 💰  
+**Last Major Update**: March 6, 2026 - Coupon/Discount Code System complete — `CouponService.ts` (385 lines), 6 backend routes, `couponApi.ts`, `CouponManagementPage.tsx` (833 lines), `CourseCheckoutPage.tsx` refactored (2-step + coupon UI); 9 bugs fixed across 3 audit rounds 🎟️  
 **Code Quality**: Grade A (95/100) - 85% type safety, 70% logging coverage, 0 TypeScript errors
 
 ## 🚀 Features
@@ -36,6 +36,12 @@ An innovative EdTech startup providing personalized learning experiences through
   - **Backend**: `server/src/services/InstructorRevenueService.ts` (~280 lines), 4 routes in `server/src/routes/instructorRevenue.ts`
   - **Frontend**: `client/src/services/instructorRevenueApi.ts` + `client/src/pages/Instructor/InstructorRevenueDashboard.tsx`
   - **Auth**: `authenticateToken, authorize(['instructor', 'admin'])` on all 4 endpoints
+- **Coupon / Discount Code System** — Full instructor coupon management + student checkout discount support (March 6, 2026) 🎟️
+  - **Instructor Management Page** (`/instructor/coupons`): Create/edit/deactivate coupons; search with 400ms debounce; stat cards (total/active/expired/used); mobile card list + desktop table, both with `TablePagination`; `ResponsiveDialog` edit form
+  - **Student Checkout**: Coupon code field in 2-step `CourseCheckoutPage`; server-validated discount (±$0.02 tampering tolerance); coupon preserved on "Back to review" navigation
+  - **Discount Types**: Percentage (0–100%) or fixed amount; optional max uses, expiry date, min purchase price, course scope
+  - **Backend**: `CouponService.ts` (385 lines) with 7-check `validateCoupon`, atomic `recordUsage` (INSERT + UPDATE in single shot); webhook `payment_intent.succeeded` records usage non-blocking
+  - **DB**: `Coupons` + `CouponUsage` tables; `TransactionId FK ON DELETE NO ACTION` (avoids SQL Server error 1785 cascade cycle)
 - **Admin Dashboard (5 Phases)** — Full platform governance for admins (March 5, 2026) 🏢
   - **Phase 1 — Dashboard Overview**: 4 stat cards (users, courses, enrollments, revenue), 30-day user/enrollment growth chart, recent activity feed, monthly revenue summary
   - **Phase 2 — User Management**: Paginated user list with search/role/status filters; change role (student ↔ instructor ↔ admin); activate/deactivate; trigger password reset; full user detail dialog (stats, courses, transactions)

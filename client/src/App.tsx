@@ -47,6 +47,7 @@ import { VideoAnalyticsPage } from './pages/Instructor/VideoAnalyticsPage';
 import { InterventionDashboard } from './pages/Instructor/InterventionDashboard';
 import { InstructorStudentAnalytics } from './pages/Instructor/InstructorStudentAnalytics';
 import { InstructorRevenueDashboard } from './pages/Instructor/InstructorRevenueDashboard';
+import CouponManagementPage from './pages/Instructor/CouponManagementPage';
 import LandingPage from './pages/Landing/LandingPage';
 import MyLearningPage from './pages/Learning/MyLearningPage';
 import NotificationsPage from './pages/Notifications/NotificationsPage';
@@ -512,6 +513,15 @@ function App() {
           element={
             <ProtectedRoute requireRole="instructor">
               <InstructorRevenueDashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/instructor/coupons"
+          element={
+            <ProtectedRoute requireRole="instructor">
+              <CouponManagementPage />
             </ProtectedRoute>
           }
         />

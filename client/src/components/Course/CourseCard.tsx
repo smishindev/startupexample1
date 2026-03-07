@@ -26,6 +26,7 @@ import {
   Block,
 } from '@mui/icons-material';
 import { formatCategory, getCategoryGradient as getCategoryGradientUtil, getLevelColor as getLevelColorUtil } from '../../utils/courseHelpers';
+import { Link as RouterLink } from 'react-router-dom';
 
 export interface Course {
   id: string;
@@ -197,7 +198,13 @@ export const CourseCard: React.FC<CourseCardProps> = ({
           <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 0.5 }}>
             {course.title}
           </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+          <Typography
+            component={course.instructor.id ? RouterLink : 'span'}
+            {...(course.instructor.id ? { to: `/instructor/${course.instructor.id}`, onClick: (e: React.MouseEvent) => e.stopPropagation() } : {})}
+            variant="body2"
+            color="text.secondary"
+            sx={{ mb: 1, textDecoration: 'none', ...(course.instructor.id ? { '&:hover': { textDecoration: 'underline', color: 'primary.main' } } : {}) }}
+          >
             {course.instructor.name}
           </Typography>
           {course.progress !== undefined && (
@@ -459,7 +466,13 @@ export const CourseCard: React.FC<CourseCardProps> = ({
           >
             {course.instructor.name.charAt(0)}
           </Avatar>
-          <Typography variant="body2" color="text.secondary">
+          <Typography
+            component={course.instructor.id ? RouterLink : 'span'}
+            {...(course.instructor.id ? { to: `/instructor/${course.instructor.id}`, onClick: (e: React.MouseEvent) => e.stopPropagation() } : {})}
+            variant="body2"
+            color="text.secondary"
+            sx={{ textDecoration: 'none', ...(course.instructor.id ? { '&:hover': { textDecoration: 'underline', color: 'primary.main' } } : {}) }}
+          >
             {course.instructor.name}
           </Typography>
         </Box>

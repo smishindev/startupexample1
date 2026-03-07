@@ -1,6 +1,6 @@
 # Mishin Learn Platform - System Architecture
 
-**Last Updated**: March 6, 2026 - Coupon/Discount Code System complete — `CouponService.ts` (385 lines), 6 routes at `/api/coupons`, `couponApi.ts`, `CouponManagementPage.tsx` (833 lines), `CourseCheckoutPage.tsx` refactored (2-step + coupon UI); DB schema updated (FK cascade fix); Instructor Revenue Dashboard + Admin Dashboard 5 phases also complete 💰🏢🎟️  
+**Last Updated**: March 7, 2026 - Instructor Public Profile Page complete — `InstructorProfileService.ts`, public `GET /api/instructors/:id/profile` (no auth), `InstructorProfilePage.tsx` (404 lines), `instructorProfileApi.ts`; 5 new DB columns on Users (Bio/Headline/WebsiteUrl/LinkedInUrl/TwitterUrl); 2 audit bugs fixed; Coupon/Discount + Revenue Dashboard + Admin Dashboard also complete 🏫💰🏢🎟️  
 **Purpose**: Understanding system components, data flows, and dependencies
 
 ---
@@ -55,6 +55,47 @@ Instructor Status Change Flow:
 ---
 
 ## 🔌 API ENDPOINTS
+
+### Instructor Public Profile Page (Added March 7, 2026)
+
+**Route file**: `server/src/routes/instructorProfile.ts`  
+**Service**: `server/src/services/InstructorProfileService.ts` (~120 lines)  
+**Auth**: **NO auth required** — fully public endpoint  
+**Frontend service**: `client/src/services/instructorProfileApi.ts` (no auth interceptor)  
+**Frontend page**: `client/src/pages/Instructor/InstructorProfilePage.tsx` (404 lines) at `/instructor/:instructorId`
+
+```
+GET /api/instructors/:id/profile   → Public instructor profile
+                                     Guard: Role IN ('instructor','admin') AND IsActive=1
+                                     AND ProfileVisibility = 'public'
+                                     Returns: name, headline, bio, avatarUrl, totalStudents,
+                                     totalCourses, avgRating, totalReviews, social links
+                                     (WebsiteUrl, LinkedInUrl, TwitterUrl),
+                                     + courses[] ordered by EnrollmentCount DESC
+```
+
+**DB columns added to `dbo.Users`** (all nullable):
+```sql
+Bio           NVARCHAR(2000)    -- instructor bio / about text
+Headline      NVARCHAR(200)     -- short role/speciality tagline
+WebsiteUrl    NVARCHAR(500)     -- personal/portfolio website
+LinkedInUrl   NVARCHAR(500)     -- LinkedIn profile URL
+TwitterUrl    NVARCHAR(500)     -- Twitter/X profile URL
+```
+
+**Key audit notes**:
+- Privacy check MUST be `ProfileVisibility !== 'public'` (not `=== 'private'`) so that `'students'` and other non-public values are also blocked on the unauthenticated endpoint
+- `instructorProfileApi.ts` must **not** include auth interceptors (public page must work without login)
+- URL params must use `?.trim()` in the SQL parameters object, not just in `new URL()` validation
+- `PageContainer disableBottomPad={!isAuthenticated}` on InstructorProfilePage (mixed auth state — page works for both guests and authenticated users)
+
+**Profile editing**: instructor-only fields are in `ProfilePage.tsx` under an "Instructor Profile" tab section (Headline, Bio, WebsiteUrl, LinkedInUrl, TwitterUrl) — updates go through `PUT /api/profile/personal-info`
+
+**Entry points to the public profile page**:
+- `CourseCard.tsx` — instructor name (compact + default variants) as `RouterLink` when `course.instructor.id` exists
+- `CourseDetailPage.tsx` — hero instructor name + "Your Instructor" section name as `RouterLink`
+
+---
 
 ### Admin Dashboard (Added March 5, 2026)
 

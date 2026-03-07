@@ -48,6 +48,7 @@ import { InterventionDashboard } from './pages/Instructor/InterventionDashboard'
 import { InstructorStudentAnalytics } from './pages/Instructor/InstructorStudentAnalytics';
 import { InstructorRevenueDashboard } from './pages/Instructor/InstructorRevenueDashboard';
 import CouponManagementPage from './pages/Instructor/CouponManagementPage';
+import InstructorProfilePage from './pages/Instructor/InstructorProfilePage';
 import LandingPage from './pages/Landing/LandingPage';
 import MyLearningPage from './pages/Learning/MyLearningPage';
 import NotificationsPage from './pages/Notifications/NotificationsPage';
@@ -281,6 +282,7 @@ function App() {
           <Route path="/courses" element={<CoursesPage />} />
           <Route path="/courses/:courseId" element={<CourseDetailPage />} />
           <Route path="/courses/:courseId/preview/:previewToken" element={<CourseDetailPage />} />
+          <Route path="/instructor/:instructorId" element={<InstructorProfilePage />} />
         </Route>
         
         {/* Public Certificate Route - shareable, no authentication required */}

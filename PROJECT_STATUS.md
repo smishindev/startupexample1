@@ -1,6 +1,6 @@
 ﻿# Mishin Learn Platform - Project Status & Memory
 
-**Last Updated**: March 6, 2026 - Coupon/Discount Code System complete — `CouponService.ts` (385 lines), 6 backend routes, `couponApi.ts`, `CouponManagementPage.tsx` (833 lines), `CourseCheckoutPage.tsx` refactored (2-step + coupon UI); 9 bugs fixed across 3 audit rounds; DB schema applied (FK cascade fix) 🎟️  
+**Last Updated**: March 7, 2026 - Instructor Public Profile Page complete — `InstructorProfileService.ts`, `GET /api/instructors/:id/profile` (public, no auth), `InstructorProfilePage.tsx` (404 lines), `instructorProfileApi.ts`; 5 new DB columns (Bio/Headline/WebsiteUrl/LinkedInUrl/TwitterUrl); instructor links on CourseCard + CourseDetailPage; 2 audit bugs fixed (privacy check `!== 'public'`, URL `.trim()`) 🏫  
 **Developer**: Sergey Mishin (s.mishin.dev@gmail.com)  
 **AI Assistant Context**: This file serves as project memory for continuity across chat sessions
 
@@ -37,7 +37,67 @@
 
 ---
 
-## �️ COUPON / DISCOUNT CODE SYSTEM — COMPLETE (Latest — March 6, 2026)
+## 🏫 INSTRUCTOR PUBLIC PROFILE PAGE — COMPLETE (Latest — March 7, 2026)
+
+**Activity**: Implemented the full Instructor Public Profile Page — item #5 from `MISSING_FEATURES_ANALYSIS.md`. Any visitor (no login required) can view an instructor's public bio, headline, social links, aggregate stats, and published courses. Two audit bugs found and fixed.
+
+**Status**: **Complete** — 4 new files, 8 modified files, 5 new DB columns, 0 TypeScript errors
+
+### New Files
+
+| File | Purpose |
+|------|---------|
+| `server/src/services/InstructorProfileService.ts` (~120 lines) | `getPublicProfile(instructorId)`: queries Users (Role IN instructor/admin AND IsActive=1), checks `ProfileVisibility === 'public'`, aggregates stats (weighted avg rating), returns published courses ordered by EnrollmentCount DESC |
+| `server/src/routes/instructorProfile.ts` (~50 lines) | `GET /:id/profile` — no `authenticateToken` (fully public); mounted at `/api/instructors` |
+| `client/src/services/instructorProfileApi.ts` (~65 lines) | Axios instance **without** auth interceptor; `getPublicProfile(instructorId)`; exports `InstructorPublicProfile` + `InstructorPublicCourse` interfaces |
+| `client/src/pages/Instructor/InstructorProfilePage.tsx` (404 lines) | Public profile page — hero gradient, 4 stat cards (`xs={6} sm={6} md={3}`), bio, published courses grid (`xs={12} sm={6} md={4}`); loading skeleton; `PageContainer disableBottomPad={!isAuthenticated}`; SVG LinkedIn/Twitter icons |
+
+### Modified Files
+
+| File | Change |
+|------|--------|
+| `database/schema.sql` | Added 5 nullable columns to `dbo.Users` after `PreferencesJson`: `Bio NVARCHAR(2000)`, `Headline NVARCHAR(200)`, `WebsiteUrl NVARCHAR(500)`, `LinkedInUrl NVARCHAR(500)`, `TwitterUrl NVARCHAR(500)` |
+| `server/src/routes/profile.ts` | GET `/` returns Bio/Headline/WebsiteUrl/LinkedInUrl/TwitterUrl; PUT `/personal-info` validates URLs + stores with `?.trim()` |
+| `server/src/index.ts` | Added `import instructorProfileRoutes` + `app.use('/api/instructors', instructorProfileRoutes)` |
+| `server/src/types/database.ts` | Added `InstructorPublicProfile` + `InstructorPublicCourse` interfaces |
+| `client/src/App.tsx` | Added `<Route path="/instructor/:instructorId" element={<InstructorProfilePage />} />` inside `<Route element={<PublicLayout />}>` group |
+| `client/src/services/profileApi.ts` | Added `bio?`, `headline?`, `websiteUrl?`, `linkedInUrl?`, `twitterUrl?` to `UserProfile` + `UpdatePersonalInfoData` |
+| `client/src/pages/Profile/ProfilePage.tsx` | Added "Instructor Profile" section (instructor/admin only) with Headline, Bio, and 3 URL TextFields |
+| `client/src/pages/Course/CourseDetailPage.tsx` | Hero + "Your Instructor" section instructor name wrapped in `RouterLink` to `/instructor/:id` |
+| `client/src/components/Course/CourseCard.tsx` | Instructor names in compact + default variants conditionally rendered as `RouterLink` when `course.instructor.id` exists; `onClick={(e) => e.stopPropagation()}` |
+
+### Database Migration
+
+Migration script: `database/add_instructor_profile_fields.sql` (idempotent `IF COL_LENGTH` guards per column). Schema applied to new `startUp1` DB on March 7, 2026.
+
+### Audit Bugs Fixed
+
+| # | Bug | Root Cause | Fix |
+|---|-----|-----------|-----|
+| 1 | Non-public profiles (e.g. `'students'`, `'private'`) were leaking through the public API | Privacy check was `=== 'private'` — only blocked 'private', passed 'students' through | Changed to `!== 'public'` — only truly public profiles are accessible via the unauthenticated endpoint |
+| 2 | URLs stored untrimmed despite validation using `.trim()` | `?.trim()` was only in the `new URL()` validation call, not in the SQL params object | Added `?.trim()` to `WebsiteUrl`, `LinkedInUrl`, `TwitterUrl` params in the SQL parameters object |
+
+### Backend Route
+
+```
+GET /api/instructors/:id/profile   → Public instructor profile (NO auth required)
+                                     Response: name, headline, bio, avatar, social links,
+                                     totalStudents, totalCourses, avgRating, totalReviews,
+                                     + published courses array (ordered by EnrollmentCount DESC)
+                                     Guard: user must have Role IN ('instructor','admin')
+                                       AND IsActive = 1
+                                       AND ProfileVisibility = 'public'
+```
+
+### Client Route
+
+```
+/instructor/:instructorId   → InstructorProfilePage.tsx (PublicLayout group — no auth required)
+```
+
+---
+
+## 🗂️ COUPON / DISCOUNT CODE SYSTEM — COMPLETE (March 6, 2026)
 
 **Activity**: Implemented the full Coupon/Discount Code System — item #3 from `MISSING_FEATURES_ANALYSIS.md`. Instructors can create, manage, and track coupon codes. Students can apply discount codes at checkout for reduced course prices. 9 bugs found and fixed across 3 consecutive audit rounds.
 

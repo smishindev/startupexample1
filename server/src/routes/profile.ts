@@ -56,6 +56,7 @@ router.get('/', authenticateToken, async (req: AuthRequest, res) => {
         Id, Email, Username, FirstName, LastName, Avatar, Role, 
         LearningStyle, PreferencesJson, IsActive, EmailVerified,
         BillingStreetAddress, BillingCity, BillingState, BillingPostalCode, BillingCountry,
+        Bio, Headline, WebsiteUrl, LinkedInUrl, TwitterUrl,
         CreatedAt, UpdatedAt, LastLoginAt
       FROM dbo.Users
       WHERE Id = @userId AND IsActive = 1
@@ -82,6 +83,11 @@ router.get('/', authenticateToken, async (req: AuthRequest, res) => {
       learningStyle: user.LearningStyle,
       preferences: user.PreferencesJson ? JSON.parse(user.PreferencesJson) : null,
       emailVerified: user.EmailVerified,
+      bio: user.Bio || null,
+      headline: user.Headline || null,
+      websiteUrl: user.WebsiteUrl || null,
+      linkedInUrl: user.LinkedInUrl || null,
+      twitterUrl: user.TwitterUrl || null,
       billingAddress: {
         streetAddress: user.BillingStreetAddress,
         city: user.BillingCity,
@@ -243,7 +249,7 @@ router.get('/user/:userId/progress', authenticateToken, async (req: AuthRequest,
 router.put('/personal-info', authenticateToken, async (req: AuthRequest, res) => {
   try {
     const userId = req.user!.userId;
-    const { firstName, lastName, username, learningStyle } = req.body;
+    const { firstName, lastName, username, learningStyle, bio, headline, websiteUrl, linkedInUrl, twitterUrl } = req.body;
 
     // Validate required fields
     if (!firstName || !lastName || !username) {
@@ -251,6 +257,21 @@ router.put('/personal-info', authenticateToken, async (req: AuthRequest, res) =>
         success: false, 
         message: 'First name, last name, and username are required' 
       });
+    }
+
+    // Validate URL fields if provided
+    const urlFields = { websiteUrl, linkedInUrl, twitterUrl };
+    for (const [field, value] of Object.entries(urlFields)) {
+      if (value && typeof value === 'string' && value.trim().length > 0) {
+        try {
+          new URL(value.trim());
+        } catch {
+          return res.status(400).json({
+            success: false,
+            message: `Invalid URL for ${field}`
+          });
+        }
+      }
     }
 
     // Check if username is already taken by another user
@@ -273,9 +294,23 @@ router.put('/personal-info', authenticateToken, async (req: AuthRequest, res) =>
           LastName = @lastName,
           Username = @username,
           LearningStyle = @learningStyle,
+          Bio = @bio,
+          Headline = @headline,
+          WebsiteUrl = @websiteUrl,
+          LinkedInUrl = @linkedInUrl,
+          TwitterUrl = @twitterUrl,
           UpdatedAt = GETUTCDATE()
       WHERE Id = @userId
-    `, { firstName, lastName, username, learningStyle: learningStyle || null, userId });
+    `, { 
+      firstName, lastName, username, 
+      learningStyle: learningStyle || null, 
+      bio: bio || null,
+      headline: headline || null,
+      websiteUrl: websiteUrl?.trim() || null,
+      linkedInUrl: linkedInUrl?.trim() || null,
+      twitterUrl: twitterUrl?.trim() || null,
+      userId 
+    });
 
     res.json({ 
       success: true, 

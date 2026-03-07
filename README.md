@@ -4,7 +4,7 @@
 
 An innovative EdTech startup providing personalized learning experiences through AI tutoring, adaptive content delivery, and comprehensive progress analytics.
 
-**Last Major Update**: March 6, 2026 - Coupon/Discount Code System complete — `CouponService.ts` (385 lines), 6 backend routes, `couponApi.ts`, `CouponManagementPage.tsx` (833 lines), `CourseCheckoutPage.tsx` refactored (2-step + coupon UI); 9 bugs fixed across 3 audit rounds 🎟️  
+**Last Major Update**: March 7, 2026 - Instructor Public Profile Page complete — public `/instructor/:instructorId` route, `InstructorProfileService.ts`, `GET /api/instructors/:id/profile` (no auth), `InstructorProfilePage.tsx` (404 lines), `instructorProfileApi.ts`; 5 new DB columns (Bio/Headline/WebsiteUrl/LinkedInUrl/TwitterUrl); instructor name links on CourseCard + CourseDetailPage; 2 audit bugs fixed 🏫  
 **Code Quality**: Grade A (95/100) - 85% type safety, 70% logging coverage, 0 TypeScript errors
 
 ## 🚀 Features
@@ -36,6 +36,17 @@ An innovative EdTech startup providing personalized learning experiences through
   - **Backend**: `server/src/services/InstructorRevenueService.ts` (~280 lines), 4 routes in `server/src/routes/instructorRevenue.ts`
   - **Frontend**: `client/src/services/instructorRevenueApi.ts` + `client/src/pages/Instructor/InstructorRevenueDashboard.tsx`
   - **Auth**: `authenticateToken, authorize(['instructor', 'admin'])` on all 4 endpoints
+- **Instructor Public Profile Page** — Public instructor profile page at `/instructor/:instructorId` (no login required) (March 7, 2026) 🏫
+  - **Public API**: `GET /api/instructors/:id/profile` — no auth required; returns name, headline, bio, social links, aggregate stats (students/courses/rating/reviews), published courses ordered by popularity
+  - **Profile Hero**: Gradient header with avatar, name, headline, social link buttons (LinkedIn, Twitter, Website)
+  - **Stats Grid**: 4 stat cards (`xs={6} sm={6} md={3}`) — Total Students, Courses, Avg Rating, Total Reviews
+  - **Published Courses**: Responsive grid (`xs={12} sm={6} md={4}`) showing all published courses with enrollment count
+  - **Profile Editing**: Instructor/admin users can update their public profile via `ProfilePage.tsx` — Headline (200 char), Bio (2000 char), WebsiteUrl, LinkedInUrl, TwitterUrl fields
+  - **Entry Points**: Instructor names on `CourseCard.tsx` (compact + default variants) and `CourseDetailPage.tsx` (hero + "Your Instructor" section) link directly to the public profile
+  - **Privacy**: Only `ProfileVisibility = 'public'` profiles are accessible; non-public profiles return 403
+  - **DB**: 5 new nullable columns on `dbo.Users` (Bio, Headline, WebsiteUrl, LinkedInUrl, TwitterUrl); migration in `database/add_instructor_profile_fields.sql`
+  - **Backend**: `InstructorProfileService.ts` (~120 lines) + `instructorProfile.ts` route; mounted at `/api/instructors`
+  - **Frontend**: `instructorProfileApi.ts` (no auth interceptor) + `InstructorProfilePage.tsx` (404 lines) with loading skeleton + error state
 - **Coupon / Discount Code System** — Full instructor coupon management + student checkout discount support (March 6, 2026) 🎟️
   - **Instructor Management Page** (`/instructor/coupons`): Create/edit/deactivate coupons; search with 400ms debounce; stat cards (total/active/expired/used); mobile card list + desktop table, both with `TablePagination`; `ResponsiveDialog` edit form
   - **Student Checkout**: Coupon code field in 2-step `CourseCheckoutPage`; server-validated discount (±$0.02 tampering tolerance); coupon preserved on "Back to review" navigation

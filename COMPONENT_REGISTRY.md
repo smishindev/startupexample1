@@ -1,6 +1,6 @@
 ﻿# Mishin Learn Platform - Component Registry
 
-**Last Updated**: March 6, 2026 - Coupon/Discount Code System added (`CouponManagementPage.tsx`, `couponApi.ts`, `CouponService.ts`); Instructor Revenue Dashboard + Admin Dashboard 5 phases also complete
+**Last Updated**: March 7, 2026 - Instructor Public Profile Page added (`InstructorProfilePage.tsx`, `instructorProfileApi.ts`, `InstructorProfileService.ts`); Coupon/Discount Code System, Instructor Revenue Dashboard, and Admin Dashboard 5 phases also complete
 **Purpose**: Quick reference for all major components, their dependencies, and relationships
 
 ---
@@ -55,6 +55,8 @@ Route-level page components:
   - InstructorDashboard, CourseAnalyticsDashboard, CoursePerformanceTable
   - **Admin Pages** (March 5, 2026): AdminDashboard, AdminUserManagement + AdminUserDetailDialog, AdminCourseManagement + AdminCourseDetailDialog, AdminRevenueDashboard, AdminReportsPage — all in `client/src/pages/Admin/`
   - **Instructor Revenue Dashboard** (March 5, 2026): `InstructorRevenueDashboard.tsx` — stat cards, monthly bar chart, course pie chart, course performance table (search+pagination), paginated transaction table (search/status/course/sort/detail dialog) — in `client/src/pages/Instructor/`
+  - **Instructor Public Profile Page** (March 7, 2026): `InstructorProfilePage.tsx` (404 lines) — public profile at `/instructor/:instructorId`; hero gradient, 4 stat cards (`xs={6} sm={6} md={3}` — students/courses/rating/reviews), bio section, published courses grid (`xs={12} sm={6} md={4}`); `PageContainer disableBottomPad={!isAuthenticated}`; loading skeleton + error state; SVG LinkedIn/Twitter icons; `toCourseCardData()` helper — in `client/src/pages/Instructor/`
+  - **instructorProfileApi.ts** (March 7, 2026): `client/src/services/instructorProfileApi.ts` (~65 lines) — axios instance **without** auth interceptor (public API); `getPublicProfile(instructorId)`; exports `InstructorPublicProfile` + `InstructorPublicCourse` interfaces
   - **Coupon Management Page** (March 6, 2026): `CouponManagementPage.tsx` (833 lines) — instructor coupon CRUD; stat cards (total/active/expired/used); search with 400ms debounce; mobile card list + desktop table (both with `TablePagination`); `ResponsiveDialog` create/edit form; `LocalOfferIcon` nav entry — in `client/src/pages/Instructor/`
   - **CourseCheckoutPage** (refactored March 6, 2026): `CourseCheckoutPage.tsx` (551 lines) — 2-step `review | payment` flow; `ReviewStep` accepts `initialCoupon` prop (preserves coupon on back-navigation); lazy PI creation with `creatingPIRef` debounce guard; `couponApi.validateCoupon` called on code entry — in `client/src/pages/Payment/`
   - **couponApi.ts** (March 6, 2026): `client/src/services/couponApi.ts` (208 lines) — `validateCoupon`, `getInstructorCoupons`, `getCouponById`, `createCoupon`, `updateCoupon`, `deactivateCoupon`; auth interceptor + 401 auto-logout; top-level ES `import { useAuthStore }` (not `require()`)

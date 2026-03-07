@@ -37,6 +37,11 @@ export interface UserProfile {
   learningStyle?: string | null;
   preferences?: Record<string, any> | null;
   emailVerified: boolean;
+  bio?: string | null;
+  headline?: string | null;
+  websiteUrl?: string | null;
+  linkedInUrl?: string | null;
+  twitterUrl?: string | null;
   billingAddress: {
     streetAddress?: string | null;
     city?: string | null;
@@ -54,6 +59,11 @@ export interface UpdatePersonalInfoData {
   lastName: string;
   username: string;
   learningStyle?: string | null;
+  bio?: string | null;
+  headline?: string | null;
+  websiteUrl?: string | null;
+  linkedInUrl?: string | null;
+  twitterUrl?: string | null;
 }
 
 export interface UpdateBillingAddressData {

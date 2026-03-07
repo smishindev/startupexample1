@@ -96,6 +96,12 @@ CREATE TABLE dbo.Users (
     Role NVARCHAR(20) NOT NULL DEFAULT 'student' CHECK (Role IN ('student', 'instructor', 'admin')),
     LearningStyle NVARCHAR(20) NULL CHECK (LearningStyle IN ('visual', 'auditory', 'kinesthetic', 'reading_writing')),
     PreferencesJson NVARCHAR(MAX) NULL, -- JSON string for user preferences
+    -- Instructor Profile Fields
+    Bio NVARCHAR(2000) NULL,
+    Headline NVARCHAR(200) NULL,
+    WebsiteUrl NVARCHAR(500) NULL,
+    LinkedInUrl NVARCHAR(500) NULL,
+    TwitterUrl NVARCHAR(500) NULL,
     IsActive BIT NOT NULL DEFAULT 1,
     EmailVerified BIT NOT NULL DEFAULT 0,
     EmailVerificationCode NVARCHAR(10) NULL, -- Email verification code (6-digit)

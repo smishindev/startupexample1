@@ -683,3 +683,41 @@ export interface InstructorLeaderboardEntry {
   totalRatings: number;
   joinedAt: string;
 }
+
+// ===================================
+// Instructor Public Profile Types
+// ===================================
+
+export interface InstructorPublicProfile {
+  id: string;
+  firstName: string;
+  lastName: string;
+  avatar: string | null;
+  bio: string | null;
+  headline: string | null;
+  websiteUrl: string | null;
+  linkedInUrl: string | null;
+  twitterUrl: string | null;
+  joinedAt: string;
+  stats: {
+    totalStudents: number;
+    totalCourses: number;
+    averageRating: number;
+    totalReviews: number;
+  };
+  courses: InstructorPublicCourse[];
+}
+
+export interface InstructorPublicCourse {
+  id: string;
+  title: string;
+  description: string;
+  thumbnail: string | null;
+  category: string;
+  level: string;
+  price: number;
+  rating: number;
+  ratingCount: number;
+  enrollmentCount: number;
+  duration: number;
+}

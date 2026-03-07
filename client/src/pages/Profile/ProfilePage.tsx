@@ -80,7 +80,12 @@ const ProfilePage: React.FC = () => {
     firstName: '',
     lastName: '',
     username: '',
-    learningStyle: null
+    learningStyle: null,
+    bio: null,
+    headline: null,
+    websiteUrl: null,
+    linkedInUrl: null,
+    twitterUrl: null
   });
 
   // Billing Address State
@@ -118,7 +123,12 @@ const ProfilePage: React.FC = () => {
         firstName: data.firstName,
         lastName: data.lastName,
         username: data.username,
-        learningStyle: data.learningStyle || null
+        learningStyle: data.learningStyle || null,
+        bio: data.bio || null,
+        headline: data.headline || null,
+        websiteUrl: data.websiteUrl || null,
+        linkedInUrl: data.linkedInUrl || null,
+        twitterUrl: data.twitterUrl || null
       });
 
       setBillingAddress({
@@ -425,6 +435,79 @@ const ProfilePage: React.FC = () => {
                     </Select>
                   </FormControl>
                 </Grid>
+
+                {/* Instructor / Admin Profile Fields */}
+                {(profile.role === 'instructor' || profile.role === 'admin') && (
+                  <>
+                    <Grid item xs={12}>
+                      <Divider sx={{ my: 1 }} />
+                      <Typography variant="h6" gutterBottom fontWeight="bold" sx={{ mt: 1 }}>
+                        Instructor Profile
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                        This information is displayed on your public instructor profile page.
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={12}>
+                      <TextField
+                        fullWidth
+                        label="Headline"
+                        placeholder="e.g. Senior Web Developer & Educator"
+                        value={personalInfo.headline || ''}
+                        onChange={(e) => setPersonalInfo({ ...personalInfo, headline: e.target.value || null })}
+                        inputProps={{ maxLength: 200 }}
+                        helperText={`${(personalInfo.headline || '').length}/200 — Short tagline shown under your name`}
+                        data-testid="profile-headline-input"
+                      />
+                    </Grid>
+                    <Grid item xs={12}>
+                      <TextField
+                        fullWidth
+                        label="Bio"
+                        placeholder="Tell students about yourself, your experience, and teaching style..."
+                        value={personalInfo.bio || ''}
+                        onChange={(e) => setPersonalInfo({ ...personalInfo, bio: e.target.value || null })}
+                        multiline
+                        minRows={3}
+                        maxRows={8}
+                        inputProps={{ maxLength: 2000 }}
+                        helperText={`${(personalInfo.bio || '').length}/2000`}
+                        data-testid="profile-bio-input"
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={4}>
+                      <TextField
+                        fullWidth
+                        label="Website URL"
+                        placeholder="https://yoursite.com"
+                        value={personalInfo.websiteUrl || ''}
+                        onChange={(e) => setPersonalInfo({ ...personalInfo, websiteUrl: e.target.value || null })}
+                        data-testid="profile-website-input"
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={4}>
+                      <TextField
+                        fullWidth
+                        label="LinkedIn URL"
+                        placeholder="https://linkedin.com/in/yourprofile"
+                        value={personalInfo.linkedInUrl || ''}
+                        onChange={(e) => setPersonalInfo({ ...personalInfo, linkedInUrl: e.target.value || null })}
+                        data-testid="profile-linkedin-input"
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={4}>
+                      <TextField
+                        fullWidth
+                        label="Twitter / X URL"
+                        placeholder="https://x.com/yourhandle"
+                        value={personalInfo.twitterUrl || ''}
+                        onChange={(e) => setPersonalInfo({ ...personalInfo, twitterUrl: e.target.value || null })}
+                        data-testid="profile-twitter-input"
+                      />
+                    </Grid>
+                  </>
+                )}
+
                 <Grid item xs={12}>
                   <Button
                     variant="contained"

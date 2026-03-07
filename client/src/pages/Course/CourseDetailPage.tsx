@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useParams, useNavigate, useLocation, Link as RouterLink } from 'react-router-dom';
 
 // Helper function to format category for display (e.g. 'data_science' → 'Data Science')
 const formatCategory = (category: string): string => {
@@ -848,7 +848,12 @@ export const CourseDetailPage: React.FC = () => {
                   <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)' }}>
                     Created by
                   </Typography>
-                  <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                  <Typography
+                    component={RouterLink}
+                    to={`/instructor/${course.instructor.id}`}
+                    variant="body1"
+                    sx={{ fontWeight: 600, color: 'white', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
+                  >
                     {course.instructor.name}
                   </Typography>
                 </Box>
@@ -1240,7 +1245,12 @@ export const CourseDetailPage: React.FC = () => {
                   {course.instructor.name.charAt(0)}
                 </Avatar>
                 <Box sx={{ flex: 1 }}>
-                  <Typography variant="h6" sx={{ fontWeight: 700, mb: 0.5 }}>
+                  <Typography
+                    component={RouterLink}
+                    to={`/instructor/${course.instructor.id}`}
+                    variant="h6"
+                    sx={{ fontWeight: 700, mb: 0.5, color: 'text.primary', textDecoration: 'none', '&:hover': { textDecoration: 'underline', color: 'primary.main' } }}
+                  >
                     {course.instructor.name}
                   </Typography>
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
